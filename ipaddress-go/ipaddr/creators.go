@@ -77,15 +77,15 @@ func (creator *ipv6AddressCreator) createPrefixSegment(value SegInt, segmentPref
 }
 
 func (creator *ipv6AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv6SectionParsed(segments, isMultiple, prefixLength, false).ToIPAddressSection()
+	return newPrefixedIPv6SectionParsed(segments, isMultiple, prefixLength, false).ToIP()
 }
 
 func (creator *ipv6AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv6SectionParsed(segments, isMultiple, prefixLength, true).ToIPAddressSection()
+	return newPrefixedIPv6SectionParsed(segments, isMultiple, prefixLength, true).ToIP()
 }
 
 func (creator *ipv6AddressCreator) createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection {
-	return newIPv6SectionParsed(segments, isMultiple).ToAddressSection()
+	return newIPv6SectionParsed(segments, isMultiple).ToSectionBase()
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, zone Zone) *IPAddress {
@@ -94,7 +94,7 @@ func (creator *ipv6AddressCreator) createAddressInternalFromBytes(bytes []byte, 
 }
 
 func (creator *ipv6AddressCreator) createAddressInternalFromSection(section *IPAddressSection, zone Zone, originator HostIdentifierString) *IPAddress {
-	res := newIPv6AddressZoned(section.ToIPv6AddressSection(), string(zone)).ToIPAddress()
+	res := newIPv6AddressZoned(section.ToIPv6(), string(zone)).ToIPAddress()
 	if originator != nil {
 		// the originator is assigned to a parsedIPAddress struct in validateHostName or validateIPAddressStr
 		cache := res.cache
@@ -106,7 +106,7 @@ func (creator *ipv6AddressCreator) createAddressInternalFromSection(section *IPA
 }
 
 func (creator *ipv6AddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
-	res := newIPv6Address(section.ToIPv6AddressSection()).ToAddress()
+	res := newIPv6Address(section.ToIPv6()).ToAddress()
 	if originator != nil {
 		// the originator is assigned to a parsedIPAddress struct in validateHostName or validateIPAddressStr
 		cache := res.cache
@@ -154,15 +154,15 @@ func (creator *ipv4AddressCreator) createPrefixSegment(value SegInt, segmentPref
 }
 
 func (creator *ipv4AddressCreator) createPrefixedSectionInternal(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv4SectionParsed(segments, isMultiple, prefixLength, false).ToIPAddressSection()
+	return newPrefixedIPv4SectionParsed(segments, isMultiple, prefixLength, false).ToIP()
 }
 
 func (creator *ipv4AddressCreator) createPrefixedSectionInternalSingle(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen) *IPAddressSection {
-	return newPrefixedIPv4SectionParsed(segments, isMultiple, prefixLength, true).ToIPAddressSection()
+	return newPrefixedIPv4SectionParsed(segments, isMultiple, prefixLength, true).ToIP()
 }
 
 func (creator *ipv4AddressCreator) createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection {
-	return newIPv4SectionParsed(segments, isMultiple).ToAddressSection()
+	return newIPv4SectionParsed(segments, isMultiple).ToSectionBase()
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, _ Zone) *IPAddress {
@@ -171,7 +171,7 @@ func (creator *ipv4AddressCreator) createAddressInternalFromBytes(bytes []byte, 
 }
 
 func (creator *ipv4AddressCreator) createAddressInternalFromSection(section *IPAddressSection, _ Zone, originator HostIdentifierString) *IPAddress {
-	res := newIPv4Address(section.ToIPv4AddressSection()).ToIPAddress()
+	res := newIPv4Address(section.ToIPv4()).ToIPAddress()
 	if originator != nil {
 		cache := res.cache
 		if cache != nil {
@@ -182,7 +182,7 @@ func (creator *ipv4AddressCreator) createAddressInternalFromSection(section *IPA
 }
 
 func (creator *ipv4AddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
-	res := newIPv4Address(section.ToIPv4AddressSection()).ToAddress()
+	res := newIPv4Address(section.ToIPv4()).ToAddress()
 	if originator != nil {
 		cache := res.cache
 		if cache != nil {
@@ -232,11 +232,11 @@ func (creator *macAddressCreator) createPrefixSegment(value SegInt, _ PrefixLen)
 }
 
 func (creator *macAddressCreator) createSectionInternal(segments []*AddressDivision, isMultiple bool) *AddressSection {
-	return newMACSectionParsed(segments, isMultiple).ToAddressSection()
+	return newMACSectionParsed(segments, isMultiple).ToSectionBase()
 }
 
 func (creator *macAddressCreator) createAddressInternal(section *AddressSection, originator HostIdentifierString) *Address {
-	res := newMACAddress(section.ToMACAddressSection()).ToAddress()
+	res := newMACAddress(section.ToMAC()).ToAddress()
 	if originator != nil {
 		cache := res.cache
 		if cache != nil {

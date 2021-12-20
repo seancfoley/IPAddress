@@ -101,7 +101,7 @@ type StandardDivGroupingType interface {
 
 	CompareSize(StandardDivGroupingType) int
 
-	ToAddressDivisionGrouping() *AddressDivisionGrouping
+	ToDivGrouping() *AddressDivisionGrouping
 }
 
 var _, _ StandardDivGroupingType = &AddressDivisionGrouping{},
@@ -154,6 +154,8 @@ var _, _ AddressSegmentSeries = &Address{}, &AddressSection{}
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
 
+	//TODO now you can add ToIPv6(), ToIPv4(), IsIPv6, IsIPv4
+
 	AddressSegmentSeries
 
 	IncludesZeroHost() bool
@@ -186,7 +188,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 
 var _, _ IPAddressSegmentSeries = &IPAddress{}, &IPAddressSection{}
 
-type IPv6AddressSegmentSeries interface {
+type IPv6AddressSegmentSeries interface { //TODO now you can add ToIP(), IsIP(), in fact maybe to IPAddressSegmentSeries
 	IPAddressSegmentSeries
 
 	// GetTrailingSection returns an ending subsection of the full address section
@@ -211,7 +213,7 @@ var _, _, _ IPv6AddressSegmentSeries = &IPv6Address{},
 	&IPv6AddressSection{},
 	&EmbeddedIPv6AddressSection{}
 
-type IPv4AddressSegmentSeries interface {
+type IPv4AddressSegmentSeries interface { //TODO now you can add ToIP(), IsIP()
 	IPAddressSegmentSeries
 
 	// GetTrailingSection returns an ending subsection of the full address section
@@ -261,7 +263,7 @@ type AddressSectionType interface {
 	Equal(AddressSectionType) bool
 	Contains(AddressSectionType) bool
 
-	ToAddressSection() *AddressSection
+	ToSectionBase() *AddressSection
 }
 
 //Note: if we had an IPAddressSectionType we could add Wrap() WrappedIPAddressSection to it, but I guess not much else

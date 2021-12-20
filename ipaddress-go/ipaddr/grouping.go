@@ -263,7 +263,7 @@ func (grouping *addressDivisionGroupingInternal) isAddressSection() bool {
 
 //func (grouping *addressDivisionGroupingInternal) CompareSize(other AddressDivisionSeries) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
 func (grouping *addressDivisionGroupingInternal) compareSize(other StandardDivGroupingType) int { // the getCount() is optimized which is why we do not defer to the method in addressDivisionGroupingBase
-	if other == nil || other.ToAddressDivisionGrouping() == nil {
+	if other == nil || other.ToDivGrouping() == nil {
 		// our size is 1 or greater, other 0
 		return 1
 	}
@@ -328,7 +328,7 @@ func (grouping *addressDivisionGroupingInternal) toAddressDivisionGrouping() *Ad
 }
 
 func (grouping *addressDivisionGroupingInternal) toAddressSection() *AddressSection {
-	return grouping.toAddressDivisionGrouping().ToAddressSection()
+	return grouping.toAddressDivisionGrouping().ToSectionBase()
 }
 
 func (grouping *addressDivisionGroupingInternal) matchesIPv6AddressType() bool {
@@ -654,7 +654,7 @@ func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
 //	//}
 //	if section := grouping.toAddressSection(); section != nil {
 //		if otherGrp, ok := other.(StandardDivGroupingType); ok {
-//			otherSect := otherGrp.ToAddressDivisionGrouping().ToAddressSection()
+//			otherSect := otherGrp.ToDivGrouping().ToSectionBase()
 //			return otherSect != nil && section.EqualsSection(otherSect)
 //		}
 //		return false
@@ -833,7 +833,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 //	//}
 //	if section := grouping.toAddressSection(); section != nil {
 //		if otherGrouping, ok := other.(StandardDivGroupingType); ok {
-//			if otherSection := otherGrouping.ToAddressDivisionGrouping().ToAddressSection(); otherSection != nil {
+//			if otherSection := otherGrouping.ToDivGrouping().ToSectionBase(); otherSection != nil {
 //				return section.EqualsSection(otherSection)
 //			}
 //		}
@@ -1019,7 +1019,7 @@ func (grouping *AddressDivisionGrouping) Compare(item AddressItem) int {
 
 func (grouping *AddressDivisionGrouping) CompareSize(other StandardDivGroupingType) int {
 	if grouping == nil {
-		if other != nil && other.ToAddressDivisionGrouping() != nil {
+		if other != nil && other.ToDivGrouping() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -1071,63 +1071,63 @@ func (grouping *AddressDivisionGrouping) IsZeroGrouping() bool {
 	return grouping != nil && grouping.matchesZeroGrouping()
 }
 
-func (grouping *AddressDivisionGrouping) IsAddressSection() bool {
+func (grouping *AddressDivisionGrouping) IsSectionBase() bool {
 	return grouping != nil && grouping.isAddressSection()
 }
 
-func (grouping *AddressDivisionGrouping) IsIPAddressSection() bool {
-	return grouping.ToAddressSection().IsIPAddressSection()
+func (grouping *AddressDivisionGrouping) IsIP() bool {
+	return grouping.ToSectionBase().IsIP()
 }
 
-func (grouping *AddressDivisionGrouping) IsIPv4AddressSection() bool {
-	return grouping.ToAddressSection().IsIPv4AddressSection()
+func (grouping *AddressDivisionGrouping) IsIPv4() bool {
+	return grouping.ToSectionBase().IsIPv4()
 }
 
-func (grouping *AddressDivisionGrouping) IsIPv6AddressSection() bool {
-	return grouping.ToAddressSection().IsIPv6AddressSection()
+func (grouping *AddressDivisionGrouping) IsIPv6() bool {
+	return grouping.ToSectionBase().IsIPv6()
 }
 
-func (grouping *AddressDivisionGrouping) IsIPv6v4MixedAddressGrouping() bool {
+func (grouping *AddressDivisionGrouping) IsMixedIPv6v4() bool {
 	return grouping != nil && grouping.matchesIPv6v4MixedGroupingType()
 }
 
-func (grouping *AddressDivisionGrouping) IsMACAddressSection() bool {
-	return grouping.ToAddressSection().IsMACAddressSection()
+func (grouping *AddressDivisionGrouping) IsMAC() bool {
+	return grouping.ToSectionBase().IsMAC()
 }
 
-// ToAddressSection converts to an address section.
+// ToSectionBase converts to an address section.
 // If the conversion cannot happen due to division size or count, the result will be the zero value.
-func (grouping *AddressDivisionGrouping) ToAddressSection() *AddressSection {
+func (grouping *AddressDivisionGrouping) ToSectionBase() *AddressSection {
 	if grouping == nil || !grouping.isAddressSection() {
 		return nil
 	}
 	return (*AddressSection)(unsafe.Pointer(grouping))
 }
 
-func (grouping *AddressDivisionGrouping) ToIPv4v6MixedAddressGrouping() *IPv6v4MixedAddressGrouping {
+func (grouping *AddressDivisionGrouping) ToMixedIPv6v4() *IPv6v4MixedAddressGrouping {
 	if grouping.matchesIPv6v4MixedGroupingType() {
 		return (*IPv6v4MixedAddressGrouping)(grouping)
 	}
 	return nil
 }
 
-func (grouping *AddressDivisionGrouping) ToIPAddressSection() *IPAddressSection {
-	return grouping.ToAddressSection().ToIPAddressSection()
+func (grouping *AddressDivisionGrouping) ToIP() *IPAddressSection {
+	return grouping.ToSectionBase().ToIP()
 }
 
-func (grouping *AddressDivisionGrouping) ToIPv6AddressSection() *IPv6AddressSection {
-	return grouping.ToAddressSection().ToIPv6AddressSection()
+func (grouping *AddressDivisionGrouping) ToIPv6() *IPv6AddressSection {
+	return grouping.ToSectionBase().ToIPv6()
 }
 
-func (grouping *AddressDivisionGrouping) ToIPv4AddressSection() *IPv4AddressSection {
-	return grouping.ToAddressSection().ToIPv4AddressSection()
+func (grouping *AddressDivisionGrouping) ToIPv4() *IPv4AddressSection {
+	return grouping.ToSectionBase().ToIPv4()
 }
 
-func (grouping *AddressDivisionGrouping) ToMACAddressSection() *MACAddressSection {
-	return grouping.ToAddressSection().ToMACAddressSection()
+func (grouping *AddressDivisionGrouping) ToMAC() *MACAddressSection {
+	return grouping.ToSectionBase().ToMAC()
 }
 
-func (grouping *AddressDivisionGrouping) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+func (grouping *AddressDivisionGrouping) ToDivGrouping() *AddressDivisionGrouping {
 	return grouping
 }
 

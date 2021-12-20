@@ -54,6 +54,7 @@ type addressDivisionGroupingBase struct {
 	// The only upside is you can continue using "nil" prefixes
 	// In fact, the second doesn't really work because you can still alter the prefix length pointers
 	// TODO PrefixLen: I think I've settle on option 1 above Actually maybe 3 is better, avoids ptr dereference, takes advantage of memory localization
+	//TODO maybe use one prefixlen type for api, and a second here to restrict the size of the int to int16
 
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMult       bool

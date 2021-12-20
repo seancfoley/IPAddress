@@ -8,10 +8,10 @@ func cloneIPv4Sections(sect *IPv4AddressSection, orig []*IPv4AddressSection) []E
 	}
 	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
-		result[origCount] = WrapIPSection(sect.ToIPAddressSection())
+		result[origCount] = WrapIPSection(sect.ToIP())
 	}
 	for i := range orig {
-		result[i] = WrapIPSection(orig[i].ToIPAddressSection()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPSection(orig[i].ToIP()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
 	}
 	return result
 }
@@ -24,10 +24,10 @@ func cloneIPv6Sections(sect *IPv6AddressSection, orig []*IPv6AddressSection) []E
 	}
 	result := make([]ExtendedIPSegmentSeries, count)
 	if sect != nil {
-		result[origCount] = WrapIPSection(sect.ToIPAddressSection())
+		result[origCount] = WrapIPSection(sect.ToIP())
 	}
 	for i := range orig {
-		result[i] = WrapIPSection(orig[i].ToIPAddressSection()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPSection(orig[i].ToIP()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
 	}
 	return result
 }
@@ -92,7 +92,7 @@ func cloneToIPSections(orig []ExtendedIPSegmentSeries) []*IPAddressSection {
 func cloneToIPv4Sections(orig []ExtendedIPSegmentSeries) []*IPv4AddressSection {
 	result := make([]*IPv4AddressSection, len(orig))
 	for i := range result {
-		result[i] = orig[i].(WrappedIPAddressSection).ToIPv4AddressSection()
+		result[i] = orig[i].(WrappedIPAddressSection).ToIPv4()
 	}
 	return result
 }
@@ -100,7 +100,7 @@ func cloneToIPv4Sections(orig []ExtendedIPSegmentSeries) []*IPv4AddressSection {
 func cloneToIPv6Sections(orig []ExtendedIPSegmentSeries) []*IPv6AddressSection {
 	result := make([]*IPv6AddressSection, len(orig))
 	for i := range result {
-		result[i] = orig[i].(WrappedIPAddressSection).ToIPv6AddressSection()
+		result[i] = orig[i].(WrappedIPAddressSection).ToIPv6()
 	}
 	return result
 }
@@ -180,7 +180,7 @@ func cloneIPAddrsToIPv6Addrs(orig []*IPAddress) []*IPv6Address {
 func cloneIPSectsToIPv4Sects(orig []*IPAddressSection) []*IPv4AddressSection {
 	result := make([]*IPv4AddressSection, len(orig))
 	for i := range orig {
-		result[i] = orig[i].ToIPv4AddressSection()
+		result[i] = orig[i].ToIPv4()
 	}
 	return result
 }
@@ -188,7 +188,7 @@ func cloneIPSectsToIPv4Sects(orig []*IPAddressSection) []*IPv4AddressSection {
 func cloneIPSectsToIPv6Sects(orig []*IPAddressSection) []*IPv6AddressSection {
 	result := make([]*IPv6AddressSection, len(orig))
 	for i := range orig {
-		result[i] = orig[i].ToIPv6AddressSection()
+		result[i] = orig[i].ToIPv6()
 	}
 	return result
 }

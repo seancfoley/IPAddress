@@ -32,7 +32,7 @@ const useIPv4SegmentCache = true
 type ipv4SegmentValues struct {
 	value      IPv4SegInt
 	upperValue IPv4SegInt
-	prefLen    PrefixLen
+	prefLen    PrefixLen //TODO maybe use one prefixlen type for api, and a second here to restrict the size of the int
 	cache      divCache
 }
 

@@ -812,7 +812,7 @@ func (section *addressSectionInternal) equal(otherT AddressSectionType) bool {
 	if otherT == nil {
 		return false
 	}
-	other := otherT.ToAddressSection()
+	other := otherT.ToSectionBase()
 	if other == nil {
 		return false
 	}
@@ -1352,7 +1352,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 //	//	return
 //	//}
 //	//if section.IncludesZeroHost() && section.IsSingleNetwork() {
-//	//	res = section.getLower().ToIPAddressSection() //cached
+//	//	res = section.getLower().ToIP() //cached
 //	//	return
 //	//}
 //	return section.createZeroHost(prefLen, boundariesOnly)
@@ -1463,7 +1463,7 @@ func (section *addressSectionInternal) withoutPrefixLen() *AddressSection {
 		return section.toAddressSection()
 	}
 	if sect := section.toIPAddressSection(); sect != nil {
-		return sect.withoutPrefixLen().ToAddressSection()
+		return sect.withoutPrefixLen().ToSectionBase()
 	}
 	return createSectionMultiple(section.getDivisionsInternal(), nil, section.getAddrType(), section.isMultiple())
 }
@@ -1636,7 +1636,7 @@ func (section *addressSectionInternal) assignMinPrefixForBlock() *AddressSection
 }
 
 func (section *addressSectionInternal) PrefixEqual(other AddressSectionType) (res bool) {
-	o := other.ToAddressSection()
+	o := other.ToSectionBase()
 	if section.toAddressSection() == o {
 		return true
 	} else if section.getAddrType() != o.getAddrType() {
@@ -1646,7 +1646,7 @@ func (section *addressSectionInternal) PrefixEqual(other AddressSectionType) (re
 }
 
 func (section *addressSectionInternal) PrefixContains(other AddressSectionType) (res bool) {
-	o := other.ToAddressSection()
+	o := other.ToSectionBase()
 	if section.toAddressSection() == o {
 		return true
 	} else if section.getAddrType() != o.getAddrType() {
@@ -1704,7 +1704,7 @@ func (section *addressSectionInternal) contains(other AddressSectionType) bool {
 	if other == nil {
 		return true
 	}
-	otherSection := other.ToAddressSection()
+	otherSection := other.ToSectionBase()
 	if section.toAddressSection() == otherSection || otherSection == nil {
 		return true
 	}
@@ -1776,11 +1776,11 @@ func (section *addressSectionInternal) incrementBoundary(increment int64) *Addre
 
 func (section *addressSectionInternal) increment(increment int64) *AddressSection {
 	if sect := section.toIPv4AddressSection(); sect != nil {
-		return sect.Increment(increment).ToAddressSection()
+		return sect.Increment(increment).ToSectionBase()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
-		return sect.Increment(increment).ToAddressSection()
+		return sect.Increment(increment).ToSectionBase()
 	} else if sect := section.toMACAddressSection(); sect != nil {
-		return sect.Increment(increment).ToAddressSection()
+		return sect.Increment(increment).ToSectionBase()
 	}
 	return nil
 }
@@ -1825,13 +1825,13 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 		isStringFormat = true
 		if useCanonical {
 			if zone != NoZone {
-				str = section.toAddressSection().ToIPv6AddressSection().toCanonicalString(zone)
+				str = section.toAddressSection().ToIPv6().toCanonicalString(zone)
 			} else {
 				str = section.toCanonicalString()
 			}
 		} else {
 			if zone != NoZone {
-				str = section.toAddressSection().ToIPv6AddressSection().toNormalizedString(zone)
+				str = section.toAddressSection().ToIPv6().toNormalizedString(zone)
 			} else {
 				str = section.toNormalizedString()
 			}
@@ -2241,9 +2241,9 @@ func (section *addressSectionInternal) toCustomStringZoned(stringOptions StringO
 
 //func (section *addressSectionInternal) toCustomString(stringOptions StringOptions, zone Zone) string {
 //	if opts, ok := stringOptions.(IPStringOptions); ok {
-//		if sect := section.toAddressSection().ToIPAddressSection(); sect != nil {
+//		if sect := section.toAddressSection().ToIP(); sect != nil {
 //			if ipv6Opts, ok := stringOptions.(IPv6StringOptions); ok {
-//				if ipv6Sect := sect.ToIPv6AddressSection(); ipv6Sect != nil {
+//				if ipv6Sect := sect.ToIPv6(); ipv6Sect != nil {
 //					return ipv6Sect.toCustomString(ipv6Opts, zone) xxx the error makes things trickier xxxx
 //				}
 //			}
@@ -2501,19 +2501,19 @@ func (section *addressSectionInternal) toAddressSection() *AddressSection {
 }
 
 func (section *addressSectionInternal) toIPAddressSection() *IPAddressSection {
-	return section.toAddressSection().ToIPAddressSection()
+	return section.toAddressSection().ToIP()
 }
 
 func (section *addressSectionInternal) toIPv4AddressSection() *IPv4AddressSection {
-	return section.toAddressSection().ToIPv4AddressSection()
+	return section.toAddressSection().ToIPv4()
 }
 
 func (section *addressSectionInternal) toIPv6AddressSection() *IPv6AddressSection {
-	return section.toAddressSection().ToIPv6AddressSection()
+	return section.toAddressSection().ToIPv6()
 }
 
 func (section *addressSectionInternal) toMACAddressSection() *MACAddressSection {
-	return section.toAddressSection().ToMACAddressSection()
+	return section.toAddressSection().ToMAC()
 }
 
 //
@@ -2526,14 +2526,14 @@ type AddressSection struct {
 
 func (section *AddressSection) Contains(other AddressSectionType) bool {
 	if section == nil {
-		return other == nil || other.ToAddressSection() == nil
+		return other == nil || other.ToSectionBase() == nil
 	}
 	return section.contains(other)
 }
 
 func (section *AddressSection) Equal(other AddressSectionType) bool {
 	if section == nil {
-		return other == nil || other.ToAddressSection() == nil
+		return other == nil || other.ToSectionBase() == nil
 	}
 	return section.equal(other)
 }
@@ -2544,7 +2544,7 @@ func (section *AddressSection) Compare(item AddressItem) int {
 
 func (section *AddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
-		if other != nil && other.ToAddressDivisionGrouping() != nil {
+		if other != nil && other.ToDivGrouping() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -2556,11 +2556,11 @@ func (section *AddressSection) CompareSize(other StandardDivGroupingType) int {
 func (section *AddressSection) GetCount() *big.Int {
 	if section == nil {
 		return bigZero()
-	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+	} else if sect := section.ToIPv4(); sect != nil {
 		return sect.GetCount()
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetCount()
-	} else if sect := section.ToMACAddressSection(); sect != nil {
+	} else if sect := section.ToMAC(); sect != nil {
 		return sect.GetCount()
 	}
 	return section.addressDivisionGroupingBase.getCount()
@@ -2571,22 +2571,22 @@ func (section *AddressSection) IsMultiple() bool {
 }
 
 func (section *AddressSection) GetPrefixCount() *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4(); sect != nil {
 		return sect.GetPrefixCount()
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetPrefixCount()
-	} else if sect := section.ToMACAddressSection(); sect != nil {
+	} else if sect := section.ToMAC(); sect != nil {
 		return sect.GetPrefixCount()
 	}
 	return section.addressDivisionGroupingBase.GetPrefixCount()
 }
 
 func (section *AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
-	} else if sect := section.ToMACAddressSection(); sect != nil {
+	} else if sect := section.ToMAC(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
 	}
 	return section.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
@@ -2594,11 +2594,11 @@ func (section *AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
 
 // GetBlockCount returns the count of values in the initial (higher) count of divisions.
 func (section *AddressSection) GetBlockCount(segmentCount int) *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4(); sect != nil {
 		return sect.GetBlockCount(segmentCount)
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetBlockCount(segmentCount)
-	} else if sect := section.ToMACAddressSection(); sect != nil {
+	} else if sect := section.ToMAC(); sect != nil {
 		return sect.GetBlockCount(segmentCount)
 	}
 	return section.addressDivisionGroupingBase.GetBlockCount(segmentCount)
@@ -2679,12 +2679,12 @@ func (section *AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*AddressS
 }
 
 func (section *AddressSection) AdjustPrefixLen(prefixLen BitCount) *AddressSection {
-	return section.adjustPrefixLen(prefixLen).ToAddressSection()
+	return section.adjustPrefixLen(prefixLen).ToSectionBase()
 }
 
 func (section *AddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
 	res, err := section.adjustPrefixLenZeroed(prefixLen)
-	return res.ToAddressSection(), err
+	return res.ToSectionBase(), err
 }
 
 func (section *AddressSection) AssignPrefixForSingleBlock() *AddressSection {
@@ -2703,55 +2703,55 @@ func (section *AddressSection) IsZeroGrouping() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 
-func (section *AddressSection) IsIPAddressSection() bool {
+func (section *AddressSection) IsIP() bool {
 	return section != nil && section.matchesIPSectionType()
 }
 
-func (section *AddressSection) IsIPv4AddressSection() bool {
+func (section *AddressSection) IsIPv4() bool {
 	return section != nil && section.matchesIPv4SectionType()
 }
 
-func (section *AddressSection) IsIPv6AddressSection() bool {
+func (section *AddressSection) IsIPv6() bool {
 	return section != nil && section.matchesIPv6SectionType()
 }
 
-func (section *AddressSection) IsMACAddressSection() bool {
+func (section *AddressSection) IsMAC() bool {
 	return section != nil && section.matchesMACSectionType()
 }
 
-func (section *AddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
+func (section *AddressSection) ToDivGrouping() *AddressDivisionGrouping {
 	return (*AddressDivisionGrouping)(unsafe.Pointer(section))
 }
 
-func (section *AddressSection) ToIPAddressSection() *IPAddressSection {
-	if section.IsIPAddressSection() {
+func (section *AddressSection) ToIP() *IPAddressSection {
+	if section.IsIP() {
 		return (*IPAddressSection)(unsafe.Pointer(section))
 	}
 	return nil
 }
 
-func (section *AddressSection) ToIPv6AddressSection() *IPv6AddressSection {
-	if section.IsIPv6AddressSection() {
+func (section *AddressSection) ToIPv6() *IPv6AddressSection {
+	if section.IsIPv6() {
 		return (*IPv6AddressSection)(unsafe.Pointer(section))
 	}
 	return nil
 }
 
-func (section *AddressSection) ToIPv4AddressSection() *IPv4AddressSection {
-	if section.IsIPv4AddressSection() {
+func (section *AddressSection) ToIPv4() *IPv4AddressSection {
+	if section.IsIPv4() {
 		return (*IPv4AddressSection)(unsafe.Pointer(section))
 	}
 	return nil
 }
 
-func (section *AddressSection) ToMACAddressSection() *MACAddressSection {
-	if section.IsMACAddressSection() {
+func (section *AddressSection) ToMAC() *MACAddressSection {
+	if section.IsMAC() {
 		return (*MACAddressSection)(unsafe.Pointer(section))
 	}
 	return nil
 }
 
-func (section *AddressSection) ToAddressSection() *AddressSection {
+func (section *AddressSection) ToSectionBase() *AddressSection {
 	return section
 }
 

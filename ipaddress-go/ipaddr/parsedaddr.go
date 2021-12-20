@@ -1429,7 +1429,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 		result = creator.createPrefixedSectionInternal(segments, isMultiple, prefLength)
 		sections.section = result
 		if hostSegments != nil {
-			hostResult = creator.createSectionInternal(hostSegments, isHostMultiple).ToIPAddressSection()
+			hostResult = creator.createSectionInternal(hostSegments, isHostMultiple).ToIP()
 			sections.hostSection = hostResult
 			if checkExpandedValues(hostResult, expandedStart, expandedEnd) {
 				sections.joinHostError = &incompatibleAddressError{
@@ -2027,7 +2027,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 	var result, hostResult *IPAddressSection
 	if doSections {
 		if hostSegments != nil {
-			hostResult = creator.createSectionInternal(hostSegments, isHostMultiple).ToIPAddressSection()
+			hostResult = creator.createSectionInternal(hostSegments, isHostMultiple).ToIP()
 			sections.hostSection = hostResult
 			if checkExpandedValues(hostResult, expandedStart, expandedEnd) {
 				sections.joinHostError = &incompatibleAddressError{addressError{str: addressString, key: "ipaddress.error.invalid.joined.ranges"}}
@@ -2334,11 +2334,11 @@ func createAllAddress(
 		res = creator.createAddressInternalFromSection(section, qualifier.getZone(), originator).ToIPAddress()
 	}
 	hostSection := creator.createSectionInternal(hostSegments, true)
-	hostAddr = creator.createAddressInternal(hostSection.ToAddressSection(), nil).ToIPAddress()
+	hostAddr = creator.createAddressInternal(hostSection.ToSectionBase(), nil).ToIPAddress()
 	lowerSection := creator.createPrefixedSectionInternal(lowerSegments, false, prefLen)
-	lower = creator.createAddressInternal(lowerSection.ToAddressSection(), nil).ToIPAddress()
+	lower = creator.createAddressInternal(lowerSection.ToSectionBase(), nil).ToIPAddress()
 	upperSection := creator.createPrefixedSectionInternal(upperSegments, false, prefLen)
-	upper = creator.createAddressInternal(upperSection.ToAddressSection(), nil).ToIPAddress()
+	upper = creator.createAddressInternal(upperSection.ToSectionBase(), nil).ToIPAddress()
 	return
 }
 

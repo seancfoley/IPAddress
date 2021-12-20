@@ -853,9 +853,9 @@ func (t specialTypesTester) testNils() {
 
 	ipSectionsIPv6 = append(ipSectionsIPv6, nil)
 	ipSectionsIPv6 = append(ipSectionsIPv6, &ipaddr.IPAddressSection{})
-	ipSectionsIPv6 = append(ipSectionsIPv6, (&ipaddr.IPv6AddressSection{}).ToIPAddressSection()) // note that this IP section can be any section type
-	ipSectionsIPv6 = append(ipSectionsIPv6, ipv6Section1.ToIPAddressSection())
-	ipSectionsIPv6 = append(ipSectionsIPv6, ipv6Addr2.GetSection().ToIPAddressSection())
+	ipSectionsIPv6 = append(ipSectionsIPv6, (&ipaddr.IPv6AddressSection{}).ToIP()) // note that this IP section can be any section type
+	ipSectionsIPv6 = append(ipSectionsIPv6, ipv6Section1.ToIP())
+	ipSectionsIPv6 = append(ipSectionsIPv6, ipv6Addr2.GetSection().ToIP())
 
 	for i := range ipSectionsIPv6 {
 		range1 := ipSectionsIPv6[i]
@@ -894,9 +894,9 @@ func (t specialTypesTester) testNils() {
 
 	ipSectionsIPv4 = append(ipSectionsIPv4, nil)
 	ipSectionsIPv4 = append(ipSectionsIPv4, &ipaddr.IPAddressSection{})
-	ipSectionsIPv4 = append(ipSectionsIPv4, (&ipaddr.IPv4AddressSection{}).ToIPAddressSection())
-	ipSectionsIPv4 = append(ipSectionsIPv4, ipv4Section1.ToIPAddressSection())
-	ipSectionsIPv4 = append(ipSectionsIPv4, ipv4Addr2.GetSection().ToIPAddressSection())
+	ipSectionsIPv4 = append(ipSectionsIPv4, (&ipaddr.IPv4AddressSection{}).ToIP())
+	ipSectionsIPv4 = append(ipSectionsIPv4, ipv4Section1.ToIP())
+	ipSectionsIPv4 = append(ipSectionsIPv4, ipv4Addr2.GetSection().ToIP())
 
 	for i := range ipSectionsIPv4 {
 		range1 := ipSectionsIPv4[i]
@@ -1031,7 +1031,7 @@ func (t specialTypesTester) testNils() {
 	for _, item := range ipSectionsIPv6 {
 		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
 
-		if item.IsIPv6AddressSection() && !item.IsZeroGrouping() {
+		if item.IsIPv6() && !item.IsZeroGrouping() {
 			ipv6SectionItems = append(ipv6SectionItems, item)
 		}
 	}

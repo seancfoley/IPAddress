@@ -173,14 +173,14 @@ type MACAddressSection struct {
 
 func (section *MACAddressSection) Contains(other AddressSectionType) bool {
 	if section == nil {
-		return other == nil || other.ToAddressSection() == nil
+		return other == nil || other.ToSectionBase() == nil
 	}
 	return section.contains(other)
 }
 
 func (section *MACAddressSection) Equal(other AddressSectionType) bool {
 	if section == nil {
-		return other == nil || other.ToAddressSection() == nil
+		return other == nil || other.ToSectionBase() == nil
 	}
 	return section.equal(other)
 }
@@ -191,7 +191,7 @@ func (section *MACAddressSection) Compare(item AddressItem) int {
 
 func (section *MACAddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
-		if other != nil && other.ToAddressDivisionGrouping() != nil {
+		if other != nil && other.ToDivGrouping() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -269,49 +269,49 @@ func (section *MACAddressSection) WithoutPrefixLen() *MACAddressSection {
 	if !section.IsPrefixed() {
 		return section
 	}
-	return section.withoutPrefixLen().ToMACAddressSection()
+	return section.withoutPrefixLen().ToMAC()
 }
 
 func (section *MACAddressSection) SetPrefixLen(prefixLen BitCount) *MACAddressSection {
-	return section.setPrefixLen(prefixLen).ToMACAddressSection()
+	return section.setPrefixLen(prefixLen).ToMAC()
 }
 
 func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddressSection, IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
-	return res.ToMACAddressSection(), err
+	return res.ToMAC(), err
 }
 
 func (section *MACAddressSection) AdjustPrefixLen(prefixLen BitCount) *AddressSection {
-	return section.adjustPrefixLen(prefixLen).ToAddressSection()
+	return section.adjustPrefixLen(prefixLen).ToSectionBase()
 }
 
 func (section *MACAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
 	res, err := section.adjustPrefixLenZeroed(prefixLen)
-	return res.ToAddressSection(), err
+	return res.ToSectionBase(), err
 }
 
 func (section *MACAddressSection) AssignPrefixForSingleBlock() *MACAddressSection {
-	return section.assignPrefixForSingleBlock().ToMACAddressSection()
+	return section.assignPrefixForSingleBlock().ToMAC()
 }
 
 func (section *MACAddressSection) AssignMinPrefixForBlock() *MACAddressSection {
-	return section.assignMinPrefixForBlock().ToMACAddressSection()
+	return section.assignMinPrefixForBlock().ToMAC()
 }
 
 func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
 	return section.getDivision(index).ToMACAddressSegment()
 }
 
-func (section *MACAddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
-	return section.ToAddressSection().ToAddressDivisionGrouping()
+func (section *MACAddressSection) ToDivGrouping() *AddressDivisionGrouping {
+	return section.ToSectionBase().ToDivGrouping()
 }
 
-func (section *MACAddressSection) ToAddressSection() *AddressSection {
+func (section *MACAddressSection) ToSectionBase() *AddressSection {
 	return (*AddressSection)(section)
 }
 
 func (section *MACAddressSection) Wrap() WrappedAddressSection {
-	return WrapSection(section.ToAddressSection())
+	return WrapSection(section.ToSectionBase())
 }
 
 // Gets the subsection from the series starting from the given index
@@ -323,7 +323,7 @@ func (section *MACAddressSection) GetTrailingSection(index int) *MACAddressSecti
 //// Gets the subsection from the series starting from the given index and ending just before the give endIndex
 //// The first segment is at index 0.
 func (section *MACAddressSection) GetSubSection(index, endIndex int) *MACAddressSection {
-	return section.getSubSection(index, endIndex).ToMACAddressSection()
+	return section.getSubSection(index, endIndex).ToMAC()
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
@@ -346,11 +346,11 @@ func (section *MACAddressSection) GetSegments() (res []*MACAddressSegment) {
 }
 
 func (section *MACAddressSection) GetLower() *MACAddressSection {
-	return section.getLower().ToMACAddressSection()
+	return section.getLower().ToMAC()
 }
 
 func (section *MACAddressSection) GetUpper() *MACAddressSection {
-	return section.getUpper().ToMACAddressSection()
+	return section.getUpper().ToMAC()
 }
 
 func (section *MACAddressSection) Uint64Value() uint64 {
@@ -386,15 +386,15 @@ func (section *MACAddressSection) getLongValue(lower bool) (result uint64) {
 }
 
 func (section *MACAddressSection) ToPrefixBlock() *MACAddressSection {
-	return section.toPrefixBlock().ToMACAddressSection()
+	return section.toPrefixBlock().ToMAC()
 }
 
 func (section *MACAddressSection) ToPrefixBlockLen(prefLen BitCount) *MACAddressSection {
-	return section.toPrefixBlockLen(prefLen).ToMACAddressSection()
+	return section.toPrefixBlockLen(prefLen).ToMAC()
 }
 
 func (section *MACAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *MACAddressSection {
-	return section.toBlock(segmentIndex, lower, upper).ToMACAddressSection()
+	return section.toBlock(segmentIndex, lower, upper).ToMAC()
 }
 
 func (section *MACAddressSection) Iterator() MACSectionIterator {
@@ -413,7 +413,7 @@ func (section *MACAddressSection) PrefixBlockIterator() MACSectionIterator {
 }
 
 func (section *MACAddressSection) IncrementBoundary(increment int64) *MACAddressSection {
-	return section.incrementBoundary(increment).ToMACAddressSection()
+	return section.incrementBoundary(increment).ToMAC()
 }
 
 func (section *MACAddressSection) IsZeroGrouping() bool {
@@ -449,7 +449,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 		return nil
 	}
 	return increment(
-		section.ToAddressSection(),
+		section.ToSectionBase(),
 		incrementVal,
 		MACNetwork.getAddressCreator(),
 		countMinus1,
@@ -457,7 +457,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 		section.UpperUint64Value(),
 		section.addressSectionInternal.getLower,
 		section.addressSectionInternal.getUpper,
-		section.GetPrefixLen()).ToMACAddressSection()
+		section.GetPrefixLen()).ToMAC()
 	//			}
 	//			BigInteger lowerValue = getValue();
 	//			BigInteger upperValue = getUpperValue();
@@ -490,7 +490,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 
 func (section *MACAddressSection) ReverseBits(perByte bool) (*MACAddressSection, IncompatibleAddressError) {
 	res, err := section.reverseBits(perByte)
-	return res.ToMACAddressSection(), err
+	return res.ToMAC(), err
 }
 
 func (section *MACAddressSection) ReverseBytes() *MACAddressSection {
@@ -516,7 +516,7 @@ func (section *MACAddressSection) ReverseSegments() *MACAddressSection {
 			return section.GetSegment(i).ToAddressSegment(), nil
 		},
 	)
-	return res.ToMACAddressSection()
+	return res.ToMAC()
 }
 
 func (section *MACAddressSection) Append(other *MACAddressSection) *MACAddressSection {
@@ -536,7 +536,7 @@ func (section *MACAddressSection) Replace(index int, replacement *MACAddressSect
 // ReplaceLen replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
 // ending before replacementEndIndex from the replacement section
 func (section *MACAddressSection) ReplaceLen(startIndex, endIndex int, replacement *MACAddressSection, replacementStartIndex, replacementEndIndex int) *MACAddressSection {
-	return section.replaceLen(startIndex, endIndex, replacement.ToAddressSection(), replacementStartIndex, replacementEndIndex, macBitsToSegmentBitshift).ToMACAddressSection()
+	return section.replaceLen(startIndex, endIndex, replacement.ToSectionBase(), replacementStartIndex, replacementEndIndex, macBitsToSegmentBitshift).ToMAC()
 }
 
 var (

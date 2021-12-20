@@ -279,7 +279,7 @@ type ipSectionIterator struct {
 }
 
 func (iter ipSectionIterator) Next() *IPAddressSection {
-	return iter.SectionIterator.Next().ToIPAddressSection()
+	return iter.SectionIterator.Next().ToIP()
 }
 
 // IPv4SectionIterator iterates through IPv4 address and subnet sections
@@ -293,7 +293,7 @@ type ipv4SectionIterator struct {
 }
 
 func (iter ipv4SectionIterator) Next() *IPv4AddressSection {
-	return iter.SectionIterator.Next().ToIPv4AddressSection()
+	return iter.SectionIterator.Next().ToIPv4()
 }
 
 // IPv6SectionIterator iterates through IPv6 address and subnet sections
@@ -307,7 +307,7 @@ type ipv6SectionIterator struct {
 }
 
 func (iter ipv6SectionIterator) Next() *IPv6AddressSection {
-	return iter.SectionIterator.Next().ToIPv6AddressSection()
+	return iter.SectionIterator.Next().ToIPv6()
 }
 
 // MACSectionIterator iterates through MACSize address and subnet sections
@@ -321,5 +321,5 @@ type macSectionIterator struct {
 }
 
 func (iter macSectionIterator) Next() *MACAddressSection {
-	return iter.SectionIterator.Next().ToMACAddressSection()
+	return iter.SectionIterator.Next().ToMAC()
 }

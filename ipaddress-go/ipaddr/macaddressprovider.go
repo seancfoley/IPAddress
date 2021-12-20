@@ -44,7 +44,7 @@ func (provider *macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAd
 				segments[i] = allRangeSegment
 			}
 			section := creator.createSectionInternal(segments, true)
-			addr = creator.createAddressInternal(section.ToAddressSection(), nil).ToMACAddress()
+			addr = creator.createAddressInternal(section.ToSectionBase(), nil).ToMACAddress()
 		}
 		provider.creationLock.Unlock()
 	}

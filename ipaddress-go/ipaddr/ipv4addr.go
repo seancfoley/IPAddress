@@ -23,7 +23,7 @@ const (
 )
 
 func newIPv4Address(section *IPv4AddressSection) *IPv4Address {
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address()
 }
 
 func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueError) {
@@ -37,7 +37,7 @@ func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueErro
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
 }
 
 func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) {
@@ -49,12 +49,12 @@ func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, Addre
 		}
 	}
 	section := NewIPv4Section(segments)
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
 	//section, err := NewIPv4Section(segments)
 	//if err != nil {
 	//	return nil, err
 	//}
-	//return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
 }
 
 func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, AddressValueError) {
@@ -66,22 +66,22 @@ func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength
 		}
 	}
 	section := NewIPv4PrefixedSection(segments, prefixLength)
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
 	//section, err := NewIPv4PrefixedSection(segments, prefixLength)
 	//if err != nil {
 	//	return nil, err
 	//}
-	//return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address(), nil
+	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address(), nil
 }
 
 func NewIPv4AddressFromUint32(val uint32) *IPv4Address {
 	section := NewIPv4SectionFromUint32(val, IPv4SegmentCount)
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address()
 }
 
 func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4Address {
 	section := NewIPv4SectionFromPrefixedUint32(val, IPv4SegmentCount, prefixLength)
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv4Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv4Address()
 }
 
 func NewIPv4AddressFromBytes(bytes []byte) (addr *IPv4Address, err AddressValueError) {
@@ -182,7 +182,7 @@ func (addr *IPv4Address) GetBytesPerSegment() int {
 }
 
 func (addr *IPv4Address) GetSection() *IPv4AddressSection {
-	return addr.init().section.ToIPv4AddressSection()
+	return addr.init().section.ToIPv4()
 }
 
 // Gets the subsection from the series starting from the given index
@@ -271,7 +271,7 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 	if section == nil {
 		return nil
 	}
-	sec := section.ToAddressSection()
+	sec := section.ToSectionBase()
 	if sec == addr.section {
 		return addr
 	}
@@ -321,7 +321,7 @@ func (addr *IPv4Address) Subtract(other *IPv4Address) []*IPv4Address {
 	sectLen := len(sects)
 	if sectLen == 1 {
 		sec := sects[0]
-		if sec.ToAddressSection() == addr.section {
+		if sec.ToSectionBase() == addr.section {
 			return []*IPv4Address{addr}
 		}
 	}

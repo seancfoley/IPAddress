@@ -38,7 +38,7 @@ func createAddress(section *AddressSection, zone Zone) *Address {
 			cache:   &addressCache{},
 		},
 	}
-	//if zone != NoZone && section.IsIPv6AddressSection() {
+	//if zone != NoZone && section.IsIPv6() {
 	//	res.cache.stringCache = &stringCache{ipv6StringCache:&ipv6StringCache{}}
 	//}
 	return res
@@ -717,10 +717,10 @@ func (addr *addressInternal) toCanonicalString() string {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
-			return addr.section.ToIPv6AddressSection().toCanonicalString(addr.zone)
+			return addr.section.ToIPv6().toCanonicalString(addr.zone)
 		}
 		return cacheStr(&cache.canonicalString,
-			func() string { return addr.section.ToIPv6AddressSection().toCanonicalString(addr.zone) })
+			func() string { return addr.section.ToIPv6().toCanonicalString(addr.zone) })
 	}
 	return addr.section.ToCanonicalString()
 }
@@ -729,10 +729,10 @@ func (addr *addressInternal) toNormalizedString() string {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
-			return addr.section.ToIPv6AddressSection().toNormalizedString(addr.zone)
+			return addr.section.ToIPv6().toNormalizedString(addr.zone)
 		}
 		return cacheStr(&cache.normalizedIPv6String,
-			func() string { return addr.section.ToIPv6AddressSection().toNormalizedString(addr.zone) })
+			func() string { return addr.section.ToIPv6().toNormalizedString(addr.zone) })
 	}
 	return addr.section.ToNormalizedString()
 }
@@ -741,10 +741,10 @@ func (addr *addressInternal) toCompressedString() string {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
-			return addr.section.ToIPv6AddressSection().toCompressedString(addr.zone)
+			return addr.section.ToIPv6().toCompressedString(addr.zone)
 		}
 		return cacheStr(&cache.compressedIPv6String,
-			func() string { return addr.section.ToIPv6AddressSection().toCompressedString(addr.zone) })
+			func() string { return addr.section.ToIPv6().toCompressedString(addr.zone) })
 	}
 	return addr.section.ToCompressedString()
 }

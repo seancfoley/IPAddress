@@ -37,7 +37,7 @@ const (
 )
 
 func newMACAddress(section *MACAddressSection) *MACAddress {
-	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress()
+	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress()
 }
 
 func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) {
@@ -48,7 +48,7 @@ func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) 
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress(), nil
 }
 
 func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueError) {
@@ -63,7 +63,7 @@ func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueEr
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress(), nil
 }
 
 //func NewMACAddressFromUint64(val uint64) *MACAddress {
@@ -72,7 +72,7 @@ func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueEr
 
 func NewMACAddressFromUint64Ext(val uint64, isExtended bool) *MACAddress {
 	section := NewMACSectionFromUint64(val, getMacSegCount(isExtended))
-	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress()
+	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress()
 }
 
 func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, AddressValueError) {
@@ -85,7 +85,7 @@ func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, Addr
 	//	return nil, err
 	//}
 	section := NewMACSection(segments)
-	return createAddress(section.ToAddressSection(), NoZone).ToMACAddress(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToMACAddress(), nil
 }
 
 func NewMACAddressFromVals(vals MACSegmentValueProvider) (addr *MACAddress) {
@@ -202,7 +202,7 @@ func (addr *MACAddress) checkIdentity(section *MACAddressSection) *MACAddress {
 	if section == nil {
 		return nil
 	}
-	sec := section.ToAddressSection()
+	sec := section.ToSectionBase()
 	if sec == addr.section {
 		return addr
 	}
@@ -266,7 +266,7 @@ func (addr *MACAddress) CopyUpperBytes(bytes []byte) []byte {
 }
 
 func (addr *MACAddress) GetSection() *MACAddressSection {
-	return addr.init().section.ToMACAddressSection()
+	return addr.init().section.ToMAC()
 }
 
 // Gets the subsection from the series starting from the given index
@@ -572,7 +572,7 @@ func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
 	for i := segmentIndex; i < segmentCount; i++ {
 		newSegs[i] = allRangeSegment
 	}
-	newSect := createSectionMultiple(newSegs, cacheBitCount(newPref), addr.getAddrType(), true).ToMACAddressSection()
+	newSect := createSectionMultiple(newSegs, cacheBitCount(newPref), addr.getAddrType(), true).ToMAC()
 	return newMACAddress(newSect)
 }
 
@@ -656,7 +656,7 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressErr
 			}
 			//resultSection.assignPrefixLength(prefLength);
 		}
-		newSect := createInitializedSection(segs, prefixLen, addr.getAddrType()).ToMACAddressSection()
+		newSect := createInitializedSection(segs, prefixLen, addr.getAddrType()).ToMAC()
 		return newMACAddress(newSect), nil
 		//return newMACAddress()
 		//return creator.createAddressInternal(segs);

@@ -44,7 +44,7 @@ func createIPSectionFromSegs(isIPv4 bool, orig []*IPAddressSegment, prefLen Pref
 			zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
 			zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
 			prefLen)
-		result = createIPv4Section(divs).ToIPAddressSection()
+		result = createIPv4Section(divs).ToIP()
 	} else {
 		divs, newPref, isMultiple = createDivisionsFromSegs(
 			func(index int) *IPAddressSegment {
@@ -59,7 +59,7 @@ func createIPSectionFromSegs(isIPv4 bool, orig []*IPAddressSegment, prefLen Pref
 			zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
 			zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
 			prefLen)
-		result = createIPv6Section(divs).ToIPAddressSection()
+		result = createIPv6Section(divs).ToIP()
 	}
 	result.prefixLength = newPref
 	result.isMult = isMultiple
@@ -140,7 +140,7 @@ func (section *ipAddressSectionInternal) GetNetworkPrefixLen() PrefixLen {
 //		return 1
 //	}
 //	if otherGrouping, ok := other.(StandardDivGroupingType); ok { Without caching, this is no faster
-//		otherSeries := otherGrouping.ToAddressDivisionGrouping()
+//		otherSeries := otherGrouping.ToDivGrouping()
 //		if section.IsSinglePrefixBlock() && otherSeries.IsSinglePrefixBlock() {
 //			bits := section.GetBitCount() - section.GetPrefixLen()
 //			otherBits := other.GetBitCount() - otherSeries.GetPrefixLen()
@@ -327,7 +327,7 @@ func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *I
 		return section.toIPAddressSection(), nil
 	}
 	if section.IncludesZeroHost() && section.IsSingleNetwork() {
-		res = section.getLower().ToIPAddressSection() //cached
+		res = section.getLower().ToIP() //cached
 		return
 	}
 	if !section.isPrefixed() {
@@ -336,7 +336,7 @@ func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *I
 		return
 	}
 	return section.createZeroHost(prefLen, boundariesOnly)
-	//return sect.ToIPAddressSection(), err
+	//return sect.ToIP(), err
 }
 
 // boundariesOnly: whether we care if the masking works for all values in a range.
@@ -417,7 +417,7 @@ func (section *ipAddressSectionInternal) toMaxHost() (res *IPAddressSection, err
 		return section.toIPAddressSection(), nil
 	}
 	if section.IncludesMaxHost() && section.IsSingleNetwork() {
-		return section.getUpper().ToIPAddressSection(), nil // cached
+		return section.getUpper().ToIP(), nil // cached
 	}
 	return section.createMaxHost()
 }
@@ -585,7 +585,7 @@ func (section *ipAddressSectionInternal) adjustPrefixLength(adjustment BitCount,
 	//	prefix = 0
 	//}
 	sec, err := section.setPrefixLength(prefix, withZeros)
-	return sec.ToIPAddressSection(), err
+	return sec.ToIP(), err
 }
 
 func (section *ipAddressSectionInternal) adjustPrefixLen(adjustment BitCount) *IPAddressSection {
@@ -963,8 +963,8 @@ func (section *ipAddressSectionInternal) coverSeriesWithPrefixBlock() ExtendedIP
 		return WrapIPSection(section.toIPAddressSection())
 	}
 	return coverWithPrefixBlock(
-		WrapIPSection(section.getLower().ToIPAddressSection()),
-		WrapIPSection(section.getUpper().ToIPAddressSection()))
+		WrapIPSection(section.getLower().ToIP()),
+		WrapIPSection(section.getUpper().ToIP()))
 }
 
 func (section *ipAddressSectionInternal) coverWithPrefixBlock() *IPAddressSection {
@@ -972,8 +972,8 @@ func (section *ipAddressSectionInternal) coverWithPrefixBlock() *IPAddressSectio
 		return section.toIPAddressSection()
 	}
 	res := coverWithPrefixBlock(
-		WrapIPSection(section.getLower().ToIPAddressSection()),
-		WrapIPSection(section.getUpper().ToIPAddressSection()))
+		WrapIPSection(section.getLower().ToIP()),
+		WrapIPSection(section.getUpper().ToIP()))
 	return res.(WrappedIPAddressSection).IPAddressSection
 }
 
@@ -1089,7 +1089,7 @@ func (section *ipAddressSectionInternal) getSubnetSegments( // called by methods
 	segmentMaskProducer func(int) SegInt,
 ) (*IPAddressSection, IncompatibleAddressError) {
 	newSect, err := section.addressSectionInternal.getSubnetSegments(startIndex, networkPrefixLength, verifyMask, segProducer, segmentMaskProducer)
-	return newSect.ToIPAddressSection(), err
+	return newSect.ToIP(), err
 }
 
 func (section *ipAddressSectionInternal) getOredSegments(
@@ -1292,7 +1292,7 @@ func (section *ipAddressSectionInternal) replaceLen(
 					//return section.ReplaceLen(index, index, other, 0, other.GetSegmentCount())
 
 					replacement = replacement.insert(
-						replacementEndIndex, section.getSubSection(endIndex, segmentCount).ToIPAddressSection(), segmentToBitsShift)
+						replacementEndIndex, section.getSubSection(endIndex, segmentCount).ToIP(), segmentToBitsShift)
 					replacementEndIndex += additionalSegs
 				}
 			}
@@ -1305,8 +1305,8 @@ func (section *ipAddressSectionInternal) replaceLen(
 			newPrefixLen = cacheBitCount(startBits + replacementBits + endPrefixBits)
 		} // else newPrefixLen is nil
 	}
-	return thizz.replace(startIndex, endIndex, replacement.ToAddressSection(),
-		replacementStartIndex, replacementEndIndex, newPrefixLen).ToIPAddressSection()
+	return thizz.replace(startIndex, endIndex, replacement.ToSectionBase(),
+		replacementStartIndex, replacementEndIndex, newPrefixLen).ToIP()
 }
 
 func (section *ipAddressSectionInternal) toNormalizedWildcardString() string {
@@ -1416,14 +1416,14 @@ type IPAddressSection struct {
 
 func (section *IPAddressSection) Contains(other AddressSectionType) bool {
 	if section == nil {
-		return other == nil || other.ToAddressSection() == nil
+		return other == nil || other.ToSectionBase() == nil
 	}
 	return section.contains(other)
 }
 
 func (section *IPAddressSection) Equal(other AddressSectionType) bool {
 	if section == nil {
-		return other == nil || other.ToAddressSection() == nil
+		return other == nil || other.ToSectionBase() == nil
 	}
 	return section.equal(other)
 }
@@ -1434,7 +1434,7 @@ func (section *IPAddressSection) Compare(item AddressItem) int {
 
 func (section *IPAddressSection) CompareSize(other StandardDivGroupingType) int {
 	if section == nil {
-		if other != nil && other.ToAddressDivisionGrouping() != nil {
+		if other != nil && other.ToDivGrouping() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -1446,9 +1446,9 @@ func (section *IPAddressSection) CompareSize(other StandardDivGroupingType) int 
 func (section *IPAddressSection) GetCount() *big.Int {
 	if section == nil {
 		return bigZero()
-	} else if sect := section.ToIPv4AddressSection(); sect != nil {
+	} else if sect := section.ToIPv4(); sect != nil {
 		return sect.GetCount()
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetCount()
 	}
 	return section.addressDivisionGroupingBase.getCount()
@@ -1463,18 +1463,18 @@ func (section *IPAddressSection) IsPrefixed() bool {
 }
 
 func (section *IPAddressSection) GetPrefixCount() *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4(); sect != nil {
 		return sect.GetPrefixCount()
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetPrefixCount()
 	}
 	return section.addressDivisionGroupingBase.GetPrefixCount()
 }
 
 func (section *IPAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetPrefixCountLen(prefixLen)
 	}
 	return section.addressDivisionGroupingBase.GetPrefixCountLen(prefixLen)
@@ -1482,9 +1482,9 @@ func (section *IPAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int 
 
 // GetBlockCount returns the count of values in the initial (higher) count of divisions.
 func (section *IPAddressSection) GetBlockCount(segmentCount int) *big.Int {
-	if sect := section.ToIPv4AddressSection(); sect != nil {
+	if sect := section.ToIPv4(); sect != nil {
 		return sect.GetBlockCount(segmentCount)
-	} else if sect := section.ToIPv6AddressSection(); sect != nil {
+	} else if sect := section.ToIPv6(); sect != nil {
 		return sect.GetBlockCount(segmentCount)
 	}
 	return section.addressDivisionGroupingBase.GetBlockCount(segmentCount)
@@ -1494,42 +1494,34 @@ func (section *IPAddressSection) IsZeroGrouping() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 
-func (section *IPAddressSection) IsIPv4AddressSection() bool {
-	return section != nil && section.matchesIPv4SectionType()
+func (section *IPAddressSection) ToDivGrouping() *AddressDivisionGrouping {
+	return section.ToSectionBase().ToDivGrouping()
 }
 
-func (section *IPAddressSection) IsIPv6AddressSection() bool {
-	return section != nil && section.matchesIPv6SectionType()
-}
-
-func (section *IPAddressSection) ToAddressDivisionGrouping() *AddressDivisionGrouping {
-	return section.ToAddressSection().ToAddressDivisionGrouping()
-}
-
-func (section *IPAddressSection) ToAddressSection() *AddressSection {
+func (section *IPAddressSection) ToSectionBase() *AddressSection {
 	return (*AddressSection)(unsafe.Pointer(section))
 }
 
-func (section *IPAddressSection) ToIPv6AddressSection() *IPv6AddressSection {
-	if section.IsIPv6AddressSection() {
+func (section *IPAddressSection) ToIPv6() *IPv6AddressSection {
+	if section.IsIPv6() {
 		return (*IPv6AddressSection)(section)
 	}
 	return nil
 }
 
-func (section *IPAddressSection) ToIPv4AddressSection() *IPv4AddressSection {
-	if section.IsIPv4AddressSection() {
-		return (*IPv4AddressSection)(unsafe.Pointer(section))
+func (section *IPAddressSection) ToIPv4() *IPv4AddressSection {
+	if section.IsIPv4() {
+		return (*IPv4AddressSection)(section)
 	}
 	return nil
 }
 
-func (section *IPAddressSection) IsIPv4() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIPAddressSection()
-	return section.IsIPv4AddressSection()
+func (section *IPAddressSection) IsIPv4() bool { // we allow nil receivers to allow this to be called following a failed converion like ToIP()
+	return section != nil && section.matchesIPv4SectionType()
 }
 
 func (section *IPAddressSection) IsIPv6() bool {
-	return section.IsIPv6AddressSection()
+	return section != nil && section.matchesIPv6SectionType()
 }
 
 // Gets the subsection from the series starting from the given index
@@ -1541,7 +1533,7 @@ func (section *IPAddressSection) GetTrailingSection(index int) *IPAddressSection
 // GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex
 // The first segment is at index 0.
 func (section *IPAddressSection) GetSubSection(index, endIndex int) *IPAddressSection {
-	return section.getSubSection(index, endIndex).ToIPAddressSection()
+	return section.getSubSection(index, endIndex).ToIP()
 }
 
 func (section *IPAddressSection) GetNetworkSection() *IPAddressSection {
@@ -1588,11 +1580,11 @@ func (section *IPAddressSection) GetSegments() (res []*IPAddressSegment) {
 }
 
 func (section *IPAddressSection) GetLower() *IPAddressSection {
-	return section.getLower().ToIPAddressSection()
+	return section.getLower().ToIP()
 }
 
 func (section *IPAddressSection) GetUpper() *IPAddressSection {
-	return section.getUpper().ToIPAddressSection()
+	return section.getUpper().ToIP()
 }
 
 func (section *IPAddressSection) ToZeroHost() (res *IPAddressSection, err IncompatibleAddressError) {
@@ -1623,12 +1615,12 @@ func (section *IPAddressSection) WithoutPrefixLen() *IPAddressSection {
 }
 
 func (section *IPAddressSection) SetPrefixLen(prefixLen BitCount) *IPAddressSection {
-	return section.setPrefixLen(prefixLen).ToIPAddressSection()
+	return section.setPrefixLen(prefixLen).ToIP()
 }
 
 func (section *IPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
-	return res.ToIPAddressSection(), err
+	return res.ToIP(), err
 }
 
 func (section *IPAddressSection) AdjustPrefixLen(prefixLen BitCount) *IPAddressSection {
@@ -1640,23 +1632,23 @@ func (section *IPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPA
 }
 
 func (section *IPAddressSection) ToPrefixBlock() *IPAddressSection {
-	return section.toPrefixBlock().ToIPAddressSection()
+	return section.toPrefixBlock().ToIP()
 }
 
 func (section *IPAddressSection) ToPrefixBlockLen(prefLen BitCount) *IPAddressSection {
-	return section.toPrefixBlockLen(prefLen).ToIPAddressSection()
+	return section.toPrefixBlockLen(prefLen).ToIP()
 }
 
 func (section *IPAddressSection) AssignPrefixForSingleBlock() *IPAddressSection {
-	return section.assignPrefixForSingleBlock().ToIPAddressSection()
+	return section.assignPrefixForSingleBlock().ToIP()
 }
 
 func (section *IPAddressSection) AssignMinPrefixForBlock() *IPAddressSection {
-	return section.assignMinPrefixForBlock().ToIPAddressSection()
+	return section.assignMinPrefixForBlock().ToIP()
 }
 
 func (section *IPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *IPAddressSection {
-	return section.toBlock(segmentIndex, lower, upper).ToIPAddressSection()
+	return section.toBlock(segmentIndex, lower, upper).ToIP()
 }
 
 func (section *IPAddressSection) Iterator() IPSectionIterator {
@@ -1683,11 +1675,11 @@ func (section *IPAddressSection) SequentialBlockIterator() IPSectionIterator {
 }
 
 func (section *IPAddressSection) IncrementBoundary(increment int64) *IPAddressSection {
-	return section.incrementBoundary(increment).ToIPAddressSection()
+	return section.incrementBoundary(increment).ToIP()
 }
 
 func (section *IPAddressSection) Increment(increment int64) *IPAddressSection {
-	return section.increment(increment).ToIPAddressSection()
+	return section.increment(increment).ToIP()
 }
 
 func (section *IPAddressSection) SpanWithPrefixBlocks() []*IPAddressSection {
@@ -1717,17 +1709,17 @@ func (section *IPAddressSection) CoverWithPrefixBlock() *IPAddressSection {
 
 func (section *IPAddressSection) ReverseBits(perByte bool) (*IPAddressSection, IncompatibleAddressError) {
 	res, err := section.reverseBits(perByte)
-	return res.ToIPAddressSection(), err
+	return res.ToIP(), err
 }
 
 func (section *IPAddressSection) ReverseBytes() (*IPAddressSection, IncompatibleAddressError) {
 	res, err := section.reverseBytes(false)
-	return res.ToIPAddressSection(), err
+	return res.ToIP(), err
 }
 
 //func (section *IPAddressSection) ReverseBytesPerSegment() (*IPAddressSection, IncompatibleAddressError) {
 //	res, err := section.reverseBytes(true)
-//	return res.ToIPAddressSection(), err
+//	return res.ToIP(), err
 //}
 
 func (section *IPAddressSection) ReverseSegments() *IPAddressSection {
@@ -1742,7 +1734,7 @@ func (section *IPAddressSection) ReverseSegments() *IPAddressSection {
 			return section.GetSegment(i).withoutPrefixLen().ToAddressSegment(), nil
 		},
 	)
-	return res.ToIPAddressSection()
+	return res.ToIP()
 }
 
 func (section *IPAddressSection) String() string {

@@ -52,7 +52,7 @@ func (zone Zone) String() string {
 const NoZone = ""
 
 func newIPv6Address(section *IPv6AddressSection) *IPv6Address {
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv6Address()
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv6Address()
 }
 
 func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueError) {
@@ -66,12 +66,12 @@ func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueErro
 			val:          segCount,
 		}
 	}
-	return createAddress(section.ToAddressSection(), NoZone).ToIPv6Address(), nil
+	return createAddress(section.ToSectionBase(), NoZone).ToIPv6Address(), nil
 }
 
 func newIPv6AddressZoned(section *IPv6AddressSection, zone string) *IPv6Address {
 	zoneVal := Zone(zone)
-	result := createAddress(section.ToAddressSection(), zoneVal).ToIPv6Address()
+	result := createAddress(section.ToSectionBase(), zoneVal).ToIPv6Address()
 	assignIPv6Cache(zoneVal, result.cache)
 	return result
 }
@@ -448,7 +448,7 @@ func (addr *IPv6Address) GetZone() Zone {
 }
 
 func (addr *IPv6Address) GetSection() *IPv6AddressSection {
-	return addr.init().section.ToIPv6AddressSection()
+	return addr.init().section.ToIPv6()
 }
 
 // Gets the subsection from the series starting from the given index
@@ -594,7 +594,7 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 	if section == nil {
 		return nil
 	}
-	sec := section.ToAddressSection()
+	sec := section.ToSectionBase()
 	if sec == addr.section {
 		return addr
 	}
@@ -642,7 +642,7 @@ func (addr *IPv6Address) Subtract(other *IPv6Address) []*IPv6Address {
 	sectLen := len(sects)
 	if sectLen == 1 {
 		sec := sects[0]
-		if sec.ToAddressSection() == addr.section {
+		if sec.ToSectionBase() == addr.section {
 			return []*IPv6Address{addr}
 		}
 	}

@@ -280,7 +280,7 @@ func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
 //func (addrStr *IPAddressString) IsSequential() bool {
 //	addrStr = addrStr.init()
 //	return addrStr.IsValid() && addrStr.addressProvider.isSequential()
-//} // TODO LATER this needs ToAddressDivisionGrouping which we have delayed til later
+//} // TODO LATER this needs ToDivGrouping which we have delayed til later
 // Also restore this part of the godoc below:
 //
 // The sequential range matches the same set of addresses as the address string or the address when {@link #isSequential()} is true.

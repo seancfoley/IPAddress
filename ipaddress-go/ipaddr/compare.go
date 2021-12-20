@@ -76,7 +76,7 @@ func mapDivision(genericDiv DivisionType) int {
 }
 
 func mapGrouping(grouping StandardDivGroupingType) int {
-	group := grouping.ToAddressDivisionGrouping()
+	group := grouping.ToDivGrouping()
 	if group.IsZeroGrouping() {
 		// The zero grouping can represent a zero-length section of any address type.
 		// This is necessary because sections and groupings have no init() method to ensure zero-sections are always assigned an address type.
@@ -84,15 +84,15 @@ func mapGrouping(grouping StandardDivGroupingType) int {
 		// Empty sections org groupings that have an address type are not considered equal.  They can represent only one address type.
 		// This is similar to the fact that a MAC section and an IPv4 section can be structurally identical but not equal due to the type.
 		return zerogroupingtype
-	} else if group.IsIPv6AddressSection() {
+	} else if group.IsIPv6() {
 		return ipv6sectype
-	} else if group.IsIPv6v4MixedAddressGrouping() {
+	} else if group.IsMixedIPv6v4() {
 		return ipv6v4groupingtype
-	} else if group.IsIPv4AddressSection() {
+	} else if group.IsIPv4() {
 		return ipv4sectype
-	} else if group.IsMACAddressSection() {
+	} else if group.IsMAC() {
 		return macsectype
-	} else if group.IsIPAddressSection() {
+	} else if group.IsIP() {
 		return ipsectype
 	} else if group.isAddressSection() {
 		return sectype
@@ -154,10 +154,10 @@ func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
 func (comp AddressComparator) CompareAddressSections(one, two AddressSectionType) int {
 	var oneSec, twoSec *AddressSection
 	if one != nil {
-		oneSec = one.ToAddressSection()
+		oneSec = one.ToSectionBase()
 	}
 	if two != nil {
-		twoSec = two.ToAddressSection()
+		twoSec = two.ToSectionBase()
 	}
 	if oneSec == nil {
 		if twoSec == nil {
@@ -205,10 +205,10 @@ func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int 
 	grouping2, _ := two.(StandardDivGroupingType)
 	var oneGrouping, twoGrouping *AddressDivisionGrouping
 	if grouping1 != nil {
-		oneGrouping = grouping1.ToAddressDivisionGrouping()
+		oneGrouping = grouping1.ToDivGrouping()
 	}
 	if grouping2 != nil {
-		twoGrouping = grouping2.ToAddressDivisionGrouping()
+		twoGrouping = grouping2.ToDivGrouping()
 	}
 	if oneGrouping == nil {
 		if twoGrouping == nil {
@@ -458,8 +458,8 @@ func (comp valueComparator) compareParts(oneSeries, twoSeries AddressDivisionSer
 	var one, two *AddressDivisionGrouping
 	if o, ok := oneSeries.(StandardDivGroupingType); ok {
 		if t, ok := twoSeries.(StandardDivGroupingType); ok {
-			one = o.ToAddressDivisionGrouping()
-			two = t.ToAddressDivisionGrouping()
+			one = o.ToDivGrouping()
+			two = t.ToDivGrouping()
 		}
 	}
 	oneSeriesByteCount := oneSeries.GetByteCount()
@@ -744,8 +744,8 @@ func (comp countComparator) compareDivisionGroupings(oneSeries, twoSeries Addres
 	var one, two *AddressDivisionGrouping
 	if o, ok := oneSeries.(StandardDivGroupingType); ok {
 		if t, ok := twoSeries.(StandardDivGroupingType); ok {
-			one = o.ToAddressDivisionGrouping()
-			two = t.ToAddressDivisionGrouping()
+			one = o.ToDivGrouping()
+			two = t.ToDivGrouping()
 		}
 	}
 	result := compareDivBitCounts(oneSeries, twoSeries)

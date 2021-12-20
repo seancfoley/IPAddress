@@ -626,7 +626,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			} else if back.IsPrefixed() {
 				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, *back.GetPrefixLen()))
 			}
-			sec := frontSection.ToMACAddressSection().Append(backSection.ToMACAddressSection())
+			sec := frontSection.ToMAC().Append(backSection.ToMAC())
 			//mixed2 = (back.ToMACAddress()).GetNetwork().getAddressCreator().createAddress(sec);
 			mixed2x, err := ipaddr.NewMACAddress(sec)
 			if err != nil {
@@ -637,7 +637,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			if frontSectionInvalid != nil && backSectionInvalid != nil {
 				//This doesn't fail anymore because we allow large sections
 				//try {
-				newSec := (frontSection.ToMACAddressSection()).Append(backSectionInvalid.ToMACAddressSection())
+				newSec := (frontSection.ToMAC()).Append(backSectionInvalid.ToMAC())
 				if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
 					t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 				}
@@ -646,7 +646,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				//pass
 				//}
 				//try {
-				newSec = (frontSectionInvalid.ToMACAddressSection()).Append(backSection.ToMACAddressSection())
+				newSec = (frontSectionInvalid.ToMAC()).Append(backSection.ToMAC())
 				if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
 					t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 				}
@@ -660,11 +660,11 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				f := split[0]
 				g := split[1]
 				h := split[2]
-				sec = f.ToMACAddressSection().Append(h.ToMACAddressSection())
+				sec = f.ToMAC().Append(h.ToMAC())
 				//if(h.IsPrefixed() && h.GetPrefixLen() == 0 && !f.IsPrefixed()) {
 				//	sec = sec.AppendToPrefix((MACAddressSection) g);
 				//} else {
-				sec = sec.Insert(f.GetSegmentCount(), g.ToMACAddressSection())
+				sec = sec.Insert(f.GetSegmentCount(), g.ToMAC())
 				if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
 					gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.MACBitsPerSegment
 					if g.IsPrefixed() {
@@ -698,7 +698,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			mixed = hostIdStr.GetAddress().ToAddress()
 
 			if isIpv4 {
-				sec := (frontSection.ToIPv4AddressSection()).Append(backSection.ToIPv4AddressSection())
+				sec := (frontSection.ToIPv4()).Append(backSection.ToIPv4())
 				mixed2x, err := ipaddr.NewIPv4Address(sec)
 				//mixed2 = ( back.ToIPv4Address()).GetNetwork().GetAddressCreator().createAddress(sec);
 				if err != nil {
@@ -708,7 +708,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 
 				if frontSectionInvalid != nil && backSectionInvalid != nil {
 					//try {
-					newSec := (frontSection.ToIPv4AddressSection()).Append(backSectionInvalid.ToIPv4AddressSection())
+					newSec := (frontSection.ToIPv4()).Append(backSectionInvalid.ToIPv4())
 					if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
@@ -718,7 +718,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					//pass
 					//}
 					//try {
-					newSec = (frontSectionInvalid.ToIPv4AddressSection()).Append(backSection.ToIPv4AddressSection())
+					newSec = (frontSectionInvalid.ToIPv4()).Append(backSection.ToIPv4())
 					if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
@@ -733,11 +733,11 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					f := split[0]
 					g := split[1]
 					h := split[2]
-					sec = (f.ToIPv4AddressSection()).Append(h.ToIPv4AddressSection())
+					sec = (f.ToIPv4()).Append(h.ToIPv4())
 					//if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
 					//	sec = sec.appendToNetwork((IPv4AddressSection) g);
 					//} else {
-					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv4AddressSection())
+					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv4())
 					if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
 						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv4BitsPerSegment
 						if g.IsPrefixed() {
@@ -756,7 +756,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					//splitsJoined.add(mixed3);
 				}
 			} else { // IPv6
-				sec := frontSection.ToIPv6AddressSection().Append(backSection.ToIPv6AddressSection())
+				sec := frontSection.ToIPv6().Append(backSection.ToIPv6())
 				mixed2x, err := ipaddr.NewIPv6Address(sec)
 				//mixed2x, err := ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
 				if err != nil {
@@ -765,7 +765,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				mixed2 = mixed2x.ToAddress()
 				if frontSectionInvalid != nil && backSectionInvalid != nil {
 					//try {
-					newSec := (frontSection.ToIPv6AddressSection()).Append(backSectionInvalid.ToIPv6AddressSection())
+					newSec := (frontSection.ToIPv6()).Append(backSectionInvalid.ToIPv6())
 					if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
@@ -774,7 +774,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					//pass
 					//}
 					//try {
-					newSec = (frontSectionInvalid.ToIPv6AddressSection()).Append(backSection.ToIPv6AddressSection())
+					newSec = (frontSectionInvalid.ToIPv6()).Append(backSection.ToIPv6())
 					if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
@@ -788,11 +788,11 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					f := split[0]
 					g := split[1]
 					h := split[2]
-					sec = f.ToIPv6AddressSection().Append(h.ToIPv6AddressSection())
+					sec = f.ToIPv6().Append(h.ToIPv6())
 					//if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
 					//	sec = sec.appendToNetwork((IPv6AddressSection) g);
 					//} else {
-					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv6AddressSection())
+					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv6())
 					//}
 					if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
 						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv6BitsPerSegment
