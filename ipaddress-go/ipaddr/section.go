@@ -336,7 +336,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //	for i, segment := range orig {
 //		if segment == nil {
 //			if previousSegPrefixed {
-//				newSegs[i] = zeroIPv4SegZeroPrefix.ToAddressDivision()
+//				newSegs[i] = zeroIPv4SegZeroPrefix.ToDiv()
 //			} else if i == prefixedSegment {
 //				newPref = prefLen
 //				segPref := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, *prefLen, prefixedSegment)
@@ -345,14 +345,14 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //					i++
 //					isMultiple = isMultiple || i < len(newSegs) || *segPref < IPv4BitsPerSegment
 //					for ; i < len(newSegs); i++ {
-//						newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//						newSegs[i] = zeroIPv4SegPrefixBlock.ToDiv()
 //					}
 //					break
 //				} else {
 //					newSegs[i] = zeroIPv4Seg.toPrefixedNetworkDivision(segPref)
 //				}
 //			} else {
-//				newSegs[i] = zeroIPv4Seg.ToAddressDivision()
+//				newSegs[i] = zeroIPv4Seg.ToDiv()
 //			}
 //		} else {
 //			segPrefix := segment.getDivisionPrefixLength()
@@ -365,7 +365,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //							segment.GetUpperSegmentValue(),
 //							cacheBitCount(0)))
 //				} else {
-//					newSegs[i] = segment.ToAddressDivision()
+//					newSegs[i] = segment.ToDiv()
 //				}
 //			} else {
 //				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
@@ -395,7 +395,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //						i++
 //						isMultiple = isMultiple || i < len(newSegs) || *newPref < IPv4BitsPerSegment
 //						for ; i < len(newSegs); i++ {
-//							newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//							newSegs[i] = zeroIPv4SegPrefixBlock.ToDiv()
 //						}
 //						break
 //					}
@@ -414,7 +414,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //					newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
 //					previousSegPrefixed = true
 //				}
-//				newSegs[i] = segment.ToAddressDivision()
+//				newSegs[i] = segment.ToDiv()
 //			}
 //			isMultiple = isMultiple || segment.isMultiple()
 //		}
@@ -456,7 +456,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //		//for i, segmentx := range orig {
 //		if segment == nil {
 //			if previousSegPrefixed {
-//				newSegs[i] = zeroIPv4SegZeroPrefix.ToAddressDivision()
+//				newSegs[i] = zeroIPv4SegZeroPrefix.ToDiv()
 //			} else if i == prefixedSegment {
 //				newPref = prefLen
 //				segPref := getPrefixedSegmentPrefixLength(IPv4BitsPerSegment, *prefLen, prefixedSegment)
@@ -481,14 +481,14 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //					i++
 //					isMultiple = isMultiple || i < len(newSegs) || *segPref < IPv4BitsPerSegment
 //					for ; i < len(newSegs); i++ {
-//						newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//						newSegs[i] = zeroIPv4SegPrefixBlock.ToDiv()
 //					}
 //					break
 //				} else {
 //					newSegs[i] = zeroIPv4Seg.toPrefixedNetworkDivision(segPref)
 //				}
 //			} else {
-//				newSegs[i] = zeroIPv4Seg.ToAddressDivision()
+//				newSegs[i] = zeroIPv4Seg.ToDiv()
 //			}
 //		} else {
 //			segPrefix := segment.getDivisionPrefixLength()
@@ -501,7 +501,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //							segment.GetUpperSegmentValue(),
 //							cacheBitCount(0)))
 //				} else {
-//					newSegs[i] = segment.ToAddressDivision()
+//					newSegs[i] = segment.ToDiv()
 //				}
 //			} else {
 //				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
@@ -547,7 +547,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //						i++
 //						isMultiple = isMultiple || i < len(newSegs) || *newPref < IPv4BitsPerSegment
 //						for ; i < len(newSegs); i++ {
-//							newSegs[i] = zeroIPv4SegPrefixBlock.ToAddressDivision()
+//							newSegs[i] = zeroIPv4SegPrefixBlock.ToDiv()
 //						}
 //						break
 //					}
@@ -566,7 +566,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 //					newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
 //					previousSegPrefixed = true
 //				}
-//				newSegs[i] = segment.ToAddressDivision()
+//				newSegs[i] = segment.ToDiv()
 //			}
 //			isMultiple = isMultiple || segment.isMultiple()
 //		}
@@ -613,7 +613,7 @@ func createDivisionsFromSegs(
 		//for i, segmentx := range orig {
 		if segment == nil {
 			if previousSegPrefixed {
-				divs[i] = zeroSegZeroPrefix.ToAddressDivision()
+				divs[i] = zeroSegZeroPrefix.ToDiv()
 			} else if i == prefixedSegment {
 				newPref = prefLen
 				segPref := getPrefixedSegmentPrefixLength(bitsPerSegment, *prefLen, prefixedSegment)
@@ -638,14 +638,14 @@ func createDivisionsFromSegs(
 					i++
 					isMultiple = isMultiple || i < len(divs) || *segPref < bitsPerSegment
 					for ; i < len(divs); i++ {
-						divs[i] = zeroSegPrefixBlock.ToAddressDivision()
+						divs[i] = zeroSegPrefixBlock.ToDiv()
 					}
 					break
 				} else {
 					divs[i] = zeroSeg.toPrefixedNetworkDivision(segPref)
 				}
 			} else {
-				divs[i] = zeroSeg.ToAddressDivision()
+				divs[i] = zeroSeg.ToDiv()
 			}
 		} else {
 			segPrefix := segment.getDivisionPrefixLength()
@@ -658,7 +658,7 @@ func createDivisionsFromSegs(
 							segment.GetUpperSegmentValue(),
 							cacheBitCount(0)))
 				} else {
-					divs[i] = segment.ToAddressDivision()
+					divs[i] = segment.ToDiv()
 				}
 			} else {
 				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
@@ -704,7 +704,7 @@ func createDivisionsFromSegs(
 						i++
 						isMultiple = isMultiple || i < len(divs) || *newPref < bitsPerSegment
 						for ; i < len(divs); i++ {
-							divs[i] = zeroSegPrefixBlock.ToAddressDivision()
+							divs[i] = zeroSegPrefixBlock.ToDiv()
 						}
 						break
 					}
@@ -723,7 +723,7 @@ func createDivisionsFromSegs(
 					newPref = getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
 					previousSegPrefixed = true
 				}
-				divs[i] = segment.ToAddressDivision()
+				divs[i] = segment.ToDiv()
 			}
 			isMultiple = isMultiple || segment.isMultiple()
 		}
@@ -762,9 +762,9 @@ func createDivisionsFromSegs(
 //	for i, segment := range orig {
 //		if segment == nil {
 //			if isPrefixed {
-//				newSegs[i] = zeroIPv4SegZeroPrefix.ToAddressDivision()
+//				newSegs[i] = zeroIPv4SegZeroPrefix.ToDiv()
 //			} else {
-//				newSegs[i] = zeroIPv4Seg.ToAddressDivision()
+//				newSegs[i] = zeroIPv4Seg.ToDiv()
 //			}
 //		} else {
 //			if !isMultiple && segment.isMultiple() {
@@ -783,7 +783,7 @@ func createDivisionsFromSegs(
 //					isPrefixed = true
 //					newPref = getNetworkPrefixLen(IPv4BitsPerSegment, *segPrefix, i)
 //				}
-//				newSegs[i] = orig[i].ToAddressDivision()
+//				newSegs[i] = orig[i].ToDiv()
 //			}
 //		}
 //	}
@@ -871,7 +871,7 @@ func (section *addressSectionInternal) GetBytesPerSegment() int {
 }
 
 func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
-	return section.getDivision(index).ToAddressSegment()
+	return section.getDivision(index).ToSegmentBase()
 }
 
 // GetGenericSegment returns the segment as an AddressSegmentType,
@@ -1005,9 +1005,9 @@ func (section *addressSectionInternal) createLowestHighestSections() (lower, upp
 	}
 	for i := 0; i < segmentCount; i++ {
 		seg := section.GetSegment(i)
-		lowSegs[i] = seg.GetLower().ToAddressDivision()
+		lowSegs[i] = seg.GetLower().ToDiv()
 		if highSegs != nil {
-			highSegs[i] = seg.GetUpper().ToAddressDivision()
+			highSegs[i] = seg.GetUpper().ToDiv()
 		}
 	}
 	//pref, addrType, ind := section.prefixLength, section.getAddrType(), section.addressSegmentIndex
@@ -1044,8 +1044,8 @@ func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*A
 		}
 		origi := section.GetSegment(i)
 		origj := section.GetSegment(j)
-		newSegs[j] = newj.ToAddressDivision()
-		newSegs[i] = newi.ToAddressDivision()
+		newSegs[j] = newj.ToDiv()
+		newSegs[i] = newi.ToDiv()
 		if isSame &&
 			!(segValsSame(newi.getSegmentValue(), origi.getSegmentValue(), newi.getUpperSegmentValue(), origi.getUpperSegmentValue()) &&
 				segValsSame(newj.getSegmentValue(), origj.getSegmentValue(), newj.getUpperSegmentValue(), origj.getUpperSegmentValue())) {
@@ -1078,7 +1078,7 @@ func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSe
 			if err != nil {
 				return
 			}
-			newSegs[i] = reversedSeg.ToAddressDivision()
+			newSegs[i] = reversedSeg.ToDiv()
 			if isSame && !segValsSame(seg.getSegmentValue(), reversedSeg.getSegmentValue(), seg.getUpperSegmentValue(), reversedSeg.getUpperSegmentValue()) {
 				//if(isSame && !newSegs[i].equals(section.getSegment(i))) {
 				isSame = false
@@ -1111,7 +1111,7 @@ func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *Addre
 			if err != nil {
 				return
 			}
-			newSegs[i] = reversedSeg.ToAddressDivision()
+			newSegs[i] = reversedSeg.ToDiv()
 			if isSame && !segValsSame(seg.getSegmentValue(), reversedSeg.getSegmentValue(), seg.getUpperSegmentValue(), reversedSeg.getUpperSegmentValue()) {
 				//if(isSame && !newSegs[i].equals(section.getSegment(i))) {
 				isSame = false
@@ -2623,13 +2623,13 @@ func (section *AddressSection) GetSubSection(index, endIndex int) *AddressSectio
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *AddressSection) CopySubSegments(start, end int, segs []*AddressSegment) (count int) {
-	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToAddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToSegmentBase(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *AddressSection) CopySegments(segs []*AddressSegment) (count int) {
-	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToAddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToSegmentBase(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.

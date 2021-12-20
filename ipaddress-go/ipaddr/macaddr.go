@@ -146,7 +146,7 @@ var zeroMAC = createMACZero()
 func createMACZero() *MACAddress {
 	segs := []*MACAddressSegment{zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg}
 	section := NewMACSection(segs)
-	//div := NewMACSegment(0).ToAddressDivision()
+	//div := NewMACSegment(0).ToDiv()
 	//segs := []*AddressDivision{div, div, div, div, div, div}
 	//section, _ := newMACSection(segs)
 	return newMACAddress(section)
@@ -300,7 +300,7 @@ func (addr *MACAddress) GetSegments() []*MACAddressSegment {
 
 // GetSegment returns the segment at the given index
 func (addr *MACAddress) GetSegment(index int) *MACAddressSegment {
-	return addr.init().getSegment(index).ToMACAddressSegment()
+	return addr.init().getSegment(index).ToMAC()
 }
 
 // GetSegmentCount returns the segment/division count
@@ -568,7 +568,7 @@ func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
 	segmentIndex := MACOrganizationalUniqueIdentifierSegmentCount
 	newSegs := createSegmentArray(segmentCount)
 	addr.GetSection().copySubDivisions(0, segmentIndex, newSegs)
-	allRangeSegment := allRangeMACSeg.ToAddressDivision()
+	allRangeSegment := allRangeMACSeg.ToDiv()
 	for i := segmentIndex; i < segmentCount; i++ {
 		newSegs[i] = allRangeSegment
 	}
@@ -579,9 +579,9 @@ func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
 var IPv6LinkLocalPrefix = createLinkLocalPrefix()
 
 func createLinkLocalPrefix() *IPv6AddressSection {
-	zeroSeg := zeroIPv6Seg.ToAddressDivision()
+	zeroSeg := zeroIPv6Seg.ToDiv()
 	segs := []*AddressDivision{
-		NewIPv6Segment(0xfe80).ToAddressDivision(),
+		NewIPv6Segment(0xfe80).ToDiv(),
 		zeroSeg,
 		zeroSeg,
 		zeroSeg,
@@ -638,11 +638,11 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressErr
 		//section.CopySubSegments(0,  3, segs);
 		//var ffMACSeg, feMACSeg = NewMACSegment(0xff), NewMACSegment(0xfe)
 		//MACAddressSegment ffSegment = creator.createSegment(0xff);
-		segs[3] = ffMACSeg.ToAddressDivision()
+		segs[3] = ffMACSeg.ToDiv()
 		if asMAC {
-			segs[4] = ffMACSeg.ToAddressDivision()
+			segs[4] = ffMACSeg.ToDiv()
 		} else {
-			segs[4] = feMACSeg.ToAddressDivision()
+			segs[4] = feMACSeg.ToDiv()
 		}
 		//segs[4] = asMAC ? ffSegment : creator.createSegment(0xfe);
 		section.copySubDivisions(3, 6, segs[5:])

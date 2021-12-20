@@ -932,10 +932,10 @@ func (t specialTypesTester) testNils() {
 
 	ipSegmentsIPv6 = append(ipSegmentsIPv6, nil)
 	ipSegmentsIPv6 = append(ipSegmentsIPv6, &ipaddr.AddressSegment{})
-	ipSegmentsIPv6 = append(ipSegmentsIPv6, (&ipaddr.IPAddressSegment{}).ToAddressSegment())
-	ipSegmentsIPv6 = append(ipSegmentsIPv6, (&ipaddr.IPv6AddressSegment{}).ToAddressSegment())
-	ipSegmentsIPv6 = append(ipSegmentsIPv6, ipv6Segment1.ToAddressSegment())
-	ipSegmentsIPv6 = append(ipSegmentsIPv6, ipv6SegMult.ToAddressSegment())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, (&ipaddr.IPAddressSegment{}).ToSegmentBase())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, (&ipaddr.IPv6AddressSegment{}).ToSegmentBase())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, ipv6Segment1.ToSegmentBase())
+	ipSegmentsIPv6 = append(ipSegmentsIPv6, ipv6SegMult.ToSegmentBase())
 
 	for i := range ipSegmentsIPv6 {
 		range1 := ipSegmentsIPv6[i]
@@ -971,10 +971,10 @@ func (t specialTypesTester) testNils() {
 
 	ipSegmentsIPv4 = append(ipSegmentsIPv4, nil)
 	ipSegmentsIPv4 = append(ipSegmentsIPv4, &ipaddr.AddressSegment{})
-	ipSegmentsIPv4 = append(ipSegmentsIPv4, (&ipaddr.IPAddressSegment{}).ToAddressSegment())
-	ipSegmentsIPv4 = append(ipSegmentsIPv4, (&ipaddr.IPv4AddressSegment{}).ToAddressSegment())
-	ipSegmentsIPv4 = append(ipSegmentsIPv4, ipv4Segment1.ToAddressSegment())
-	ipSegmentsIPv4 = append(ipSegmentsIPv4, ipv4SegMult.ToAddressSegment())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, (&ipaddr.IPAddressSegment{}).ToSegmentBase())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, (&ipaddr.IPv4AddressSegment{}).ToSegmentBase())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, ipv4Segment1.ToSegmentBase())
+	ipSegmentsIPv4 = append(ipSegmentsIPv4, ipv4SegMult.ToSegmentBase())
 
 	for i := range ipSegmentsIPv4 {
 		range1 := ipSegmentsIPv4[i]
@@ -1040,7 +1040,7 @@ func (t specialTypesTester) testNils() {
 	}
 	for _, item := range ipSegmentsIPv6 {
 		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
-		if item.IsIPv6AddressSegment() {
+		if item.IsIPv6() {
 			ipv6SegmentItems = append(ipv6SegmentItems, item)
 		}
 	}

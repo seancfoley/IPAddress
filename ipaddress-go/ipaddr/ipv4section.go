@@ -60,7 +60,7 @@ func newIPv4SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IP
 //	prefLen := res.prefixLength
 //	if normalizeSegments && prefLen != nil {
 //		normalizePrefixBoundary(*prefLen, segments, IPv4BitsPerSegment, IPv4BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
-//			return NewIPv4RangePrefixedSegment(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen).ToAddressDivision()
+//			return NewIPv4RangePrefixedSegment(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen).ToDiv()
 //		})
 //	}
 //	return
@@ -90,16 +90,16 @@ func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLen PrefixLen)
 func createIPv4SectionFromSegs(orig []*IPv4AddressSegment, prefLen PrefixLen) (result *IPv4AddressSection) {
 	divs, newPref, isMultiple := createDivisionsFromSegs(
 		func(index int) *IPAddressSegment {
-			return orig[index].ToIPAddressSegment()
+			return orig[index].ToIP()
 		},
 		len(orig),
 		ipv4BitsToSegmentBitshift,
 		IPv4BitsPerSegment,
 		IPv4BytesPerSegment,
 		IPv4MaxValuePerSegment,
-		zeroIPv4Seg.ToIPAddressSegment(),
-		zeroIPv4SegZeroPrefix.ToIPAddressSegment(),
-		zeroIPv4SegPrefixBlock.ToIPAddressSegment(),
+		zeroIPv4Seg.ToIP(),
+		zeroIPv4SegZeroPrefix.ToIP(),
+		zeroIPv4SegPrefixBlock.ToIP(),
 		prefLen)
 	result = createIPv4Section(divs)
 	result.prefixLength = newPref
@@ -326,7 +326,7 @@ func (section *IPv4AddressSection) GetIPv4BlockCount(segmentCount int) uint64 {
 }
 
 func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
-	return section.getDivision(index).ToIPv4AddressSegment()
+	return section.getDivision(index).ToIPv4()
 }
 
 // Gets the subsection from the series starting from the given index
@@ -368,13 +368,13 @@ func (section *IPv4AddressSection) GetHostMask() *IPv4AddressSection {
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv4AddressSection) CopySubSegments(start, end int, segs []*IPv4AddressSegment) (count int) {
-	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv4AddressSection) CopySegments(segs []*IPv4AddressSegment) (count int) {
-	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4AddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv4(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
@@ -775,7 +775,7 @@ func (section *IPv4AddressSection) ReverseSegments() *IPv4AddressSection {
 	}
 	res, _ := section.reverseSegments(
 		func(i int) (*AddressSegment, IncompatibleAddressError) {
-			return section.GetSegment(i).WithoutPrefixLen().ToAddressSegment(), nil
+			return section.GetSegment(i).WithoutPrefixLen().ToSegmentBase(), nil
 		},
 	)
 	return res.ToIPv4()

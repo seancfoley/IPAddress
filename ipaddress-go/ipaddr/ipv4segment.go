@@ -137,14 +137,14 @@ func (seg *IPv4AddressSegment) init() *IPv4AddressSegment {
 
 func (seg *IPv4AddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressSegment() == nil
+		return other == nil || other.ToSegmentBase() == nil
 	}
 	return seg.init().contains(other)
 }
 
 func (seg *IPv4AddressSegment) Equal(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressDivision() == nil
+		return other == nil || other.ToDiv() == nil
 	}
 	return seg.init().equal(other)
 }
@@ -179,11 +179,11 @@ func (seg *IPv4AddressSegment) GetMaxValue() IPv4SegInt {
 }
 
 func (seg *IPv4AddressSegment) GetLower() *IPv4AddressSegment {
-	return seg.init().getLower().ToIPv4AddressSegment()
+	return seg.init().getLower().ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) GetUpper() *IPv4AddressSegment {
-	return seg.init().getUpper().ToIPv4AddressSegment()
+	return seg.init().getUpper().ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) IsMultiple() bool {
@@ -269,19 +269,19 @@ func (seg *IPv4AddressSegment) GetLeadingBitCount(ones bool) BitCount {
 }
 
 func (seg *IPv4AddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.init().toPrefixedNetworkDivision(segmentPrefixLength).ToIPv4AddressSegment()
+	return seg.init().toPrefixedNetworkDivision(segmentPrefixLength).ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.init().toNetworkDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
+	return seg.init().toNetworkDivision(segmentPrefixLength, false).ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.init().toPrefixedHostDivision(segmentPrefixLength).ToIPv4AddressSegment()
+	return seg.init().toPrefixedHostDivision(segmentPrefixLength).ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPv4AddressSegment {
-	return seg.init().toHostDivision(segmentPrefixLength, false).ToIPv4AddressSegment()
+	return seg.init().toHostDivision(segmentPrefixLength, false).ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) Iterator() IPv4SegmentIterator {
@@ -311,7 +311,7 @@ func (seg *IPv4AddressSegment) WithoutPrefixLen() *IPv4AddressSegment {
 	if !seg.IsPrefixed() {
 		return seg
 	}
-	return seg.withoutPrefixLen().ToIPv4AddressSegment()
+	return seg.withoutPrefixLen().ToIPv4()
 }
 
 func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err IncompatibleAddressError) {
@@ -370,15 +370,15 @@ func (seg *IPv4AddressSegment) getJoinedSegmentPrefixLen(lowBits PrefixLen) Pref
 	return cacheBitCount(*lowBits + IPv4BitsPerSegment)
 }
 
-func (seg *IPv4AddressSegment) ToAddressDivision() *AddressDivision {
-	return seg.ToAddressSegment().ToAddressDivision()
+func (seg *IPv4AddressSegment) ToDiv() *AddressDivision {
+	return seg.ToIP().ToDiv()
 }
 
-func (seg *IPv4AddressSegment) ToAddressSegment() *AddressSegment {
-	return seg.ToIPAddressSegment().ToAddressSegment()
+func (seg *IPv4AddressSegment) ToSegmentBase() *AddressSegment {
+	return seg.ToIP().ToSegmentBase()
 }
 
-func (seg *IPv4AddressSegment) ToIPAddressSegment() *IPAddressSegment {
+func (seg *IPv4AddressSegment) ToIP() *IPAddressSegment {
 	if seg == nil {
 		return nil
 	}

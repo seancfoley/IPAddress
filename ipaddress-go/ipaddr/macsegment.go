@@ -133,15 +133,15 @@ func (seg *MACAddressSegment) init() *MACAddressSegment {
 
 func (seg *MACAddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressSegment() == nil
+		return other == nil || other.ToSegmentBase() == nil
 	}
 	return seg.init().contains(other)
 }
 
 func (seg *MACAddressSegment) Equal(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressDivision() == nil
-		//return seg.getAddrType() == macType && other.(StandardDivisionType).ToAddressDivision() == nil
+		return other == nil || other.ToDiv() == nil
+		//return seg.getAddrType() == macType && other.(StandardDivisionType).ToDiv() == nil
 	}
 	return seg.init().equal(other)
 }
@@ -173,11 +173,11 @@ func (seg *MACAddressSegment) GetMaxValue() MACSegInt {
 }
 
 func (seg *MACAddressSegment) GetLower() *MACAddressSegment {
-	return seg.init().getLower().ToMACAddressSegment()
+	return seg.init().getLower().ToMAC()
 }
 
 func (seg *MACAddressSegment) GetUpper() *MACAddressSegment {
-	return seg.init().getUpper().ToMACAddressSegment()
+	return seg.init().getUpper().ToMAC()
 }
 
 func (seg *MACAddressSegment) IsMultiple() bool {
@@ -329,11 +329,11 @@ func (seg *MACAddressSegment) joinSegs(macSegment1 *MACAddressSegment, flip bool
 		prefixLength), nil
 }
 
-func (seg *MACAddressSegment) ToAddressDivision() *AddressDivision {
-	return seg.ToAddressSegment().ToAddressDivision()
+func (seg *MACAddressSegment) ToDiv() *AddressDivision {
+	return seg.ToSegmentBase().ToDiv()
 }
 
-func (seg *MACAddressSegment) ToAddressSegment() *AddressSegment {
+func (seg *MACAddressSegment) ToSegmentBase() *AddressSegment {
 	if seg == nil {
 		return nil
 	}

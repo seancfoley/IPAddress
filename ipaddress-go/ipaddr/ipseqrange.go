@@ -613,9 +613,9 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 			} else {
 				// in the first differing segment the only iterator will go from segment value of lower address to segment value of upper address
 				iterator := segIteratorProducer(
-					createAddressDivision(lowerSeg.deriveNewMultiSeg(lowerSeg.getSegmentValue(), upper.getSegment(i).getSegmentValue(), nil)).ToIPAddressSegment(),
+					createAddressDivision(lowerSeg.deriveNewMultiSeg(lowerSeg.getSegmentValue(), upper.getSegment(i).getSegmentValue(), nil)).ToIP(),
 					i)
-				//creator.createSegment(lowerSeg.getSegmentValue(), upper.getSegment(i).getSegmentValue(), nil).ToIPAddressSegment(), i)
+				//creator.createSegment(lowerSeg.getSegmentValue(), upper.getSegment(i).getSegmentValue(), nil).ToIP(), i)
 				wrappedFinalIterator := &wrappedIterator{
 					iterator:   iterator,
 					finalValue: finalValue,
@@ -632,14 +632,14 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 
 			// the first iterator goes from the segment value of lower address to the max value of the segment
 			firstIterator := segIteratorProducer(
-				createAddressDivision(lowerSeg.deriveNewMultiSeg(lowerSeg.getSegmentValue(), lower.GetMaxSegmentValue(), nil)).ToIPAddressSegment(),
-				//creator.createSegment(lowerSeg.getSegmentValue(), lower.GetMaxSegmentValue(), nil).ToIPAddressSegment(),
+				createAddressDivision(lowerSeg.deriveNewMultiSeg(lowerSeg.getSegmentValue(), lower.GetMaxSegmentValue(), nil)).ToIP(),
+				//creator.createSegment(lowerSeg.getSegmentValue(), lower.GetMaxSegmentValue(), nil).ToIP(),
 				i)
 
 			// the final iterator goes from 0 to the segment value of our upper address
 			finalIterator := segIteratorProducer(
-				createAddressDivision(lowerSeg.deriveNewMultiSeg(0, upper.getSegment(i).getSegmentValue(), nil)).ToIPAddressSegment(),
-				//creator.createSegment(0, upper.getSegment(i).getSegmentValue(), nil).ToIPAddressSegment(),
+				createAddressDivision(lowerSeg.deriveNewMultiSeg(0, upper.getSegment(i).getSegmentValue(), nil)).ToIP(),
+				//creator.createSegment(0, upper.getSegment(i).getSegmentValue(), nil).ToIP(),
 				i)
 
 			// the wrapper iterator detects when the final iterator has reached its final value
@@ -649,8 +649,8 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 				indexi:     indexi,
 			}
 			if allSegShared == nil {
-				allSegShared = createAddressDivision(lowerSeg.deriveNewMultiSeg(0, lower.getMaxSegmentValue(), nil)).ToIPAddressSegment()
-				//allSegShared = creator.createSegment(0, lower.getMaxSegmentValue(), nil).ToIPAddressSegment()
+				allSegShared = createAddressDivision(lowerSeg.deriveNewMultiSeg(0, lower.getMaxSegmentValue(), nil)).ToIP()
+				//allSegShared = creator.createSegment(0, lower.getMaxSegmentValue(), nil).ToIP()
 			}
 			// all iterators after the first iterator and before the final iterator go from 0 the max segment value,
 			// and there will be many such iterators

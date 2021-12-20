@@ -12,7 +12,7 @@ type AddressItem interface {
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
-	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes - then do the same with GetIP and GetUpperIP (actually, this one not so sure, clashes with ToIP), GetValue() and GetUpperValue()
+	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes
 	GetUpperBytes() []byte
 
 	// GetCount provides the number of address items represented by this AddressItem, for example the subnet size for IP addresses
@@ -64,7 +64,6 @@ type AddressItem interface {
 }
 
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
-
 	TestBit(BitCount) bool
 	IsOneBit(BitCount) bool
 
@@ -84,7 +83,6 @@ type ipAddressRange interface {
 }
 
 type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
-
 	ipAddressRange
 
 	IsSequential() bool
@@ -129,7 +127,6 @@ type AddressDivisionSeries interface {
 }
 
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries, ExtendedIPSegmentSeries
-
 	AddressComponent
 
 	AddressDivisionSeries
@@ -213,7 +210,7 @@ var _, _, _ IPv6AddressSegmentSeries = &IPv6Address{},
 	&IPv6AddressSection{},
 	&EmbeddedIPv6AddressSection{}
 
-type IPv4AddressSegmentSeries interface { //TODO now you can add ToIP(), IsIP()
+type IPv4AddressSegmentSeries interface { //TODO now you can add ToIP(), IsIP(), in fact maybe to IPAddressSegmentSeries
 	IPAddressSegmentSeries
 
 	// GetTrailingSection returns an ending subsection of the full address section

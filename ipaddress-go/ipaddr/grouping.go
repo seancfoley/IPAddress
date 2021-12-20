@@ -348,7 +348,7 @@ func (grouping *addressSectionInternal) matchesMACAddressType() bool {
 }
 
 // The zero grouping, produced by zero sections like IPv4AddressSection{} or AddressDivisionGrouping{}, can represent a zero-length section of any address type,
-// It is not considered equal to constructions of specific zero length sections of groupings like NewIPv4Section(nil) which can only represent a zero-length section of a sinle address type.
+// It is not considered equal to constructions of specific zero length sections of groupings like NewIPv4Section(nil) which can only represent a zero-length section of a single address type.
 func (grouping *addressDivisionGroupingInternal) matchesZeroGrouping() bool {
 	addrType := grouping.getAddrType()
 	return addrType.isNil() && grouping.hasNoDivisions()
@@ -738,7 +738,7 @@ func (grouping *addressDivisionGroupingInternal) calcBytes() (bytes, upperBytes 
 			upperBytes = bytes
 		}
 		for i := 0; i < divisionCount; i++ {
-			seg := grouping.getDivision(i).ToAddressSegment()
+			seg := grouping.getDivision(i).ToSegmentBase()
 			bytes[i] = byte(seg.GetSegmentValue())
 			if isMultiple {
 				upperBytes[i] = byte(seg.GetUpperSegmentValue())
@@ -753,7 +753,7 @@ func (grouping *addressDivisionGroupingInternal) calcBytes() (bytes, upperBytes 
 			upperBytes = bytes
 		}
 		for i := 0; i < divisionCount; i++ {
-			seg := grouping.getDivision(i).ToAddressSegment()
+			seg := grouping.getDivision(i).ToSegmentBase()
 			byteIndex := i << 1
 			val := seg.GetSegmentValue()
 			bytes[byteIndex] = byte(val >> 8)

@@ -15,7 +15,7 @@ type ipAddressSegmentInternal struct {
 	addressSegmentInternal
 }
 
-//func (seg *ipAddressSegmentInternal) ToAddressSegment() *AddressSegment {
+//func (seg *ipAddressSegmentInternal) ToSegmentBase() *AddressSegment {
 //	return (*AddressSegment)(seg)
 //}
 
@@ -55,7 +55,7 @@ func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 func (seg *ipAddressSegmentInternal) withoutPrefixLen() *IPAddressSegment {
 	if seg.isPrefixed() {
 		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
-		return createAddressDivision(vals).ToIPAddressSegment()
+		return createAddressDivision(vals).ToIP()
 	}
 	return seg.toIPAddressSegment()
 }
@@ -333,11 +333,11 @@ type IPAddressSegment struct {
 }
 
 func (seg *IPAddressSegment) GetLower() *IPAddressSegment {
-	return seg.getLower().ToIPAddressSegment()
+	return seg.getLower().ToIP()
 }
 
 func (seg *IPAddressSegment) GetUpper() *IPAddressSegment {
-	return seg.getUpper().ToIPAddressSegment()
+	return seg.getUpper().ToIP()
 }
 
 func (seg *IPAddressSegment) IsMultiple() bool {
@@ -353,15 +353,15 @@ func (seg *IPAddressSegment) GetCount() *big.Int {
 
 func (seg *IPAddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressSegment() == nil
+		return other == nil || other.ToSegmentBase() == nil
 	}
 	return seg.contains(other)
 }
 
 func (seg *IPAddressSegment) Equal(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressDivision() == nil
-		//return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToAddressDivision() == nil
+		return other == nil || other.ToDiv() == nil
+		//return seg.getAddrType() == zeroType && other.(StandardDivisionType).ToDiv() == nil
 	}
 	return seg.equal(other)
 }
@@ -375,19 +375,19 @@ func (seg *IPAddressSegment) ContainsPrefixBlock(divisionPrefixLen BitCount) boo
 }
 
 func (seg *IPAddressSegment) ToPrefixedNetworkSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
-	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIPAddressSegment()
+	return seg.toPrefixedNetworkDivision(segmentPrefixLength).ToIP()
 }
 
 func (seg *IPAddressSegment) ToNetworkSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
-	return seg.toNetworkDivision(segmentPrefixLength, false).ToIPAddressSegment()
+	return seg.toNetworkDivision(segmentPrefixLength, false).ToIP()
 }
 
 func (seg *IPAddressSegment) ToPrefixedHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
-	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIPAddressSegment()
+	return seg.toPrefixedHostDivision(segmentPrefixLength).ToIP()
 }
 
 func (seg *IPAddressSegment) ToHostSegment(segmentPrefixLength PrefixLen) *IPAddressSegment {
-	return seg.toHostDivision(segmentPrefixLength, false).ToIPAddressSegment()
+	return seg.toHostDivision(segmentPrefixLength, false).ToIP()
 }
 
 func (seg *IPAddressSegment) Iterator() IPSegmentIterator {
@@ -420,31 +420,31 @@ func (seg *IPAddressSegment) WithoutPrefixLen() *IPAddressSegment {
 	return seg.withoutPrefixLen()
 }
 
-func (seg *IPAddressSegment) IsIPv4AddressSegment() bool {
+func (seg *IPAddressSegment) IsIPv4() bool {
 	return seg != nil && seg.matchesIPv4Segment()
 }
 
-func (seg *IPAddressSegment) IsIPv6AddressSegment() bool {
+func (seg *IPAddressSegment) IsIPv6() bool {
 	return seg != nil && seg.matchesIPv6Segment()
 }
 
-func (seg *IPAddressSegment) ToAddressDivision() *AddressDivision {
-	return seg.ToAddressSegment().ToAddressDivision()
-}
-
-func (seg *IPAddressSegment) ToAddressSegment() *AddressSegment {
+func (seg *IPAddressSegment) ToSegmentBase() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
 
-func (seg *IPAddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
-	if seg.IsIPv4AddressSegment() {
+func (seg *IPAddressSegment) ToDiv() *AddressDivision {
+	return seg.ToSegmentBase().ToDiv()
+}
+
+func (seg *IPAddressSegment) ToIPv4() *IPv4AddressSegment {
+	if seg.IsIPv4() {
 		return (*IPv4AddressSegment)(seg)
 	}
 	return nil
 }
 
-func (seg *IPAddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
-	if seg.IsIPv6AddressSegment() {
+func (seg *IPAddressSegment) ToIPv6() *IPv6AddressSegment {
+	if seg.IsIPv6() {
 		return (*IPv6AddressSegment)(seg)
 	}
 	return nil

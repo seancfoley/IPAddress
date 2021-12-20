@@ -196,7 +196,7 @@ func cloneIPSectsToIPv6Sects(orig []*IPAddressSection) []*IPv6AddressSection {
 //func cloneIPSegsToDivs(orig []*IPAddressSegment) []*AddressDivision {
 //	result := make([]*AddressDivision, len(orig))
 //	for i := range result {
-//		result[i] = orig[i].ToAddressDivision()
+//		result[i] = orig[i].ToDiv()
 //	}
 //	return result
 //}
@@ -204,7 +204,7 @@ func cloneIPSectsToIPv6Sects(orig []*IPAddressSection) []*IPv6AddressSection {
 //func cloneIPv4SegsToDivs(orig []*IPv4AddressSegment) []*AddressDivision {
 //	result := make([]*AddressDivision, len(orig))
 //	for i := range result {
-//		result[i] = orig[i].ToAddressDivision()
+//		result[i] = orig[i].ToDiv()
 //	}
 //	return result
 //}
@@ -212,7 +212,7 @@ func cloneIPSectsToIPv6Sects(orig []*IPAddressSection) []*IPv6AddressSection {
 //func cloneIPv6SegsToDivs(orig []*IPv6AddressSegment) []*AddressDivision {
 //	result := make([]*AddressDivision, len(orig))
 //	for i := range result {
-//		result[i] = orig[i].ToAddressDivision()
+//		result[i] = orig[i].ToDiv()
 //	}
 //	return result
 //}
@@ -220,7 +220,7 @@ func cloneIPSectsToIPv6Sects(orig []*IPAddressSection) []*IPv6AddressSection {
 //func cloneMACSegsToDivs(orig []*MACAddressSegment) []*AddressDivision {
 //	result := make([]*AddressDivision, len(orig))
 //	for i := range result {
-//		result[i] = orig[i].ToAddressDivision()
+//		result[i] = orig[i].ToDiv()
 //	}
 //	return result
 //}

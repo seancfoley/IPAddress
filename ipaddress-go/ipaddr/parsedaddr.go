@@ -1465,8 +1465,8 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 				}
 			}
 			isPrefixSub = isPrefixSubnet(
-				func(index int) SegInt { return lowerSegs[index].ToAddressSegment().GetSegmentValue() },
-				func(index int) SegInt { return upperSegs[index].ToAddressSegment().GetUpperSegmentValue() },
+				func(index int) SegInt { return lowerSegs[index].ToSegmentBase().GetSegmentValue() },
+				func(index int) SegInt { return upperSegs[index].ToSegmentBase().GetUpperSegmentValue() },
 				len(lowerSegs),
 				IPv4BytesPerSegment,
 				IPv4BitsPerSegment,
@@ -2060,8 +2060,8 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 				}
 			}
 			isPrefixSub = isPrefixSubnet(
-				func(index int) SegInt { return lowerSegs[index].ToAddressSegment().GetSegmentValue() },
-				func(index int) SegInt { return upperSegs[index].ToAddressSegment().GetUpperSegmentValue() },
+				func(index int) SegInt { return lowerSegs[index].ToSegmentBase().GetSegmentValue() },
+				func(index int) SegInt { return upperSegs[index].ToSegmentBase().GetUpperSegmentValue() },
 				len(lowerSegs),
 				IPv6BytesPerSegment,
 				IPv6BitsPerSegment,

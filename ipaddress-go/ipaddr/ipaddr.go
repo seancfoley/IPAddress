@@ -297,7 +297,7 @@ func (addr *ipAddressInternal) GetBlockMaskPrefixLen(network bool) PrefixLen {
 }
 
 func (addr *ipAddressInternal) GetSegment(index int) *IPAddressSegment {
-	return addr.getSegment(index).ToIPAddressSegment()
+	return addr.getSegment(index).ToIP()
 }
 
 func (addr *ipAddressInternal) spanWithPrefixBlocks() []ExtendedIPSegmentSeries {
@@ -600,7 +600,7 @@ func (addr *IPAddress) GetSegments() []*IPAddressSegment {
 
 // GetSegment returns the segment at the given index
 func (addr *IPAddress) GetSegment(index int) *IPAddressSegment {
-	return addr.getSegment(index).ToIPAddressSegment()
+	return addr.getSegment(index).ToIP()
 }
 
 // GetSegmentCount returns the segment count
@@ -909,9 +909,8 @@ func (addr *IPAddress) ToIPAddress() *IPAddress {
 // ToUniform is good
 // ToGeneric?  ToGenericAddr?
 //
-// TODO I think I have settled on ToAddressBase, ToSectionBase, ToSegmentBase, ToDivGrouping, ToDiv, ToIPv6, ToIPv4, ToMAC, ToIP()
+// TODO I think I have settled on ToAddressBase, ToIPv6, ToIPv4, ToMAC, ToIP()
 // there are also the identity funcs like IsIPv4 to change
-// TODO ToMixedIPv6v4? becomes ToMixedIPv6v4
 // ToIPAddressSeqRange become ToIP() and you need to change the ipv4/6 ToIP4SeqRange etc as well and the IsXXX too
 
 func (addr *IPAddress) ToIPv6Address() *IPv6Address {
@@ -1543,27 +1542,27 @@ type IPAddressCreator struct {
 
 func (creator IPAddressCreator) CreateSegment(lower, upper SegInt, segmentPrefixLength PrefixLen) *IPAddressSegment {
 	if creator.IsIPv4() {
-		return NewIPv4RangePrefixedSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength).ToIPAddressSegment()
+		return NewIPv4RangePrefixedSegment(IPv4SegInt(lower), IPv4SegInt(upper), segmentPrefixLength).ToIP()
 	} else if creator.IsIPv6() {
-		return NewIPv6RangePrefixedSegment(IPv6SegInt(lower), IPv6SegInt(upper), segmentPrefixLength).ToIPAddressSegment()
+		return NewIPv6RangePrefixedSegment(IPv6SegInt(lower), IPv6SegInt(upper), segmentPrefixLength).ToIP()
 	}
 	return nil
 }
 
 func (creator IPAddressCreator) CreateRangeSegment(lower, upper SegInt) *IPAddressSegment {
 	if creator.IsIPv4() {
-		return NewIPv4RangeSegment(IPv4SegInt(lower), IPv4SegInt(upper)).ToIPAddressSegment()
+		return NewIPv4RangeSegment(IPv4SegInt(lower), IPv4SegInt(upper)).ToIP()
 	} else if creator.IsIPv6() {
-		return NewIPv6RangeSegment(IPv6SegInt(lower), IPv6SegInt(upper)).ToIPAddressSegment()
+		return NewIPv6RangeSegment(IPv6SegInt(lower), IPv6SegInt(upper)).ToIP()
 	}
 	return nil
 }
 
 func (creator IPAddressCreator) CreatePrefixSegment(value SegInt, segmentPrefixLength PrefixLen) *IPAddressSegment {
 	if creator.IsIPv4() {
-		return NewIPv4PrefixedSegment(IPv4SegInt(value), segmentPrefixLength).ToIPAddressSegment()
+		return NewIPv4PrefixedSegment(IPv4SegInt(value), segmentPrefixLength).ToIP()
 	} else if creator.IsIPv6() {
-		return NewIPv6PrefixedSegment(IPv6SegInt(value), segmentPrefixLength).ToIPAddressSegment()
+		return NewIPv6PrefixedSegment(IPv6SegInt(value), segmentPrefixLength).ToIP()
 	}
 	return nil
 }
@@ -1740,9 +1739,9 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection) (res *IPAddress) {
 //	xxx
 //	if len(segs) > 0 {
-//		if segs[0].IsIPv4AddressSegment() {
+//		if segs[0].IsIPv4() {
 //			for _, seg := range segs[1:] {
-//				if !seg.IsIPv4AddressSegment() {
+//				if !seg.IsIPv4() {
 //					return nil
 //				}
 //			}
@@ -1751,9 +1750,9 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //			if err == nil {
 //				res = addr.ToIPAddress()
 //			}
-//		} else if segs[0].IsIPv6AddressSegment() {
+//		} else if segs[0].IsIPv6() {
 //			for _, seg := range segs[1:] {
-//				if !seg.IsIPv6AddressSegment() {
+//				if !seg.IsIPv6() {
 //					return nil
 //				}
 //			}
@@ -1801,9 +1800,9 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //
 //func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*IPAddressSegment) *IPAddressSection) (res *IPAddress) {
 //	if len(segs) > 0 {
-//		if segs[0].IsIPv4AddressSegment() {
+//		if segs[0].IsIPv4() {
 //			for _, seg := range segs[1:] {
-//				if !seg.IsIPv4AddressSegment() {
+//				if !seg.IsIPv4() {
 //					return nil
 //				}
 //			}
@@ -1812,9 +1811,9 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 //			if err == nil {
 //				res = addr.ToIPAddress()
 //			}
-//		} else if segs[0].IsIPv6AddressSegment() {
+//		} else if segs[0].IsIPv6() {
 //			for _, seg := range segs[1:] {
-//				if !seg.IsIPv6AddressSegment() {
+//				if !seg.IsIPv6() {
 //					return nil
 //				}
 //			}
@@ -1840,9 +1839,9 @@ func NewIPAddressFromSegments(segments []*IPAddressSegment) (res *IPAddress, err
 // then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
 func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength PrefixLen) (res *IPAddress, err AddressValueError) {
 	if len(segs) > 0 {
-		if segs[0].IsIPv4AddressSegment() {
+		if segs[0].IsIPv4() {
 			for _, seg := range segs[1:] {
-				if !seg.IsIPv4AddressSegment() {
+				if !seg.IsIPv4() {
 					return
 				}
 			}
@@ -1852,9 +1851,9 @@ func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength Pre
 			//if err == nil {
 			res, err = addr.ToIPAddress(), addrErr
 			//}
-		} else if segs[0].IsIPv6AddressSegment() {
+		} else if segs[0].IsIPv6() {
 			for _, seg := range segs[1:] {
-				if !seg.IsIPv6AddressSegment() {
+				if !seg.IsIPv6() {
 					return
 				}
 			}

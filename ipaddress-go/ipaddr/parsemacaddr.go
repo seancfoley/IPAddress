@@ -48,9 +48,6 @@ func (parseData *ParsedMACAddress) createAddress() (*MACAddress, IncompatibleAdd
 		return nil, err
 	}
 	return creator.createAddressInternal(sect.ToSectionBase(), parseData.originator).ToMACAddress(), nil
-	//return NewMACAddressInternal(parseData.createSection(), parseData.originator)
-	//parsedAddressCreator<? extends MACAddress, MACAddressSection, ?, ?> creator = getMACAddressCreator();
-	//return creator.createAddressInternal(createSection(), originator);
 }
 
 func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, IncompatibleAddressError) {
@@ -60,7 +57,6 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, Incompat
 	creator := macType.getNetwork().getAddressCreator()
 	isMultiple := false
 	var segIsMult bool
-	//creator := parseData.getMACAddressCreator()
 	format := parseData.getFormat()
 	var finalSegmentCount, initialSegmentCount int
 	if format == nil {

@@ -35,7 +35,7 @@ func (seg *addressSegmentInternal) contains(other AddressSegmentType) bool {
 	if other == nil {
 		return true
 	}
-	otherSeg := other.ToAddressSegment()
+	otherSeg := other.ToSegmentBase()
 	if seg.toAddressSegment() == otherSeg || otherSeg == nil {
 		return true
 	} else if matchesStructure, _ := seg.matchesStructure(other); matchesStructure {
@@ -47,13 +47,13 @@ func (seg *addressSegmentInternal) contains(other AddressSegmentType) bool {
 func (div *addressDivisionInternal) equal(other AddressSegmentType) bool {
 	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
 	//if otherDiv, ok := other.(StandardDivisionType); ok {
-	if other == nil || other.ToAddressDivision() == nil {
+	if other == nil || other.ToDiv() == nil {
 		return false
 	}
 	if div.isMultiple() {
 		if other.IsMultiple() {
 			matches, _ := div.matchesStructure(other)
-			otherDivision := other.ToAddressDivision()
+			otherDivision := other.ToDiv()
 			return matches && divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
 				div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
 		} else {
@@ -63,7 +63,7 @@ func (div *addressDivisionInternal) equal(other AddressSegmentType) bool {
 		return false
 	}
 	matches, _ := div.matchesStructure(other)
-	otherDivision := other.ToAddressDivision()
+	otherDivision := other.ToDiv()
 	return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
 	//}
 	//return div.addressDivisionBase.equal(other)
@@ -108,7 +108,7 @@ func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
 
-//func (seg *addressSegmentInternal) ToAddressDivision() *AddressDivision {
+//func (seg *addressSegmentInternal) ToDiv() *AddressDivision {
 //	return (*AddressDivision)(seg)
 //}
 
@@ -196,7 +196,7 @@ func (seg *addressSegmentInternal) getUpper() *AddressSegment {
 func (seg *addressSegmentInternal) withoutPrefixLen() *AddressSegment {
 	if seg.isPrefixed() {
 		vals := seg.deriveNewMultiSeg(seg.GetSegmentValue(), seg.GetUpperSegmentValue(), nil)
-		return createAddressDivision(vals).ToAddressSegment()
+		return createAddressDivision(vals).ToSegmentBase()
 	}
 	return seg.toAddressSegment()
 }
@@ -523,14 +523,14 @@ type AddressSegment struct {
 
 func (seg *AddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressSegment() == nil
+		return other == nil || other.ToSegmentBase() == nil
 	}
 	return seg.contains(other)
 }
 
 func (seg *AddressSegment) Equal(other AddressSegmentType) bool {
 	if seg == nil {
-		return other == nil || other.ToAddressDivision() == nil
+		return other == nil || other.ToDiv() == nil
 	}
 	return seg.equal(other)
 }
@@ -558,19 +558,19 @@ func (seg *AddressSegment) GetCount() *big.Int {
 	return seg.getCount()
 }
 
-func (seg *AddressSegment) IsIPAddressSegment() bool {
+func (seg *AddressSegment) IsIP() bool {
 	return seg != nil && seg.matchesIPSegment()
 }
 
-func (seg *AddressSegment) IsIPv4AddressSegment() bool {
+func (seg *AddressSegment) IsIPv4() bool {
 	return seg != nil && seg.matchesIPv4Segment()
 }
 
-func (seg *AddressSegment) IsIPv6AddressSegment() bool {
+func (seg *AddressSegment) IsIPv6() bool {
 	return seg != nil && seg.matchesIPv6Segment()
 }
 
-func (seg *AddressSegment) IsMACAddressSegment() bool {
+func (seg *AddressSegment) IsMAC() bool {
 	return seg != nil && seg.matchesMACSegment()
 }
 
@@ -581,39 +581,39 @@ func (seg *AddressSegment) Iterator() SegmentIterator {
 	return seg.iterator()
 }
 
-func (seg *AddressSegment) ToIPAddressSegment() *IPAddressSegment {
-	if seg.IsIPAddressSegment() {
+func (seg *AddressSegment) ToIP() *IPAddressSegment {
+	if seg.IsIP() {
 		return (*IPAddressSegment)(unsafe.Pointer(seg))
 	}
 	return nil
 }
 
-func (seg *AddressSegment) ToIPv4AddressSegment() *IPv4AddressSegment {
-	if seg.IsIPv4AddressSegment() {
+func (seg *AddressSegment) ToIPv4() *IPv4AddressSegment {
+	if seg.IsIPv4() {
 		return (*IPv4AddressSegment)(unsafe.Pointer(seg))
 	}
 	return nil
 }
 
-func (seg *AddressSegment) ToIPv6AddressSegment() *IPv6AddressSegment {
-	if seg.IsIPv6AddressSegment() {
+func (seg *AddressSegment) ToIPv6() *IPv6AddressSegment {
+	if seg.IsIPv6() {
 		return (*IPv6AddressSegment)(unsafe.Pointer(seg))
 	}
 	return nil
 }
 
-func (seg *AddressSegment) ToMACAddressSegment() *MACAddressSegment {
-	if seg.IsMACAddressSegment() {
+func (seg *AddressSegment) ToMAC() *MACAddressSegment {
+	if seg.IsMAC() {
 		return (*MACAddressSegment)(seg)
 	}
 	return nil
 }
 
-func (seg *AddressSegment) ToAddressSegment() *AddressSegment {
+func (seg *AddressSegment) ToSegmentBase() *AddressSegment {
 	return seg
 }
 
-func (seg *AddressSegment) ToAddressDivision() *AddressDivision {
+func (seg *AddressSegment) ToDiv() *AddressDivision {
 	return (*AddressDivision)(unsafe.Pointer(seg))
 }
 

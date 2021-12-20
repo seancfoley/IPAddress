@@ -26,7 +26,7 @@ type DivisionType interface {
 type StandardDivisionType interface {
 	DivisionType
 
-	ToAddressDivision() *AddressDivision
+	ToDiv() *AddressDivision
 }
 
 var _ StandardDivisionType = &AddressDivision{}
@@ -46,7 +46,7 @@ type AddressSegmentType interface {
 	// GetUpperSegmentValue returns the upper segment value as a SegInt, the same value as the DivInt value returned by getUpperDivisionValue()
 	GetUpperSegmentValue() SegInt
 
-	ToAddressSegment() *AddressSegment
+	ToSegmentBase() *AddressSegment
 }
 
 var _, _, _, _, _ AddressSegmentType = &AddressSegment{},

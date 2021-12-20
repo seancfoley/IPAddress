@@ -48,7 +48,7 @@ func createIPv6Section(segments []*AddressDivision) *IPv6AddressSection {
 //	// check if we ever need to normalize, ie if normalizeSegments is ever true
 //	if normalizeSegments && prefLen != nil {
 //		normalizePrefixBoundary(*prefLen, segments, IPv6BitsPerSegment, IPv6BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
-//			return NewIPv6RangePrefixedSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToAddressDivision()
+//			return NewIPv6RangePrefixedSegment(IPv6SegInt(val), IPv6SegInt(upperVal), prefLen).ToDiv()
 //		})
 //	}
 //	return
@@ -102,16 +102,16 @@ func NewIPv6PrefixedSection(segments []*IPv6AddressSegment, prefixLen PrefixLen)
 func createIPv6SectionFromSegs(orig []*IPv6AddressSegment, prefLen PrefixLen) (result *IPv6AddressSection) {
 	divs, newPref, isMultiple := createDivisionsFromSegs(
 		func(index int) *IPAddressSegment {
-			return orig[index].ToIPAddressSegment()
+			return orig[index].ToIP()
 		},
 		len(orig),
 		ipv6BitsToSegmentBitshift,
 		IPv6BitsPerSegment,
 		IPv6BytesPerSegment,
 		IPv6MaxValuePerSegment,
-		zeroIPv6Seg.ToIPAddressSegment(),
-		zeroIPv6SegZeroPrefix.ToIPAddressSegment(),
-		zeroIPv6SegPrefixBlock.ToIPAddressSegment(),
+		zeroIPv6Seg.ToIP(),
+		zeroIPv6SegZeroPrefix.ToIP(),
+		zeroIPv6SegPrefixBlock.ToIP(),
 		prefLen)
 	result = createIPv6Section(divs)
 	result.prefixLength = newPref
@@ -262,7 +262,7 @@ func toSegmentsFromWords(
 		segmentPrefixLength := getSegmentPrefixLength(IPv6BitsPerSegment, prefixLength, segmentIndex)
 		seg := NewIPv6PrefixedSegment(value, segmentPrefixLength)
 		//seg := creator.createSegment(value, value, segmentPrefixLength)
-		segments[segmentIndex] = seg.ToAddressDivision()
+		segments[segmentIndex] = seg.ToDiv()
 		if wordSegmentIndex == segmentsPerWord {
 			wordSegmentIndex = 0
 			wordIndex++
@@ -484,7 +484,7 @@ func (section *IPv6AddressSection) GetPrefixCountLen(prefixLen BitCount) *big.In
 //}
 
 func (section *IPv6AddressSection) GetSegment(index int) *IPv6AddressSegment {
-	return section.getDivision(index).ToIPv6AddressSegment()
+	return section.getDivision(index).ToIPv6()
 }
 
 // Gets the subsection from the series starting from the given index
@@ -526,13 +526,13 @@ func (section *IPv6AddressSection) GetHostMask() *IPv6AddressSection {
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv6AddressSection) CopySubSegments(start, end int, segs []*IPv6AddressSegment) (count int) {
-	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv6AddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv6(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *IPv6AddressSection) CopySegments(segs []*IPv6AddressSegment) (count int) {
-	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv6AddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToIPv6(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
@@ -1036,7 +1036,7 @@ func (section *IPv6AddressSection) ReverseSegments() *IPv6AddressSection {
 	}
 	res, _ := section.reverseSegments(
 		func(i int) (*AddressSegment, IncompatibleAddressError) {
-			return section.GetSegment(i).WithoutPrefixLen().ToAddressSegment(), nil
+			return section.GetSegment(i).WithoutPrefixLen().ToSegmentBase(), nil
 		},
 	)
 	return res.ToIPv6()
@@ -1803,16 +1803,16 @@ func toIPv6SegmentsFromEUI(
 	}
 	var seg *IPv6AddressSegment
 	if seg, err = seg0.joinAndFlip2ndBit(seg1, currentPrefix); /* only this first one gets the flipped bit */ err == nil {
-		segments[ipv6StartIndex] = seg.ToAddressDivision()
+		segments[ipv6StartIndex] = seg.ToDiv()
 		ipv6StartIndex++
 		if seg, err = seg2.join(seg3, currentPrefix); err == nil {
-			segments[ipv6StartIndex] = seg.ToAddressDivision()
+			segments[ipv6StartIndex] = seg.ToDiv()
 			ipv6StartIndex++
 			if seg, err = seg4.join(seg5, currentPrefix); err == nil {
-				segments[ipv6StartIndex] = seg.ToAddressDivision()
+				segments[ipv6StartIndex] = seg.ToDiv()
 				ipv6StartIndex++
 				if seg, err = seg6.join(seg7, currentPrefix); err == nil {
-					segments[ipv6StartIndex] = seg.ToAddressDivision()
+					segments[ipv6StartIndex] = seg.ToDiv()
 					return nil
 				}
 			}

@@ -53,7 +53,6 @@ type divisionValues interface {
 }
 
 func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount) *divValues {
-	//func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount, defaultRadix int) *divValues {
 	if value > upperValue {
 		value, upperValue = upperValue, value
 	}
@@ -62,7 +61,6 @@ func newDivValues(value, upperValue DivInt, prefLen PrefixLen, bitCount BitCount
 		upperValue: upperValue,
 		prefLen:    prefLen,
 		bitCount:   bitCount,
-		//defaultRadix: defaultRadix,
 	}
 }
 
@@ -70,8 +68,7 @@ type divValues struct {
 	bitCount          BitCount
 	value, upperValue DivInt
 	prefLen           PrefixLen
-	//defaultRadix      int
-	cache divCache
+	cache             divCache
 }
 
 func (div *divValues) getBitCount() BitCount {
@@ -514,13 +511,13 @@ func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCo
 //func (div *addressDivisionInternal) equal(other StandardDivisionType) bool {
 //	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
 //	//if otherDiv, ok := other.(StandardDivisionType); ok {
-//	if other == nil || other.ToAddressDivision() == nil {
+//	if other == nil || other.ToDiv() == nil {
 //		return false
 //	}
 //	if div.isMultiple() {
 //		if other.IsMultiple() {
 //			matches, _ := div.matchesStructure(other)
-//			otherDivision := other.ToAddressDivision()
+//			otherDivision := other.ToDiv()
 //			return matches && divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
 //				div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
 //		} else {
@@ -530,7 +527,7 @@ func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCo
 //		return false
 //	} else {
 //		matches, _ := div.matchesStructure(other)
-//		otherDivision := other.ToAddressDivision()
+//		otherDivision := other.ToDiv()
 //		return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
 //	}
 //	//}
@@ -576,7 +573,7 @@ func (div *addressDivisionInternal) toAddressSegment() *AddressSegment {
 }
 
 func (div *addressDivisionInternal) getStringAsLower() string {
-	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+	if seg := div.toAddressDivision().ToIP(); seg != nil {
 		return seg.getStringAsLower()
 	}
 	return div.getStringFromStringer(div.getDefaultLowerString)
@@ -600,14 +597,14 @@ func (div *addressDivisionInternal) getStringFromStringer(stringer func() string
 }
 
 func (div *addressDivisionInternal) getString() string {
-	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+	if seg := div.toAddressDivision().ToIP(); seg != nil {
 		return seg.GetString()
 	}
 	return div.getDivString()
 }
 
 func (div *addressDivisionInternal) getWildcardString() string {
-	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+	if seg := div.toAddressDivision().ToIP(); seg != nil {
 		return seg.GetWildcardString()
 	}
 	return div.getDivString() // same string as GetString() when not an IP segment
@@ -642,7 +639,7 @@ func (div *addressDivisionInternal) getUpperString(radix int, uppercase bool, ap
 }
 
 func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
-	if seg := div.toAddressDivision().ToIPAddressSegment(); seg != nil {
+	if seg := div.toAddressDivision().ToIP(); seg != nil {
 		seg.getUpperStringMasked(radix, uppercase, appendable)
 	} else if div.isPrefixed() {
 		upperValue := div.getUpperDivisionValue()
@@ -808,7 +805,7 @@ func (div *addressDivisionInternal) getDefaultRangeString() string {
 // Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
 // Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
 func (div *addressDivisionInternal) getDefaultSegmentWildcardString() string {
-	if seg := div.toAddressDivision().ToAddressSegment(); seg != nil {
+	if seg := div.toAddressDivision().ToSegmentBase(); seg != nil {
 		return seg.getDefaultSegmentWildcardString()
 	}
 	return "" // for divisions, the width is variable and max values can change, so using wildcards make no sense
@@ -878,12 +875,12 @@ func (div *AddressDivision) GetCount() *big.Int {
 
 //func (div *AddressDivision) Equal(other AddressSegmentType) bool {
 //	if div == nil {
-//		return other == nil || other.ToAddressDivision() == nil
+//		return other == nil || other.ToDiv() == nil
 //		//return other == nil || other.To
 //		//xxx you gotta figure this out xxxx
 //		//xxx ok, this kinda makes sense xxx
 //		//xxx type assertion checks if concrete type implements StandardDivisionType
-//		//xxx and then we can call ToAddressDivision on that concrete type through the interface StandardDivisionType
+//		//xxx and then we can call ToDiv on that concrete type through the interface StandardDivisionType
 //		//xxx BUT THE PROBLEM IS
 //		//xxx What if the thing is not a StandardDivisionType but is also nil?
 //		//xxx There is no way to know!  And nil is nil.  Well, we wanted to think that nil *Ipv6Segment is the same as nil *AddressDivision
@@ -894,7 +891,7 @@ func (div *AddressDivision) GetCount() *big.Int {
 //		//xxx I think there is no reason not to use StandardDivisionType here xxx
 //
 //		//if otherDiv, ok := other.(StandardDivisionType); ok {
-//		//	return otherDiv.ToAddressDivision() == nil
+//		//	return otherDiv.ToDiv() == nil
 //		//}
 //		//return false
 //	}
@@ -921,62 +918,62 @@ func (div *AddressDivision) GetMaxValue() DivInt {
 	return div.getMaxValue()
 }
 
-func (div *AddressDivision) IsAddressSegment() bool {
+func (div *AddressDivision) IsSegmentBase() bool {
 	return div != nil && div.matchesSegment()
 }
 
-func (div *AddressDivision) IsIPAddressSegment() bool {
+func (div *AddressDivision) IsIP() bool {
 	return div != nil && div.matchesIPSegment()
 }
 
-func (div *AddressDivision) IsIPv4AddressSegment() bool {
+func (div *AddressDivision) IsIPv4() bool {
 	return div != nil && div.matchesIPv4Segment()
 }
 
-func (div *AddressDivision) IsIPv6AddressSegment() bool {
+func (div *AddressDivision) IsIPv6() bool {
 	return div != nil && div.matchesIPv6Segment()
 }
 
-func (div *AddressDivision) IsMACAddressSegment() bool {
+func (div *AddressDivision) IsMAC() bool {
 	return div != nil && div.matchesMACSegment()
 }
 
-func (div *AddressDivision) ToIPAddressSegment() *IPAddressSegment {
-	if div.IsIPAddressSegment() {
+func (div *AddressDivision) ToIP() *IPAddressSegment {
+	if div.IsIP() {
 		return (*IPAddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
 }
 
-func (div *AddressDivision) ToIPv4AddressSegment() *IPv4AddressSegment {
-	if div.IsIPv4AddressSegment() {
+func (div *AddressDivision) ToIPv4() *IPv4AddressSegment {
+	if div.IsIPv4() {
 		return (*IPv4AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
 }
 
-func (div *AddressDivision) ToIPv6AddressSegment() *IPv6AddressSegment {
-	if div.IsIPv6AddressSegment() {
+func (div *AddressDivision) ToIPv6() *IPv6AddressSegment {
+	if div.IsIPv6() {
 		return (*IPv6AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
 }
 
-func (div *AddressDivision) ToMACAddressSegment() *MACAddressSegment {
-	if div.IsMACAddressSegment() {
+func (div *AddressDivision) ToMAC() *MACAddressSegment {
+	if div.IsMAC() {
 		return (*MACAddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
 }
 
-func (div *AddressDivision) ToAddressSegment() *AddressSegment {
-	if div.IsAddressSegment() {
+func (div *AddressDivision) ToSegmentBase() *AddressSegment {
+	if div.IsSegmentBase() {
 		return (*AddressSegment)(unsafe.Pointer(div))
 	}
 	return nil
 }
 
-func (div *AddressDivision) ToAddressDivision() *AddressDivision {
+func (div *AddressDivision) ToDiv() *AddressDivision {
 	return div
 }
 

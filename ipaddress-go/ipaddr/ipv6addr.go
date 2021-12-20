@@ -563,7 +563,7 @@ func (addr *IPv6Address) GetSegments() []*IPv6AddressSegment {
 
 // GetSegment returns the segment at the given index
 func (addr *IPv6Address) GetSegment(index int) *IPv6AddressSegment {
-	return addr.init().getSegment(index).ToIPv6AddressSegment()
+	return addr.init().getSegment(index).ToIPv6()
 }
 
 // GetSegmentCount returns the segment count
@@ -1293,7 +1293,7 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 		return nil, err
 	}
 	//toggle the u/l bit
-	macSegment0 := newSegs[0].ToMACAddressSegment()
+	macSegment0 := newSegs[0].ToMAC()
 	lower0 := macSegment0.GetSegmentValue()
 	upper0 := macSegment0.GetUpperSegmentValue()
 	mask2ndBit := SegInt(0x2)
@@ -1302,7 +1302,7 @@ func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, Incom
 	}
 	lower0 ^= mask2ndBit //flip the universal/local bit
 	upper0 ^= mask2ndBit
-	newSegs[0] = NewMACRangeSegment(MACSegInt(lower0), MACSegInt(upper0)).ToAddressDivision()
+	newSegs[0] = NewMACRangeSegment(MACSegInt(lower0), MACSegInt(upper0)).ToDiv()
 	macStartIndex += 2
 	if err := seg1.splitIntoMACSegments(newSegs, macStartIndex); err != nil { //a ff fe b
 		return nil, err

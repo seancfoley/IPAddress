@@ -240,7 +240,7 @@ func (addr *IPv4Address) GetSegments() []*IPv4AddressSegment {
 
 // GetSegment returns the segment at the given index
 func (addr *IPv4Address) GetSegment(index int) *IPv4AddressSegment {
-	return addr.init().getSegment(index).ToIPv4AddressSegment()
+	return addr.init().getSegment(index).ToIPv4()
 }
 
 // GetSegmentCount returns the segment count
@@ -856,7 +856,7 @@ func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Addre
 	section = section.WithoutPrefixLen()
 	section.copyDivisions(newSegs)
 	//for i, seg := range segs[:IPv6MixedOriginalSegmentCount] {
-	//	newSegs[i] = seg.ToAddressDivision()
+	//	newSegs[i] = seg.ToDiv()
 	//}
 	//xxx I think I want to drop this one, unless I use a section, which I can remove prefix from xxxx
 	sect, err := createMixedSection(newSegs, addr)
@@ -867,10 +867,10 @@ func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Addre
 }
 
 func (addr *IPv4Address) GetIPv4MappedAddress() (*IPv6Address, IncompatibleAddressError) {
-	zero := zeroIPv6Seg.ToAddressDivision()
+	zero := zeroIPv6Seg.ToDiv()
 	segs := createSegmentArray(IPv6SegmentCount)
 	segs[0], segs[1], segs[2], segs[3], segs[4] = zero, zero, zero, zero, zero
-	segs[5] = NewIPv6Segment(IPv6MaxValuePerSegment).ToAddressDivision()
+	segs[5] = NewIPv6Segment(IPv6MaxValuePerSegment).ToDiv()
 	var sect *IPv6AddressSection
 	sect, err := createMixedSection(segs, addr.WithoutPrefixLen())
 	if err != nil {
@@ -894,9 +894,9 @@ func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4A
 	ipv4Section := mixedSection.GetSection().WithoutPrefixLen()
 	var seg *IPv6AddressSegment
 	if seg, err = ipv4Section.GetSegment(0).join(ipv4Section.GetSegment(1)); err == nil {
-		newIPv6Divisions[6] = seg.ToAddressDivision()
+		newIPv6Divisions[6] = seg.ToDiv()
 		if seg, err = ipv4Section.GetSegment(2).join(ipv4Section.GetSegment(3)); err == nil {
-			newIPv6Divisions[7] = seg.ToAddressDivision()
+			newIPv6Divisions[7] = seg.ToDiv()
 			res = newIPv6SectionFromMixed(newIPv6Divisions)
 			if res.cache != nil {
 				nonMixedSection := res.createNonMixedSection()

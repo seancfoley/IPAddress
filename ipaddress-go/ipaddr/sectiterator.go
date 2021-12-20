@@ -46,11 +46,11 @@ func (it *multiSegmentsIterator) updateVariations(start int) {
 	segIteratorProducer := it.segIteratorProducer
 	for ; i < it.hostSegmentIndex; i++ {
 		variations[i] = segIteratorProducer(i)
-		nextSet[i] = variations[i].Next().ToAddressDivision()
+		nextSet[i] = variations[i].Next().ToDiv()
 	}
 	if i == it.networkSegmentIndex {
 		variations[i] = it.hostSegIteratorProducer(i)
-		nextSet[i] = variations[i].Next().ToAddressDivision()
+		nextSet[i] = variations[i].Next().ToDiv()
 	}
 }
 
@@ -63,7 +63,7 @@ func (it *multiSegmentsIterator) init() {
 	// for regular iterators (not prefix block), networkSegmentIndex is last segment (count - 1)
 	for i := it.networkSegmentIndex + 1; i < divCount; i++ {
 		variations[i] = hostSegIteratorProducer(i)
-		nextSet[i] = variations[i].Next().ToAddressDivision()
+		nextSet[i] = variations[i].Next().ToDiv()
 	}
 	excludeFunc := it.excludeFunc
 	if excludeFunc != nil && excludeFunc(it.nextSet) {
@@ -89,7 +89,7 @@ func (it *multiSegmentsIterator) increment() (res []*AddressDivision) {
 			if previousSegs == nil {
 				previousSegs = cloneDivs(nextSet)
 			}
-			nextSet[j] = variations[j].Next().ToAddressDivision()
+			nextSet[j] = variations[j].Next().ToDiv()
 			it.updateVariations(j + 1)
 			excludeFunc := it.excludeFunc
 			if excludeFunc != nil && excludeFunc(nextSet) {

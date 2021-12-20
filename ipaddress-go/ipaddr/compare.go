@@ -55,16 +55,16 @@ const (
 
 func mapDivision(genericDiv DivisionType) int {
 	if div, ok := genericDiv.(StandardDivisionType); ok {
-		addrDiv := div.ToAddressDivision()
-		if addrDiv.IsIPv6AddressSegment() {
+		addrDiv := div.ToDiv()
+		if addrDiv.IsIPv6() {
 			return ipv6segtype
-		} else if addrDiv.IsIPv4AddressSegment() {
+		} else if addrDiv.IsIPv4() {
 			return ipv4segtype
-		} else if addrDiv.IsMACAddressSegment() {
+		} else if addrDiv.IsMAC() {
 			return macsegtype
-		} else if addrDiv.IsIPAddressSegment() {
+		} else if addrDiv.IsIP() {
 			return ipsegtype
-		} else if addrDiv.IsAddressSegment() {
+		} else if addrDiv.IsSegmentBase() {
 			return segtype
 		}
 		return standarddivtype
@@ -228,10 +228,10 @@ func (comp AddressComparator) CompareSeries(one, two AddressDivisionSeries) int 
 func (comp AddressComparator) CompareSegments(one, two AddressSegmentType) int {
 	var oneSeg, twoSeg *AddressSegment
 	if one != nil {
-		oneSeg = one.ToAddressSegment()
+		oneSeg = one.ToSegmentBase()
 	}
 	if two != nil {
-		twoSeg = two.ToAddressSegment()
+		twoSeg = two.ToSegmentBase()
 	}
 	if oneSeg == nil {
 		if twoSeg == nil {
@@ -273,10 +273,10 @@ func (comp AddressComparator) CompareDivisions(one, two DivisionType) int {
 	addrDiv2, _ := two.(StandardDivisionType)
 	var div1, div2 *AddressDivision
 	if addrDiv1 != nil {
-		div1 = addrDiv1.ToAddressDivision()
+		div1 = addrDiv1.ToDiv()
 	}
 	if addrDiv2 != nil {
-		div2 = addrDiv2.ToAddressDivision()
+		div2 = addrDiv2.ToDiv()
 	}
 	if div1 == nil {
 		if div2 == nil {

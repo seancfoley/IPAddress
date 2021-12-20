@@ -191,7 +191,7 @@ type ipSegmentIterator struct {
 }
 
 func (iter ipSegmentIterator) Next() *IPAddressSegment {
-	return iter.SegmentIterator.Next().ToIPAddressSegment()
+	return iter.SegmentIterator.Next().ToIP()
 }
 
 type WrappedIPSegmentIterator struct {
@@ -199,7 +199,7 @@ type WrappedIPSegmentIterator struct {
 }
 
 func (iter WrappedIPSegmentIterator) Next() *AddressSegment {
-	return iter.IPSegmentIterator.Next().ToAddressSegment()
+	return iter.IPSegmentIterator.Next().ToSegmentBase()
 }
 
 type IPv4SegmentIterator interface {
@@ -212,7 +212,7 @@ type ipv4SegmentIterator struct {
 }
 
 func (iter ipv4SegmentIterator) Next() *IPv4AddressSegment {
-	return iter.SegmentIterator.Next().ToIPv4AddressSegment()
+	return iter.SegmentIterator.Next().ToIPv4()
 }
 
 type IPv6SegmentIterator interface {
@@ -225,7 +225,7 @@ type ipv6SegmentIterator struct {
 }
 
 func (iter ipv6SegmentIterator) Next() *IPv6AddressSegment {
-	return iter.SegmentIterator.Next().ToIPv6AddressSegment()
+	return iter.SegmentIterator.Next().ToIPv6()
 }
 
 type MACSegmentIterator interface {
@@ -238,5 +238,5 @@ type macSegmentIterator struct {
 }
 
 func (iter macSegmentIterator) Next() *MACAddressSegment {
-	return iter.SegmentIterator.Next().ToMACAddressSegment()
+	return iter.SegmentIterator.Next().ToMAC()
 }

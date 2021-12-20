@@ -69,19 +69,19 @@ func (network *IPv6AddressNetwork) GetLoopback() *IPAddress {
 }
 
 func (network *IPv6AddressNetwork) GetNetworkMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.subnetMasks, true, false)
+	return getMask(IPv6, zeroIPv6Seg.ToDiv(), prefLen, network.subnetMasks, true, false)
 }
 
 func (network *IPv6AddressNetwork) GetPrefixedNetworkMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.subnetsMasksWithPrefix, true, true)
+	return getMask(IPv6, zeroIPv6Seg.ToDiv(), prefLen, network.subnetsMasksWithPrefix, true, true)
 }
 
 func (network *IPv6AddressNetwork) GetHostMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.hostMasks, false, false)
+	return getMask(IPv6, zeroIPv6Seg.ToDiv(), prefLen, network.hostMasks, false, false)
 }
 
 func (network *IPv6AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv6, zeroIPv6Seg.ToAddressDivision(), prefLen, network.hostMasksWithPrefix, false, true)
+	return getMask(IPv6, zeroIPv6Seg.ToDiv(), prefLen, network.hostMasksWithPrefix, false, true)
 }
 
 var _ IPAddressNetwork = &IPv6AddressNetwork{}
@@ -139,19 +139,19 @@ func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
 //}
 
 func (network *IPv4AddressNetwork) GetNetworkMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.subnetMasks, true, false)
+	return getMask(IPv4, zeroIPv4Seg.ToDiv(), prefLen, network.subnetMasks, true, false)
 }
 
 func (network *IPv4AddressNetwork) GetPrefixedNetworkMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.subnetsMasksWithPrefix, true, true)
+	return getMask(IPv4, zeroIPv4Seg.ToDiv(), prefLen, network.subnetsMasksWithPrefix, true, true)
 }
 
 func (network *IPv4AddressNetwork) GetHostMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.hostMasks, false, false)
+	return getMask(IPv4, zeroIPv4Seg.ToDiv(), prefLen, network.hostMasks, false, false)
 }
 
 func (network *IPv4AddressNetwork) GetPrefixedHostMask(prefLen BitCount) *IPAddress {
-	return getMask(IPv4, zeroIPv4Seg.ToAddressDivision(), prefLen, network.hostMasksWithPrefix, false, true)
+	return getMask(IPv4, zeroIPv4Seg.ToDiv(), prefLen, network.hostMasksWithPrefix, false, true)
 }
 
 var _ IPAddressNetwork = &IPv4AddressNetwork{}

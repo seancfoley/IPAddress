@@ -74,7 +74,7 @@ func createMACSectionFromSegs(orig []*MACAddressSegment) *MACAddressSection {
 				}
 				isMultiple = isMultiple || segment.isMultiple()
 			}
-			newSegs[i] = segment.ToAddressDivision()
+			newSegs[i] = segment.ToDiv()
 		}
 		if isBlock {
 			newPref = cacheBitCount(0)
@@ -249,7 +249,7 @@ func (section *MACAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int
 		return count(func(index int) uint64 {
 			if (networkSegmentIndex == hostSegmentIndex) && index == networkSegmentIndex {
 				segmentPrefixLength := getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), prefixLen, index)
-				return getPrefixValueCount(section.GetSegment(index).ToAddressSegment(), *segmentPrefixLength)
+				return getPrefixValueCount(section.GetSegment(index).ToSegmentBase(), *segmentPrefixLength)
 			}
 			return section.GetSegment(index).GetValueCount()
 		}, networkSegmentIndex+1, 6, 0x7fffffffffffff)
@@ -299,7 +299,7 @@ func (section *MACAddressSection) AssignMinPrefixForBlock() *MACAddressSection {
 }
 
 func (section *MACAddressSection) GetSegment(index int) *MACAddressSegment {
-	return section.getDivision(index).ToMACAddressSegment()
+	return section.getDivision(index).ToMAC()
 }
 
 func (section *MACAddressSection) ToDivGrouping() *AddressDivisionGrouping {
@@ -329,13 +329,13 @@ func (section *MACAddressSection) GetSubSection(index, endIndex int) *MACAddress
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *MACAddressSection) CopySubSegments(start, end int, segs []*MACAddressSegment) (count int) {
-	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToMACAddressSegment(); return false }, len(segs))
+	return section.visitSubDivisions(start, end, func(index int, div *AddressDivision) bool { segs[index] = div.ToMAC(); return false }, len(segs))
 }
 
 // CopySubSegments copies the existing segments from the given start index until but not including the segment at the given end index,
 // into the given slice, as much as can be fit into the slice, returning the number of segments copied
 func (section *MACAddressSection) CopySegments(segs []*MACAddressSegment) (count int) {
-	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToMACAddressSegment(); return false }, len(segs))
+	return section.visitDivisions(func(index int, div *AddressDivision) bool { segs[index] = div.ToMAC(); return false }, len(segs))
 }
 
 // GetSegments returns a slice with the address segments.  The returned slice is not backed by the same array as this section.
@@ -513,7 +513,7 @@ func (section *MACAddressSection) ReverseSegments() *MACAddressSection {
 	}
 	res, _ := section.reverseSegments(
 		func(i int) (*AddressSegment, IncompatibleAddressError) {
-			return section.GetSegment(i).ToAddressSegment(), nil
+			return section.GetSegment(i).ToSegmentBase(), nil
 		},
 	)
 	return res.ToMAC()
