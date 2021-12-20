@@ -586,7 +586,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 		return nil
 	}
 	addr = addr.init().WithoutPrefixLen()
-	return newSeqRangeUnchecked(addr.GetLower().ToIP(), addr.GetUpper().ToIP(), addr.isMultiple()).ToIPv4SequentialRange()
+	return newSeqRangeUnchecked(addr.GetLower().ToIP(), addr.GetUpper().ToIP(), addr.isMultiple()).ToIPv4()
 }
 
 // ToBroadcastAddress returns the broadcast address.

@@ -12,7 +12,7 @@ func NewIPv6SeqRange(one, two *IPv6Address) *IPv6AddressSeqRange {
 	}
 	one = one.WithoutZone()
 	two = two.WithoutZone()
-	return newSeqRange(one.ToIP(), two.ToIP()).ToIPv6SequentialRange()
+	return newSeqRange(one.ToIP(), two.ToIP()).ToIPv6()
 }
 
 var zeroIPv6Range = NewIPv6SeqRange(zeroIPv6, zeroIPv6)
@@ -146,14 +146,14 @@ func (rng *IPv6AddressSeqRange) Contains(other IPAddressType) bool {
 
 func (rng *IPv6AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
 	if rng == nil {
-		return other == nil || other.ToIPAddressSeqRange() == nil
+		return other == nil || other.ToIP() == nil
 	}
 	return rng.init().containsRange(other)
 }
 
 func (rng *IPv6AddressSeqRange) Equal(other IPAddressSeqRangeType) bool {
 	if rng == nil {
-		return other == nil || other.ToIPAddressSeqRange() == nil
+		return other == nil || other.ToIP() == nil
 	}
 	return rng.init().equals(other)
 }
@@ -167,7 +167,7 @@ func (rng *IPv6AddressSeqRange) Compare(item AddressItem) int {
 
 func (rng *IPv6AddressSeqRange) CompareSize(other IPAddressSeqRangeType) int {
 	if rng == nil {
-		if other != nil && other.ToIPAddressSeqRange() != nil {
+		if other != nil && other.ToIP() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -207,8 +207,7 @@ func (rng *IPv6AddressSeqRange) PrefixIterator(prefLength BitCount) IPv6AddressS
 	return &ipv6RangeIterator{rng.init().prefixIterator(prefLength)}
 }
 
-//TODO rename this one
-func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
+func (rng *IPv6AddressSeqRange) ToIP() *IPAddressSeqRange {
 	if rng != nil {
 		rng = rng.init()
 	}
@@ -216,7 +215,7 @@ func (rng *IPv6AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 }
 
 func (rng *IPv6AddressSeqRange) Overlaps(other *IPv6AddressSeqRange) bool {
-	return rng.init().overlaps(other.ToIPAddressSeqRange())
+	return rng.init().overlaps(other.ToIP())
 }
 
 func (rng *IPv6AddressSeqRange) Intersect(other *IPv6AddressSeqRange) *IPAddressSeqRange {
@@ -240,6 +239,6 @@ func (rng *IPv6AddressSeqRange) SpanWithSequentialBlocks() []*IPv6Address {
 func (rng *IPv6AddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPv6AddressSeqRange {
 	origLen := len(ranges)
 	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
-	ranges[origLen] = rng.ToIPAddressSeqRange()
+	ranges[origLen] = rng.ToIP()
 	return cloneToIPv6SeqRange(join(ranges))
 }

@@ -105,10 +105,10 @@ func mapGrouping(grouping StandardDivGroupingType) int {
 }
 
 func mapRange(rng *IPAddressSeqRange) int {
-	//rng := rngType.ToIPAddressSeqRange()
-	if rng.IsIPv4SequentialRange() {
+	//rng := rngType.ToIP()
+	if rng.IsIPv4() {
 		return ipv4rangetype
-	} else if rng.IsIPv6SequentialRange() {
+	} else if rng.IsIPv6() {
 		return ipv6rangetype
 	}
 	return iprangetype
@@ -300,10 +300,10 @@ func (comp AddressComparator) CompareDivisions(one, two DivisionType) int {
 func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int {
 	var r1, r2 *IPAddressSeqRange
 	if one != nil {
-		r1 = one.ToIPAddressSeqRange()
+		r1 = one.ToIP()
 	}
 	if two != nil {
-		r2 = two.ToIPAddressSeqRange()
+		r2 = two.ToIP()
 	}
 	if r1 == nil {
 		if r2 == nil {
@@ -319,8 +319,8 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 		return result
 	}
 	if r1Type == ipv4rangetype { // avoid using the large values
-		r1ipv4 := r1.ToIPv4SequentialRange()
-		r2ipv4 := r2.ToIPv4SequentialRange()
+		r1ipv4 := r1.ToIPv4()
+		r2ipv4 := r2.ToIPv4()
 		return comp.compareValues(uint64(r1ipv4.GetUpper().Uint32Value()), uint64(r1ipv4.GetLower().Uint32Value()), uint64(r2ipv4.GetUpper().Uint32Value()), uint64(r2ipv4.GetLower().Uint32Value()))
 	}
 	return comp.compareLargeValues(r1.GetUpperValue(), r1.GetValue(), r2.GetUpperValue(), r2.GetValue())

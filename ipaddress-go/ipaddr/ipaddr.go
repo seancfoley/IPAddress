@@ -885,34 +885,6 @@ func (addr *IPAddress) ToIP() *IPAddress {
 	return addr
 }
 
-// maybe rename ToIPv6(), then there is ToMac(), toIP(), and ToAddressBase - for sections youd would have the same and also ToSection() and ToGrouping()
-// BUT remember I am also consider renaming GetIP to ToIP()
-// This also makes sense because "ToIPv6" suggests a new address is being created.  "AsIPv6" might be a better choice, but, inconsistent with Java.
-// Java used "to" because of the conversion that might happen.  I think "to" is probably fine.  Using "ToIPv6" is more consistent with Java.
-// ALso consider code like this:
-// t.createAddress(originalStr).GetAddress().ToAddressBase()
-// the combination of using GetAddress/ToAddressBase in IPAddressString and the name ToAddressBase to downgrade to *Address is ugly.
-// Maybe drop the "To" in this case?  Just .Address()?  or AsAddress?  nah to AsAddress, it's already an address.
-// No, I need a better ToXXX really.
-// ToBase()?  ToGeneric()?
-// For sections and segments, use the same ToIPv6, ToMAC, ToIP(),
-// There there are ToAddressBase(), ToSection(), ToDivGrouping(), ToSegment(), ToDiv()
-// Is there some other common word I can use for ToAddressBase(), ToSection(), ToSegment()?  Because the ones above like ToIP() are all common.
-// A word to say "no protocol"
-// ToGen() for general or generic?  ToShared?  UnSpecified()? ToIndeterminate()?  ToIndistinct?  ToUnstipulated?
-// I think there is a word for something that is not yet distinguished?  ToIndistinghuished?  nah, some other word
-// A word for someone who has not yet become more ... what, unique?  Undiversified?  ToInterchangeable? ToUndifferentiated?  ToAdaptive?
-// There is a word, something not yet specified... ToUndiversified?  ToCommon?  ToHomogenous?  ToUniform?  ToIndistinct?  ToNeutral?
-// ToUnderived?  ToStandard?  toindisparate?  ToIndivergent?  ToUndifferentiated?  toindistinct?  ToUniform?  ToRegular?
-// ToUndistinguised?  TOUnspecific?  ToCustomary?
-// ToBasic is good  ToBase?  I kinda like ToBase
-// ToUniform is good
-// ToGeneric?  ToGenericAddr?
-//
-// TODO for addresses and seq ranges: ToIPv6, ToIPv4, ToMAC, ToIP()  (I already did ToAddressBase)
-// there are also the identity funcs like IsIPv4, isIP, IsIPv6, isMAC to change - although seems are are already using these?
-// ToIPAddressSeqRange become ToIP() and you need to change the ipv4/6 ToIP4SeqRange etc as well and the IsXXX too
-
 func (addr *IPAddress) ToIPv6() *IPv6Address {
 	if addr.IsIPv6() {
 		return (*IPv6Address)(addr)
@@ -969,9 +941,9 @@ func (addr *IPAddress) GetSequentialBlockCount() *big.Int {
 func (addr *IPAddress) ToSequentialRange() *IPAddressSeqRange {
 	if addr != nil {
 		if addr.IsIPv4() {
-			return addr.ToIPv4().ToSequentialRange().ToIPAddressSeqRange()
+			return addr.ToIPv4().ToSequentialRange().ToIP()
 		} else if addr.IsIPv6() {
-			return addr.ToIPv6().ToSequentialRange().ToIPAddressSeqRange()
+			return addr.ToIPv6().ToSequentialRange().ToIP()
 		}
 	}
 	return nil
@@ -995,11 +967,11 @@ func (addr *IPAddress) Increment(increment int64) *IPAddress {
 func (addr *IPAddress) SpanWithRange(other *IPAddress) *IPAddressSeqRange {
 	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		if oth := other.ToIPv4(); oth != nil {
-			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
+			return thisAddr.SpanWithRange(oth).ToIP()
 		}
 	} else if thisAddr := addr.ToIPv6(); thisAddr != nil {
 		if oth := other.ToIPv6(); oth != nil {
-			return thisAddr.SpanWithRange(oth).ToIPAddressSeqRange()
+			return thisAddr.SpanWithRange(oth).ToIP()
 		}
 	}
 	return addr.ToSequentialRange()

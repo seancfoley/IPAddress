@@ -92,7 +92,7 @@ func cloneToIPSections(orig []ExtendedIPSegmentSeries) []*IPAddressSection {
 func cloneToIPv4Sections(orig []ExtendedIPSegmentSeries) []*IPv4AddressSection {
 	result := make([]*IPv4AddressSection, len(orig))
 	for i := range result {
-		result[i] = orig[i].(WrappedIPAddressSection).ToIPv4()
+		result[i] = orig[i].(WrappedIPAddressSection).IPAddressSection.ToIPv4()
 	}
 	return result
 }
@@ -100,7 +100,7 @@ func cloneToIPv4Sections(orig []ExtendedIPSegmentSeries) []*IPv4AddressSection {
 func cloneToIPv6Sections(orig []ExtendedIPSegmentSeries) []*IPv6AddressSection {
 	result := make([]*IPv6AddressSection, len(orig))
 	for i := range result {
-		result[i] = orig[i].(WrappedIPAddressSection).ToIPv6()
+		result[i] = orig[i].(WrappedIPAddressSection).IPAddressSection.ToIPv6()
 	}
 	return result
 }
@@ -116,7 +116,7 @@ func cloneToIPAddrs(orig []ExtendedIPSegmentSeries) []*IPAddress {
 func cloneToIPv4Addrs(orig []ExtendedIPSegmentSeries) []*IPv4Address {
 	result := make([]*IPv4Address, len(orig))
 	for i := range result {
-		result[i] = orig[i].(WrappedIPAddress).ToIPv4()
+		result[i] = orig[i].(WrappedIPAddress).IPAddress.ToIPv4()
 	}
 	return result
 }
@@ -124,7 +124,7 @@ func cloneToIPv4Addrs(orig []ExtendedIPSegmentSeries) []*IPv4Address {
 func cloneToIPv6Addrs(orig []ExtendedIPSegmentSeries) []*IPv6Address {
 	result := make([]*IPv6Address, len(orig))
 	for i := range result {
-		result[i] = orig[i].(WrappedIPAddress).ToIPv6()
+		result[i] = orig[i].(WrappedIPAddress).IPAddress.ToIPv6()
 	}
 	return result
 }
@@ -132,7 +132,7 @@ func cloneToIPv6Addrs(orig []ExtendedIPSegmentSeries) []*IPv6Address {
 func cloneToIPv4SeqRange(orig []*IPAddressSeqRange) []*IPv4AddressSeqRange {
 	result := make([]*IPv4AddressSeqRange, len(orig))
 	for i := range result {
-		result[i] = orig[i].ToIPv4SequentialRange()
+		result[i] = orig[i].ToIPv4()
 	}
 	return result
 }
@@ -140,7 +140,7 @@ func cloneToIPv4SeqRange(orig []*IPAddressSeqRange) []*IPv4AddressSeqRange {
 func cloneToIPv6SeqRange(orig []*IPAddressSeqRange) []*IPv6AddressSeqRange {
 	result := make([]*IPv6AddressSeqRange, len(orig))
 	for i := range result {
-		result[i] = orig[i].ToIPv6SequentialRange()
+		result[i] = orig[i].ToIPv6()
 	}
 	return result
 }

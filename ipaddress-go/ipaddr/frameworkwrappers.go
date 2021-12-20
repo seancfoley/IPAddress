@@ -37,8 +37,15 @@ type ExtendedSegmentSeries interface {
 	CopySegments(segs []*AddressSegment) (count int)
 	CopySubSegments(start, end int, segs []*AddressSegment) (count int)
 
-	//IsIPv4() bool
-	//IsIPv6() bool
+	IsIP() bool
+	IsIPv4() bool
+	IsIPv6() bool
+	IsMAC() bool
+
+	ToIP() IPAddressSegmentSeries
+	ToIPv4() IPv4AddressSegmentSeries
+	ToIPv6() IPv6AddressSegmentSeries
+	ToMAC() MACAddressSegmentSeries
 
 	// ToBlock creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 	// and changing the following segments to be full-range
@@ -95,6 +102,22 @@ func (w WrappedAddress) Unwrap() AddressSegmentSeries {
 		return nil
 	}
 	return res
+}
+
+func (w WrappedAddress) ToIPv4() IPv4AddressSegmentSeries {
+	return w.Address.ToIPv4()
+}
+
+func (w WrappedAddress) ToIPv6() IPv6AddressSegmentSeries {
+	return w.Address.ToIPv6()
+}
+
+func (w WrappedAddress) ToIP() IPAddressSegmentSeries {
+	return w.Address.ToIP()
+}
+
+func (w WrappedAddress) ToMAC() MACAddressSegmentSeries {
+	return w.Address.ToMAC()
 }
 
 //func (w WrappedAddress) GetNetworkMask() ExtendedSegmentSeries {
@@ -262,6 +285,22 @@ func (w WrappedAddressSection) Unwrap() AddressSegmentSeries {
 		return nil
 	}
 	return res
+}
+
+func (w WrappedAddressSection) ToIPv4() IPv4AddressSegmentSeries {
+	return w.AddressSection.ToIPv4()
+}
+
+func (w WrappedAddressSection) ToIPv6() IPv6AddressSegmentSeries {
+	return w.AddressSection.ToIPv6()
+}
+
+func (w WrappedAddressSection) ToIP() IPAddressSegmentSeries {
+	return w.AddressSection.ToIP()
+}
+
+func (w WrappedAddressSection) ToMAC() MACAddressSegmentSeries {
+	return w.AddressSection.ToMAC()
 }
 
 //func (w WrappedAddressSection) GetNetworkMask() ExtendedSegmentSeries {

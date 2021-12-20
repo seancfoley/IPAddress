@@ -1892,7 +1892,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 	}
 	prefLength := getPrefixLength(qualifier)
 	if mixed {
-		ipv4Range := parseData.mixedParsedAddress.getProviderSeqRange().ToIPv4SequentialRange()
+		ipv4Range := parseData.mixedParsedAddress.getProviderSeqRange().ToIPv4()
 		if hasMask && parseData.mixedMaskers == nil {
 			parseData.mixedMaskers = make([]Masker, IPv4SegmentCount)
 		}

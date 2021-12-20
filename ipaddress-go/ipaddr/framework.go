@@ -61,6 +61,7 @@ type AddressItem interface {
 	Compare(item AddressItem) int
 
 	fmt.Stringer
+	fmt.Formatter
 }
 
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
@@ -150,9 +151,6 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 var _, _ AddressSegmentSeries = &Address{}, &AddressSection{}
 
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
-
-	//TODO now you can add ToIPv6(), ToIPv4(), IsIPv6, IsIPv4
-
 	AddressSegmentSeries
 
 	IncludesZeroHost() bool
@@ -185,7 +183,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 
 var _, _ IPAddressSegmentSeries = &IPAddress{}, &IPAddressSection{}
 
-type IPv6AddressSegmentSeries interface { //TODO now you can add ToIP(), IsIP(), in fact maybe to IPAddressSegmentSeries
+type IPv6AddressSegmentSeries interface {
 	IPAddressSegmentSeries
 
 	// GetTrailingSection returns an ending subsection of the full address section
@@ -210,7 +208,7 @@ var _, _, _ IPv6AddressSegmentSeries = &IPv6Address{},
 	&IPv6AddressSection{},
 	&EmbeddedIPv6AddressSection{}
 
-type IPv4AddressSegmentSeries interface { //TODO now you can add ToIP(), IsIP(), in fact maybe to IPAddressSegmentSeries
+type IPv4AddressSegmentSeries interface {
 	IPAddressSegmentSeries
 
 	// GetTrailingSection returns an ending subsection of the full address section
@@ -311,7 +309,7 @@ type IPAddressSeqRangeType interface {
 	CompareSize(IPAddressSeqRangeType) int
 	ContainsRange(IPAddressSeqRangeType) bool
 	Contains(IPAddressType) bool
-	ToIPAddressSeqRange() *IPAddressSeqRange
+	ToIP() *IPAddressSeqRange
 }
 
 var _, _, _ IPAddressSeqRangeType = &IPAddressSeqRange{},

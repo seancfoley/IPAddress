@@ -40,6 +40,9 @@ type ExtendedIPSegmentSeries interface {
 	IsIPv4() bool
 	IsIPv6() bool
 
+	ToIPv4() IPv4AddressSegmentSeries
+	ToIPv6() IPv6AddressSegmentSeries
+
 	// ToBlock creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 	// and changing the following segments to be full-range
 	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries
@@ -94,6 +97,14 @@ func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
 		return nil
 	}
 	return res
+}
+
+func (w WrappedIPAddress) ToIPv4() IPv4AddressSegmentSeries {
+	return w.IPAddress.ToIPv4()
+}
+
+func (w WrappedIPAddress) ToIPv6() IPv6AddressSegmentSeries {
+	return w.IPAddress.ToIPv6()
 }
 
 func (w WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
@@ -257,6 +268,14 @@ func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
 		return nil
 	}
 	return res
+}
+
+func (w WrappedIPAddressSection) ToIPv4() IPv4AddressSegmentSeries {
+	return w.IPAddressSection.ToIPv4()
+}
+
+func (w WrappedIPAddressSection) ToIPv6() IPv6AddressSegmentSeries {
+	return w.IPAddressSection.ToIPv6()
 }
 
 func (w WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {

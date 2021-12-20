@@ -72,7 +72,7 @@ type ipv4RangeIterator struct {
 }
 
 func (iter ipv4RangeIterator) Next() *IPv4AddressSeqRange {
-	return iter.IPAddressSeqRangeIterator.Next().ToIPv4SequentialRange()
+	return iter.IPAddressSeqRangeIterator.Next().ToIPv4()
 }
 
 type IPv6AddressSeqRangeIterator interface {
@@ -85,5 +85,5 @@ type ipv6RangeIterator struct {
 }
 
 func (iter ipv6RangeIterator) Next() *IPv6AddressSeqRange {
-	return iter.IPAddressSeqRangeIterator.Next().ToIPv6SequentialRange()
+	return iter.IPAddressSeqRangeIterator.Next().ToIPv6()
 }

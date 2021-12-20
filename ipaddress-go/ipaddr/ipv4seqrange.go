@@ -10,7 +10,7 @@ func NewIPv4SeqRange(one, two *IPv4Address) *IPv4AddressSeqRange {
 	if one == nil && two == nil {
 		one = zeroIPv4
 	}
-	return newSeqRange(one.ToIP(), two.ToIP()).ToIPv4SequentialRange()
+	return newSeqRange(one.ToIP(), two.ToIP()).ToIPv4()
 }
 
 var zeroIPv4Range = NewIPv4SeqRange(zeroIPv4, zeroIPv4)
@@ -144,14 +144,14 @@ func (rng *IPv4AddressSeqRange) Contains(other IPAddressType) bool {
 
 func (rng *IPv4AddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
 	if rng == nil {
-		return other == nil || other.ToIPAddressSeqRange() == nil
+		return other == nil || other.ToIP() == nil
 	}
 	return rng.init().containsRange(other)
 }
 
 func (rng *IPv4AddressSeqRange) Equal(other IPAddressSeqRangeType) bool {
 	if rng == nil {
-		return other == nil || other.ToIPAddressSeqRange() == nil
+		return other == nil || other.ToIP() == nil
 	}
 	return rng.init().equals(other)
 }
@@ -165,7 +165,7 @@ func (rng *IPv4AddressSeqRange) Compare(item AddressItem) int {
 
 func (rng *IPv4AddressSeqRange) CompareSize(other IPAddressSeqRangeType) int {
 	if rng == nil {
-		if other != nil && other.ToIPAddressSeqRange() != nil {
+		if other != nil && other.ToIP() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -205,8 +205,7 @@ func (rng *IPv4AddressSeqRange) PrefixIterator(prefLength BitCount) IPv4AddressS
 	return &ipv4RangeIterator{rng.init().prefixIterator(prefLength)}
 }
 
-//TODO rename this one
-func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
+func (rng *IPv4AddressSeqRange) ToIP() *IPAddressSeqRange {
 	if rng != nil {
 		rng = rng.init()
 	}
@@ -214,7 +213,7 @@ func (rng *IPv4AddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
 }
 
 func (rng *IPv4AddressSeqRange) Overlaps(other *IPv4AddressSeqRange) bool {
-	return rng.init().overlaps(other.ToIPAddressSeqRange())
+	return rng.init().overlaps(other.ToIP())
 }
 
 func (rng *IPv4AddressSeqRange) Intersect(other *IPv4AddressSeqRange) *IPAddressSeqRange {
@@ -238,7 +237,7 @@ func (rng *IPv4AddressSeqRange) SpanWithSequentialBlocks() []*IPv4Address {
 func (rng *IPv4AddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPv4AddressSeqRange {
 	origLen := len(ranges)
 	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
-	ranges[origLen] = rng.ToIPAddressSeqRange()
+	ranges[origLen] = rng.ToIP()
 	return cloneToIPv4SeqRange(join(ranges))
 }
 
@@ -247,20 +246,20 @@ func (rng *IPv4AddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPv4Addres
 // then the two are joined into a new larger range that is returned.
 // Otherwise nil is returned.
 func (rng *IPv4AddressSeqRange) JoinTo(other *IPv4AddressSeqRange) *IPv4AddressSeqRange {
-	return rng.init().joinTo(other.init().ToIPAddressSeqRange()).ToIPv4SequentialRange()
+	return rng.init().joinTo(other.init().ToIP()).ToIPv4()
 }
 
 // Extend extends this sequential range to include all address in the given range.
 // If the argument has a different IP version than this, nil is returned.
 // Otherwise, this method returns the range that includes this range, the given range, and all addresses in-between.
 func (rng *IPv4AddressSeqRange) Extend(other *IPv4AddressSeqRange) *IPv4AddressSeqRange {
-	return rng.init().extend(other.init().ToIPAddressSeqRange()).ToIPv4SequentialRange()
+	return rng.init().extend(other.init().ToIP()).ToIPv4()
 }
 
 // Subtract Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
 // If the result has length 2, the two ranges are ordered by ascending lowest range value.
 func (rng *IPv4AddressSeqRange) Subtract(other *IPv4AddressSeqRange) []*IPv4AddressSeqRange {
-	return cloneToIPv4SeqRange(rng.init().subtract(other.init().ToIPAddressSeqRange()))
+	return cloneToIPv4SeqRange(rng.init().subtract(other.init().ToIP()))
 }
 
 // GetIPv4Count is equivalent to GetCount() but returns a uint64

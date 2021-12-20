@@ -874,7 +874,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - prefixLen change
 // - portnum change which is similar
 // - we ask whether args of type BitCount should be int.  ipv6section.go  After some thought, this can be linked to PrefixLen change
-// - rename ToIPV6Address, ToMAC, etc use just ToIPV6, ToIP, ToIPv4, ToMAC.  Also the same for IsIPAddress, etc, I think I did the "is" changes in addresses already
 //
 //
 // - all the TODOs I have piled up (excluding anything LATER)

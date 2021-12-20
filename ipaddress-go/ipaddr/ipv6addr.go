@@ -919,7 +919,7 @@ func (addr *IPv6Address) ToSequentialRange() *IPv6AddressSeqRange {
 	return newSeqRangeUnchecked(
 		addr.GetLowerIPAddress(),
 		addr.GetUpperIPAddress(),
-		addr.isMultiple()).ToIPv6SequentialRange()
+		addr.isMultiple()).ToIPv6()
 }
 
 func (addr *IPv6Address) ToAddressString() *IPAddressString {

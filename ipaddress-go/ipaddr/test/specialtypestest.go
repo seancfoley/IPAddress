@@ -583,12 +583,12 @@ func (t specialTypesTester) testNils() {
 
 	ipRangesIPv4 = append(ipRangesIPv4, nil)
 	ipRangesIPv4 = append(ipRangesIPv4, &ipaddr.IPAddressSeqRange{})
-	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, nil).ToIPAddressSeqRange())
-	ipRangesIPv4 = append(ipRangesIPv4, (&ipaddr.IPv4AddressSeqRange{}).ToIPAddressSeqRange())
-	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIPAddressSeqRange())
-	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIPAddressSeqRange())
-	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, ipv4Addr2).ToIPAddressSeqRange())
-	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, ipv4Addr2).ToIPAddressSeqRange())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, nil).ToIP())
+	ipRangesIPv4 = append(ipRangesIPv4, (&ipaddr.IPv4AddressSeqRange{}).ToIP())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(&ipaddr.IPv4Address{}, nil).ToIP())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, nil).ToIP())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(nil, ipv4Addr2).ToIP())
+	ipRangesIPv4 = append(ipRangesIPv4, ipaddr.NewIPv4SeqRange(ipv4Addr1, ipv4Addr2).ToIP())
 
 	for i := range ipRangesIPv4 {
 		range1 := ipRangesIPv4[i]
@@ -627,11 +627,11 @@ func (t specialTypesTester) testNils() {
 
 	ipRangesIPv6 = append(ipRangesIPv6, nil)
 	ipRangesIPv6 = append(ipRangesIPv6, &ipaddr.IPAddressSeqRange{})
-	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(nil, nil).ToIPAddressSeqRange())
-	ipRangesIPv6 = append(ipRangesIPv6, (&ipaddr.IPv6AddressSeqRange{}).ToIPAddressSeqRange())
-	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(ipv6Addr1, nil).ToIPAddressSeqRange())
-	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(nil, ipv6Addr2).ToIPAddressSeqRange())
-	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(ipv6Addr1, ipv6Addr2).ToIPAddressSeqRange())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(nil, nil).ToIP())
+	ipRangesIPv6 = append(ipRangesIPv6, (&ipaddr.IPv6AddressSeqRange{}).ToIP())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(ipv6Addr1, nil).ToIP())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(nil, ipv6Addr2).ToIP())
+	ipRangesIPv6 = append(ipRangesIPv6, ipaddr.NewIPv6SeqRange(ipv6Addr1, ipv6Addr2).ToIP())
 
 	for i := range ipRangesIPv6 {
 		range1 := ipRangesIPv6[i]
@@ -1021,7 +1021,7 @@ func (t specialTypesTester) testNils() {
 	}
 	for _, item := range ipRangesIPv6 {
 		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
-		if item.IsIPv6SequentialRange() {
+		if item.IsIPv6() {
 			ipv6RangeItems = append(ipv6RangeItems, item)
 		}
 	}

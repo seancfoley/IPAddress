@@ -92,7 +92,7 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixCountLen(prefixLen BitCount) *big
 
 // CompareSize returns whether this range has a larger count than the other
 func (rng *ipAddressSeqRangeInternal) compareSize(other IPAddressSeqRangeType) int {
-	if other == nil || other.ToIPAddressSeqRange() == nil {
+	if other == nil || other.ToIP() == nil {
 		// our size is 1 or greater, other 0
 		return 1
 	}
@@ -104,7 +104,7 @@ func (rng *ipAddressSeqRangeInternal) compareSize(other IPAddressSeqRangeType) i
 	} else if !other.IsMultiple() {
 		return 1
 	}
-	return rng.getCachedCount(false).CmpAbs(other.ToIPAddressSeqRange().getCachedCount(false))
+	return rng.getCachedCount(false).CmpAbs(other.ToIP().getCachedCount(false))
 }
 
 func (rng *ipAddressSeqRangeInternal) contains(other IPAddressType) bool {
@@ -123,7 +123,7 @@ func (rng *ipAddressSeqRangeInternal) equals(other IPAddressSeqRangeType) bool {
 	if other == nil {
 		return false
 	}
-	otherRng := other.ToIPAddressSeqRange()
+	otherRng := other.ToIP()
 	if otherRng == nil {
 		return false
 	}
@@ -134,7 +134,7 @@ func (rng *ipAddressSeqRangeInternal) containsRange(other IPAddressSeqRangeType)
 	if other == nil {
 		return true
 	}
-	otherRange := other.ToIPAddressSeqRange()
+	otherRange := other.ToIP()
 	if otherRange == nil {
 		return true
 	}
@@ -811,14 +811,14 @@ func (rng *IPAddressSeqRange) Contains(other IPAddressType) bool {
 // Contains returns whether all the addresses in the given sequential range are also contained in this sequential range
 func (rng *IPAddressSeqRange) ContainsRange(other IPAddressSeqRangeType) bool {
 	if rng == nil {
-		return other == nil || other.ToIPAddressSeqRange() == nil
+		return other == nil || other.ToIP() == nil
 	}
 	return rng.init().containsRange(other)
 }
 
 func (rng *IPAddressSeqRange) Equal(other IPAddressSeqRangeType) bool {
 	if rng == nil {
-		return other == nil || other.ToIPAddressSeqRange() == nil
+		return other == nil || other.ToIP() == nil
 	}
 	return rng.init().equals(other)
 }
@@ -832,7 +832,7 @@ func (rng *IPAddressSeqRange) Compare(item AddressItem) int {
 
 func (rng *IPAddressSeqRange) CompareSize(other IPAddressSeqRangeType) int {
 	if rng == nil {
-		if other != nil && other.ToIPAddressSeqRange() != nil {
+		if other != nil && other.ToIP() != nil {
 			// we have size 0, other has size >= 1
 			return -1
 		}
@@ -864,34 +864,27 @@ func (rng *IPAddressSeqRange) PrefixIterator(prefLength BitCount) IPAddressSeqRa
 	return rng.init().prefixIterator(prefLength)
 }
 
-func (rng *IPAddressSeqRange) ToIPAddressSeqRange() *IPAddressSeqRange {
+func (rng *IPAddressSeqRange) ToIP() *IPAddressSeqRange {
 	return rng
 }
 
-//TODO rename these 4
-func (rng *IPAddressSeqRange) IsIPv4SequentialRange() bool { // returns false when lower is nil
+func (rng *IPAddressSeqRange) IsIPv4() bool { // returns false when lower is nil
 	return rng != nil && rng.GetLower().IsIPv4()
 }
 
-func (rng *IPAddressSeqRange) IsIPv6SequentialRange() bool { // returns false when lower is nil
+func (rng *IPAddressSeqRange) IsIPv6() bool { // returns false when lower is nil
 	return rng != nil && rng.GetLower().IsIPv6()
 }
 
-func (rng *IPAddressSeqRange) ToIPv4SequentialRange() *IPv4AddressSeqRange {
-	//if rng != nil {
-	//	rng = rng.init()
-	//}
-	if rng.IsIPv4SequentialRange() {
+func (rng *IPAddressSeqRange) ToIPv4() *IPv4AddressSeqRange {
+	if rng.IsIPv4() {
 		return (*IPv4AddressSeqRange)(rng)
 	}
 	return nil
 }
 
-func (rng *IPAddressSeqRange) ToIPv6SequentialRange() *IPv6AddressSeqRange {
-	//if rng != nil {
-	//	rng = rng.init()
-	//}
-	if rng.IsIPv6SequentialRange() {
+func (rng *IPAddressSeqRange) ToIPv6() *IPv6AddressSeqRange {
+	if rng.IsIPv6() {
 		return (*IPv6AddressSeqRange)(rng)
 	}
 	return nil
