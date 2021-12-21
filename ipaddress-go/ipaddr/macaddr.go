@@ -234,7 +234,7 @@ func (addr *MACAddress) UpperUint64Value() uint64 {
 }
 
 func (addr *MACAddress) GetHardwareAddr() net.HardwareAddr {
-	return addr.GetBytes()
+	return addr.Bytes()
 }
 
 func (addr *MACAddress) CopyHardwareAddr(bytes net.HardwareAddr) net.HardwareAddr {
@@ -242,19 +242,19 @@ func (addr *MACAddress) CopyHardwareAddr(bytes net.HardwareAddr) net.HardwareAdd
 }
 
 func (addr *MACAddress) GetUpperHardwareAddr() net.HardwareAddr {
-	return addr.GetUpperBytes()
+	return addr.UpperBytes()
 }
 
 func (addr *MACAddress) CopyUpperHardwareAddr(bytes net.HardwareAddr) net.HardwareAddr {
 	return addr.CopyUpperBytes(bytes)
 }
 
-func (addr *MACAddress) GetBytes() []byte {
-	return addr.init().section.GetBytes()
+func (addr *MACAddress) Bytes() []byte {
+	return addr.init().section.Bytes()
 }
 
-func (addr *MACAddress) GetUpperBytes() []byte {
-	return addr.init().section.GetUpperBytes()
+func (addr *MACAddress) UpperBytes() []byte {
+	return addr.init().section.UpperBytes()
 }
 
 func (addr *MACAddress) CopyBytes(bytes []byte) []byte {

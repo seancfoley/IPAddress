@@ -106,7 +106,7 @@ func (div *addressDivisionBase) GetUpperValue() *BigDivInt {
 	return vals.getUpperValue()
 }
 
-func (div *addressDivisionBase) GetBytes() []byte {
+func (div *addressDivisionBase) Bytes() []byte {
 	if div.divisionValues == nil {
 		return emptyBytes
 	}
@@ -114,7 +114,7 @@ func (div *addressDivisionBase) GetBytes() []byte {
 	return cloneBytes(cached)
 }
 
-func (div *addressDivisionBase) GetUpperBytes() []byte {
+func (div *addressDivisionBase) UpperBytes() []byte {
 	if div.divisionValues == nil {
 		return emptyBytes
 	}

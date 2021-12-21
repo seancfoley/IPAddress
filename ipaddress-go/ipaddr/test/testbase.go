@@ -164,7 +164,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		return
 	}
 
-	bytes := series.GetBytes() // ab cd ef becomes fe dc ba
+	bytes := series.Bytes() // ab cd ef becomes fe dc ba
 	bitsReversed3, err := series.ReverseBytes()
 	if err != nil {
 		t.addFailure(newSegmentSeriesFailure("failed "+err.Error(), series))
@@ -173,7 +173,7 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 	//bitsReversed3 = bitsReversed3.ReverseBytesPerSegment();
 	for i, j := 0, len(bytes)-1; i < bitsReversed3.GetSegmentCount(); i++ {
 		seg := bitsReversed3.GetSegment(i)
-		segBytes := seg.GetBytes()
+		segBytes := seg.Bytes()
 		if !seg.IsMultiple() {
 			bytesLen := len(segBytes) >> 1
 			last := len(segBytes) - 1

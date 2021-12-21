@@ -748,7 +748,7 @@ func (addr *IPAddress) GetNetIPAddr() net.IPAddr {
 }
 
 func (addr *IPAddress) GetNetIP() net.IP {
-	return addr.GetBytes()
+	return addr.Bytes()
 }
 
 func (addr *IPAddress) CopyNetIP(ip net.IP) net.IP {
@@ -759,7 +759,7 @@ func (addr *IPAddress) CopyNetIP(ip net.IP) net.IP {
 }
 
 func (addr *IPAddress) GetUpperNetIP() net.IP {
-	return addr.GetUpperBytes()
+	return addr.UpperBytes()
 }
 
 func (addr *IPAddress) CopyUpperNetIP(ip net.IP) net.IP {
@@ -769,12 +769,12 @@ func (addr *IPAddress) CopyUpperNetIP(ip net.IP) net.IP {
 	return addr.CopyUpperBytes(ip)
 }
 
-func (addr *IPAddress) GetBytes() []byte {
-	return addr.init().section.GetBytes()
+func (addr *IPAddress) Bytes() []byte {
+	return addr.init().section.Bytes()
 }
 
-func (addr *IPAddress) GetUpperBytes() []byte {
-	return addr.init().section.GetUpperBytes()
+func (addr *IPAddress) UpperBytes() []byte {
+	return addr.init().section.UpperBytes()
 }
 
 func (addr *IPAddress) CopyBytes(bytes []byte) []byte {

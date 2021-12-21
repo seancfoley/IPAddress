@@ -1120,7 +1120,7 @@ func (t macAddressTester) mactestImpl(pass bool, addr *ipaddr.MACAddressString, 
 */
 func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
 	failed := false
-	macAddrbytes := addr.GetBytes()
+	macAddrbytes := addr.Bytes()
 	another := t.createMACAddressFromBytes(macAddrbytes)
 	if !addr.Equal(another) {
 		t.addFailure(newSegmentSeriesFailure(addr.String(), addr))

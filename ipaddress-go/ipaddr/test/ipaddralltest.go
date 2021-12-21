@@ -371,7 +371,7 @@ func (t ipAddressAllTester) testBackAndForthIPv4(addrStr string) {
 	}
 
 	// byte[] and back
-	bytes := addr.GetBytes()
+	bytes := addr.Bytes()
 	backAgain := ipaddr.NewIPAddressFromNetIP(bytes)
 	if !backAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))
@@ -403,7 +403,7 @@ func (t ipAddressAllTester) testBackAndForthIPv6(addrStr string) {
 	}
 
 	// byte[] and back
-	bytes := addr.GetBytes()
+	bytes := addr.Bytes()
 	backAgain := ipaddr.NewIPAddressFromNetIP(bytes)
 	if !backAgain.Equal(addr) {
 		t.addFailure(newIPAddrFailure("bytes result was "+backAgain.String()+" original was "+addr.String(), addr))

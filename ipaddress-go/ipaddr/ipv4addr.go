@@ -473,7 +473,7 @@ func (addr *IPv4Address) GetUpperValue() *big.Int {
 }
 
 func (addr *IPv4Address) GetNetIP() net.IP {
-	return addr.GetBytes()
+	return addr.Bytes()
 }
 
 func (addr *IPv4Address) CopyNetIP(ip net.IP) net.IP {
@@ -484,7 +484,7 @@ func (addr *IPv4Address) CopyNetIP(ip net.IP) net.IP {
 }
 
 func (addr *IPv4Address) GetUpperNetIP() net.IP {
-	return addr.GetUpperBytes()
+	return addr.UpperBytes()
 }
 
 func (addr *IPv4Address) CopyUpperNetIP(ip net.IP) net.IP {
@@ -494,12 +494,12 @@ func (addr *IPv4Address) CopyUpperNetIP(ip net.IP) net.IP {
 	return addr.CopyUpperBytes(ip)
 }
 
-func (addr *IPv4Address) GetBytes() []byte {
-	return addr.init().section.GetBytes()
+func (addr *IPv4Address) Bytes() []byte {
+	return addr.init().section.Bytes()
 }
 
-func (addr *IPv4Address) GetUpperBytes() []byte {
-	return addr.init().section.GetUpperBytes()
+func (addr *IPv4Address) UpperBytes() []byte {
+	return addr.init().section.UpperBytes()
 }
 
 func (addr *IPv4Address) CopyBytes(bytes []byte) []byte {

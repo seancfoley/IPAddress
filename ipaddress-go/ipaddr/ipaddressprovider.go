@@ -524,7 +524,7 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 				ipv6WithZoneLoop := func() *IPAddress {
 					network := IPv6Network
 					creator := network.getIPAddressCreator()
-					return creator.createAddressInternalFromBytes(network.GetLoopback().GetBytes(), zone)
+					return creator.createAddressInternalFromBytes(network.GetLoopback().Bytes(), zone)
 				}
 				versionedCreator = ipv6WithZoneLoop
 				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneLoop()) }
@@ -548,7 +548,7 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 				ipv6WithZoneZero := func() *IPAddress {
 					network := IPv6Network
 					creator := network.getIPAddressCreator()
-					return creator.createAddressInternalFromBytes(zeroIPv6.GetBytes(), zone)
+					return creator.createAddressInternalFromBytes(zeroIPv6.Bytes(), zone)
 				}
 				versionedCreator = ipv6WithZoneZero
 				addrCreator = func() (*IPAddress, *IPAddress) { return double(ipv6WithZoneZero()) }

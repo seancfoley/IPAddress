@@ -784,16 +784,16 @@ func (rng *IPAddressSeqRange) CopyUpperNetIP(bytes net.IP) net.IP {
 	return rng.GetUpper().CopyUpperNetIP(bytes) // this changes the arg to 4 bytes if 16 bytes and ipv4
 }
 
-func (rng *IPAddressSeqRange) GetBytes() []byte {
-	return rng.GetLower().GetBytes()
+func (rng *IPAddressSeqRange) Bytes() []byte {
+	return rng.GetLower().Bytes()
 }
 
 func (rng *IPAddressSeqRange) CopyBytes(bytes []byte) []byte {
 	return rng.GetLower().CopyBytes(bytes)
 }
 
-func (rng *IPAddressSeqRange) GetUpperBytes() []byte {
-	return rng.GetUpper().GetUpperBytes()
+func (rng *IPAddressSeqRange) UpperBytes() []byte {
+	return rng.GetUpper().UpperBytes()
 }
 
 func (rng *IPAddressSeqRange) CopyUpperBytes(bytes []byte) []byte {

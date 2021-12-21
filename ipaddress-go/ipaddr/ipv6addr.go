@@ -793,7 +793,7 @@ func (addr *IPv6Address) GetNetIPAddr() net.IPAddr {
 }
 
 func (addr *IPv6Address) GetNetIP() net.IP {
-	return addr.GetBytes()
+	return addr.Bytes()
 }
 
 func (addr *IPv6Address) CopyNetIP(bytes net.IP) net.IP {
@@ -801,19 +801,19 @@ func (addr *IPv6Address) CopyNetIP(bytes net.IP) net.IP {
 }
 
 func (addr *IPv6Address) GetUpperNetIP() net.IP {
-	return addr.GetUpperBytes()
+	return addr.UpperBytes()
 }
 
 func (addr *IPv6Address) CopyUpperNetIP(bytes net.IP) net.IP {
 	return addr.CopyUpperBytes(bytes)
 }
 
-func (addr *IPv6Address) GetBytes() []byte {
-	return addr.init().section.GetBytes()
+func (addr *IPv6Address) Bytes() []byte {
+	return addr.init().section.Bytes()
 }
 
-func (addr *IPv6Address) GetUpperBytes() []byte {
-	return addr.init().section.GetUpperBytes()
+func (addr *IPv6Address) UpperBytes() []byte {
+	return addr.init().section.UpperBytes()
 }
 
 func (addr *IPv6Address) CopyBytes(bytes []byte) []byte {

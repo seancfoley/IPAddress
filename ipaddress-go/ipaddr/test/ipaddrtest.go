@@ -2910,8 +2910,8 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	failed := false
 	//try {
 	if t.allowsRange() && addr.IsMultiple() {
-		b := addr.GetBytes()
-		b2 := addr.GetLower().GetBytes()
+		b := addr.Bytes()
+		b2 := addr.GetLower().Bytes()
 		if !bytes.Equal(b, b2) {
 			t.addFailure(newIPAddrFailure("bytes on addr "+addr.String(), addr.ToIP()))
 			failed = true
@@ -2937,14 +2937,14 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	}
 	//InetAddress inetAddress = InetAddress.getByName(addrString);
 	//byte[] b = inetAddress.getAddress();
-	b2 := addr.GetBytes()
+	b2 := addr.Bytes()
 	if !bytes.Equal(inetAddress, b2) {
 		t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
 	}
 	//	//if(!Arrays.equals(b, b2)) {
 	//	var b3 []byte
 	//	if addr.IsIPv4() {
-	//		b3 = addr.GetSection().GetBytes()
+	//		b3 = addr.GetSection().Bytes()
 	//		//inetAddress = inetAddress.To4()
 	//	} else {
 	//		addr, err := addr.ToIPv6().GetEmbeddedIPv4Address()
@@ -2953,7 +2953,7 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	//			t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr.ToIP()))
 	//			return false
 	//		}
-	//		b3 = addr.GetBytes()
+	//		b3 = addr.Bytes()
 	//	}
 	//	//byte[] b3 = addr.isIPv4() ? addr.getSection().getBytes() : addr.toIPv6().toMappedIPv4Segments().getBytes();
 	//	if !bytes.Equal(inetAddress, b3) {
@@ -3037,12 +3037,12 @@ func (t ipAddressTester) testMaskBytes(cidr2 string, w2 *ipaddr.IPAddressString)
 	//InetAddress inetAddress = null;
 	//inetAddress = InetAddress.getByName(w3.toString());//no wildcards allowed here
 	//byte[] b = inetAddress.getAddress();
-	b2 := w3.GetAddress().GetBytes()
+	b2 := w3.GetAddress().Bytes()
 	if !bytes.Equal(inetAddress, b2) {
 		//if(!Arrays.equals(b, b2)) {
 		t.addFailure(newFailure("bytes on addr "+inetAddress.String(), w3))
 	} else {
-		b3 := w2.GetAddress().GetBytes()
+		b3 := w2.GetAddress().Bytes()
 		if !bytes.Equal(b3, b2) {
 			//if(!Arrays.equals(b3, b2)) {
 			t.addFailure(newFailure("bytes on addr "+w3.String(), w2))
@@ -3266,7 +3266,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 	t.incrementTestCount()
 	if !secondTry {
 		//secondTry = true
-		bytes := address.GetBytes()
+		bytes := address.Bytes()
 		var another *ipaddr.IPAddress
 		// if address.IsIPv4() {
 		//ipaddr.IPv4Network.
@@ -3716,7 +3716,7 @@ func (t ipAddressTester) checkAddrNotMask(address *ipaddr.IPAddress, network boo
 func (t ipAddressTester) checkNotMask(addr string) {
 	addressStr := t.createAddress(addr)
 	address := addressStr.GetAddress()
-	val := (address.GetBytes()[0] & 1) == 0
+	val := (address.Bytes()[0] & 1) == 0
 	if t.checkAddrNotMask(address, val) {
 		t.checkAddrNotMask(address, !val)
 	}
@@ -4603,7 +4603,7 @@ func (t ipAddressTester) testSplitBytes(addressStr string) {
 }
 
 func (t ipAddressTester) testSplitBytesAddr(addr *ipaddr.IPAddress) {
-	bytes := addr.GetBytes()
+	bytes := addr.Bytes()
 	addresses := reconstitute(addr.GetIPVersion(), bytes, addr.GetBytesPerSegment())
 	if addr.IsMultiple() {
 		for _, addrNext := range addresses {
@@ -4611,7 +4611,7 @@ func (t ipAddressTester) testSplitBytesAddr(addr *ipaddr.IPAddress) {
 				t.addFailure(newIPAddrFailure("lower reconstitute failure: "+addrNext.String(), addr))
 			}
 		}
-		bytes = addr.GetUpperBytes()
+		bytes = addr.UpperBytes()
 		addresses = reconstitute(addr.GetIPVersion(), bytes, addr.GetBytesPerSegment())
 		for _, addrNext := range addresses {
 			if !addr.GetUpper().Equal(addrNext) {
@@ -4656,7 +4656,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 		var lastBytes []byte
 		//byte lastBytes[] = null;
 		for i := 0; i < len(all); i++ {
-			byts := all[i].GetBytes()
+			byts := all[i].Bytes()
 			//byte bytes[] = all.get(i).getBytes();
 			if lastBytes == nil {
 				lastBytes = byts
@@ -4693,7 +4693,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 		var lastBytes []byte
 		//byte lastBytes[] = null;
 		for i := 0; i < len(all); i++ {
-			byts := all[i].GetBytes()
+			byts := all[i].Bytes()
 			//byte bytes[] = all.get(i).getBytes();
 			if lastBytes == nil {
 				lastBytes = byts
@@ -4726,7 +4726,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 	}
 	var allBytes [][]byte
 	for _, addr := range all {
-		allBytes = append(allBytes, addr.GetBytes())
+		allBytes = append(allBytes, addr.Bytes())
 	}
 	for _, addr := range all {
 		for _, addr2 := range all {

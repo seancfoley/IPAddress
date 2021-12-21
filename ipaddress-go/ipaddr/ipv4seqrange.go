@@ -111,16 +111,16 @@ func (rng *IPv4AddressSeqRange) CopyUpperNetIP(bytes net.IP) net.IP {
 	return rng.GetUpper().CopyUpperNetIP(bytes) // this changes the arg to 4 bytes if 16 bytes and ipv4
 }
 
-func (rng *IPv4AddressSeqRange) GetBytes() []byte {
-	return rng.GetLower().GetBytes()
+func (rng *IPv4AddressSeqRange) Bytes() []byte {
+	return rng.GetLower().Bytes()
 }
 
 func (rng *IPv4AddressSeqRange) CopyBytes(bytes []byte) []byte {
 	return rng.GetLower().CopyBytes(bytes)
 }
 
-func (rng *IPv4AddressSeqRange) GetUpperBytes() []byte {
-	return rng.GetUpper().GetUpperBytes()
+func (rng *IPv4AddressSeqRange) UpperBytes() []byte {
+	return rng.GetUpper().UpperBytes()
 }
 
 func (rng *IPv4AddressSeqRange) CopyUpperBytes(bytes []byte) []byte {

@@ -1023,16 +1023,16 @@ func (addr *Address) GetUpperValue() *big.Int {
 	return addr.init().section.GetUpperValue()
 }
 
-func (addr *Address) GetBytes() []byte {
-	return addr.init().section.GetBytes()
+func (addr *Address) Bytes() []byte {
+	return addr.init().section.Bytes()
+}
+
+func (addr *Address) UpperBytes() []byte {
+	return addr.init().section.UpperBytes()
 }
 
 func (addr *Address) CopyBytes(bytes []byte) []byte {
 	return addr.init().section.CopyBytes(bytes)
-}
-
-func (addr *Address) GetUpperBytes() []byte {
-	return addr.init().section.GetUpperBytes()
 }
 
 func (addr *Address) CopyUpperBytes(bytes []byte) []byte {

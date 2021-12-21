@@ -191,12 +191,12 @@ func (seg *MACAddressSegment) GetCount() *big.Int {
 	return seg.getCount()
 }
 
-func (seg *MACAddressSegment) GetBytes() []byte {
-	return seg.init().addressSegmentInternal.GetBytes()
+func (seg *MACAddressSegment) Bytes() []byte {
+	return seg.init().addressSegmentInternal.Bytes()
 }
 
-func (seg *MACAddressSegment) GetUpperBytes() []byte {
-	return seg.init().addressSegmentInternal.GetUpperBytes()
+func (seg *MACAddressSegment) UpperBytes() []byte {
+	return seg.init().addressSegmentInternal.UpperBytes()
 }
 
 func (seg *MACAddressSegment) CopyBytes(bytes []byte) []byte {

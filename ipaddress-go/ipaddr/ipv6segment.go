@@ -210,12 +210,12 @@ func (seg *IPv6AddressSegment) IsOneBit(segmentBitIndex BitCount) bool {
 	return seg.init().ipAddressSegmentInternal.IsOneBit(segmentBitIndex)
 }
 
-func (seg *IPv6AddressSegment) GetBytes() []byte {
-	return seg.init().ipAddressSegmentInternal.GetBytes()
+func (seg *IPv6AddressSegment) Bytes() []byte {
+	return seg.init().ipAddressSegmentInternal.Bytes()
 }
 
-func (seg *IPv6AddressSegment) GetUpperBytes() []byte {
-	return seg.init().ipAddressSegmentInternal.GetUpperBytes()
+func (seg *IPv6AddressSegment) UpperBytes() []byte {
+	return seg.init().ipAddressSegmentInternal.UpperBytes()
 }
 
 func (seg *IPv6AddressSegment) CopyBytes(bytes []byte) []byte {

@@ -313,7 +313,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 					if networkPrefixLength == nil {
 						mask := parsedHost.getMask()
 						if mask != nil {
-							maskBytes := mask.GetBytes()
+							maskBytes := mask.Bytes()
 							if len(maskBytes) == byteLen {
 								for i := 0; i < byteLen; i++ {
 									ip[i] &= maskBytes[i]

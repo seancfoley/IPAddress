@@ -674,7 +674,7 @@ func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
 //	return true
 //}
 
-func (grouping *addressDivisionGroupingInternal) GetBytes() []byte {
+func (grouping *addressDivisionGroupingInternal) Bytes() []byte {
 	if grouping.hasNoDivisions() {
 		return emptyBytes
 	}
@@ -682,7 +682,7 @@ func (grouping *addressDivisionGroupingInternal) GetBytes() []byte {
 	return cloneBytes(cached)
 }
 
-func (grouping *addressDivisionGroupingInternal) GetUpperBytes() []byte {
+func (grouping *addressDivisionGroupingInternal) UpperBytes() []byte {
 	if grouping.hasNoDivisions() {
 		return emptyBytes
 	}

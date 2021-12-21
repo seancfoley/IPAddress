@@ -53,7 +53,7 @@ func (p *BitCount) Compare(other *BitCount) int {
 
 func (p *BitCount) String() string {
 	if p == nil {
-		return "<nil>"
+		return nilString()
 	}
 	return strconv.Itoa(int(*p))
 }
@@ -85,13 +85,6 @@ func cacheBitCount(i BitCount) PrefixLen {
 //TODO Port has the same problems as PrefixLen and needs the same conversion
 type Port = *PortNum // using signed integers allows for easier arithmetic and decrement bugs
 type PortNum uint16
-
-//func PortEquals(one, two Port) bool {
-//	if one == nil {
-//		return two == nil
-//	}
-//	return two != nil && *one == *two
-//}
 
 // Equal compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
 func (p *PortNum) Equal(other *PortNum) bool {

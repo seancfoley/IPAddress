@@ -113,16 +113,16 @@ func (rng *IPv6AddressSeqRange) CopyUpperNetIP(bytes net.IP) net.IP {
 	return rng.GetUpper().CopyUpperNetIP(bytes)
 }
 
-func (rng *IPv6AddressSeqRange) GetBytes() []byte {
-	return rng.GetLower().GetBytes()
+func (rng *IPv6AddressSeqRange) Bytes() []byte {
+	return rng.GetLower().Bytes()
 }
 
 func (rng *IPv6AddressSeqRange) CopyBytes(bytes []byte) []byte {
 	return rng.GetLower().CopyBytes(bytes)
 }
 
-func (rng *IPv6AddressSeqRange) GetUpperBytes() []byte {
-	return rng.GetUpper().GetUpperBytes()
+func (rng *IPv6AddressSeqRange) UpperBytes() []byte {
+	return rng.GetUpper().UpperBytes()
 }
 
 func (rng *IPv6AddressSeqRange) CopyUpperBytes(bytes []byte) []byte {
