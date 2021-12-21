@@ -1378,13 +1378,13 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	t.confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw, binary)
 	if ipAddr.IsIPv6() {
 		t.confirmAddrStrings(ipAddr, full)
-		//t.confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses //TODO LATER reinstate
+		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses
 		//t.confirmHostStrings(ipAddr, false, unc);//these two are valid hosts with embedded addresses
 	} else {
 		params := new(ipaddr.IPAddressStringParametersBuilder).Allow_inet_aton(false).ToParams()
 		fullAddrString := ipaddr.NewIPAddressStringParams(full, params)
 		t.confirmIPAddrStrings(ipAddr, fullAddrString)
-		//t.confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses //TODO LATER reinstate
+		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses
 	}
 	t.confirmHostStrings(ipAddr, false, c, canonical, s, cidr, n, nw, caw, cw)
 	if ipAddr.IsIPv6() {
@@ -1439,7 +1439,8 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 											if !rdnsMatch {
 												t.addFailure(newFailure("failed expected: "+reverseDNSString+" actual: "+rDNS, w))
 											} else {
-												//	 uncMatch := uncHostString==unc // TODO LATER reinstate
+												// TODO LATER reinstate
+												//	 uncMatch := uncHostString==unc
 												//	if(!uncMatch) {
 												//		t.addFailure(newFailure("failed expected: " + uncHostString + " actual: " + unc, w));
 												//	}

@@ -25,7 +25,6 @@ const (
 	SegmentSqlWildcardStr            = string(SegmentSqlWildcard)
 	SegmentSqlSingleWildcard    byte = '_'
 	SegmentSqlSingleWildcardStr      = string(SegmentSqlSingleWildcard)
-	nilAddress                       = "<nil>"
 )
 
 var segmentWildcardStr = SegmentWildcardStr

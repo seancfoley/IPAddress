@@ -96,7 +96,7 @@ func (p *PortNum) Equal(other *PortNum) bool {
 
 func (p *PortNum) String() string {
 	if p == nil {
-		return "<nil>"
+		return nilString()
 	}
 	return strconv.Itoa(int(*p))
 }
