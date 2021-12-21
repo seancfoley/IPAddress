@@ -607,7 +607,7 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() Pr
 		} else {
 			// we can also set related cache fields
 			var isSingleBlock *bool
-			if grouping.isPrefixed() && PrefixEquals(res, grouping.GetPrefixLen()) {
+			if grouping.isPrefixed() && res.Equal(grouping.GetPrefixLen()) {
 				isSingleBlock = &trueVal
 			} else {
 				isSingleBlock = &falseVal

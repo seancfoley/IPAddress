@@ -146,12 +146,12 @@ func (seg *MACAddressSegment) Equal(other AddressSegmentType) bool {
 	return seg.init().equal(other)
 }
 
-// PrefixEquals returns whether the range of the given prefix bits contains the same bits of the given segment.
+// PrefixContains returns whether the range of the given prefix bits contains the same bits of the given segment.
 func (seg *MACAddressSegment) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
 	return seg.init().addressSegmentInternal.PrefixContains(other, prefixLength)
 }
 
-// PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
+// PrefixEqual returns whether the given prefix bits match the same bits of the given segment.
 func (seg *MACAddressSegment) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
 	return seg.init().addressSegmentInternal.PrefixEqual(other, prefixLength)
 }

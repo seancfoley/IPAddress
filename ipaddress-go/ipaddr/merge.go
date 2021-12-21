@@ -80,7 +80,7 @@ top:
 		//
 		prefixLen := item.GetPrefixLen()
 		otherPrefixLen := otherItem.GetPrefixLen()
-		if !PrefixEquals(prefixLen, otherPrefixLen) {
+		if !prefixLen.Equal(otherPrefixLen) {
 			j = i
 			i--
 			continue

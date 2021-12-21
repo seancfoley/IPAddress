@@ -279,7 +279,7 @@ func (div *addressDivisionBase) getDefaultTextualRadix() int {
 }
 
 func bigDivsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal *BigDivInt) bool {
-	return PrefixEquals(onePref, twoPref) &&
+	return onePref.Equal(twoPref) &&
 		oneVal.CmpAbs(twoVal) == 0 && oneUpperVal.CmpAbs(twoUpperVal) == 0
 }
 

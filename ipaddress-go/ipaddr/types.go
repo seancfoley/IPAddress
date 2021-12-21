@@ -37,16 +37,6 @@ func (p *BitCount) Matches(other BitCount) bool {
 	return p != nil && *p == other
 }
 
-// Exceeds is true if PrefixLen is a value that is larger than the supplied bit count
-func (p *BitCount) Exceeds(other BitCount) bool {
-	return p != nil && *p > other
-}
-
-// Within is true if PrefixLen is a value that is smaller than or equal to the supplied bit count
-func (p *BitCount) Within(other BitCount) bool {
-	return p != nil && *p <= other
-}
-
 // Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
 // This method is intended for the PrefixLen type.  BitCount values should be compared with ==, >, <, >= amd <= operators.
 func (p *BitCount) Compare(other *BitCount) int {
@@ -66,13 +56,6 @@ func (p *BitCount) String() string {
 		return "<nil>"
 	}
 	return strconv.Itoa(int(*p))
-}
-
-func PrefixEquals(one, two PrefixLen) bool { //TODO replace calls to this with the above
-	if one == nil {
-		return two == nil
-	}
-	return two != nil && *one == *two
 }
 
 type PrefixLen = *BitCount

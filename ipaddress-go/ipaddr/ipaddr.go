@@ -141,10 +141,6 @@ type ipAddressInternal struct {
 	addressInternal
 }
 
-//func (addr *ipAddressInternal) ToAddressBase() *Address {
-//	return (*Address)(addr)
-//}
-
 func (addr *ipAddressInternal) toIPAddress() *IPAddress {
 	return (*IPAddress)(unsafe.Pointer(addr))
 }
@@ -1451,13 +1447,6 @@ func (addr *IPAddress) GetTrailingBitCount(ones bool) BitCount {
 
 func (addr *IPAddress) GetNetwork() IPAddressNetwork {
 	return addr.getNetwork()
-}
-
-func ipAddressEquals(one, two *IPAddress) bool {
-	if one == nil {
-		return two == nil
-	}
-	return two != nil && one.Equal(two)
 }
 
 type IPAddressValueProvider interface {

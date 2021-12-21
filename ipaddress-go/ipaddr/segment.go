@@ -93,7 +93,7 @@ func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, pref
 		(other.GetUpperSegmentValue()>>uint(shift)) <= (seg.GetUpperSegmentValue()>>uint(shift))
 }
 
-// PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
+// PrefixEqual returns whether the given prefix bits match the same bits of the given segment.
 func (seg *addressSegmentInternal) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
 	prefixLength = checkBitCount(prefixLength, seg.GetBitCount())
 	shift := seg.GetBitCount() - prefixLength
@@ -639,7 +639,7 @@ func (seg *AddressSegment) String() string {
 }
 
 func segsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal SegInt) bool {
-	return PrefixEquals(onePref, twoPref) &&
+	return onePref.Equal(twoPref) &&
 		oneVal == twoVal && oneUpperVal == twoUpperVal
 }
 

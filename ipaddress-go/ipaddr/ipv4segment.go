@@ -156,12 +156,12 @@ func (seg *IPv4AddressSegment) Compare(item AddressItem) int {
 	return CountComparator.Compare(seg, item)
 }
 
-// PrefixEquals returns whether the range of the given prefix bits contains the same bits of the given segment.
+// PrefixContains returns whether the range of the given prefix bits contains the same bits of the given segment.
 func (seg *IPv4AddressSegment) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
 	return seg.init().ipAddressSegmentInternal.PrefixContains(other, prefixLength)
 }
 
-// PrefixEquals returns whether the given prefix bits match the same bits of the given segment.
+// PrefixEqual returns whether the given prefix bits match the same bits of the given segment.
 func (seg *IPv4AddressSegment) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
 	return seg.init().ipAddressSegmentInternal.PrefixEqual(other, prefixLength)
 }

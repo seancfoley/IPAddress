@@ -605,8 +605,8 @@ func (host *HostName) Equal(other *HostName) bool {
 			if thisHost != otherHost {
 				return false
 			}
-			return PrefixEquals(parsedHost.getEquivalentPrefixLen(), otherParsedHost.getEquivalentPrefixLen()) &&
-				ipAddressEquals(parsedHost.getMask(), otherParsedHost.getMask()) &&
+			return parsedHost.getEquivalentPrefixLen().Equal(otherParsedHost.getEquivalentPrefixLen()) &&
+				parsedHost.getMask().Equal(otherParsedHost.getMask()) &&
 				parsedHost.getPort().Equal(otherParsedHost.getPort()) &&
 				parsedHost.getService() == otherParsedHost.getService()
 		}

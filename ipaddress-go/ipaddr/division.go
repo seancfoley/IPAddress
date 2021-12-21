@@ -1003,8 +1003,7 @@ func testRange(lowerValue, upperValue, finalUpperValue, networkMask, hostMask Di
 }
 
 func divsSame(onePref, twoPref PrefixLen, oneVal, twoVal, oneUpperVal, twoUpperVal DivInt) bool {
-	//return onePref.Equal(twoPref) &&
-	return PrefixEquals(onePref, twoPref) &&
+	return onePref.Equal(twoPref) &&
 		oneVal == twoVal && oneUpperVal == twoUpperVal
 }
 

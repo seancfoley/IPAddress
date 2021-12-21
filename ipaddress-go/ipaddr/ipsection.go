@@ -714,7 +714,7 @@ func (section *ipAddressSectionInternal) intersect(
 	}
 
 	if other.Contains(section.toIPAddressSection()) {
-		if PrefixEquals(pref, section.GetNetworkPrefixLen()) {
+		if pref.Equal(section.GetNetworkPrefixLen()) {
 			res = section.toIPAddressSection()
 			return
 		}
@@ -722,7 +722,7 @@ func (section *ipAddressSectionInternal) intersect(
 		return
 	}
 	if section.contains(other) {
-		if PrefixEquals(pref, other.GetNetworkPrefixLen()) {
+		if pref.Equal(other.GetNetworkPrefixLen()) {
 			res = other.toIPAddressSection()
 			return
 		}
@@ -751,13 +751,13 @@ func (section *ipAddressSectionInternal) intersect(
 		otherSeg := other.GetSegment(i)
 		segPref := getSegmentPrefixLength(seg.getBitCount(), pref, i)
 		if seg.Contains(otherSeg) {
-			if PrefixEquals(segPref, otherSeg.GetSegmentPrefixLen()) {
+			if segPref.Equal(otherSeg.GetSegmentPrefixLen()) {
 				segs[i] = otherSeg.ToDiv()
 				continue
 			}
 		}
 		if otherSeg.Contains(seg) {
-			if PrefixEquals(segPref, seg.GetSegmentPrefixLen()) {
+			if segPref.Equal(seg.GetSegmentPrefixLen()) {
 				segs[i] = seg.ToDiv()
 				continue
 			}

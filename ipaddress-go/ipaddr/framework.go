@@ -12,6 +12,7 @@ type AddressItem interface {
 
 	CopyBytes(bytes []byte) []byte
 	CopyUpperBytes(bytes []byte) []byte
+
 	GetBytes() []byte // TODO maybe change to Bytes() and UpperBytes() to be consistent with https://pkg.go.dev/bytes#Buffer.Bytes and https://pkg.go.dev/reflect#Value.Bytes and https://pkg.go.dev/math/big#Int.Bytes
 	GetUpperBytes() []byte
 
