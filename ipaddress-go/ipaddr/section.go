@@ -1623,7 +1623,15 @@ func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSect
 	cache := newSect.cache
 	if cache != nil {
 		cache.isSinglePrefixBlock = &trueVal
-		cache.equivalentPrefix = newPrefix
+		//TODO use cached vals here:
+		/*
+			if newPrefix == nil {
+			cache.equivalentPrefix = nilPrefix()
+			} else {
+			cache.equivalentPrefix = cachePrefix(*newPrefix)
+			}
+		*/
+		cache.equivalentPrefix = &newPrefix
 		cache.minPrefix = newPrefix
 	}
 	return newSect

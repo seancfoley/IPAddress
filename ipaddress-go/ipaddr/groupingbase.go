@@ -417,7 +417,9 @@ type valueCache struct {
 
 	mixed *mixedCache
 
-	minPrefix, equivalentPrefix PrefixLen
+	minPrefix PrefixLen
+
+	equivalentPrefix *PrefixLen
 
 	isSinglePrefixBlock *bool
 }

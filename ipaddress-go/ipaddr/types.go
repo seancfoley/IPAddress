@@ -58,11 +58,17 @@ func (p *BitCount) String() string {
 	return strconv.Itoa(int(*p))
 }
 
+//type PrefixLen struct {
+// isSet bool
+// bitCount BitCountInternal
+//}
+
 type PrefixLen = *BitCount
 
 var cachedPrefixLens = initPrefLens()
-var minusOne BitCount = -1
-var noPrefix PrefixLen = &minusOne
+
+//var minusOne BitCount = -1
+//var noPrefix PrefixLen = &minusOne
 
 func initPrefLens() []PrefixLen {
 	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
@@ -80,6 +86,16 @@ func cacheBitCount(i BitCount) PrefixLen {
 	}
 	bc := i
 	return &bc
+}
+
+func cachePrefix(i BitCount) *PrefixLen { //TODO in the new world, we will have an array of prefix structs and this will return the address, while cacheBitCount will return a copy
+	res := cacheBitCount(i)
+	return &res
+}
+
+func cacheNilPrefix() *PrefixLen {
+	var p PrefixLen
+	return &p
 }
 
 //TODO Port has the same problems as PrefixLen and needs the same conversion

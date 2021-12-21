@@ -569,14 +569,14 @@ func (grouping *addressDivisionGroupingInternal) GetMinPrefixLenForBlock() BitCo
 }
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() PrefixLen {
-	calc := func() PrefixLen {
+	calc := func() *PrefixLen {
 		count := grouping.GetDivisionCount()
 		var totalPrefix BitCount
 		for i := 0; i < count; i++ {
 			div := grouping.getDivision(i)
 			divPrefix := div.GetPrefixLenForSingleBlock()
 			if divPrefix == nil {
-				return nil
+				return cacheNilPrefix()
 			}
 			divPrefLen := *divPrefix
 			totalPrefix += divPrefLen
@@ -585,29 +585,28 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() Pr
 				for i++; i < count; i++ {
 					laterDiv := grouping.getDivision(i)
 					if !laterDiv.IsFullRange() {
-						return nil
+						return cacheNilPrefix()
 					}
 				}
 			}
 		}
-		return cacheBitCount(totalPrefix)
+		return cachePrefix(totalPrefix)
 	}
 	cache := grouping.cache
 	if cache == nil {
-		return calc()
+		return *calc()
 	}
 	res := cache.equivalentPrefix
 	if res == nil {
 		res = calc()
-		if res == nil {
-			res = noPrefix
+		if *res == nil {
 			// we can also set related cache fields
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.isSinglePrefixBlock))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(&falseVal))
 		} else {
 			// we can also set related cache fields
 			var isSingleBlock *bool
-			if grouping.isPrefixed() && res.Equal(grouping.GetPrefixLen()) {
+			if grouping.isPrefixed() && (*res).Equal(grouping.GetPrefixLen()) {
 				isSingleBlock = &trueVal
 			} else {
 				isSingleBlock = &falseVal
@@ -616,15 +615,16 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() Pr
 			atomic.StorePointer(dataLoc, unsafe.Pointer(isSingleBlock))
 
 			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefix))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
+			atomic.StorePointer(dataLoc, unsafe.Pointer(*res))
 		}
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.equivalentPrefix))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
-	if res == noPrefix {
-		return nil
-	}
-	return res
+	return *res
+	//if res == noPrefix {
+	//	return nil
+	//}
+	//return res
 }
 
 func (grouping *addressDivisionGroupingInternal) GetValue() *big.Int {
