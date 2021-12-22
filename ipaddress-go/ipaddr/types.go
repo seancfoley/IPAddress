@@ -95,7 +95,7 @@ const maxBitCountInternal, minBitCountInternal = math.MaxUint8, 0
 
 type BitCount = int
 
-func ToString(i BitCount) string {
+func ToBitCountString(i BitCount) string {
 	return strconv.Itoa(i)
 }
 

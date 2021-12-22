@@ -127,15 +127,17 @@ func (t ipAddressRangeTester) run() {
 		"ffff::*:*:*:*/16",
 		"ffff::/16")
 
-	t.testBitwiseOr("1.2.0.0/16", cacheTestBits(8), "0.0.3.248", "1.2.3.248-255")
-	t.testBitwiseOr("1.2.0.0/16", cacheTestBits(7), "0.0.2.0", "1.2.2-3.*")
-	t.testBitwiseOr("1.2.*.*", cacheTestBits(7), "0.0.3.0", "")
-	t.testBitwiseOr("1.2.0-3.*", cacheTestBits(0), "0.0.3.0", "1.2.3.*")
-	t.testBitwiseOr("1.2.0.0/16", cacheTestBits(7), "0.0.3.0", "1.2.3.*")
-	t.testBitwiseOr("0.0.0.0/0", cacheTestBits(0), "128.192.224.240", "128-255.192-255.224-255.240-255")
-	t.testBitwiseOr("*.*", cacheTestBits(0), "128.192.224.240", "128-255.192-255.224-255.240-255")
-	t.testBitwiseOr("0.0.0.0/0", cacheTestBits(0), "128.192.224.64", "")
-	t.testBitwiseOr("*.*", cacheTestBits(0), "128.192.224.64", "")
+	var bc0, bc7, bc8, bc15, bc16, bc32 ipaddr.BitCount = 0, 7, 8, 15, 16, 32
+
+	t.testBitwiseOr("1.2.0.0/16", &bc8, "0.0.3.248", "1.2.3.248-255")
+	t.testBitwiseOr("1.2.0.0/16", &bc7, "0.0.2.0", "1.2.2-3.*")
+	t.testBitwiseOr("1.2.*.*", &bc7, "0.0.3.0", "")
+	t.testBitwiseOr("1.2.0-3.*", &bc0, "0.0.3.0", "1.2.3.*")
+	t.testBitwiseOr("1.2.0.0/16", &bc7, "0.0.3.0", "1.2.3.*")
+	t.testBitwiseOr("0.0.0.0/0", &bc0, "128.192.224.240", "128-255.192-255.224-255.240-255")
+	t.testBitwiseOr("*.*", &bc0, "128.192.224.240", "128-255.192-255.224-255.240-255")
+	t.testBitwiseOr("0.0.0.0/0", &bc0, "128.192.224.64", "")
+	t.testBitwiseOr("*.*", &bc0, "128.192.224.64", "")
 	t.testPrefixBitwiseOr("1.3.0.0/15", 24, "0.0.255.1", "1.3.255.0", "1.3.255.1/15")
 	t.testPrefixBitwiseOr("1.3.0.1/15", 24, "0.0.255.1", "1.3.255.1/24", "1.3.255.1/15")
 	t.testPrefixBitwiseOr("1.3.0.1/15", 24, "0.0.255.0", "1.3.255.1/24", "1.3.255.1/15")
@@ -147,17 +149,17 @@ func (t ipAddressRangeTester) run() {
 
 	t.testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.2.8", "0.0.0-192.0/18", "")
 
-	t.testBitwiseOr("1:2::/32", cacheTestBits(16), "0:0:3:fff8::", "1:2:3:fff8-ffff:*")
-	t.testBitwiseOr("1:2::/32", cacheTestBits(15), "0:0:2::", "1:2:2-3:*")
-	t.testBitwiseOr("1:2:*", cacheTestBits(0), "0:0:8000::", "1:2:8000-ffff:*")
-	t.testBitwiseOr("1:2:*", cacheTestBits(0), "0:0:c000::", "1:2:c000-ffff:*")
-	t.testBitwiseOr("1:2::/32", cacheTestBits(15), "0:0:3::", "1:2:3:*")
-	t.testBitwiseOr("::/0", cacheTestBits(0), "8000:c000:e000:fff0::", "8000-ffff:c000-ffff:e000-ffff:fff0-ffff:*")
-	t.testBitwiseOr("*:*", cacheTestBits(0), "8000:c000:e000:fff0::", "8000-ffff:c000-ffff:e000-ffff:fff0-ffff:*")
-	t.testBitwiseOr("::/0", cacheTestBits(0), "8000:c000:e000:4000::", "")
-	t.testBitwiseOr("1:1::/16", cacheTestBits(32), "0:2:3::ffff", "1:2:3::ffff")       //note the prefix length is dropped to become "1.2.3.*", but equality still holds
-	t.testBitwiseOr("1:1:0:*:0/16", nil, "0:2:3:*:ffff", "1:3:3:*:*:*:*:ffff")         //note the prefix length is dropped to become "1.2.3.*", but equality still holds
-	t.testBitwiseOr("1:0:0:1::/16", cacheTestBits(32), "0:2:3::ffff", "1:2:3:1::ffff") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1:2::/32", &bc16, "0:0:3:fff8::", "1:2:3:fff8-ffff:*")
+	t.testBitwiseOr("1:2::/32", &bc15, "0:0:2::", "1:2:2-3:*")
+	t.testBitwiseOr("1:2:*", &bc0, "0:0:8000::", "1:2:8000-ffff:*")
+	t.testBitwiseOr("1:2:*", &bc0, "0:0:c000::", "1:2:c000-ffff:*")
+	t.testBitwiseOr("1:2::/32", &bc15, "0:0:3::", "1:2:3:*")
+	t.testBitwiseOr("::/0", &bc0, "8000:c000:e000:fff0::", "8000-ffff:c000-ffff:e000-ffff:fff0-ffff:*")
+	t.testBitwiseOr("*:*", &bc0, "8000:c000:e000:fff0::", "8000-ffff:c000-ffff:e000-ffff:fff0-ffff:*")
+	t.testBitwiseOr("::/0", &bc0, "8000:c000:e000:4000::", "")
+	t.testBitwiseOr("1:1::/16", &bc32, "0:2:3::ffff", "1:2:3::ffff")           //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1:1:0:*:0/16", nil, "0:2:3:*:ffff", "1:3:3:*:*:*:*:ffff") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1:0:0:1::/16", &bc32, "0:2:3::ffff", "1:2:3:1::ffff")     //note the prefix length is dropped to become "1.2.3.*", but equality still holds
 	t.testPrefixBitwiseOr("::/32", 34, "0:0:2:8::", "0:0:0-c000::/34", "")
 
 	t.testDelimitedCount("1,2-3,4:3:4,5:6:7:8:ffff:ffff", 8)

@@ -185,17 +185,19 @@ func (t ipAddressTester) run() {
 		"ffff:ffff:1:ffff:ffff:ffff:ffff:fffe/127",
 		"ffff:ffff:1:ffff:ffff:ffff:ffff:fffe/127")
 
+	var bcneg1, bc0, bc1, bc8, bc16, bc32 ipaddr.BitCount = -1, 0, 1, 8, 16, 32
+
 	t.testBitwiseOr("1.2.0.0", nil, "0.0.3.4", "1.2.3.4")
 	t.testBitwiseOr("1.2.0.0", nil, "0.0.0.0", "1.2.0.0")
 	t.testBitwiseOr("1.2.0.0", nil, "255.255.255.255", "255.255.255.255")
-	t.testBitwiseOr("1.0.0.0/8", cacheTestBits(16), "0.2.3.0", "1.2.3.0/24") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
-	t.testBitwiseOr("1.2.0.0/16", cacheTestBits(8), "0.0.3.0", "1.2.3.0/24") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1.0.0.0/8", &bc16, "0.2.3.0", "1.2.3.0/24") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1.2.0.0/16", &bc8, "0.0.3.0", "1.2.3.0/24") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
 
 	t.testBitwiseOr("0.0.0.0", nil, "1.2.3.4", "1.2.3.4")
-	t.testBitwiseOr("0.0.0.0", cacheTestBits(1), "1.2.3.4", "1.2.3.4")
-	t.testBitwiseOr("0.0.0.0", cacheTestBits(-1), "1.2.3.4", "1.2.3.4")
-	t.testBitwiseOr("0.0.0.0", cacheTestBits(0), "1.2.3.4", "1.2.3.4")
-	t.testBitwiseOr("0.0.0.0/0", cacheTestBits(-1), "1.2.3.4", "")
+	t.testBitwiseOr("0.0.0.0", &bc1, "1.2.3.4", "1.2.3.4")
+	t.testBitwiseOr("0.0.0.0", &bcneg1, "1.2.3.4", "1.2.3.4")
+	t.testBitwiseOr("0.0.0.0", &bc0, "1.2.3.4", "1.2.3.4")
+	t.testBitwiseOr("0.0.0.0/0", &bcneg1, "1.2.3.4", "")
 	t.testBitwiseOr("0.0.0.0/16", nil, "0.0.255.255", "0.0.255.255")
 
 	t.testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.98.8", "", "")
@@ -225,14 +227,14 @@ func (t ipAddressTester) run() {
 	t.testBitwiseOr("1:2::", nil, "::", "1:2::")
 	t.testBitwiseOr("1:2::", nil, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
 	t.testBitwiseOr("1:2::", nil, "fffe:fffd:ffff:ffff:ffff:ffff:ff0f:ffff", "ffff:ffff:ffff:ffff:ffff:ffff:ff0f:ffff")
-	t.testBitwiseOr("1::/16", cacheTestBits(32), "0:2:3::", "1:2:3::/48")   //note the prefix length is dropped to become "1.2.3.*", but equality still holds
-	t.testBitwiseOr("1:2::/32", cacheTestBits(16), "0:0:3::", "1:2:3::/48") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1::/16", &bc32, "0:2:3::", "1:2:3::/48")   //note the prefix length is dropped to become "1.2.3.*", but equality still holds
+	t.testBitwiseOr("1:2::/32", &bc16, "0:0:3::", "1:2:3::/48") //note the prefix length is dropped to become "1.2.3.*", but equality still holds
 
 	t.testBitwiseOr("::", nil, "::1:2:3:4", "::1:2:3:4")
-	t.testBitwiseOr("::", cacheTestBits(1), "::1:2:3:4", "::1:2:3:4")
-	t.testBitwiseOr("::", cacheTestBits(-1), "::1:2:3:4", "::1:2:3:4")
-	t.testBitwiseOr("::", cacheTestBits(0), "::1:2:3:4", "::1:2:3:4")
-	t.testBitwiseOr("::/0", cacheTestBits(-1), "::1:2:3:4", "")
+	t.testBitwiseOr("::", &bc1, "::1:2:3:4", "::1:2:3:4")
+	t.testBitwiseOr("::", &bcneg1, "::1:2:3:4", "::1:2:3:4")
+	t.testBitwiseOr("::", &bc0, "::1:2:3:4", "::1:2:3:4")
+	t.testBitwiseOr("::/0", &bcneg1, "::1:2:3:4", "")
 	t.testBitwiseOr("::/32", nil, "::ffff:ffff:ffff:ffff:ffff:ffff", "::ffff:ffff:ffff:ffff:ffff:ffff")
 
 	t.testDelimitedCount("1,2.3.4,5.6", 4) //this will iterate through 1.3.4.6 1.3.5.6 2.3.4.6 2.3.5.6
@@ -2521,12 +2523,12 @@ func (t ipAddressTester) testPrefixes(
 	t.incrementTestCount()
 }
 
-func (t ipAddressTester) testBitwiseOr(orig string, prefixAdjustment ipaddr.PrefixLen, or, expectedResult string) {
+func (t ipAddressTester) testBitwiseOr(orig string, prefixAdjustment *ipaddr.BitCount, or, expectedResult string) {
 	original := t.createAddress(orig).GetAddress()
 	orAddr := t.createAddress(or).GetAddress()
 	if prefixAdjustment != nil {
 		var err error
-		original, err = original.AdjustPrefixLenZeroed(prefixAdjustment.Len())
+		original, err = original.AdjustPrefixLenZeroed(*prefixAdjustment)
 		if err != nil {
 			t.addFailure(newIPAddrFailure("adjusted prefix error: "+err.Error(), original))
 			return
