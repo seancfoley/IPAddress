@@ -85,26 +85,19 @@ This solves all our requirements, and is the only solution to do so, specificall
 // The zero value, which is nil, indicates that there is no prefix length.
 type PrefixLen = *PrefixBitCount
 
-type BitCount = int
+type bitCountInternal = uint8
 
-func ToPrefixLen(i BitCount) PrefixLen {
-	if i < 0 {
-		i = 0
-	}
-	if i <= IPv6BitCount {
-		return &PrefixBitCount{bitCountInternal(i)} //TODO use cache
-	}
-	if i > math.MaxInt16 {
-		i = math.MaxInt16
-	}
-	return &PrefixBitCount{bitCountInternal(i)}
-}
+const maxBitCountInternal, minBitCountInternal = math.MaxUint8, 0
+
+//type bitCountInternal = int16 n
+//
+//const maxBitCountInternal = math.MaxInt16
+
+type BitCount = int
 
 func ToString(i BitCount) string {
 	return strconv.Itoa(i)
 }
-
-type bitCountInternal = int16
 
 type PrefixBitCount struct {
 	bCount bitCountInternal
@@ -214,17 +207,56 @@ func (p *PrefixBitCount) String() string {
 
 //type PrefixLen = *BitCount
 
-var cachedPrefixLens = initPrefLens()
+var cachedPrefixBitCounts, cachedPrefixLens = initPrefLens()
+
+//var cachedPrefixLens = initPrefLens()
 
 //var minusOne BitCount = -1
 //var noPrefix PrefixLen = &minusOne
 
-func initPrefLens() []PrefixLen {
+func initPrefLens() ([]PrefixBitCount, []PrefixLen) {
+	cachedPrefBitcounts := make([]PrefixBitCount, IPv6BitCount+1)
 	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
-	for i := bitCountInternal(0); i <= bitCountInternal(IPv6BitCount); i++ {
-		cachedPrefLens[i] = &PrefixBitCount{i}
+	for i := bitCountInternal(0); i <= IPv6BitCount; i++ {
+		cachedPrefBitcounts[i] = PrefixBitCount{i}
+		cachedPrefLens[i] = &cachedPrefBitcounts[i]
 	}
-	return cachedPrefLens
+	return cachedPrefBitcounts, cachedPrefLens
+}
+
+// ToPrefixLen creates a prefix length.  A prefix length can only range from 0 to 255,
+// although in practice it really only makes sense to have a prefix length that is no larger than the item (such as an address) with the prefix.
+// If bit count is negative, the resulting prefix length will be zero.
+// If bit count is larger than 255, the resulting prefix length will be 255.
+func ToPrefixLen(i BitCount) PrefixLen {
+	if i < minBitCountInternal {
+		i = minBitCountInternal
+	}
+	if i <= IPv6BitCount {
+		return &cachedPrefixBitCounts[i]
+	}
+	if i > maxBitCountInternal {
+		i = maxBitCountInternal
+	}
+	return &PrefixBitCount{bitCountInternal(i)}
+}
+
+func cacheBitCount(i BitCount) PrefixLen {
+	return ToPrefixLen(i)
+}
+
+func cachePrefix(i BitCount) *PrefixLen {
+	if i < minBitCountInternal {
+		i = minBitCountInternal
+	}
+	if i <= IPv6BitCount {
+		return &cachedPrefixLens[i]
+	}
+	if i > maxBitCountInternal {
+		i = maxBitCountInternal
+	}
+	res := &PrefixBitCount{bitCountInternal(i)}
+	return &res
 }
 
 //func initPrefLens() []PrefixLen {
@@ -243,19 +275,6 @@ func initPrefLens() []PrefixLen {
 //func NilPrefix() PrefixLen {
 //	return PrefixLen{}
 //}
-
-func cacheBitCount(i BitCount) PrefixLen {
-	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
-		result := cachedPrefixLens[i]
-		return result
-	}
-	return &PrefixBitCount{bitCountInternal(i)}
-}
-
-func cachePrefix(i BitCount) *PrefixLen { //TODO use cache: in the new world, we will have an array of prefix structs and this will return the address, while cacheBitCount will return a copy
-	res := cacheBitCount(i)
-	return &res
-}
 
 //func cacheBitCount(i BitCount) PrefixLen {
 //	if i >= 0 && i < BitCount(len(cachedPrefixLens)) {
@@ -278,8 +297,9 @@ func cachePrefix(i BitCount) *PrefixLen { //TODO use cache: in the new world, we
 //	return &res
 //}
 
+var p PrefixLen
+
 func cacheNilPrefix() *PrefixLen {
-	var p PrefixLen
 	return &p
 }
 

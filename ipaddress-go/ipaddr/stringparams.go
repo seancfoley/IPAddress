@@ -920,7 +920,13 @@ func (params *ipAddressStringParams) getSegmentsStringLength(part AddressDivisio
 			div := part.GetGenericDivision(i)
 			count += params.appendSegment(i, div, prefLen, nil, part)
 			if prefLen != nil {
-				prefLen = cacheBitCount(prefLen.bitCount() - div.GetBitCount())
+				bc := prefLen.bitCount()
+				dc := div.GetBitCount()
+				var bits BitCount
+				if bc > dc {
+					bits = bc - dc
+				}
+				prefLen = cacheBitCount(bits)
 			}
 		}
 		if params.hasSep {
@@ -962,7 +968,13 @@ func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, pa
 			div := part.GetGenericDivision(segIndex)
 			params.appendSegment(segIndex, div, prefLen, builder, part)
 			if prefLen != nil {
-				prefLen = cacheBitCount(prefLen.bitCount() - div.GetBitCount())
+				bc := prefLen.bitCount()
+				dc := div.GetBitCount()
+				var bits BitCount
+				if bc > dc {
+					bits = bc - dc
+				}
+				prefLen = cacheBitCount(bits)
 			}
 			i++
 			if i == divCount {
