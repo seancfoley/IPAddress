@@ -657,10 +657,10 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
 		if version == IPv4 {
 			network := IPv4Network
-			return network.GetNetworkMask(*prefLen)
+			return network.GetNetworkMask(prefLen.bitCount())
 		} else if version == IPv6 {
 			network := IPv6Network
-			return network.GetNetworkMask(*prefLen)
+			return network.GetNetworkMask(prefLen.bitCount())
 		}
 		return nil
 	}

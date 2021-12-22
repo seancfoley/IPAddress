@@ -183,7 +183,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 			segPrefix := segment.getDivisionPrefixLength()
 			if previousSegmentPrefix == nil {
 				if segPrefix != nil {
-					newPref := getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
+					newPref := getNetworkPrefixLen(bitsPerSegment, segPrefix.bitCount(), i)
 					section.prefixLength = newPref
 					if isMultiple { // nothing left to do
 						break
@@ -594,7 +594,7 @@ func createDivisionsFromSegs(
 	//var newPref PrefixLen
 	prefixedSegment := -1
 	if prefLen != nil {
-		p := *prefLen
+		p := prefLen.bitCount()
 		if p < 0 {
 			p = 0
 			prefLen = cacheBitCount(p)
@@ -616,7 +616,7 @@ func createDivisionsFromSegs(
 				divs[i] = zeroSegZeroPrefix.ToDiv()
 			} else if i == prefixedSegment {
 				newPref = prefLen
-				segPref := getPrefixedSegmentPrefixLength(bitsPerSegment, *prefLen, prefixedSegment)
+				segPref := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen.bitCount(), prefixedSegment)
 				if i+1 < segCount && isPrefixSubnet(
 					func(segmentIndex int) SegInt {
 						seg := segProvider(segmentIndex + i + 1)
@@ -636,7 +636,7 @@ func createDivisionsFromSegs(
 					//if isPrefixSubnetSegs(orig[i+1:], 0) {
 					divs[i] = zeroSeg.toPrefixedNetworkDivision(segPref)
 					i++
-					isMultiple = isMultiple || i < len(divs) || *segPref < bitsPerSegment
+					isMultiple = isMultiple || i < len(divs) || segPref.bitCount() < bitsPerSegment
 					for ; i < len(divs); i++ {
 						divs[i] = zeroSegPrefixBlock.ToDiv()
 					}
@@ -651,7 +651,7 @@ func createDivisionsFromSegs(
 			segPrefix := segment.getDivisionPrefixLength()
 			segIsPrefixed := segPrefix != nil
 			if previousSegPrefixed {
-				if !segIsPrefixed || *segPrefix != 0 {
+				if !segIsPrefixed || segPrefix.bitCount() != 0 {
 					divs[i] = createAddressDivision(
 						segment.deriveNewMultiSeg(
 							segment.GetSegmentValue(),
@@ -662,10 +662,10 @@ func createDivisionsFromSegs(
 				}
 			} else {
 				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
-					assignedSegPref := getPrefixedSegmentPrefixLength(bitsPerSegment, *prefLen, prefixedSegment)
+					assignedSegPref := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen.bitCount(), prefixedSegment)
 					if segIsPrefixed {
-						if assignedSegPref == nil || *segPrefix < *assignedSegPref {
-							if *segPrefix == 0 && i > 0 {
+						if assignedSegPref == nil || segPrefix.bitCount() < assignedSegPref.bitCount() {
+							if segPrefix.bitCount() == 0 && i > 0 {
 								// normalize boundaries by looking back
 								if !lastSegment.IsPrefixed() {
 									divs[i-1] = createAddressDivision(
@@ -676,7 +676,7 @@ func createDivisionsFromSegs(
 								}
 							}
 							//assignedSegPref = segPrefix
-							newPref = getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
+							newPref = getNetworkPrefixLen(bitsPerSegment, segPrefix.bitCount(), i)
 						} else {
 							newPref = prefLen
 						}
@@ -698,11 +698,11 @@ func createDivisionsFromSegs(
 							}
 							return seg.GetUpperSegmentValue()
 						},
-						segCount, bytesPerSegment, bitsPerSegment, maxValuePerSegment, *newPref, zerosOnly) {
+						segCount, bytesPerSegment, bitsPerSegment, maxValuePerSegment, newPref.bitCount(), zerosOnly) {
 						//	if isPrefixSubnetSegs(orig, *newPref) {
 						divs[i] = segment.toPrefixedNetworkDivision(assignedSegPref)
 						i++
-						isMultiple = isMultiple || i < len(divs) || *newPref < bitsPerSegment
+						isMultiple = isMultiple || i < len(divs) || newPref.bitCount() < bitsPerSegment
 						for ; i < len(divs); i++ {
 							divs[i] = zeroSegPrefixBlock.ToDiv()
 						}
@@ -710,7 +710,7 @@ func createDivisionsFromSegs(
 					}
 					previousSegPrefixed = true
 				} else if segIsPrefixed {
-					if *segPrefix == 0 && i > 0 {
+					if segPrefix.bitCount() == 0 && i > 0 {
 						// normalize boundaries by looking back
 						if !lastSegment.IsPrefixed() {
 							divs[i-1] = createAddressDivision(
@@ -720,7 +720,7 @@ func createDivisionsFromSegs(
 									cacheBitCount(bitsPerSegment)))
 						}
 					}
-					newPref = getNetworkPrefixLen(bitsPerSegment, *segPrefix, i)
+					newPref = getNetworkPrefixLen(bitsPerSegment, segPrefix.bitCount(), i)
 					previousSegPrefixed = true
 				}
 				divs[i] = segment.ToDiv()
@@ -956,7 +956,7 @@ func (section *addressSectionInternal) getSubSection(index, endIndex int) *Addre
 	segs := section.getSubDivisions(index, endIndex)
 	newPrefLen := section.GetPrefixLen()
 	if newPrefLen != nil {
-		newPrefLen = getAdjustedPrefixLength(section.GetBitsPerSegment(), *newPrefLen, index, endIndex)
+		newPrefLen = getAdjustedPrefixLength(section.GetBitsPerSegment(), newPrefLen.bitCount(), index, endIndex)
 	}
 	addrType := section.getAddrType()
 	if !section.isMultiple() {
@@ -1182,14 +1182,14 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 	prefixLength := section.GetPrefixLen()
 	if replacementCount == 0 && replacedCount == 0 {
 		if prefixLength != nil {
-			prefLen := *prefixLength
+			prefLen := prefixLength.bitCount()
 			if prefLen <= BitCount(startIndex<<segmentToBitsShift) {
 				return section.toAddressSection()
 			} else {
 				replacementPrefisLength := replacement.GetPrefixLen()
 				if replacementPrefisLength == nil {
 					return section.toAddressSection()
-				} else if *replacementPrefisLength > BitCount(replacementStartIndex<<segmentToBitsShift) {
+				} else if replacementPrefisLength.bitCount() > BitCount(replacementStartIndex<<segmentToBitsShift) {
 					return section.toAddressSection()
 				}
 			}
@@ -1197,16 +1197,16 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 			replacementPrefisLength := replacement.GetPrefixLen()
 			if replacementPrefisLength == nil {
 				return section.toAddressSection()
-			} else if *replacementPrefisLength > BitCount(replacementStartIndex<<segmentToBitsShift) {
+			} else if replacementPrefisLength.bitCount() > BitCount(replacementStartIndex<<segmentToBitsShift) {
 				return section.toAddressSection()
 			}
 		}
 	} else if segmentCount == replacedCount {
-		if prefixLength == nil || *prefixLength > 0 {
+		if prefixLength == nil || prefixLength.bitCount() > 0 {
 			return replacement
 		} else {
 			replacementPrefisLength := replacement.GetPrefixLen()
-			if replacementPrefisLength != nil && *replacementPrefisLength == 0 { // prefix length is 0
+			if replacementPrefisLength != nil && replacementPrefisLength.bitCount() == 0 { // prefix length is 0
 				return replacement
 			}
 		}
@@ -1214,23 +1214,23 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 
 	startBits := BitCount(startIndex << segmentToBitsShift)
 	var newPrefixLength PrefixLen
-	if prefixLength != nil && *prefixLength <= startBits {
+	if prefixLength != nil && prefixLength.bitCount() <= startBits {
 		newPrefixLength = prefixLength
 	} else {
 		replacementPrefLen := replacement.GetPrefixLen()
-		if replacementPrefLen != nil && *replacementPrefLen <= BitCount(replacementEndIndex<<segmentToBitsShift) {
+		if replacementPrefLen != nil && replacementPrefLen.bitCount() <= BitCount(replacementEndIndex<<segmentToBitsShift) {
 			var replacementPrefixLen BitCount
 			replacementStartBits := BitCount(replacementStartIndex << segmentToBitsShift)
-			if *replacementPrefLen > replacementStartBits {
-				replacementPrefixLen = *replacementPrefLen - replacementStartBits
+			if replacementPrefLen.bitCount() > replacementStartBits {
+				replacementPrefixLen = replacementPrefLen.bitCount() - replacementStartBits
 			}
 			newPrefixLength = cacheBitCount(startBits + replacementPrefixLen)
 		} else if prefixLength != nil {
 			replacementBits := BitCount(replacementCount << segmentToBitsShift)
 			var endPrefixBits BitCount
 			endIndexBits := BitCount(endIndex << segmentToBitsShift)
-			if *prefixLength > endIndexBits {
-				endPrefixBits = *prefixLength - endIndexBits
+			if prefixLength.bitCount() > endIndexBits {
+				endPrefixBits = prefixLength.bitCount() - endIndexBits
 			}
 			newPrefixLength = cacheBitCount(startBits + replacementBits + endPrefixBits)
 		} else {
@@ -1363,7 +1363,7 @@ func (section *addressSectionInternal) toPrefixBlock() *AddressSection {
 	if prefixLength == nil {
 		return section.toAddressSection()
 	}
-	return section.toPrefixBlockLen(*prefixLength)
+	return section.toPrefixBlockLen(prefixLength.bitCount())
 }
 
 func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *AddressSection {
@@ -1383,13 +1383,13 @@ func (section *addressSectionInternal) toPrefixBlockLen(prefLen BitCount) *Addre
 	segmentByteCount := section.GetBytesPerSegment()
 	segmentBitCount := section.GetBitsPerSegment()
 	existingPrefixLength := section.GetPrefixLen()
-	prefixMatches := existingPrefixLength != nil && *existingPrefixLength == prefLen
+	prefixMatches := existingPrefixLength != nil && existingPrefixLength.bitCount() == prefLen
 	if prefixMatches {
 		prefixedSegmentIndex := getHostSegmentIndex(prefLen, segmentByteCount, segmentBitCount)
 		if prefixedSegmentIndex >= segCount {
 			return section.toAddressSection()
 		}
-		segPrefLength := *getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, prefixedSegmentIndex)
+		segPrefLength := getPrefixedSegmentPrefixLength(segmentBitCount, prefLen, prefixedSegmentIndex).bitCount()
 		seg := section.GetSegment(prefixedSegmentIndex)
 		if seg.containsPrefixBlock(segPrefLength) {
 			i := prefixedSegmentIndex + 1
@@ -1486,7 +1486,7 @@ func (section *addressSectionInternal) getAdjustedPrefix(adjustment BitCount, fl
 		}
 		//prefix = cacheBitCount(section.GetMinPrefixLenForBlock())
 	} else {
-		result = *prefix + adjustment
+		result = prefix.bitCount() + adjustment
 		if ceiling && result > bitCount {
 			result = bitCount
 		} else if floor && result < 0 {
@@ -1533,7 +1533,7 @@ func (section *addressSectionInternal) setPrefixLength(
 	withZeros bool,
 ) (res *AddressSection, err IncompatibleAddressError) {
 	existingPrefixLength := section.GetPrefixLen()
-	if existingPrefixLength != nil && networkPrefixLength == *existingPrefixLength {
+	if existingPrefixLength != nil && networkPrefixLength == existingPrefixLength.bitCount() {
 		res = section.toAddressSection()
 		return
 	}
@@ -1552,7 +1552,7 @@ func (section *addressSectionInternal) setPrefixLength(
 		prefIndex := getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment)
 		if existingPrefixLength != nil {
 			verifyMask = true
-			existingPrefLen := *existingPrefixLength
+			existingPrefLen := existingPrefixLength.bitCount()
 			existingPrefIndex := getNetworkSegmentIndex(existingPrefLen, bytesPerSegment, bitsPerSegment) // can be -1 if existingPrefLen is 0
 			if prefIndex > existingPrefIndex {
 				maxPrefIndex = prefIndex
@@ -1573,11 +1573,11 @@ func (section *addressSectionInternal) setPrefixLength(
 				segmentMaskProducer = func(i int) SegInt {
 					if i >= minPrefIndex {
 						if i <= maxPrefIndex {
-							minSegPrefLen := *getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i)
+							minSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, minPrefLen, i).bitCount()
 							minMask := maxVal << uint(bitsPerSegment-minSegPrefLen)
 							maxSegPrefLen := getPrefixedSegmentPrefixLength(bitsPerSegment, maxPrefLen, i)
 							if maxSegPrefLen != nil {
-								maxMask := maxVal << uint(bitsPerSegment-*maxSegPrefLen)
+								maxMask := maxVal << uint(bitsPerSegment-maxSegPrefLen.bitCount())
 								return minMask | ^maxMask
 							}
 							return minMask
@@ -1619,19 +1619,13 @@ func (section *addressSectionInternal) assignPrefixForSingleBlock() *AddressSect
 	if newPrefix == nil {
 		return nil
 	}
-	newSect := section.setPrefixLen(*newPrefix)
+	newSect := section.setPrefixLen(newPrefix.bitCount())
 	cache := newSect.cache
 	if cache != nil {
+		// no atomic writes required since we created this new section in here
 		cache.isSinglePrefixBlock = &trueVal
-		//TODO use cached vals here:
-		/*
-			if newPrefix == nil {
-			cache.equivalentPrefix = nilPrefix()
-			} else {
-			cache.equivalentPrefix = cachePrefix(*newPrefix)
-			}
-		*/
-		cache.equivalentPrefix = &newPrefix
+		cache.equivalentPrefix = cachePrefix(newPrefix.bitCount())
+		//cache.equivalentPrefix = &newPrefix
 		cache.minPrefix = newPrefix
 	}
 	return newSect
@@ -1672,7 +1666,7 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, con
 			return
 		}
 	} else {
-		prefLen := *prefixLength
+		prefLen := prefixLength.bitCount()
 		prefixedSection = getNetworkSegmentIndex(prefLen, section.GetBytesPerSegment(), section.GetBitsPerSegment())
 		if prefixedSection >= 0 {
 			if prefixedSection >= other.GetSegmentCount() {
@@ -1682,11 +1676,11 @@ func (section *addressSectionInternal) prefixContains(other *AddressSection, con
 			two := other.GetSegment(prefixedSection)
 			segPrefixLength := getPrefixedSegmentPrefixLength(one.getBitCount(), prefLen, prefixedSection)
 			if contains {
-				if !one.PrefixContains(two, *segPrefixLength) {
+				if !one.PrefixContains(two, segPrefixLength.bitCount()) {
 					return
 				}
 			} else {
-				if !one.PrefixEqual(two, *segPrefixLength) {
+				if !one.PrefixEqual(two, segPrefixLength.bitCount()) {
 					return
 				}
 			}
@@ -1738,7 +1732,7 @@ func (section *addressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) b
 	if i < divCount {
 		div := section.GetSegment(i)
 		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
-		if !div.ContainsPrefixBlock(*segmentPrefixLength) {
+		if !div.ContainsPrefixBlock(segmentPrefixLength.bitCount()) {
 			return false
 		}
 		for i++; i < divCount; i++ {
@@ -2324,7 +2318,7 @@ func (section *addressSectionInternal) prefixIterator(isBlockIterator bool) Sect
 	if prefLen == nil {
 		return section.sectionIterator(nil)
 	}
-	prefLength := *prefLen
+	prefLength := prefLen.bitCount()
 	var useOriginal bool
 	if isBlockIterator {
 		useOriginal = section.IsSinglePrefixBlock()

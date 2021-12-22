@@ -188,7 +188,7 @@ func from(opts IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringPara
 			res.hostCompressed = compressOptions.GetCompressionChoiceOptions().compressHost() &&
 				addr.IsPrefixed() &&
 				(res.nextUncompressedIndex >
-					getHostSegmentIndex(*addr.GetNetworkPrefixLen(), IPv6BytesPerSegment, IPv6BitsPerSegment))
+					getHostSegmentIndex(addr.GetNetworkPrefixLen().bitCount(), IPv6BytesPerSegment, IPv6BitsPerSegment))
 		}
 	}
 	return res
@@ -906,7 +906,7 @@ func (params *ipAddressStringParams) getTrailingSeparatorCount(addr AddressDivis
 
 func getPrefixIndicatorStringLength(addr AddressDivisionSeries) int {
 	if addr.IsPrefixed() {
-		return toUnsignedStringLengthFast(uint16(*addr.GetPrefixLen()), 10) + 1
+		return toUnsignedStringLengthFast(uint16(addr.GetPrefixLen().bitCount()), 10) + 1
 	}
 	return 0
 }
@@ -920,7 +920,7 @@ func (params *ipAddressStringParams) getSegmentsStringLength(part AddressDivisio
 			div := part.GetGenericDivision(i)
 			count += params.appendSegment(i, div, prefLen, nil, part)
 			if prefLen != nil {
-				prefLen = cacheBitCount(*prefLen - div.GetBitCount())
+				prefLen = cacheBitCount(prefLen.bitCount() - div.GetBitCount())
 			}
 		}
 		if params.hasSep {
@@ -941,7 +941,7 @@ func (params *ipAddressStringParams) getStringLength(series AddressDivisionSerie
 func (params *ipAddressStringParams) appendPrefixIndicator(builder *strings.Builder, addr AddressDivisionSeries) *strings.Builder {
 	if addr.IsPrefixed() {
 		builder.WriteByte(PrefixLenSeparator)
-		return toUnsignedStringCased(uint64(*addr.GetPrefixLen()), 10, 0, false, builder)
+		return toUnsignedStringCased(uint64(addr.GetPrefixLen().bitCount()), 10, 0, false, builder)
 	}
 	return builder
 }
@@ -962,7 +962,7 @@ func (params *ipAddressStringParams) appendSegments(builder *strings.Builder, pa
 			div := part.GetGenericDivision(segIndex)
 			params.appendSegment(segIndex, div, prefLen, builder, part)
 			if prefLen != nil {
-				prefLen = cacheBitCount(*prefLen - div.GetBitCount())
+				prefLen = cacheBitCount(prefLen.bitCount() - div.GetBitCount())
 			}
 			i++
 			if i == divCount {
@@ -996,7 +996,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	// consider all the cases in which we need not account for prefix length
 	if params.preferWildcards() ||
 		divPrefixLen == nil ||
-		*divPrefixLen >= div.GetBitCount() ||
+		divPrefixLen.bitCount() >= div.GetBitCount() ||
 		!part.IsPrefixBlock() /* || params.isSplitDigits() */ {
 		count, _ := writer.getStandardString(segmentIndex, params, builder)
 		return count
@@ -1004,7 +1004,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	// prefix length will have an impact on the string - either we need not print the range at all
 	// because it is equivalent to the prefix length, or we need to adjust the upper value of the
 	// range so that the host is zero when printing the string
-	if div.IsSinglePrefix(*divPrefixLen) {
+	if div.IsSinglePrefix(divPrefixLen.bitCount()) {
 		//if div.ContainsSinglePrefixBlock(*divPrefixLen) {
 		//xxx ContainsSinglePrefix xxxx // this could be slightly quicker since we know it is a prefix block (since the whole part is), all we need to know is that it is single prefix.  Add such a method to divStringProvider.
 		return writer.getLowerStandardString(segmentIndex, params, builder)

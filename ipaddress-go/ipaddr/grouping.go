@@ -501,13 +501,13 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 
 func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with GetMinPrefixLenForBlock
 	prefLen := grouping.GetPrefixLen()
-	return prefLen != nil && grouping.ContainsPrefixBlock(*prefLen)
+	return prefLen != nil && grouping.ContainsPrefixBlock(prefLen.bitCount())
 }
 
 func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with GetPrefixLenForSingleBlock
 	calc := func() bool {
 		prefLen := grouping.GetPrefixLen()
-		return prefLen != nil && grouping.ContainsSinglePrefixBlock(*prefLen)
+		return prefLen != nil && grouping.ContainsSinglePrefixBlock(prefLen.bitCount())
 	}
 	cache := grouping.cache
 	if cache == nil {
@@ -565,7 +565,7 @@ func (grouping *addressDivisionGroupingInternal) GetMinPrefixLenForBlock() BitCo
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefix))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
-	return *res
+	return res.bitCount()
 }
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() PrefixLen {
@@ -578,7 +578,7 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() Pr
 			if divPrefix == nil {
 				return cacheNilPrefix()
 			}
-			divPrefLen := *divPrefix
+			divPrefLen := divPrefix.bitCount()
 			totalPrefix += divPrefLen
 			if divPrefLen < div.GetBitCount() {
 				//remaining segments must be full range or we return nil
@@ -968,7 +968,7 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 
 					var segPrefixBits PrefixLen
 					if networkPrefixLength != nil {
-						segPrefixBits = getDivisionPrefixLength(originalDivBitSize, *networkPrefixLength-bitsSoFar)
+						segPrefixBits = getDivisionPrefixLength(originalDivBitSize, networkPrefixLength.bitCount()-bitsSoFar)
 					}
 					//Integer segPrefixBits = networkPrefixLength == null ? null : getSegmentPrefixLength(originalDivBitSize, networkPrefixLength - bitsSoFar);
 					div := NewRangePrefixDivision(divLowerValue, divUpperValue, segPrefixBits, originalDivBitSize)

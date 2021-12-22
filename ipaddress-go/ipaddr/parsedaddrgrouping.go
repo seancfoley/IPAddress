@@ -39,7 +39,7 @@ func getHostSegmentIndex(networkPrefixLength BitCount, bytesPerSegment int, bits
  */
 func getSegmentPrefixLength(bitsPerSegment BitCount, prefixLength PrefixLen, segmentIndex int) PrefixLen {
 	if prefixLength != nil {
-		return getPrefixedSegmentPrefixLength(bitsPerSegment, *prefixLength, segmentIndex)
+		return getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength.bitCount(), segmentIndex)
 	}
 	return nil
 }
@@ -312,7 +312,7 @@ func isPrefixSubnet(
 	segmentMaxValue SegInt,
 	prefLen BitCount,
 	subnetOption subnetOption) bool {
-	zero := BitCount(0)
+	//zero := BitCount(0)
 	if prefLen < 0 {
 		prefLen = 0
 	} else {
@@ -331,6 +331,7 @@ func isPrefixSubnet(
 	prefixedSegment := getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
 	i := prefixedSegment
 	if i < segmentCount {
+		zero := PrefixBitCount{}
 		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen, i)
 		for {
 			//we want to see if there is a sequence of zeros followed by a sequence of full-range bits from the prefix onwards
@@ -346,7 +347,7 @@ func isPrefixSubnet(
 			//
 			//the bit marked x in each set of 4 segment of 8 bits is a sequence of zeros, followed by full range bits starting at bit y
 			lower := lowerValueProvider(i)
-			prefLen := *segmentPrefixLength
+			prefLen := segmentPrefixLength.bitCount()
 			if prefLen == 0 {
 				if lower != 0 {
 					return false
@@ -408,6 +409,7 @@ func isPrefixSubnet(
 				}
 			}
 			segmentPrefixLength = &zero
+			//segmentPrefixLength = &PrefixBitCount{}
 			i++
 			if i >= segmentCount {
 				break

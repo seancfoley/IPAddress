@@ -76,7 +76,7 @@ func longPrefixCount(section *AddressSection, prefixLength BitCount) uint64 {
 	return getLongCount(func(index int) uint64 {
 		if (networkSegmentIndex == hostSegmentIndex) && index == networkSegmentIndex {
 			segmentPrefixLength := getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), prefixLength, index)
-			return getPrefixValueCount(section.GetSegment(index), *segmentPrefixLength)
+			return getPrefixValueCount(section.GetSegment(index), segmentPrefixLength.bitCount())
 		}
 		return section.GetSegment(index).GetValueCount()
 	},

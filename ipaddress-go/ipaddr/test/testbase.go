@@ -219,7 +219,7 @@ func (t testBase) testSegmentSeriesPrefixes(original ipaddr.ExtendedSegmentSerie
 			break
 		}
 		if original.IsPrefixed() {
-			prefLength := *original.GetPrefixLen()
+			prefLength := original.GetPrefixLen().Len()
 			bitsSoFar := ipaddr.BitCount(0)
 			for i := 0; i < removed.GetSegmentCount(); i++ {
 				prevBitsSoFar := bitsSoFar
@@ -287,7 +287,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		//	removed = original.AdjustPrefixLen(original.GetBitCount() + 1)
 		//}
 		if original.IsPrefixed() {
-			prefLength := *original.GetPrefixLen()
+			prefLength := original.GetPrefixLen().Len()
 			bitsSoFar := ipaddr.BitCount(0)
 			for i := 0; i < removed.GetSegmentCount(); i++ {
 				prevBitsSoFar := bitsSoFar
@@ -401,7 +401,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 
 		setPrefix := adjustedSeries.GetPrefixLen()
 		if !adjustedSeries.Equal(prefixSet) {
-			fmt.Println(original.String() + " set: " + adjustedSeries.String() + " expected: " + prefixSet.String() + " set prefix: " + prefix.String())
+			fmt.Println(original.String() + " set: " + adjustedSeries.String() + " expected: " + prefixSet.String() + " set prefix: " + bitCountToString(prefix))
 			t.addFailure(newSegmentSeriesFailure("prefix set: "+adjustedSeries.String(), prefixSet))
 		} else {
 			//adjustedSeries = original.ApplyPrefixLen(prefix);
@@ -432,7 +432,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 				//	expected.next = cacheTestBits(min(bitLength, ((*originalPref + segmentBitLength) / segmentBitLength) * segmentBitLength))
 				//}
 				//expected.previous = cacheTestBits(max(0, ((*originalPref - 1) / segmentBitLength) * segmentBitLength));
-				adj := min(max(0, *originalPref+adjustment), original.GetBitCount())
+				adj := min(max(0, originalPref.Len()+adjustment), original.GetBitCount())
 				//if adj <= bitLength {
 				expected.adjusted = cacheTestBits(adj)
 				//}
@@ -497,12 +497,12 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 				}
 				var prefix ipaddr.PrefixLen
 				frontPrefixed := front.IsPrefixed()
-				if frontPrefixed && (*front.GetPrefixLen() <= ipaddr.BitCount(replaceTargetIndex)*bitsPerSegment) && (isMac || replaceTargetIndex > 0) { //when replaceTargetIndex is 0, slight difference between mac and ipvx, for ipvx we do not account for a front prefix of 0
+				if frontPrefixed && (front.GetPrefixLen().Len() <= ipaddr.BitCount(replaceTargetIndex)*bitsPerSegment) && (isMac || replaceTargetIndex > 0) { //when replaceTargetIndex is 0, slight difference between mac and ipvx, for ipvx we do not account for a front prefix of 0
 					prefix = front.GetPrefixLen()
-				} else if back.IsPrefixed() && (*back.GetPrefixLen() <= ipaddr.BitCount(replaceSourceIndex+replaceCount)*bitsPerSegment) && (isMac || replaceCount > 0) { //when replaceCount 0, slight difference between mac and ipvx, for ipvx we do not account for a back prefix
-					prefix = cacheTestBits((ipaddr.BitCount(replaceTargetIndex) * bitsPerSegment) + max(0, *back.GetPrefixLen()-(ipaddr.BitCount(replaceSourceIndex)*bitsPerSegment)))
+				} else if back.IsPrefixed() && (back.GetPrefixLen().Len() <= ipaddr.BitCount(replaceSourceIndex+replaceCount)*bitsPerSegment) && (isMac || replaceCount > 0) { //when replaceCount 0, slight difference between mac and ipvx, for ipvx we do not account for a back prefix
+					prefix = cacheTestBits((ipaddr.BitCount(replaceTargetIndex) * bitsPerSegment) + max(0, back.GetPrefixLen().Len()-(ipaddr.BitCount(replaceSourceIndex)*bitsPerSegment)))
 				} else if frontPrefixed {
-					if *front.GetPrefixLen() <= ipaddr.BitCount(replaceTargetIndex+replaceCount)*bitsPerSegment {
+					if front.GetPrefixLen().Len() <= ipaddr.BitCount(replaceTargetIndex+replaceCount)*bitsPerSegment {
 						prefix = cacheTestBits(ipaddr.BitCount(replaceTargetIndex+replaceCount) * bitsPerSegment)
 					} else {
 						prefix = front.GetPrefixLen()
@@ -520,7 +520,7 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 					hostIdStr := t.createMACAddress(str.String())
 					new2 = hostIdStr.GetAddress().ToAddressBase()
 					if prefix != nil {
-						new2 = new2.SetPrefixLen(*prefix)
+						new2 = new2.SetPrefixLen(prefix.Len())
 					}
 				} else {
 					if prefix != nil {
@@ -621,10 +621,10 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			hostIdStr := t.createMACAddress(str.String())
 			mixed = hostIdStr.GetAddress().ToAddressBase()
 			ignoreFrontPrefLen := i == 0 // we ignore the front prefix len if we are taking 0 bits from the front
-			if !ignoreFrontPrefLen && front.IsPrefixed() && *front.GetPrefixLen() <= ipaddr.BitCount(i)*bitsPerSegment {
-				mixed = mixed.SetPrefixLen(*front.GetPrefixLen())
+			if !ignoreFrontPrefLen && front.IsPrefixed() && front.GetPrefixLen().Len() <= ipaddr.BitCount(i)*bitsPerSegment {
+				mixed = mixed.SetPrefixLen(front.GetPrefixLen().Len())
 			} else if back.IsPrefixed() {
-				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, *back.GetPrefixLen()))
+				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, back.GetPrefixLen().Len()))
 			}
 			sec := frontSection.ToMAC().Append(backSection.ToMAC())
 			//mixed2 = (back.ToMAC()).GetNetwork().getAddressCreator().createAddress(sec);
@@ -665,10 +665,10 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				//	sec = sec.AppendToPrefix((MACAddressSection) g);
 				//} else {
 				sec = sec.Insert(f.GetSegmentCount(), g.ToMAC())
-				if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
+				if h.IsPrefixed() && h.GetPrefixLen().Len() == 0 && !f.IsPrefixed() {
 					gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.MACBitsPerSegment
 					if g.IsPrefixed() {
-						gPref = *g.GetPrefixLen()
+						gPref = g.GetPrefixLen().Len()
 					}
 					sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.MACBitsPerSegment + gPref)
 				}
@@ -683,15 +683,15 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				splitsJoined = append(splitsJoined, mixed3.ToAddressBase())
 			}
 		} else {
-			if front.IsPrefixed() && *front.GetPrefixLen() <= (ipaddr.BitCount(i)*bitsPerSegment) && i > 0 {
+			if front.IsPrefixed() && front.GetPrefixLen().Len() <= (ipaddr.BitCount(i)*bitsPerSegment) && i > 0 {
 				str.WriteByte('/')
-				str.WriteString(strconv.Itoa(int(*front.GetPrefixLen())))
+				str.WriteString(strconv.Itoa(int(front.GetPrefixLen().Len())))
 			} else if back.IsPrefixed() {
 				str.WriteByte('/')
-				if ipaddr.BitCount(i)*bitsPerSegment > *back.GetPrefixLen() {
+				if ipaddr.BitCount(i)*bitsPerSegment > back.GetPrefixLen().Len() {
 					str.WriteString(strconv.Itoa(i * int(bitsPerSegment)))
 				} else {
-					str.WriteString(strconv.Itoa(int(*back.GetPrefixLen())))
+					str.WriteString(strconv.Itoa(int(back.GetPrefixLen().Len())))
 				}
 			}
 			hostIdStr := t.createAddress(str.String())
@@ -738,10 +738,10 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					//	sec = sec.appendToNetwork((IPv4AddressSection) g);
 					//} else {
 					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv4())
-					if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
+					if h.IsPrefixed() && h.GetPrefixLen().Len() == 0 && !f.IsPrefixed() {
 						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv4BitsPerSegment
 						if g.IsPrefixed() {
-							gPref = *g.GetPrefixLen()
+							gPref = g.GetPrefixLen().Len()
 						}
 						sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.IPv4BitsPerSegment + gPref)
 					}
@@ -794,10 +794,10 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					//} else {
 					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv6())
 					//}
-					if h.IsPrefixed() && *h.GetPrefixLen() == 0 && !f.IsPrefixed() {
+					if h.IsPrefixed() && h.GetPrefixLen().Len() == 0 && !f.IsPrefixed() {
 						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv6BitsPerSegment
 						if g.IsPrefixed() {
-							gPref = *g.GetPrefixLen()
+							gPref = g.GetPrefixLen().Len()
 						}
 						sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.IPv6BitsPerSegment + gPref)
 					}
@@ -891,7 +891,7 @@ func (t testBase) testPrefix(original ipaddr.AddressSegmentSeries, prefixLength 
 	if !original.GetPrefixLen().Equal(prefixLength) {
 		t.addFailure(newSegmentSeriesFailure("prefix: "+original.GetPrefixLen().String()+" expected: "+prefixLength.String(), original))
 	} else if !cacheTestBits(original.GetMinPrefixLenForBlock()).Equal(cacheTestBits(minPrefix)) {
-		t.addFailure(newSegmentSeriesFailure("min prefix: "+strconv.Itoa(int(original.GetMinPrefixLenForBlock()))+" expected: "+minPrefix.String(), original))
+		t.addFailure(newSegmentSeriesFailure("min prefix: "+strconv.Itoa(int(original.GetMinPrefixLenForBlock()))+" expected: "+bitCountToString(minPrefix), original))
 	} else if !original.GetPrefixLenForSingleBlock().Equal(equivalentPrefix) {
 		t.addFailure(newSegmentSeriesFailure("equivalent prefix: "+original.GetPrefixLenForSingleBlock().String()+" expected: "+equivalentPrefix.String(), original))
 	}
@@ -1903,15 +1903,20 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 	return newHostIdFailure(str, addrStr)
 }
 
-var cachedPrefixLens = initPrefLens()
+//var cachedPrefixLens = initPrefLens()
+//
+//func initPrefLens() []ipaddr.PrefixLen {
+//	cachedPrefLens := make([]ipaddr.PrefixLen, ipaddr.IPv6BitCount+1)
+//	for i := ipaddr.BitCount(0); i <= ipaddr.IPv6BitCount; i++ {
+//		//bc := i
+//		//cachedPrefLens[i] = &bc
+//		cachedPrefLens[i] = &ipaddr.PrefixBitCount{i}
+//	}
+//	return cachedPrefLens
+//}
 
-func initPrefLens() []ipaddr.PrefixLen {
-	cachedPrefLens := make([]ipaddr.PrefixLen, ipaddr.IPv6BitCount+1)
-	for i := ipaddr.BitCount(0); i <= ipaddr.IPv6BitCount; i++ {
-		bc := i
-		cachedPrefLens[i] = &bc
-	}
-	return cachedPrefLens
+func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
+	return ipaddr.ToPrefixLen(i)
 }
 
 //var px = ipaddr.PrefixX{}
@@ -1947,15 +1952,6 @@ var (
 	p127 = cacheTestBits(127)
 	p128 = cacheTestBits(128)
 )
-
-func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
-	//TODO make this call the new public method I will create, which will be what?  cannot use PrefixLen(), or can I?
-	if i >= 0 && int(i) < len(cachedPrefixLens) {
-		return cachedPrefixLens[i]
-
-	}
-	return &i
-}
 
 func bigOne() *big.Int {
 	return big.NewInt(1)

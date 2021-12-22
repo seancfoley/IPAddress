@@ -301,7 +301,7 @@ func (rng *ipAddressSeqRangeInternal) ContainsPrefixBlock(prefixLen BitCount) bo
 		div := lower.GetSegment(i)
 		upperDiv := upper.GetSegment(i)
 		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLen, i)
-		if !div.isPrefixBlockVals(div.getDivisionValue(), upperDiv.getDivisionValue(), *segmentPrefixLength) {
+		if !div.isPrefixBlockVals(div.getDivisionValue(), upperDiv.getDivisionValue(), segmentPrefixLength.bitCount()) {
 			return false
 		}
 		for i++; i < divCount; i++ {
@@ -370,7 +370,7 @@ func (rng *ipAddressSeqRangeInternal) GetPrefixLenForSingleBlock() PrefixLen {
 		if segPrefix == nil {
 			return nil
 		}
-		dabits := *segPrefix
+		dabits := segPrefix.bitCount()
 		totalPrefix += dabits
 		if dabits < segBitCount {
 			//remaining segments must be full range or we return null
@@ -496,7 +496,7 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 	networkSegIndex := getNetworkSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment)
 	for i := networkSegIndex; i < segCount; i++ {
 		segPrefLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLength, i)
-		segPrefs[i] = segPrefData{segPrefLength, bitsPerSegment - *segPrefLength}
+		segPrefs[i] = segPrefData{segPrefLength, bitsPerSegment - segPrefLength.bitCount()}
 	}
 	hostSegIndex := getHostSegmentIndex(prefLength, bytesPerSegment, bitsPerSegment)
 	return rng.rangeIterator(
@@ -523,7 +523,7 @@ func (rng *ipAddressSeqRangeInternal) prefixBlockIterator(prefLength BitCount) A
 			if segPrefLen == nil {
 				return seg.Iterator()
 			}
-			return seg.PrefixedBlockIterator(*segPrefLen)
+			return seg.PrefixedBlockIterator(segPrefLen.bitCount())
 		},
 	)
 }

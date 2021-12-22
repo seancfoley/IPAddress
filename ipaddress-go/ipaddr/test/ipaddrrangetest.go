@@ -2377,7 +2377,7 @@ func (t ipAddressRangeTester) testIPv6Wildcarded(original string, bits ipaddr.Bi
 func (t ipAddressRangeTester) testWildcarded(original string, bits ipaddr.BitCount, expectedSubnet, expectedNormalized, expectedCanonical, expectedCompressed, expectedSQL string) {
 	w := t.createAddress(original)
 	addr := w.GetAddress()
-	if addr.GetNetworkPrefixLen() == nil || *addr.GetNetworkPrefixLen() > bits {
+	if addr.GetNetworkPrefixLen() == nil || addr.GetNetworkPrefixLen().Len() > bits {
 		addr = addr.SetPrefixLen(bits)
 		if addr.IsZeroHost() {
 			addr = addr.ToPrefixBlock()
@@ -2458,7 +2458,7 @@ func getNonZeroHostIterator(val *ipaddr.IPAddress) ipaddr.IPAddressIterator {
 
 func getNonZeroHostCount(val *ipaddr.IPAddress) *big.Int {
 	count := val.GetCount()
-	if !val.IsPrefixed() || *val.GetNetworkPrefixLen() > val.GetBitCount() {
+	if !val.IsPrefixed() || val.GetNetworkPrefixLen().Len() > val.GetBitCount() {
 		return count
 	}
 	if !val.IncludesZeroHost() {
@@ -3320,7 +3320,7 @@ func (t ipAddressRangeTester) testTree(start string, parents []string) {
 		//}
 		str = labelAddr.ToAddressString()
 		labelStr = str
-		if *str.GetNetworkPrefixLen() == 0 { //when network prefix is 0, IPAddress.adjustPrefixBySegment() returns the same address
+		if str.GetNetworkPrefixLen().Len() == 0 { //when network prefix is 0, IPAddress.adjustPrefixBySegment() returns the same address
 			break
 		}
 		i++
@@ -4937,7 +4937,7 @@ func enlargeSubnet(addr *ipaddr.IPAddress /*boolean nextSegment  false , int bit
 	if prefix == nil {
 		return addr.SetPrefixLen(addr.GetBitCount())
 	}
-	prefLen := *prefix
+	prefLen := prefix.Len()
 	if prefLen == 0 {
 		return addr
 	}

@@ -31,7 +31,7 @@ const (
 	MacDottedSegmentSeparator = dot
 
 	MacDashedSegmentRangeSeparator    = '|'
-	MacDashedSegmentRangeSeparatorStr = string(MacDashedSegmentRangeSeparator)
+	MacDashedSegmentRangeSeparatorStr = "|"
 
 	macBitsToSegmentBitshift = 3
 )
@@ -551,9 +551,9 @@ func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
 	segmentCount := addr.GetSegmentCount()
 	currentPref := addr.GetPrefixLen()
 	newPref := BitCount(MACOrganizationalUniqueIdentifierSegmentCount) << 3 //ouiSegmentCount * MACAddress.BITS_PER_SEGMENT
-	createNew := currentPref == nil || *currentPref > newPref
+	createNew := currentPref == nil || currentPref.bitCount() > newPref
 	if !createNew {
-		newPref = *currentPref
+		newPref = currentPref.bitCount()
 		for i := MACOrganizationalUniqueIdentifierSegmentCount; i < segmentCount; i++ {
 			segment := addr.GetSegment(i)
 			if !segment.IsFullRange() {
@@ -651,8 +651,8 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressErr
 		//Integer prefLength = getPrefixLength();
 		if prefixLen != nil {
 			//MACAddressSection resultSection = creator.createSectionInternal(segs, true);
-			if *prefixLen >= 24 {
-				prefixLen = cacheBitCount(*prefixLen + (MACBitsPerSegment << 1)) //two segments
+			if prefixLen.bitCount() >= 24 {
+				prefixLen = cacheBitCount(prefixLen.bitCount() + (MACBitsPerSegment << 1)) //two segments
 			}
 			//resultSection.assignPrefixLength(prefLength);
 		}

@@ -318,7 +318,7 @@ func (div *addressDivisionInternal) GetMinPrefixLenForBlock() BitCount {
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefLenForBlock))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 	}
-	return *res
+	return res.bitCount()
 }
 
 func (div *addressDivisionInternal) GetPrefixLenForSingleBlock() PrefixLen {
@@ -329,7 +329,7 @@ func (div *addressDivisionInternal) GetPrefixLenForSingleBlock() PrefixLen {
 // or false if the division has no prefix length
 func (div *addressDivisionInternal) isPrefixBlock() bool {
 	prefLen := div.getDivisionPrefixLength()
-	return prefLen != nil && div.containsPrefixBlock(*prefLen)
+	return prefLen != nil && div.containsPrefixBlock(prefLen.bitCount())
 }
 
 func (div *addressDivisionInternal) getMaxValue() DivInt {
@@ -405,7 +405,7 @@ func (div *addressDivisionInternal) toNetworkDivision(divPrefixLength PrefixLen,
 	var newLower, newUpper DivInt
 	hasPrefLen := divPrefixLength != nil
 	if hasPrefLen {
-		prefBits := *divPrefixLength
+		prefBits := divPrefixLength.bitCount()
 		bitCount := div.GetBitCount()
 		prefBits = checkBitCount(prefBits, bitCount)
 		mask := ^DivInt(0) << uint(bitCount-prefBits)
@@ -443,7 +443,7 @@ func (div *addressDivisionInternal) toHostDivision(divPrefixLength PrefixLen, wi
 	hasPrefLen := divPrefixLength != nil
 	var mask SegInt
 	if hasPrefLen {
-		prefBits := *divPrefixLength
+		prefBits := divPrefixLength.bitCount()
 		bitCount := div.GetBitCount()
 		prefBits = checkBitCount(prefBits, bitCount)
 		mask = ^(^SegInt(0) << uint(bitCount-prefBits))
@@ -466,9 +466,9 @@ func (div *addressDivisionInternal) toPrefixedDivision(divPrefixLength PrefixLen
 	hasPrefLen := divPrefixLength != nil
 	bitCount := div.GetBitCount()
 	if hasPrefLen {
-		prefBits := *divPrefixLength
+		prefBits := divPrefixLength.bitCount()
 		prefBits = checkBitCount(prefBits, bitCount)
-		if div.isPrefixed() && prefBits == *div.getDivisionPrefixLength() {
+		if div.isPrefixed() && prefBits == div.getDivisionPrefixLength().bitCount() {
 			return div.toAddressDivision()
 		}
 	} else {
@@ -643,7 +643,7 @@ func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bo
 		seg.getUpperStringMasked(radix, uppercase, appendable)
 	} else if div.isPrefixed() {
 		upperValue := div.getUpperDivisionValue()
-		mask := ^DivInt(0) << uint(div.GetBitCount()-*div.getDivisionPrefixLength())
+		mask := ^DivInt(0) << uint(div.GetBitCount()-div.getDivisionPrefixLength().bitCount())
 		//mask := ^(^DivInt(0) >> *seg.GetSegmentPrefixLen())
 		//mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLen())
 		//return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))

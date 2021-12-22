@@ -454,7 +454,7 @@ func (section *IPv6AddressSection) GetBlockCount(segmentCount int) *big.Int {
 
 func (section *IPv6AddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
-		return section.GetPrefixCountLen(*section.GetPrefixLen())
+		return section.GetPrefixCountLen(section.GetPrefixLen().bitCount())
 	})
 }
 
@@ -645,16 +645,6 @@ func (section *IPv6AddressSection) WithoutPrefixLen() *IPv6AddressSection {
 	return section.withoutPrefixLen().ToIPv6()
 }
 
-// just like with zones, maybe arguments of type BitCount should become int?  To avoid conversions?
-//But does this lead to hidden conversion bugs with large ints?
-//Maybe just using int for BitCount would be better!  But that doesn't seem to work when it comes to automatic conversions.
-//Why not?  you can always pass in []byte for net.IP, or maybe it's the other way around, net.Ip for []byte
-// It works OK with type BitCount = int16, but then you cannot have the method set
-// But for net.IP, it works with type IP []byte
-// Is it something abotu slices?  Maybe, because with ints you really have a different type possibly, not with slices, which is same underlying type.  Must be about same underlying type.
-// TODO For Bitcount you should drop the method set and use type BitCount = int16 in combination with the change to PrefixLen, which will gain the method set
-
-//
 func (section *IPv6AddressSection) SetPrefixLen(prefixLen BitCount) *IPv6AddressSection {
 	return section.setPrefixLen(prefixLen).ToIPv6()
 }
@@ -782,7 +772,7 @@ func (section *IPv6AddressSection) getCompressIndexAndCount(options CompressOpti
 				maxCount = count
 			}
 			if preferHost && section.IsPrefixed() &&
-				(BitCount(index+count)*section.GetBitsPerSegment()) > *section.GetNetworkPrefixLen() { //this range contains the host
+				(BitCount(index+count)*section.GetBitsPerSegment()) > section.GetNetworkPrefixLen().bitCount() { //this range contains the host
 				//Since we are going backwards, this means we select as the maximum any zero segment that includes the host
 				break
 			}
@@ -804,7 +794,7 @@ func (section *IPv6AddressSection) getZeroSegments(includeRanges bool) RangeList
 	for i := 0; i < divisionCount; i++ {
 		division := section.GetSegment(i)
 		isCompressible := division.IsZero() ||
-			(includeRanges && division.IsPrefixed() && division.isSinglePrefixBlock(0, division.getUpperDivisionValue(), *division.getDivisionPrefixLength()))
+			(includeRanges && division.IsPrefixed() && division.isSinglePrefixBlock(0, division.getUpperDivisionValue(), division.getDivisionPrefixLength().bitCount()))
 		if isCompressible {
 			currentCount++
 			if currentCount == 1 {
@@ -1637,7 +1627,7 @@ func createMixedAddressGrouping(divisions []*AddressDivision, mixedCache *mixedC
 	if ipv6Section.IsPrefixed() {
 		grouping.prefixLength = ipv6Section.GetPrefixLen()
 	} else if ipv4Section.IsPrefixed() {
-		grouping.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + *ipv4Section.GetPrefixLen())
+		grouping.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + ipv4Section.GetPrefixLen().bitCount())
 	}
 	return grouping
 }

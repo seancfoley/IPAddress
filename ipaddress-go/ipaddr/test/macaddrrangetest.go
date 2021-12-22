@@ -651,8 +651,8 @@ func (t macAddressRangeTester) testOUIPrefixed(original, expected string, expect
 	if !prefixed.Equal(expectedAddress) {
 		t.addFailure(newMACFailure("oui prefixed was "+prefixed.String()+" expected was "+expected, w))
 	}
-	if expectedPref != *prefixed.GetPrefixLen() {
-		t.addFailure(newMACFailure("oui prefix was "+prefixed.GetPrefixLen().String()+" expected was "+expectedPref.String(), w))
+	if expectedPref != prefixed.GetPrefixLen().Len() {
+		t.addFailure(newMACFailure("oui prefix was "+prefixed.GetPrefixLen().String()+" expected was "+bitCountToString(expectedPref), w))
 	}
 	t.incrementTestCount()
 }
@@ -673,11 +673,15 @@ func (t macAddressRangeTester) testEquivalentMinPrefix(host string, equivPrefix 
 		} else {
 			minPref := h1.GetMinPrefixLenForBlock()
 			if minPref != minPrefix {
-				t.addFailure(newMACAddrFailure("failed: prefix expected: "+minPrefix.String()+" prefix got: "+minPref.String(), h1))
+				t.addFailure(newMACAddrFailure("failed: prefix expected: "+bitCountToString(minPrefix)+" prefix got: "+bitCountToString(minPref), h1))
 			}
 		}
 	}
 	t.incrementTestCount()
+}
+
+func bitCountToString(i ipaddr.BitCount) string {
+	return ipaddr.ToString(i)
 }
 
 func (t macAddressRangeTester) testMACCount(original string, number uint64) {
@@ -710,7 +714,7 @@ func (t macAddressRangeTester) testPrefixBlock(prefixedAddressStr string, expect
 	removedPrefix := prefixedAddress.WithoutPrefixLen()
 	adjustPrefix := prefixedAddress.AdjustPrefixLen(1)
 	adjustPrefix2 := prefixedAddress.AdjustPrefixLen(-1)
-	hostSeg := int((*prefixedAddress.GetPrefixLen() + (ipaddr.MACBitsPerSegment - 1)) / ipaddr.MACBitsPerSegment)
+	hostSeg := int((prefixedAddress.GetPrefixLen().Len() + (ipaddr.MACBitsPerSegment - 1)) / ipaddr.MACBitsPerSegment)
 	replaced := prefixedAddress
 	replacement := t.createMACAddress("1:1:1:1:1:1").GetAddress()
 	for i := hostSeg; i < replaced.GetSegmentCount(); i++ {
@@ -768,7 +772,7 @@ func (t macAddressRangeTester) testPrefixBlock(prefixedAddressStr string, expect
 	}
 
 	//now revert all our operations, convert them all back to prefix blocks, and compare
-	removedPrefix = removedPrefix.SetPrefixLen(*prefixedAddress.GetPrefixLen())
+	removedPrefix = removedPrefix.SetPrefixLen(prefixedAddress.GetPrefixLen().Len())
 	adjustPrefix = adjustPrefix.AdjustPrefixLen(-1)
 	adjustPrefix2 = adjustPrefix2.AdjustPrefixLen(1)
 	if !prefixedBlockAgain.Equal(removedPrefix.ToPrefixBlock()) || !prefixedBlockAgain.GetPrefixLen().Equal(removedPrefix.GetPrefixLen()) {
@@ -1009,7 +1013,7 @@ func (t macAddressRangeTester) testTree(start string, parents []string) {
 				i++
 			}
 			j++
-			if pref != nil && *pref == 0 { //when network prefix is 0, Address.toSupernet() returns the same address
+			if pref != nil && pref.Len() == 0 { //when network prefix is 0, Address.toSupernet() returns the same address
 				break
 			}
 		}
@@ -1028,7 +1032,7 @@ func enlargeMACSubnet(addr *ipaddr.MACAddress /*boolean nextSegment  false , int
 	if prefix == nil {
 		return addr.SetPrefixLen(addr.GetBitCount() - addr.GetBitsPerSegment())
 	}
-	prefLen := *prefix
+	prefLen := prefix.Len()
 	if prefLen == 0 {
 		return addr
 	}

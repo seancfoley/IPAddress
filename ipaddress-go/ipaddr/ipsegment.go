@@ -31,7 +31,7 @@ func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 	cache := seg.getCache()
 	if cache == nil {
 		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-			return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			return seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
 		}
 		return false
 	}
@@ -39,7 +39,7 @@ func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
 	if res == nil {
 		var result bool
 		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-			result = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			result = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
 		}
 		if result {
 			res = &trueVal
@@ -65,7 +65,7 @@ func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
 	if prefixLength == nil {
 		return seg.GetValueCount()
 	}
-	return getPrefixValueCount(seg.toAddressSegment(), *prefixLength)
+	return getPrefixValueCount(seg.toAddressSegment(), prefixLength.bitCount())
 }
 
 func (seg *ipAddressSegmentInternal) GetSegmentPrefixLen() PrefixLen {
@@ -171,7 +171,7 @@ func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
 func (seg *ipAddressSegmentInternal) getUpperStringMasked(radix int, uppercase bool, appendable *strings.Builder) {
 	if seg.isPrefixed() {
 		upperValue := seg.GetUpperSegmentValue()
-		mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLen())
+		mask := seg.GetSegmentNetworkMask(seg.GetSegmentPrefixLen().bitCount())
 		upperValue &= mask
 		toUnsignedStringCased(DivInt(upperValue), radix, 0, uppercase, appendable)
 	} else {
@@ -197,7 +197,7 @@ func (seg *ipAddressSegmentInternal) getString() string {
 		}
 		upperValue := seg.getUpperSegmentValue()
 		if seg.IsPrefixBlock() {
-			upperValue &= seg.GetSegmentNetworkMask(*seg.getDivisionPrefixLength())
+			upperValue &= seg.GetSegmentNetworkMask(seg.getDivisionPrefixLength().bitCount())
 		}
 		return seg.getDefaultRangeStringVals(seg.getDivisionValue(), DivInt(upperValue), seg.getDefaultTextualRadix())
 	}
@@ -279,7 +279,7 @@ func (seg *ipAddressSegmentInternal) setRangeStandardString(
 			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() {
 				upper := seg.getUpperSegmentValue()
 				if seg.isPrefixed() {
-					upper &= seg.GetSegmentNetworkMask(*seg.getDivisionPrefixLength())
+					upper &= seg.GetSegmentNetworkMask(seg.getDivisionPrefixLength().bitCount())
 				}
 				if rangeUpper == upper {
 					str := addressStr[lowerStringStartIndex:upperStringEndIndex]

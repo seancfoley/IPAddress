@@ -23,6 +23,18 @@ import (
 // isSet bool
 // bitCount BitCount
 //}
+//
+//
+//option 4
+//type PrefixLen *PrefixBitCount
+//
+//type PrefixBitCount struct {
+//	bitCount bitCountInternal
+//}
+//
+//type BitCount = int
+//type bitCountInternal = int16
+
 type addressDivisionGroupingBase struct {
 	// the non-cacheBitCountx elements are assigned at creation and are immutable
 	divisions divArray // either standard or large
@@ -53,8 +65,8 @@ type addressDivisionGroupingBase struct {
 	// but all your methods thst take BitCount will not want to use this struct instead, so the struct is somewhat lame
 	// The only upside is you can continue using "nil" prefixes
 	// In fact, the second doesn't really work because you can still alter the prefix length pointers
-	// TODO PrefixLen: I think I've settle on option 1 above Actually maybe 3 is better, avoids ptr dereference, takes advantage of memory localization
-	//TODO maybe use one prefixlen type for api, and a second here to restrict the size of the int to int16
+	//  PrefixLen: I think I've settle on option 1 above Actually maybe 3 is better, avoids ptr dereference, takes advantage of memory localization
+	// maybe use one prefixlen type for api, and a second here to restrict the size of the int to int16
 
 	prefixLength PrefixLen // must align with the divisions if they store prefix lengths
 	isMult       bool
@@ -238,7 +250,7 @@ func (grouping *addressDivisionGroupingBase) getPrefixCountBig() *big.Int {
 	if prefixLen == nil {
 		return grouping.getCountBig()
 	}
-	return grouping.getPrefixCountLenBig(*prefixLen)
+	return grouping.getPrefixCountLenBig(prefixLen.bitCount())
 }
 
 func (grouping *addressDivisionGroupingBase) getPrefixCountLenBig(prefixLen BitCount) *big.Int {
@@ -362,7 +374,7 @@ func (grouping *addressDivisionGroupingBase) calcPrefixCount(counter func() *big
 		return bigOne()
 	}
 	prefixLen := grouping.prefixLength
-	if prefixLen == nil || *prefixLen >= grouping.GetBitCount() {
+	if prefixLen == nil || prefixLen.bitCount() >= grouping.GetBitCount() {
 		return grouping.getCount()
 	}
 	return counter()

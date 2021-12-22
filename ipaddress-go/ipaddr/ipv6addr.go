@@ -7,23 +7,23 @@ import (
 )
 
 const (
-	IPv6SegmentSeparator                     = ':'
-	IPv6ZoneSeparator                        = '%'
-	IPv6ZoneSeparatorStr                     = string(IPv6ZoneSeparator)
-	IPv6AlternativeZoneSeparator             = '\u00a7'
-	IPv6AlternativeZoneSeparatorStr          = string(IPv6AlternativeZoneSeparator)
-	IPv6BitsPerSegment              BitCount = 16
-	IPv6BytesPerSegment                      = 2
-	IPv6SegmentCount                         = 8
-	IPv6MixedReplacedSegmentCount            = 2
-	IPv6MixedOriginalSegmentCount            = 6
-	IPv6MixedOriginalByteCount               = IPv6MixedOriginalSegmentCount << 1
-	IPv6ByteCount                            = 16
-	IPv6BitCount                    BitCount = 128
-	IPv6DefaultTextualRadix                  = 16
-	IPv6MaxValuePerSegment                   = 0xffff
-	IPv6ReverseDnsSuffix                     = ".ip6.arpa"
-	IPv6ReverseDnsSuffixDeprecated           = ".ip6.int"
+	IPv6SegmentSeparator            = ':'
+	IPv6ZoneSeparator               = '%'
+	IPv6ZoneSeparatorStr            = "%"
+	IPv6AlternativeZoneSeparator    = '\u00a7'
+	IPv6AlternativeZoneSeparatorStr = "\u00a7"
+	IPv6BitsPerSegment              = 16
+	IPv6BytesPerSegment             = 2
+	IPv6SegmentCount                = 8
+	IPv6MixedReplacedSegmentCount   = 2
+	IPv6MixedOriginalSegmentCount   = 6
+	IPv6MixedOriginalByteCount      = 12
+	IPv6ByteCount                   = 16
+	IPv6BitCount                    = 128
+	IPv6DefaultTextualRadix         = 16
+	IPv6MaxValuePerSegment          = 0xffff
+	IPv6ReverseDnsSuffix            = ".ip6.arpa"
+	IPv6ReverseDnsSuffixDeprecated  = ".ip6.int"
 
 	IPv6UncSegmentSeparator  = '-'
 	IPv6UncZoneSeparator     = 's'
@@ -31,8 +31,8 @@ const (
 	IPv6UncRangeSeparatorStr = string(AlternativeRangeSeparator)
 	IPv6UncSuffix            = ".ipv6-literal.net"
 
-	IPv6SegmentMaxChars             = 4
-	IPv6SegmentBitsPerChar BitCount = 4
+	IPv6SegmentMaxChars    = 4
+	IPv6SegmentBitsPerChar = 4
 
 	ipv6BitsToSegmentBitshift = 4
 
@@ -326,7 +326,7 @@ func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Addres
 // when this is called, we know the sections are sufficient length
 func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, IncompatibleAddressError) {
 	prefixLen := prefixSection.GetPrefixLen()
-	if prefixLen != nil && *prefixLen > *getNetworkPrefixLen(IPv6BitsPerSegment, 0, 4) {
+	if prefixLen != nil && prefixLen.bitCount() > getNetworkPrefixLen(IPv6BitsPerSegment, 0, 4).bitCount() {
 		prefixLen = nil
 	}
 	segments := createSegmentArray(8)

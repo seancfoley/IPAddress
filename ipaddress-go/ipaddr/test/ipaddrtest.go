@@ -2305,7 +2305,7 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 		} else {
 			minPref := h1.GetMinPrefixLenForBlock()
 			if minPref != minPrefix {
-				t.addFailure(newIPAddrFailure("failed: prefix expected: "+minPrefix.String()+" prefix got: "+minPref.String(), h1))
+				t.addFailure(newIPAddrFailure("failed: prefix expected: "+bitCountToString(minPrefix)+" prefix got: "+bitCountToString(minPref), h1))
 			} else {
 				minPrefixed := h1.AssignMinPrefixForBlock()
 				bareHost := host
@@ -2313,7 +2313,7 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 				if index >= 0 {
 					bareHost = host[:index]
 				}
-				direct = t.createAddress(bareHost + "/" + minPrefix.String())
+				direct = t.createAddress(bareHost + "/" + bitCountToString(minPrefix))
 				directAddress = direct.GetAddress()
 				if h1.IsPrefixed() && h1.IsPrefixBlock() {
 					directAddress = makePrefixSubnet(directAddress)
@@ -2354,11 +2354,11 @@ func (t ipAddressTester) testSubnet(addressStr, maskStr string, prefix ipaddr.Bi
 	//try {
 	mask := maskString.GetAddress()
 	var subnet3 *ipaddr.IPAddress
-	if originalPrefix == nil || *originalPrefix > prefix {
+	if originalPrefix == nil || originalPrefix.Len() > prefix {
 		var perr error
 		subnet3, perr = value.SetPrefixLenZeroed(prefix)
 		if perr != nil {
-			t.addFailure(newIPAddrFailure("testSubnet failed setting prefix "+prefix.String()+" to: "+value.String()+" error: "+perr.Error(), subnet3))
+			t.addFailure(newIPAddrFailure("testSubnet failed setting prefix "+bitCountToString(prefix)+" to: "+value.String()+" error: "+perr.Error(), subnet3))
 		}
 	} else {
 		subnet3 = value
@@ -2407,7 +2407,7 @@ func (t ipAddressTester) testSubnet(addressStr, maskStr string, prefix ipaddr.Bi
 						if originalPrefix != nil {
 							//the prefix will be different, but the addresses will be the same, except for full subnets
 							//IPAddress addr = subnet2.setPrefixLength(originalPrefix, false);//0.0.*.* set to have prefix 15
-							addr := subnet2.SetPrefixLen(*originalPrefix) //0.0.*.* set to have prefix 15
+							addr := subnet2.SetPrefixLen(originalPrefix.Len()) //0.0.*.* set to have prefix 15
 							if !subnet4.Equal(addr) {
 								t.addFailure(newIPAddrFailure("testSubnet failed: "+subnet4.String()+" expected: "+addr.String(), subnet4))
 								//subnet2.SetPrefixLen(originalPrefix); //addr second div 0-1,  subnet4 second div 0-0
@@ -2526,7 +2526,7 @@ func (t ipAddressTester) testBitwiseOr(orig string, prefixAdjustment ipaddr.Pref
 	orAddr := t.createAddress(or).GetAddress()
 	if prefixAdjustment != nil {
 		var err error
-		original, err = original.AdjustPrefixLenZeroed(*prefixAdjustment)
+		original, err = original.AdjustPrefixLenZeroed(prefixAdjustment.Len())
 		if err != nil {
 			t.addFailure(newIPAddrFailure("adjusted prefix error: "+err.Error(), original))
 			return
@@ -3164,7 +3164,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 	} else {
 		other = otherMaskPrefix != nil
 	}
-	if *maskPrefix != min(prefixBits, address.GetBitCount()) || other {
+	if maskPrefix.Len() != min(prefixBits, address.GetBitCount()) || other {
 		t.addFailure(newIPAddrFailure("failed mask "+address.String()+" otherMaskPrefix: "+otherMaskPrefix.String(), address))
 		return false
 	}
@@ -3208,16 +3208,16 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		trailingBits = address.GetTrailingBitCount(!network)
 	}
 	if leadingBits != prefixBits {
-		t.addFailure(newIPAddrFailure("leading bits failure, bit counts are leading: "+leadingBits.String()+" trailing: "+trailingBits.String(), address))
+		t.addFailure(newIPAddrFailure("leading bits failure, bit counts are leading: "+bitCountToString(leadingBits)+" trailing: "+bitCountToString(trailingBits), address))
 		return false
 	}
 	if leadingBits+trailingBits != address.GetBitCount() {
-		t.addFailure(newIPAddrFailure("bit counts are leading: "+leadingBits.String()+" trailing: "+trailingBits.String(), address))
+		t.addFailure(newIPAddrFailure("bit counts are leading: "+bitCountToString(leadingBits)+" trailing: "+bitCountToString(trailingBits), address))
 		return false
 	}
 	if network {
 		//try {
-		originalPrefixStr := "/" + prefixBits.String()
+		originalPrefixStr := "/" + bitCountToString(prefixBits)
 		//originalChoppedStr := originalPrefixStr
 		//if prefixBits > address.GetBitCount() {
 		//	originalChoppedStr = "/" + address.GetBitCount().String()
@@ -3230,7 +3230,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		//fmt.Println("Handling 3 " + address.String())
 		if address.IsPrefixed() {
 			var err error
-			addressWithNoPrefix, err = address.Mask(address.GetNetwork().GetNetworkMask(*address.GetPrefixLen()))
+			addressWithNoPrefix, err = address.Mask(address.GetNetwork().GetNetworkMask(address.GetPrefixLen().Len()))
 			if err != nil {
 				t.addFailure(newIPAddrFailure("failed mask "+err.Error(), address))
 			}
@@ -3240,7 +3240,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 
 		ipForNormalizeMask := addressWithNoPrefix.String()
 		maskStrx2 := t.normalizeMask(originalPrefixStr, ipForNormalizeMask) + prefixExtra
-		maskStrx3 := t.normalizeMask(prefixBits.String(), ipForNormalizeMask) + prefixExtra
+		maskStrx3 := t.normalizeMask(bitCountToString(prefixBits), ipForNormalizeMask) + prefixExtra
 		normalStr := address.ToNormalizedString()
 		if maskStrx2 != normalStr || maskStrx3 != normalStr {
 			//if maskStr != normalStr || maskStrx2 != normalStr || maskStrx3 != normalStr {
@@ -3295,7 +3295,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 			if !network {
 				prefixBitsMismatch = addrPrefixBits != nil
 			} else {
-				prefixBitsMismatch = addrPrefixBits == nil || (prefixBits != *addrPrefixBits)
+				prefixBitsMismatch = addrPrefixBits == nil || (prefixBits != addrPrefixBits.Len())
 			}
 			if prefixBitsMismatch {
 				t.addFailure(newIPAddrFailure("prefix incorrect", address))
@@ -3321,7 +3321,7 @@ func (t ipAddressTester) normalizeMask(maskString, ipString string) string {
 				t.addFailure(newFailure("prefix string incorrect: "+perr.Error(), addressString))
 				return ""
 			}
-			maskAddress := addressString.GetAddress().GetNetwork().GetNetworkMask(*prefix)
+			maskAddress := addressString.GetAddress().GetNetwork().GetNetworkMask(prefix.Len())
 			return maskAddress.ToNormalizedString()
 			//} catch(PrefixLenException e) {
 			//if validation vails, fall through and return mask string
@@ -3744,7 +3744,8 @@ func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network
 			if sectionStrNoRange != networkNoRange || s.GetCount().Int64() != 1 {
 				t.addFailure(newFailure("failed got "+sectionStrNoRange+" expected "+networkNoRange, w))
 			} else {
-				//IPAddressPartStringCollection coll = sectionWithPrefix.toStandardStringCollection(); TODO LATER string collections
+				// TODO LATER string collections
+				//IPAddressPartStringCollection coll = sectionWithPrefix.toStandardStringCollection();
 				//String standards[] = coll.toStrings();
 				//if(standards.length != networkStringCount) {
 				//	addFailure(new Failure("failed " + section + " expected count " + networkStringCount + " was " + standards.length, w));
@@ -5365,12 +5366,12 @@ func conversionCompare(h1, h2 *ipaddr.IPAddressString) int {
 func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 	segs := directAddress.GetSegments()
 	pref := directAddress.GetPrefixLen()
-	prefSeg := int(*pref / directAddress.GetBitsPerSegment())
+	prefSeg := int(pref.Len() / directAddress.GetBitsPerSegment())
 	if prefSeg < len(segs) {
 		creator := ipaddr.IPAddressCreator{directAddress.GetIPVersion()}
 		if directAddress.GetPrefixCount().Cmp(bigOneConst()) == 0 {
 			origSeg := segs[prefSeg]
-			mask := origSeg.GetSegmentNetworkMask(*pref % directAddress.GetBitsPerSegment())
+			mask := origSeg.GetSegmentNetworkMask(pref.Len() % directAddress.GetBitsPerSegment())
 
 			segs[prefSeg] = creator.CreateSegment(origSeg.GetSegmentValue()&mask, origSeg.GetUpperSegmentValue()&mask, origSeg.GetSegmentPrefixLen())
 			for ps := prefSeg + 1; ps < len(segs); ps++ {
@@ -5387,7 +5388,7 @@ func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 		} else {
 			//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 			origSeg := segs[prefSeg]
-			mask := origSeg.GetSegmentNetworkMask(*pref % directAddress.GetBitsPerSegment())
+			mask := origSeg.GetSegmentNetworkMask(pref.Len() % directAddress.GetBitsPerSegment())
 			//maxValue := directAddress.GetMaxSegmentValue()
 			directAddress = creator.NewIPAddressFromPrefixedVals(
 				func(segmentIndex int) ipaddr.SegInt {

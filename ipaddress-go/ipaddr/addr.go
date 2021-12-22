@@ -160,7 +160,7 @@ func (addr *addressInternal) IsSinglePrefixBlock() bool {
 
 func (addr *addressInternal) IsPrefixBlock() bool {
 	prefLen := addr.GetPrefixLen()
-	return prefLen != nil && addr.section.ContainsPrefixBlock(*prefLen)
+	return prefLen != nil && addr.section.ContainsPrefixBlock(prefLen.bitCount())
 }
 
 func (addr *addressInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
@@ -523,7 +523,7 @@ func (addr *addressInternal) assignPrefixForSingleBlock() *Address {
 	if newPrefix == nil {
 		return nil
 	}
-	return addr.checkIdentity(addr.section.setPrefixLen(*newPrefix))
+	return addr.checkIdentity(addr.section.setPrefixLen(newPrefix.bitCount()))
 }
 
 // Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
@@ -579,7 +579,7 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 	} else {
 		useOriginal = addr.GetPrefixCount().Cmp(bigOneConst()) == 0
 	}
-	prefLength := *prefLen
+	prefLength := prefLen.bitCount()
 	bitsPerSeg := addr.GetBitsPerSegment()
 	bytesPerSeg := addr.GetBytesPerSegment()
 	networkSegIndex := getNetworkSegmentIndex(prefLength, bytesPerSeg, bitsPerSeg)
@@ -597,7 +597,7 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 				}
 				segPref := getPrefixedSegmentPrefixLength(bitsPerSeg, prefLength, index)
 				//return address.GetSegment(index).prefixBlockIterator() //call prefixedBlockIterator xxx for mac this is wrong , need to pass in the prefix len
-				return seg.prefixedBlockIterator(*segPref)
+				return seg.prefixedBlockIterator(segPref.bitCount())
 			}
 		} else {
 			hostSegIteratorProducer = func(index int) SegmentIterator {
@@ -607,7 +607,7 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 				}
 				segPref := getPrefixedSegmentPrefixLength(bitsPerSeg, prefLength, index)
 				//return address.GetSegment(index).prefixIterator() // call prefixedIterator xxx for mac this is wrong , need to pass in the prefix len
-				return seg.prefixedIterator(*segPref)
+				return seg.prefixedIterator(segPref.bitCount())
 			}
 		}
 		iterator = segmentsIterator(

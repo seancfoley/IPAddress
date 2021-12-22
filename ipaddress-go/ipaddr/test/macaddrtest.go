@@ -819,10 +819,10 @@ func prefixAdjust(existing ipaddr.PrefixLen, max, adj ipaddr.BitCount) ipaddr.Pr
 	if existing == nil {
 		return nil
 	}
-	if *existing > max {
+	if existing.Len() > max {
 		return nil
 	}
-	res := *existing + adj
+	res := existing.Len() + adj
 	if res < 0 {
 		return cacheTestBits(0)
 	}
@@ -1028,7 +1028,7 @@ func (t macAddressTester) testPrefix(original string, prefixLength, equivalentPr
 	mac := t.createMACAddress(original).GetAddress()
 	var bc = mac.GetBitCount()
 	if prefixLength != nil {
-		bc = *prefixLength
+		bc = prefixLength.Len()
 	}
 	t.testBase.testPrefix(mac, prefixLength, bc, equivalentPrefix)
 	t.incrementTestCount()

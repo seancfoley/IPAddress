@@ -2695,7 +2695,7 @@ func chooseIPAddressProvider(
 				if version.IsIndeterminate() {
 					version = validationOptions.GetPreferredVersion()
 				}
-				prefLen := *networkPrefixLength
+				prefLen := networkPrefixLength.bitCount()
 				if validationOptions == defaultIPAddrParameters && prefLen <= IPv6BitCount {
 					index := 0
 					if version.IsIPv4() {

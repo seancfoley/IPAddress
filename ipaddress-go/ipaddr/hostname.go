@@ -334,7 +334,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 							addrs = append(addrs, ipv6Addr.ToIP())
 						}
 					} else if byteLen == IPv4ByteCount {
-						if networkPrefixLength != nil && *networkPrefixLength > IPv4BitCount {
+						if networkPrefixLength != nil && networkPrefixLength.bitCount() > IPv4BitCount {
 							networkPrefixLength = cacheBitCount(IPv4BitCount)
 						}
 						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedBytes(ip, networkPrefixLength) // AddressValueError
@@ -512,7 +512,7 @@ func (host *HostName) toNormalizedString(wildcard, addTrailingDot bool) string {
 			networkPrefixLength := host.parsedHost.getEquivalentPrefixLen()
 			if networkPrefixLength != nil {
 				builder.WriteByte(PrefixLenSeparator)
-				toUnsignedString(uint64(*networkPrefixLength), 10, &builder)
+				toUnsignedString(uint64(networkPrefixLength.bitCount()), 10, &builder)
 			} else {
 				mask := host.parsedHost.getMask()
 				if mask != nil {
@@ -849,7 +849,7 @@ func (host *HostName) Compare(other *HostName) int {
 				if networkPrefixLength != nil {
 					if otherPrefixLength != nil {
 						if *networkPrefixLength != *otherPrefixLength {
-							return int(*otherPrefixLength - *networkPrefixLength)
+							return int(otherPrefixLength.bitCount() - networkPrefixLength.bitCount())
 						}
 						//fall through to compare ports
 					} else {

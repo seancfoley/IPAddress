@@ -89,7 +89,7 @@ top:
 		if prefixLen == nil {
 			matchBitIndex = bitCount - 1
 		} else {
-			matchBitIndex = *prefixLen - 1
+			matchBitIndex = prefixLen.bitCount() - 1
 		}
 		var lastMatchSegmentIndex, lastBitSegmentIndex int
 		if matchBitIndex != 0 {

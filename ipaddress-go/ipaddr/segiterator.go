@@ -133,7 +133,7 @@ func segIterator(
 		isBlockIterator = false
 	}
 	if isPrefixIterator {
-		prefLen := *segmentPrefixLength
+		prefLen := segmentPrefixLength.bitCount()
 		prefLen = checkBitCount(bitCount, prefLen)
 		shiftAdjustment = bitCount - prefLen
 		shiftMask = ^SegInt(0) << uint(shiftAdjustment)

@@ -308,7 +308,7 @@ func (section *IPv4AddressSection) GetIPv4PrefixCount() uint64 {
 	if prefixLength == nil {
 		return section.GetIPv4Count()
 	}
-	return section.GetIPv4PrefixCountLen(*prefixLength)
+	return section.GetIPv4PrefixCountLen(prefixLength.bitCount())
 }
 
 func (section *IPv4AddressSection) GetIPv4Count() uint64 {
@@ -1078,7 +1078,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 		if prefix == nil {
 			thisSegPrefix := thisSeg.getDivisionPrefixLength()
 			if thisSegPrefix != nil {
-				prefix = cacheBitCount(networkPrefixLength + *thisSegPrefix)
+				prefix = cacheBitCount(networkPrefixLength + thisSegPrefix.bitCount())
 			} else {
 				networkPrefixLength += thisSeg.getBitCount()
 			}

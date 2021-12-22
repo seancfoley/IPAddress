@@ -233,7 +233,7 @@ func (section *MACAddressSection) IsPrefixed() bool {
 
 func (section *MACAddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
-		return section.GetPrefixCountLen(*section.GetPrefixLen())
+		return section.GetPrefixCountLen(section.GetPrefixLen().bitCount())
 	})
 }
 
@@ -249,7 +249,7 @@ func (section *MACAddressSection) GetPrefixCountLen(prefixLen BitCount) *big.Int
 		return count(func(index int) uint64 {
 			if (networkSegmentIndex == hostSegmentIndex) && index == networkSegmentIndex {
 				segmentPrefixLength := getPrefixedSegmentPrefixLength(section.GetBitsPerSegment(), prefixLen, index)
-				return getPrefixValueCount(section.GetSegment(index).ToSegmentBase(), *segmentPrefixLength)
+				return getPrefixValueCount(section.GetSegment(index).ToSegmentBase(), segmentPrefixLength.bitCount())
 			}
 			return section.GetSegment(index).GetValueCount()
 		}, networkSegmentIndex+1, 6, 0x7fffffffffffff)

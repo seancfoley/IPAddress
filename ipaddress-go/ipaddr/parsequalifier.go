@@ -33,7 +33,7 @@ func (parsedQual *parsedHostIdentifierStringQualifier) clearPrefixOrMask() {
 
 func (parsedQual *parsedHostIdentifierStringQualifier) merge(other *parsedHostIdentifierStringQualifier) (err IncompatibleAddressError) {
 	if parsedQual.networkPrefixLength == nil ||
-		(other.networkPrefixLength != nil && *other.networkPrefixLength < *parsedQual.networkPrefixLength) {
+		(other.networkPrefixLength != nil && other.networkPrefixLength.bitCount() < parsedQual.networkPrefixLength.bitCount()) {
 		parsedQual.networkPrefixLength = other.networkPrefixLength
 	}
 	if parsedQual.mask == nil {
@@ -94,7 +94,7 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getService() string {
 
 func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions IPAddressStringParameters) IPVersion {
 	if parsedQual.networkPrefixLength != nil {
-		if *parsedQual.networkPrefixLength > IPv4BitCount &&
+		if parsedQual.networkPrefixLength.bitCount() > IPv4BitCount &&
 			!validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize() {
 			return IPv6
 		}

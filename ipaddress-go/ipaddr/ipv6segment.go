@@ -32,7 +32,7 @@ const useIPv6SegmentCache = true
 type ipv6SegmentValues struct {
 	value      IPv6SegInt
 	upperValue IPv6SegInt
-	prefLen    PrefixLen //TODO maybe use one prefixlen type for api, and a second here to restrict the size of the int
+	prefLen    PrefixLen
 	cache      divCache
 }
 
@@ -732,7 +732,7 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 	if prefLen == nil {
 		return newIPv6SegmentVal(value)
 	}
-	prefixIndex := *prefLen
+	prefixIndex := prefLen.bitCount()
 	if prefixIndex < 0 {
 		prefixIndex = 0
 	} else if prefixIndex > IPv6BitsPerSegment {
@@ -807,11 +807,11 @@ func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TO
 		seg := newIPv6Segment(result)
 		var isSinglePBlock bool
 		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
 		}
 		if isSinglePBlock != *result.cache.isSinglePrefBlock {
 			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
 			}
 			panic("why")
 		}
@@ -826,11 +826,11 @@ func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { 
 		seg := newIPv4Segment(result)
 		var isSinglePBlock bool
 		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
 		}
 		if isSinglePBlock != *result.cache.isSinglePrefBlock {
 			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), *prefLen)
+				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
 			}
 			panic("why")
 		}
@@ -855,7 +855,7 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 		} else if value > upperValue {
 			value, upperValue = upperValue, value
 		}
-		prefixIndex := *prefLen
+		prefixIndex := prefLen.bitCount()
 		if prefixIndex < 0 {
 			prefixIndex = 0
 		} else if prefixIndex > IPv6BitsPerSegment {

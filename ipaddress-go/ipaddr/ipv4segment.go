@@ -32,7 +32,7 @@ const useIPv4SegmentCache = true
 type ipv4SegmentValues struct {
 	value      IPv4SegInt
 	upperValue IPv4SegInt
-	prefLen    PrefixLen //TODO maybe use one prefixlen type for api, and a second here to restrict the size of the int
+	prefLen    PrefixLen
 	cache      divCache
 }
 
@@ -364,10 +364,11 @@ func (seg *IPv4AddressSegment) getJoinedSegmentPrefixLen(lowBits PrefixLen) Pref
 	if lowBits == nil {
 		return nil
 	}
-	if *lowBits == 0 {
+	lowBitCount := lowBits.bitCount()
+	if lowBitCount == 0 {
 		return highBits
 	}
-	return cacheBitCount(*lowBits + IPv4BitsPerSegment)
+	return cacheBitCount(lowBitCount + IPv4BitsPerSegment)
 }
 
 func (seg *IPv4AddressSegment) ToDiv() *AddressDivision {
@@ -507,7 +508,7 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 	if prefLen == nil {
 		return newIPv4SegmentVal(value)
 	}
-	segmentPrefixLength := *prefLen
+	segmentPrefixLength := prefLen.bitCount()
 	if segmentPrefixLength < 0 {
 		segmentPrefixLength = 0
 	} else if segmentPrefixLength > IPv4BitsPerSegment {
@@ -578,7 +579,7 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 		} else if value > upperValue {
 			value, upperValue = upperValue, value
 		}
-		segmentPrefixLength := *prefLen
+		segmentPrefixLength := prefLen.bitCount()
 		if segmentPrefixLength < 0 {
 			segmentPrefixLength = 0
 		} else if segmentPrefixLength > IPv4BitsPerSegment {

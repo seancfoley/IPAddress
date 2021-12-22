@@ -613,7 +613,7 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 	var addr *IPAddress
 	var err IncompatibleAddressError
 	if adjustment < 0 && isPrefBlock {
-		if prefix != nil && *prefix+adjustment < 0 {
+		if prefix != nil && prefix.bitCount()+adjustment < 0 {
 			return NewIPAddressStringParams(SegmentWildcardStr, addrStr.params), nil
 		}
 		addr, err = address.AdjustPrefixLenZeroed(adjustment)
