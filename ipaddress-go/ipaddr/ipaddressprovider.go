@@ -870,13 +870,9 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //	}
 
 // TODO NEXT progress
-// lsit of larger-size todos:
-// - prefixLen change
+// list of larger-size todos:
 // - portnum change which is similar
-// - we ask whether args of type BitCount should be int.  ipv6section.go  After some thought, this can be linked to PrefixLen change
 //
-//
-// - all the TODOs I have piled up (excluding anything LATER)
 // - then you need some concurrency testing (do we really? I guess, maybe a simple test of the atomic write I always use is enough, yeah!!! write and read the same field from 1000 goroutines using that technique) - use a map of addresses and the addresses.go framework and the existing tests
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too

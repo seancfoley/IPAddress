@@ -63,13 +63,13 @@ func cacheBits(i int) PrefixLen {
 // so negative bit counts or bit counts larger than address size are meaningless.
 //type BitCount = int
 //
-//type bitCountInternal = int16 // using signed integers allows for easier arithmetic and decrement bugs
+//type bitCount = int16 // using signed integers allows for easier arithmetic and decrement bugs
 
 // A PrefixLen indicates the numnber of bits in the prefix of an address, address section, or address segment.
 // The zero value is the absence of a prefix, in which case isNil() returns true.
 //type PrefixLen struct {
 //	isSet    bool
-//	bitCount bitCountInternal
+//	bitCount bitCount
 //}
 
 /*
@@ -77,7 +77,7 @@ This solution is the best for several reasons:
 1. We can represent the absence of prefix length with nil
 2. Prefix lengths are immutable thanks to the private member
 3. BitCounts, being equivalent to int, can take int args
-4. bitCountInternal saves space in our data structures
+4. bitCount saves space in our data structures
 This solves all our requirements, and is the only solution to do so, specifically #1.
 */
 
@@ -85,22 +85,17 @@ This solves all our requirements, and is the only solution to do so, specificall
 // The zero value, which is nil, indicates that there is no prefix length.
 type PrefixLen = *PrefixBitCount
 
-type bitCountInternal = uint8
+type BitCount = int // using signed integers allows for easier arithmetic
+type bitCount = uint8
 
 const maxBitCountInternal, minBitCountInternal = math.MaxUint8, 0
-
-//type bitCountInternal = int16 n
-//
-//const maxBitCountInternal = math.MaxInt16
-
-type BitCount = int
 
 func ToBitCountString(i BitCount) string {
 	return strconv.Itoa(i)
 }
 
-type PrefixBitCount struct {
-	bCount bitCountInternal
+type PrefixBitCount struct { //TODO look into whether PrefixBitCount needs to be public.  Are the methods still accessible?  What does it look like in the godocs?
+	bCount bitCount
 }
 
 // Len() returns the length of the prefix.  If the receiver is nil, representing the absence of a prefix length, returns 0.
@@ -144,7 +139,7 @@ func (p *PrefixBitCount) Matches(other BitCount) bool {
 }
 
 // Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
-// This method is intended for the PrefixLen type.  BitCount values should be compared with ==, >, <, >= amd <= operators.
+// This method is intended for the PrefixLen type.  BitCount values should be compared with ==, >, <, >= and <= operators.
 func (p *PrefixBitCount) Compare(other PrefixLen) int {
 	if p == nil {
 		if other == nil {
@@ -217,7 +212,7 @@ var cachedPrefixBitCounts, cachedPrefixLens = initPrefLens()
 func initPrefLens() ([]PrefixBitCount, []PrefixLen) {
 	cachedPrefBitcounts := make([]PrefixBitCount, IPv6BitCount+1)
 	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
-	for i := bitCountInternal(0); i <= IPv6BitCount; i++ {
+	for i := bitCount(0); i <= IPv6BitCount; i++ {
 		cachedPrefBitcounts[i] = PrefixBitCount{i}
 		cachedPrefLens[i] = &cachedPrefBitcounts[i]
 	}
@@ -226,8 +221,8 @@ func initPrefLens() ([]PrefixBitCount, []PrefixLen) {
 
 // ToPrefixLen creates a prefix length.  A prefix length can only range from 0 to 255,
 // although in practice it really only makes sense to have a prefix length that is no larger than the item (such as an address) with the prefix.
-// If bit count is negative, the resulting prefix length will be zero.
-// If bit count is larger than 255, the resulting prefix length will be 255.
+// If bit count argument is negative, the resulting prefix length will be zero.
+// If bit count argument is larger than 255, the resulting prefix length will be 255.
 func ToPrefixLen(i BitCount) PrefixLen {
 	if i < minBitCountInternal {
 		i = minBitCountInternal
@@ -238,7 +233,7 @@ func ToPrefixLen(i BitCount) PrefixLen {
 	if i > maxBitCountInternal {
 		i = maxBitCountInternal
 	}
-	return &PrefixBitCount{bitCountInternal(i)}
+	return &PrefixBitCount{bitCount(i)}
 }
 
 func cacheBitCount(i BitCount) PrefixLen {
@@ -255,13 +250,13 @@ func cachePrefix(i BitCount) *PrefixLen {
 	if i > maxBitCountInternal {
 		i = maxBitCountInternal
 	}
-	res := &PrefixBitCount{bitCountInternal(i)}
+	res := &PrefixBitCount{bitCount(i)}
 	return &res
 }
 
 //func initPrefLens() []PrefixLen {
 //	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
-//	for i := bitCountInternal(0); i <= IPv6BitCount; i++ {
+//	for i := bitCount(0); i <= IPv6BitCount; i++ {
 //		cachedPrefLens[i] = PrefixLen{
 //			isSet:    true,
 //			bitCount: i,
@@ -283,7 +278,7 @@ func cachePrefix(i BitCount) *PrefixLen {
 //	}
 //	return PrefixLen{
 //		isSet:    true,
-//		bitCount: bitCountInternal(i),
+//		bitCount: bitCount(i),
 //	}
 //	//bc := i
 //	//return &bc
@@ -303,27 +298,75 @@ func cacheNilPrefix() *PrefixLen {
 	return &p
 }
 
-//TODO Port has the same problems as PrefixLen and needs the same conversion
-type Port = *PortNum // using signed integers allows for easier arithmetic and decrement bugs
-type PortNum uint16
+type Port = *PortVal //TODO look into whether PortVal needs to be public.  Are the methods still accessible?  What does it look like in the godocs?
 
-// Equal compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
-func (p *PortNum) Equal(other *PortNum) bool {
+type PortNum = int // using signed integers allows for easier arithmetic
+type portNum = uint16
+
+const maxPortNumInternal, minPortNumInternal = math.MaxUint16, 0
+
+type PortVal struct {
+	port portNum
+}
+
+func (p *PortVal) portNum() PortNum {
+	return PortNum(p.port)
+}
+
+func (p *PortVal) PortNum() PortNum {
+	if p == nil {
+		return 0
+	}
+	return PortNum(p.port)
+}
+
+// Equal compares two Port values for equality.
+func (p *PortVal) Equal(other Port) bool {
 	if p == nil {
 		return other == nil
 	}
-	return other != nil && *p == *other
+	return other != nil && p.portNum() == other.portNum()
 }
 
-func (p *PortNum) String() string {
+// Matches compares a Port value with a port number
+func (p *PortVal) Matches(other PortNum) bool {
+	return p != nil && p.portNum() == other
+}
+
+// Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
+func (p *PortVal) Compare(other Port) int {
+	if p == nil {
+		if other == nil {
+			return 0
+		}
+		return -1
+	} else if other == nil {
+		return 1
+	}
+	return p.portNum() - other.portNum()
+}
+
+func (p *PortVal) String() string {
 	if p == nil {
 		return nilString()
 	}
-	return strconv.Itoa(int(*p))
+	return strconv.Itoa(p.portNum())
 }
 
 func cachePorts(i PortNum) Port {
-	return Port(&i)
+	return ToPort(i)
+}
+
+// ToPort creates a port for use with a HostName.  A prefix length can only range from 0 to 65535.
+// If the port number argument is negative, the resulting Port will be zero.
+// If the port number argument is larger than 65535, the resulting Port will be 65535.
+func ToPort(i PortNum) Port {
+	if i < minPortNumInternal {
+		i = minPortNumInternal
+	} else if i > maxPortNumInternal {
+		i = maxPortNumInternal
+	}
+	return &PortVal{portNum(i)}
 }
 
 func bigOne() *big.Int {

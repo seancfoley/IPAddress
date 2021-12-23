@@ -29,11 +29,11 @@ import (
 //type PrefixLen *PrefixBitCount
 //
 //type PrefixBitCount struct {
-//	bitCount bitCountInternal
+//	bitCount bitCount
 //}
 //
 //type BitCount = int
-//type bitCountInternal = int16
+//type bitCount = int16
 
 type addressDivisionGroupingBase struct {
 	// the non-cacheBitCountx elements are assigned at creation and are immutable

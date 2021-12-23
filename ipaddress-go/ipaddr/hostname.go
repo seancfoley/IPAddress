@@ -523,7 +523,7 @@ func (host *HostName) toNormalizedString(wildcard, addTrailingDot bool) string {
 		}
 		port := host.parsedHost.getPort()
 		if port != nil {
-			toNormalizedPortString(*port, &builder)
+			toNormalizedPortString(port.portNum(), &builder)
 		} else {
 			service := host.parsedHost.getService()
 			if service != "" {
@@ -745,7 +745,7 @@ func (host *HostName) ToNetTCPAddrService(serviceMapper func(string) Port) *net.
 			if addr := host.GetAddress(); addr != nil {
 				return &net.TCPAddr{
 					IP:   addr.GetNetIP(),
-					Port: int(*port),
+					Port: port.portNum(),
 					Zone: string(addr.zone),
 				}
 			}
@@ -883,17 +883,9 @@ func (host *HostName) Compare(other *HostName) int {
 			//two equivalent address strings or two equivalent hosts, now check port and service names
 			portOne := parsedHost.getPort()
 			portTwo := otherParsedHost.getPort()
-			if portOne != nil {
-				if portTwo != nil {
-					ret := *portOne - *portTwo
-					if ret != 0 {
-						return int(ret)
-					}
-				} else {
-					return 1
-				}
-			} else if portTwo != nil {
-				return -1
+			portRet := portOne.Compare(portTwo)
+			if portRet != 0 {
+				return portRet
 			}
 			serviceOne := parsedHost.getService()
 			serviceTwo := otherParsedHost.getService()

@@ -432,14 +432,22 @@ func (t hostTester) run() {
 	portNum123 := ipaddr.PortNum(123)
 	portNum48888 := ipaddr.PortNum(48888)
 
-	port1 := &portNum1
-	port3 := &portNum3
-	port33 := &portNum33
-	//port35 := &portNum35
-	port45 := &portNum45
-	port80 := &portNum80
-	port123 := &portNum123
-	port48888 := &portNum48888
+	port1 := ipaddr.ToPort(portNum1)
+	port3 := ipaddr.ToPort(portNum3)
+	port33 := ipaddr.ToPort(portNum33)
+	port45 := ipaddr.ToPort(portNum45)
+	port80 := ipaddr.ToPort(portNum80)
+	port123 := ipaddr.ToPort(portNum123)
+	port48888 := ipaddr.ToPort(portNum48888)
+
+	//port1 := &portNum1
+	//port3 := &portNum3
+	//port33 := &portNum33
+	////port35 := &portNum35
+	//port45 := &portNum45
+	//port80 := &portNum80
+	//port123 := &portNum123
+	//port48888 := &portNum48888
 
 	//TODO LATER ipv6 literal addresses from hosts
 	//t.testHostAddressPortZone("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", nil, "")
@@ -592,14 +600,16 @@ func (t hostTester) run() {
 	t.testHostInetSocketAddressService("1.2.3.4:http", func(s string) ipaddr.Port {
 		if s == "http" {
 			port80 := ipaddr.PortNum(80)
-			return &port80
+			return ipaddr.ToPort(port80)
+			//return &port80
 		}
 		return nil
 	}, "1.2.3.4", 80)
 	t.testHostInetSocketAddressSA("1.2.3.4:http", func(s string) ipaddr.Port {
 		if s == "htt" {
 			port80 := ipaddr.PortNum(80)
-			return &port80
+			return ipaddr.ToPort(port80)
+			//return &port80
 		}
 		return nil
 	}, nil)
@@ -979,11 +989,11 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 	if addressExpected != nil && addrHost != nil {
 		if serviceExpected == "" {
 			if portExpected != nil {
-				h2 := ipaddr.NewHostNameFromAddrPort(addrHost, int(*portExpected))
+				h2 := ipaddr.NewHostNameFromAddrPort(addrHost, portExpected.PortNum())
 				if !h2.Equal(hostName) {
 					t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 				}
-				h3 := ipaddr.NewHostNameFromAddrPort(addressExpected, int(*portExpected))
+				h3 := ipaddr.NewHostNameFromAddrPort(addressExpected, portExpected.PortNum())
 				if !h3.Equal(hostName) {
 					t.addFailure(newHostFailure("failed: host is "+h3.String(), hostName))
 				}
