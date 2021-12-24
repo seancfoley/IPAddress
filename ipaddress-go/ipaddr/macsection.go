@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 )
 
@@ -23,7 +24,7 @@ func createMACSection(segments []*AddressDivision) *MACAddressSection {
 }
 
 //// error returned for invalid segment count, nil sements, segments with invalid bit size, or inconsistent prefixes
-//func newMACSection(segments []*AddressDivision) (res *MACAddressSection, err AddressValueError) {
+//func newMACSection(segments []*AddressDivision) (res *MACAddressSection, err addrerr.AddressValueError) {
 //	segsLen := len(segments)
 //	if segsLen > ExtendedUniqueIdentifier64SegmentCount {
 //		err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
@@ -99,7 +100,7 @@ func newMACSectionEUI(segments []*AddressDivision) (res *MACAddressSection) {
 	return
 }
 
-func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSection, err AddressValueError) {
+func NewMACSectionFromBytes(bytes []byte, segmentCount int) (res *MACAddressSection, err addrerr.AddressValueError) {
 	if segmentCount < 0 {
 		segmentCount = len(bytes)
 	}
@@ -276,7 +277,7 @@ func (section *MACAddressSection) SetPrefixLen(prefixLen BitCount) *MACAddressSe
 	return section.setPrefixLen(prefixLen).ToMAC()
 }
 
-func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddressSection, IncompatibleAddressError) {
+func (section *MACAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
 	return res.ToMAC(), err
 }
@@ -285,7 +286,7 @@ func (section *MACAddressSection) AdjustPrefixLen(prefixLen BitCount) *AddressSe
 	return section.adjustPrefixLen(prefixLen).ToSectionBase()
 }
 
-func (section *MACAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
+func (section *MACAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.adjustPrefixLenZeroed(prefixLen)
 	return res.ToSectionBase(), err
 }
@@ -488,7 +489,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 	//return nil
 }
 
-func (section *MACAddressSection) ReverseBits(perByte bool) (*MACAddressSection, IncompatibleAddressError) {
+func (section *MACAddressSection) ReverseBits(perByte bool) (*MACAddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.reverseBits(perByte)
 	return res.ToMAC(), err
 }
@@ -512,7 +513,7 @@ func (section *MACAddressSection) ReverseSegments() *MACAddressSection {
 		return section
 	}
 	res, _ := section.reverseSegments(
-		func(i int) (*AddressSegment, IncompatibleAddressError) {
+		func(i int) (*AddressSegment, addrerr.IncompatibleAddressError) {
 			return section.GetSegment(i).ToSegmentBase(), nil
 		},
 	)
@@ -551,21 +552,21 @@ var (
 	spaceDelimitedParams = new(MACStringOptionsBuilder).SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
 )
 
-func (section *MACAddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (section *MACAddressSection) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toHexString(with0xPrefix)
 }
 
-func (section *MACAddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (section *MACAddressSection) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toOctalString(with0Prefix)
 }
 
-func (section *MACAddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (section *MACAddressSection) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
@@ -619,7 +620,7 @@ func (section *MACAddressSection) ToCompressedString() string {
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
-func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressError) {
+func (section *MACAddressSection) ToDottedString() (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
@@ -632,12 +633,12 @@ func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressE
 		return toNormalizedString(dottedParams, dottedGrouping), nil
 	}
 	return cacheStrErr(&cache.dottedString,
-		func() (string, IncompatibleAddressError) {
+		func() (string, addrerr.IncompatibleAddressError) {
 			return toNormalizedString(dottedParams, dottedGrouping), nil
 		})
 }
 
-//func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping, IncompatibleAddressError) {
+//func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,addrerr.IncompatibleAddressError) {
 //	segmentCount := section.GetSegmentCount()
 //	//AddressDivision newSegs[];
 //	origBitsPerSegment := section.GetBitsPerSegment()
@@ -692,7 +693,7 @@ func (section *MACAddressSection) ToDottedString() (string, IncompatibleAddressE
 //	return dottedGrouping, nil
 //}
 
-func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping, IncompatibleAddressError) {
+func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping, addrerr.IncompatibleAddressError) {
 	//start := section.addressSegmentIndex
 	segmentCount := section.GetSegmentCount()
 	var newSegs []*AddressDivision
@@ -744,7 +745,7 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 		segIndex++
 		if segment1.isMultiple() && !segment2.IsFullRange() {
 			return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.invalid.joined.ranges"}}
-			//throw new IncompatibleAddressError(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
+			//throw newaddrerr.IncompatibleAddressError(segment1, segIndex - 2, segment2, segIndex - 1, "ipaddress.error.invalid.joined.ranges");
 		}
 		val := (segment1.GetSegmentValue() << uint(bitsPerSeg)) | segment2.GetSegmentValue()
 		upperVal := (segment1.GetUpperSegmentValue() << uint(bitsPerSeg)) | segment2.GetUpperSegmentValue()

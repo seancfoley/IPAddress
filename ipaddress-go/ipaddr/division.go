@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -660,7 +661,7 @@ func (div *addressDivisionInternal) getSplitLowerString(radix int, choppedDigits
 }
 
 func (div *addressDivisionInternal) getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
-	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressError {
+	splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) addrerr.IncompatibleAddressError {
 	return toUnsignedSplitRangeString(
 		div.getDivisionValue(),
 		div.getUpperDivisionValue(),
@@ -1036,7 +1037,7 @@ func cacheStr(cachedString **string, stringer func() string) (str string) {
 	return
 }
 
-func cacheStrErr(cachedString **string, stringer func() (string, IncompatibleAddressError)) (str string, err IncompatibleAddressError) {
+func cacheStrErr(cachedString **string, stringer func() (string, addrerr.IncompatibleAddressError)) (str string, err addrerr.IncompatibleAddressError) {
 	cachedVal := *cachedString
 	if cachedVal == nil {
 		str, err = stringer()

@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"sync/atomic"
 	"unsafe"
 )
@@ -41,11 +42,11 @@ const (
 type ipAddressProvider interface {
 	getType() ipType
 
-	getProviderHostAddress() (*IPAddress, IncompatibleAddressError)
+	getProviderHostAddress() (*IPAddress, addrerr.IncompatibleAddressError)
 
-	getProviderAddress() (*IPAddress, IncompatibleAddressError)
+	getProviderAddress() (*IPAddress, addrerr.IncompatibleAddressError)
 
-	getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError)
+	getVersionedAddress(version IPVersion) (*IPAddress, addrerr.IncompatibleAddressError)
 
 	isSequential() bool
 
@@ -54,13 +55,13 @@ type ipAddressProvider interface {
 	getProviderMask() *IPAddress
 
 	// TODO LATER getDivisionGrouping
-	//default IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressError {
+	//default IPAddressDivisionSeries getDivisionGrouping() throwsaddrerr.IncompatibleAddressError {
 	//	return getProviderAddress();
 	//}
 
-	providerCompare(ipAddressProvider) (int, IncompatibleAddressError)
+	providerCompare(ipAddressProvider) (int, addrerr.IncompatibleAddressError)
 
-	providerEquals(ipAddressProvider) (bool, IncompatibleAddressError)
+	providerEquals(ipAddressProvider) (bool, addrerr.IncompatibleAddressError)
 
 	getProviderIPVersion() IPVersion
 
@@ -137,11 +138,11 @@ func (p *ipAddrProvider) isSequential() bool {
 	return false
 }
 
-func (p *ipAddrProvider) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
+func (p *ipAddrProvider) getProviderHostAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	return nil, nil
 }
 
-func (p *ipAddrProvider) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
+func (p *ipAddrProvider) getProviderAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -149,7 +150,7 @@ func (p *ipAddrProvider) getProviderSeqRange() *IPAddressSeqRange {
 	return nil
 }
 
-func (p *ipAddrProvider) getVersionedAddress(_ IPVersion) (*IPAddress, IncompatibleAddressError) {
+func (p *ipAddrProvider) getVersionedAddress(_ IPVersion) (*IPAddress, addrerr.IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -229,7 +230,7 @@ func (p *ipAddrProvider) parsedEquals(ipAddressProvider) boolSetting {
 	return boolSetting{}
 }
 
-func providerCompare(p, other ipAddressProvider) (res int, err IncompatibleAddressError) {
+func providerCompare(p, other ipAddressProvider) (res int, err addrerr.IncompatibleAddressError) {
 	if p == other {
 		return
 	}
@@ -259,7 +260,7 @@ func providerCompare(p, other ipAddressProvider) (res int, err IncompatibleAddre
 * @param o
 * @return
  */
-func providerEquals(p, other ipAddressProvider) (res bool, err IncompatibleAddressError) {
+func providerEquals(p, other ipAddressProvider) (res bool, err addrerr.IncompatibleAddressError) {
 	if p == other {
 		res = true
 		return
@@ -309,11 +310,11 @@ func (p *nullProvider) getType() ipType {
 	return p.ipType
 }
 
-func (p *nullProvider) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+func (p *nullProvider) providerCompare(other ipAddressProvider) (int, addrerr.IncompatibleAddressError) {
 	return providerCompare(p, other)
 }
 
-func (p *nullProvider) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+func (p *nullProvider) providerEquals(other ipAddressProvider) (bool, addrerr.IncompatibleAddressError) {
 	return providerEquals(p, other)
 }
 
@@ -335,23 +336,23 @@ type addressResult struct {
 	address, hostAddress *IPAddress
 
 	// addrErr applies to address, hostErr to hostAddress
-	addrErr, hostErr IncompatibleAddressError
+	addrErr, hostErr addrerr.IncompatibleAddressError
 }
 
 type cachedAddressProvider struct {
 	ipAddrProvider
 
 	// addressCreator creates two addresses, the host address and address with prefix/mask, at the same time
-	addressCreator func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError)
+	addressCreator func() (address, hostAddress *IPAddress, addrErr, hosterr addrerr.IncompatibleAddressError)
 
 	addresses *addressResult
 }
 
-func (cached *cachedAddressProvider) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+func (cached *cachedAddressProvider) providerCompare(other ipAddressProvider) (int, addrerr.IncompatibleAddressError) {
 	return providerCompare(cached, other)
 }
 
-func (cached *cachedAddressProvider) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+func (cached *cachedAddressProvider) providerEquals(other ipAddressProvider) (bool, addrerr.IncompatibleAddressError) {
 	return providerEquals(cached, other)
 }
 
@@ -359,7 +360,7 @@ func (cached *cachedAddressProvider) isProvidingIPAddress() bool {
 	return true
 }
 
-func (cached *cachedAddressProvider) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+func (cached *cachedAddressProvider) getVersionedAddress(version IPVersion) (*IPAddress, addrerr.IncompatibleAddressError) {
 	thisVersion := cached.getProviderIPVersion()
 	if version != thisVersion {
 		return nil, nil
@@ -387,7 +388,7 @@ func (cached *cachedAddressProvider) isSequential() bool {
 //	return cached.addressCreator == nil || cached.isItemCreated()
 //}
 
-func (cached *cachedAddressProvider) getProviderHostAddress() (res *IPAddress, err IncompatibleAddressError) {
+func (cached *cachedAddressProvider) getProviderHostAddress() (res *IPAddress, err addrerr.IncompatibleAddressError) {
 	addrs := cached.addresses
 	if addrs == nil {
 		_, res, _, err = cached.getCachedAddresses() // sets cached.addresses
@@ -397,7 +398,7 @@ func (cached *cachedAddressProvider) getProviderHostAddress() (res *IPAddress, e
 	return
 }
 
-func (cached *cachedAddressProvider) getProviderAddress() (res *IPAddress, err IncompatibleAddressError) {
+func (cached *cachedAddressProvider) getProviderAddress() (res *IPAddress, err addrerr.IncompatibleAddressError) {
 	addrs := cached.addresses
 	if addrs == nil {
 		res, _, err, _ = cached.getCachedAddresses() // sets cached.addresses
@@ -407,7 +408,7 @@ func (cached *cachedAddressProvider) getProviderAddress() (res *IPAddress, err I
 	return
 }
 
-func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
+func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress *IPAddress, addrErr, hostErr addrerr.IncompatibleAddressError) {
 	addrs := cached.addresses
 	if addrs == nil {
 		if cached.addressCreator != nil {
@@ -460,7 +461,7 @@ type versionedAddressCreator struct {
 
 	adjustedVersion IPVersion
 
-	versionedAddressCreatorFunc func(IPVersion) (*IPAddress, IncompatibleAddressError)
+	versionedAddressCreatorFunc func(IPVersion) (*IPAddress, addrerr.IncompatibleAddressError)
 
 	versionedValues [2]*IPAddress
 
@@ -491,7 +492,7 @@ func (versioned *versionedAddressCreator) getType() ipType {
 	return fromVersion(versioned.adjustedVersion)
 }
 
-func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err IncompatibleAddressError) {
+func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion) (addr *IPAddress, err addrerr.IncompatibleAddressError) {
 	index := version.index()
 	if index >= IndeterminateIPVersion.index() {
 		return
@@ -574,7 +575,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackC
 	var version = options.GetPreferredVersion()
 	addrCreator, versionedCreator := emptyAddressCreator(options.EmptyStrParsedAs(), version, zone)
 	cached := cachedAddressProvider{
-		addressCreator: func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
+		addressCreator: func() (address, hostAddress *IPAddress, addrErr, hosterr addrerr.IncompatibleAddressError) {
 			address, hostAddress = addrCreator()
 			return
 		},
@@ -594,7 +595,7 @@ func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackC
 		return vCreator()
 		//return versionedCreator() xxxxx
 	}
-	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, addrerr.IncompatibleAddressError) {
 		return versionedCreatorFunc(version), nil
 	}
 	return &loopbackCreator{
@@ -614,11 +615,11 @@ type loopbackCreator struct {
 	zone Zone
 }
 
-func (loop *loopbackCreator) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+func (loop *loopbackCreator) providerCompare(other ipAddressProvider) (int, addrerr.IncompatibleAddressError) {
 	return providerCompare(loop, other)
 }
 
-func (loop *loopbackCreator) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+func (loop *loopbackCreator) providerEquals(other ipAddressProvider) (bool, addrerr.IncompatibleAddressError) {
 	return providerEquals(loop, other)
 }
 
@@ -636,14 +637,14 @@ func (adjusted *adjustedAddressCreator) getProviderNetworkPrefixLen() PrefixLen 
 	return adjusted.networkPrefixLength
 }
 
-func (adjusted *adjustedAddressCreator) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
+func (adjusted *adjustedAddressCreator) getProviderAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	if !adjusted.isProvidingIPAddress() {
 		return nil, nil
 	}
 	return adjusted.versionedAddressCreator.getProviderAddress()
 }
 
-func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
+func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	if !adjusted.isProvidingIPAddress() {
 		return nil, nil
 	}
@@ -664,7 +665,7 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 		}
 		return nil
 	}
-	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, addrerr.IncompatibleAddressError) {
 		return createVersionedMask(version, networkPrefixLength, true), nil
 	}
 	maskCreatorFunc := func() (address, hostAddress *IPAddress) {
@@ -672,7 +673,7 @@ func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion
 		return createVersionedMask(adjustedVersion, prefLen, true),
 			createVersionedMask(adjustedVersion, prefLen, false)
 	}
-	addrCreator := func() (address, hostAddress *IPAddress, addrErr, hostErr IncompatibleAddressError) {
+	addrCreator := func() (address, hostAddress *IPAddress, addrErr, hosterr addrerr.IncompatibleAddressError) {
 		address, hostAddress = maskCreatorFunc()
 		return
 	}
@@ -727,11 +728,11 @@ func (all *allCreator) getType() ipType {
 	return allType
 }
 
-func (all *allCreator) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+func (all *allCreator) providerCompare(other ipAddressProvider) (int, addrerr.IncompatibleAddressError) {
 	return providerCompare(all, other)
 }
 
-func (all *allCreator) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+func (all *allCreator) providerEquals(other ipAddressProvider) (bool, addrerr.IncompatibleAddressError) {
 	return providerEquals(all, other)
 }
 
@@ -747,7 +748,7 @@ func (all *allCreator) getProviderMask() *IPAddress {
 	return all.qualifier.getMaskLower()
 }
 
-func (all *allCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
+func (all *allCreator) createAll() (rng *IPAddressSeqRange, addr *IPAddress, hostAddr *IPAddress, addrErr, hostErr addrerr.IncompatibleAddressError) {
 	rng = all.rng
 	addrs := all.addresses
 	if rng == nil || addrs == nil {
@@ -778,12 +779,12 @@ func (all *allCreator) createRange() (rng *IPAddressSeqRange) {
 	return
 }
 
-func (all *allCreator) createAddrs() (addr *IPAddress, hostAddr *IPAddress, addrErr IncompatibleAddressError, hostErr IncompatibleAddressError) {
+func (all *allCreator) createAddrs() (addr *IPAddress, hostAddr *IPAddress, addrErr, hostErr addrerr.IncompatibleAddressError) {
 	_, addr, hostAddr, addrErr, hostErr = all.createAll()
 	return
 }
 
-func (all *allCreator) versionedCreate(version IPVersion) (addr *IPAddress, addrErr IncompatibleAddressError) {
+func (all *allCreator) versionedCreate(version IPVersion) (addr *IPAddress, addrErr addrerr.IncompatibleAddressError) {
 	if version == all.adjustedVersion {
 		return all.getProviderAddress()
 	} else if all.adjustedVersion != IndeterminateIPVersion {
@@ -837,7 +838,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO LATER getDivisionGrouping()
 //
 //		@Override
-//		public IPAddressDivisionSeries getDivisionGrouping() throws IncompatibleAddressError {
+//		public IPAddressDivisionSeries getDivisionGrouping() throwsaddrerr.IncompatibleAddressError {
 //			if(isProvidingAllAddresses()) {
 //				return null;
 //			}
@@ -848,7 +849,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //				// there is a mask
 //				Integer hostMaskPrefixLen = mask.getBlockMaskPrefixLen(false);
 //				if(hostMaskPrefixLen == null) { // not a host mask
-//					throw new IncompatibleAddressError(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
+//					throw newaddrerr.IncompatibleAddressError(getProviderAddress(), mask, "ipaddress.error.maskMismatch");
 //				}
 //				IPAddress hostMask = network.getHostMask(hostMaskPrefixLen);
 //				return hostMask.toPrefixBlock();
@@ -870,12 +871,26 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //	}
 
 // TODO NEXT progress
-// list of larger-size todos:
-// - portnum change which is similar
 //
-// - then you need some concurrency testing (do we really? I guess, maybe a simple test of the atomic write I always use is enough, yeah!!! write and read the same field from 1000 goroutines using that technique) - use a map of addresses and the addresses.go framework and the existing tests
+// - some concurrency testing (do we really? I guess, maybe a simple test of the atomic write I always use is enough, yeah!!! write and read the same field from 1000 goroutines using that technique) - use a map of addresses and the addresses.go framework and the existing tests
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - go over the goland warnings, they do help a bit to find issues
 // - the go.mod file and any other module-related stuff
-//
+// - license at top of every source file
+
+// Look into splitting this up.  Can we move the framework into new package? iterators?
+// How do you group the constructors with their associated types?
+//  it seems that constructors with errors must use error for godoc to group them properly
+//	Are there ways around this?  Should we simplify our errors?  Group constructors into their own type (this is a lame idea)?
+// Can we make godoc recognize errors?
+// source might be here: https://github.com/golang/pkgsite/blob/51e9505d354ca32c3b505a62c0c143969000577d/internal/godoc/internal/doc/reader.go
+// note "fixlist" in above source
+// this line: https://github.com/golang/pkgsite/blob/51e9505d354ca32c3b505a62c0c143969000577d/internal/godoc/internal/doc/reader.go#L411
+// Code suggests that if imported, that would be influential
+// Yeah, I think that is key.  It is not about error.  It is about imported types.  ALso predeclared types, like int8, which also includes error too.
+// So moving them into another package would do the trick I think.
+// TODO iterators also go into separate package
+// TODO builders and params separated
+// pkgs: addrerr, addrfwork, addriter or iter, maybe addrformat
+// TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation

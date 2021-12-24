@@ -681,7 +681,7 @@ func (t macAddressRangeTester) testEquivalentMinPrefix(host string, equivPrefix 
 }
 
 func bitCountToString(i ipaddr.BitCount) string {
-	return ipaddr.ToBitCountString(i)
+	return strconv.Itoa(i)
 }
 
 func (t macAddressRangeTester) testMACCount(original string, number uint64) {

@@ -15,9 +15,9 @@ var (
 	trueVal  = true
 )
 
-func GetPrefixLen(i int) PrefixLen {
-	return cacheBits(i)
-}
+//func GetPrefixLen(i int) PrefixLen {
+//	return cacheBits(i)
+//}
 
 func cacheBits(i int) PrefixLen {
 	return cacheBitCount(BitCount(i))
@@ -90,11 +90,7 @@ type bitCount = uint8
 
 const maxBitCountInternal, minBitCountInternal = math.MaxUint8, 0
 
-func ToBitCountString(i BitCount) string {
-	return strconv.Itoa(i)
-}
-
-type PrefixBitCount struct { //TODO look into whether PrefixBitCount needs to be public.  Are the methods still accessible?  What does it look like in the godocs?
+type PrefixBitCount struct {
 	bCount bitCount
 }
 
@@ -298,30 +294,30 @@ func cacheNilPrefix() *PrefixLen {
 	return &p
 }
 
-type Port = *PortVal //TODO look into whether PortVal needs to be public.  Are the methods still accessible?  What does it look like in the godocs?
+type Port = *PortNum
 
-type PortNum = int // using signed integers allows for easier arithmetic
+type PortInt = int // using signed integers allows for easier arithmetic
 type portNum = uint16
 
 const maxPortNumInternal, minPortNumInternal = math.MaxUint16, 0
 
-type PortVal struct {
+type PortNum struct {
 	port portNum
 }
 
-func (p *PortVal) portNum() PortNum {
-	return PortNum(p.port)
+func (p *PortNum) portNum() PortInt {
+	return PortInt(p.port)
 }
 
-func (p *PortVal) PortNum() PortNum {
+func (p *PortNum) Num() PortInt {
 	if p == nil {
 		return 0
 	}
-	return PortNum(p.port)
+	return PortInt(p.port)
 }
 
 // Equal compares two Port values for equality.
-func (p *PortVal) Equal(other Port) bool {
+func (p *PortNum) Equal(other Port) bool {
 	if p == nil {
 		return other == nil
 	}
@@ -329,12 +325,12 @@ func (p *PortVal) Equal(other Port) bool {
 }
 
 // Matches compares a Port value with a port number
-func (p *PortVal) Matches(other PortNum) bool {
+func (p *PortNum) Matches(other PortInt) bool {
 	return p != nil && p.portNum() == other
 }
 
 // Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
-func (p *PortVal) Compare(other Port) int {
+func (p *PortNum) Compare(other Port) int {
 	if p == nil {
 		if other == nil {
 			return 0
@@ -346,27 +342,27 @@ func (p *PortVal) Compare(other Port) int {
 	return p.portNum() - other.portNum()
 }
 
-func (p *PortVal) String() string {
+func (p *PortNum) String() string {
 	if p == nil {
 		return nilString()
 	}
 	return strconv.Itoa(p.portNum())
 }
 
-func cachePorts(i PortNum) Port {
+func cachePorts(i PortInt) Port {
 	return ToPort(i)
 }
 
 // ToPort creates a port for use with a HostName.  A prefix length can only range from 0 to 65535.
 // If the port number argument is negative, the resulting Port will be zero.
 // If the port number argument is larger than 65535, the resulting Port will be 65535.
-func ToPort(i PortNum) Port {
+func ToPort(i PortInt) Port {
 	if i < minPortNumInternal {
 		i = minPortNumInternal
 	} else if i > maxPortNumInternal {
 		i = maxPortNumInternal
 	}
-	return &PortVal{portNum(i)}
+	return &PortNum{portNum(i)}
 }
 
 func bigOne() *big.Int {

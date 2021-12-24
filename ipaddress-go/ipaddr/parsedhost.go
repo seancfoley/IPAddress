@@ -6,12 +6,14 @@ import (
 	//	"unsafe"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 type embeddedAddress struct {
 	isUNCIPv6Literal, isReverseDNS bool
 
-	addressStringError AddressStringError
+	addressStringError addrerr.AddressStringError
 
 	addressProvider ipAddressProvider
 }
@@ -84,7 +86,7 @@ func (host *parsedHost) isAddressString() bool {
 	return host.getAddressProvider() != nil
 }
 
-func (host *parsedHost) asAddress() (*IPAddress, IncompatibleAddressError) {
+func (host *parsedHost) asAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	if host.hasEmbeddedAddress() {
 		return host.getAddressProvider().getProviderAddress()
 	}
@@ -197,7 +199,7 @@ func (host *parsedHost) getNormalizedLabels() []string {
 }
 
 /*
-	public AddressStringError getAddressStringException() { // this is an exception when something looks like reverse dns string or ip literal string and it is off a bit
+	public addrerr.AddressStringError getAddressStringException() { // this is an exception when something looks like reverse dns string or ip literal string and it is off a bit
 		return embeddedAddress.addressStringError;
 	}
 */

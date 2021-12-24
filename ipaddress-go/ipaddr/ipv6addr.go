@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"net"
 )
@@ -55,7 +56,7 @@ func newIPv6Address(section *IPv6AddressSection) *IPv6Address {
 	return createAddress(section.ToSectionBase(), NoZone).ToIPv6()
 }
 
-func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressValueError) {
+func NewIPv6Address(section *IPv6AddressSection) (*IPv6Address, addrerr.AddressValueError) {
 	if section == nil {
 		return zeroIPv6, nil
 	}
@@ -82,7 +83,7 @@ func assignIPv6Cache(zoneVal Zone, cache *addressCache) {
 	}
 }
 
-func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) (*IPv6Address, AddressValueError) {
+func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) (*IPv6Address, addrerr.AddressValueError) {
 	if section == nil {
 		return zeroIPv6.SetZone(zone), nil
 	}
@@ -96,7 +97,7 @@ func NewIPv6AddressZoned(section *IPv6AddressSection, zone string) (*IPv6Address
 	return newIPv6AddressZoned(section, zone), nil
 }
 
-func NewIPv6AddressFromBytes(bytes []byte) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromBytes(bytes []byte) (addr *IPv6Address, err addrerr.AddressValueError) {
 	section, err := NewIPv6SectionFromSegmentedBytes(bytes, IPv6SegmentCount)
 	if err == nil {
 		addr = newIPv6Address(section)
@@ -104,7 +105,7 @@ func NewIPv6AddressFromBytes(bytes []byte) (addr *IPv6Address, err AddressValueE
 	return
 }
 
-func NewIPv6AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr *IPv6Address, err addrerr.AddressValueError) {
 	section, err := NewIPv6SectionFromPrefixedBytes(bytes, IPv6SegmentCount, prefixLength)
 	if err == nil {
 		addr = newIPv6Address(section)
@@ -112,7 +113,7 @@ func NewIPv6AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr
 	return
 }
 
-func NewIPv6AddressFromZonedBytes(bytes []byte, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromZonedBytes(bytes []byte, zone string) (addr *IPv6Address, err addrerr.AddressValueError) {
 	addr, err = NewIPv6AddressFromBytes(bytes)
 	if err == nil {
 		addr.zone = Zone(zone)
@@ -121,7 +122,7 @@ func NewIPv6AddressFromZonedBytes(bytes []byte, zone string) (addr *IPv6Address,
 	return
 }
 
-func NewIPv6AddressFromPrefixedZonedBytes(bytes []byte, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedZonedBytes(bytes []byte, prefixLength PrefixLen, zone string) (addr *IPv6Address, err addrerr.AddressValueError) {
 	addr, err = NewIPv6AddressFromPrefixedBytes(bytes, prefixLength)
 	if err == nil {
 		addr.zone = Zone(zone)
@@ -131,12 +132,12 @@ func NewIPv6AddressFromPrefixedZonedBytes(bytes []byte, prefixLength PrefixLen, 
 }
 
 //
-//func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err AddressValueError) {
+//func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err addrerr.AddressValueError) {
 //	return newIPv6AddressFromZonedIP(ipAddr.IP, ipAddr.Zone)
 //}
 //
 //
-//func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (addr *IPv6Address, err AddressValueError) {
+//func NewIPv6AddressFromPrefixedIPAddr(ipAddr *net.IPAddr, prefixLen PrefixLen) (addr *IPv6Address, err addrerr.AddressValueError) {
 //	addr, err = NewIPv6AddressFromPrefixedBytes(ipAddr.IP, prefixLen)
 //	if err == nil {
 //		addr.zone = Zone(ipAddr.Zone)
@@ -145,7 +146,7 @@ func NewIPv6AddressFromPrefixedZonedBytes(bytes []byte, prefixLength PrefixLen, 
 //	return
 //}
 
-func NewIPv6AddressFromInt(val *big.Int) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromInt(val *big.Int) (addr *IPv6Address, err addrerr.AddressValueError) {
 	section, err := NewIPv6SectionFromBigInt(val, IPv6SegmentCount)
 	if err == nil {
 		addr = newIPv6Address(section)
@@ -153,7 +154,7 @@ func NewIPv6AddressFromInt(val *big.Int) (addr *IPv6Address, err AddressValueErr
 	return
 }
 
-func NewIPv6AddressFromPrefixedInt(val *big.Int, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedInt(val *big.Int, prefixLength PrefixLen) (addr *IPv6Address, err addrerr.AddressValueError) {
 	section, err := NewIPv6SectionFromPrefixedBigInt(val, IPv6SegmentCount, prefixLength)
 	if err == nil {
 		addr = newIPv6Address(section)
@@ -161,7 +162,7 @@ func NewIPv6AddressFromPrefixedInt(val *big.Int, prefixLength PrefixLen) (addr *
 	return
 }
 
-func NewIPv6AddressFromZonedInt(val *big.Int, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromZonedInt(val *big.Int, zone string) (addr *IPv6Address, err addrerr.AddressValueError) {
 	addr, err = NewIPv6AddressFromInt(val)
 	if err == nil {
 		addr.zone = Zone(zone)
@@ -170,7 +171,7 @@ func NewIPv6AddressFromZonedInt(val *big.Int, zone string) (addr *IPv6Address, e
 	return
 }
 
-func NewIPv6AddressFromPrefixedZonedInt(val *big.Int, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedZonedInt(val *big.Int, prefixLength PrefixLen, zone string) (addr *IPv6Address, err addrerr.AddressValueError) {
 	addr, err = NewIPv6AddressFromPrefixedInt(val, prefixLength)
 	if err == nil {
 		addr.zone = Zone(zone)
@@ -179,7 +180,7 @@ func NewIPv6AddressFromPrefixedZonedInt(val *big.Int, prefixLength PrefixLen, zo
 	return
 }
 
-func NewIPv6AddressFromSegs(segments []*IPv6AddressSegment) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromSegs(segments []*IPv6AddressSegment) (addr *IPv6Address, err addrerr.AddressValueError) {
 	segCount := len(segments)
 	if segCount != IPv6SegmentCount {
 		return nil, &addressValueError{
@@ -196,7 +197,7 @@ func NewIPv6AddressFromSegs(segments []*IPv6AddressSegment) (addr *IPv6Address, 
 	//return
 }
 
-func NewIPv6AddressFromPrefixedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen) (addr *IPv6Address, err addrerr.AddressValueError) {
 	segCount := len(segments)
 	if segCount != IPv6SegmentCount {
 		return nil, &addressValueError{
@@ -213,7 +214,7 @@ func NewIPv6AddressFromPrefixedSegs(segments []*IPv6AddressSegment, prefixLength
 	//return
 }
 
-func NewIPv6AddressFromZonedSegs(segments []*IPv6AddressSegment, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromZonedSegs(segments []*IPv6AddressSegment, zone string) (addr *IPv6Address, err addrerr.AddressValueError) {
 	segCount := len(segments)
 	if segCount != IPv6SegmentCount {
 		return nil, &addressValueError{
@@ -231,7 +232,7 @@ func NewIPv6AddressFromZonedSegs(segments []*IPv6AddressSegment, zone string) (a
 	//return
 }
 
-func NewIPv6AddressFromPrefixedZonedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen, zone string) (addr *IPv6Address, err AddressValueError) {
+func NewIPv6AddressFromPrefixedZonedSegs(segments []*IPv6AddressSegment, prefixLength PrefixLen, zone string) (addr *IPv6Address, err addrerr.AddressValueError) {
 	segCount := len(segments)
 	if segCount != IPv6SegmentCount {
 		return nil, &addressValueError{
@@ -311,9 +312,9 @@ func NewIPv6AddressFromPrefixedZonedRange(vals, upperVals IPv6SegmentValueProvid
 //
 // Any prefix length in the MACSize address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
-// The error is either an AddressValueError for sections that are of insufficient segment count,
-// or IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
-func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, IncompatibleAddressError) {
+// The error is either an addrerr.AddressValueError for sections that are of insufficient segment count,
+// oraddrerr.IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
+func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	zone := prefix.GetZone()
 	zoneStr := NoZone
 	if len(zone) > 0 {
@@ -324,7 +325,7 @@ func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Addres
 }
 
 // when this is called, we know the sections are sufficient length
-func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, IncompatibleAddressError) {
+func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	prefixLen := prefixSection.GetPrefixLen()
 	if prefixLen != nil && prefixLen.bitCount() > getNetworkPrefixLen(IPv6BitsPerSegment, 0, 4).bitCount() {
 		prefixLen = nil
@@ -353,9 +354,9 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 //
 // Any prefix length in the MACSize address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
-// The error is either an AddressValueError for sections that are of insufficient segment count,
-// or IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
-func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, AddressError) {
+// The error is either an addrerr.AddressValueError for sections that are of insufficient segment count,
+// oraddrerr.IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
+func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, addrerr.AddressError) {
 	return newIPv6AddressFromZonedMAC(prefix, suffix, NoZone)
 	//suffixSegCount := suffix.GetSegmentCount()
 	//if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
@@ -364,7 +365,7 @@ func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddress
 	//return newIPv6AddressFromMAC(prefix, suffix, NoZone)
 }
 
-func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
+func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, addrerr.AddressError) {
 	return newIPv6AddressFromZonedMAC(prefix, suffix, zone)
 	//suffixSegCount := suffix.GetSegmentCount()
 	//if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
@@ -373,7 +374,7 @@ func NewIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSe
 	//return newIPv6AddressFromMAC(prefix, suffix, zone)
 }
 
-func newIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, AddressError) {
+func newIPv6AddressFromZonedMAC(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, addrerr.AddressError) {
 	suffixSegCount := suffix.GetSegmentCount()
 	if prefix.GetSegmentCount() < 4 || (suffixSegCount != ExtendedUniqueIdentifier48SegmentCount && suffixSegCount != ExtendedUniqueIdentifier64SegmentCount) {
 		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
@@ -487,7 +488,7 @@ func (addr *IPv6Address) GetHostMask() *IPv6Address {
 	return addr.getHostMask(IPv6Network).ToIPv6()
 }
 
-func (addr *IPv6Address) GetMixedAddressGrouping() (*IPv6v4MixedAddressGrouping, IncompatibleAddressError) {
+func (addr *IPv6Address) GetMixedAddressGrouping() (*IPv6v4MixedAddressGrouping, addrerr.IncompatibleAddressError) {
 	return addr.init().GetSection().getMixedAddressGrouping()
 }
 
@@ -495,7 +496,7 @@ func (addr *IPv6Address) GetMixedAddressGrouping() (*IPv6v4MixedAddressGrouping,
 // which will correspond to between 0 and 4 bytes in this address.
 // Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
 // An error can result when one of the associated IPv6 segments has a range of values that cannot be split into two ranges.
-func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() (*IPv4AddressSection, IncompatibleAddressError) {
+func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() (*IPv4AddressSection, addrerr.IncompatibleAddressError) {
 	return addr.init().GetSection().getEmbeddedIPv4AddressSection()
 }
 
@@ -503,7 +504,7 @@ func (addr *IPv6Address) GetEmbeddedIPv4AddressSection() (*IPv4AddressSection, I
 // which will correspond to between 0 and 4 bytes in this address.
 // Many IPv4 to IPv6 mapping schemes (but not all) use these 4 bytes for a mapped IPv4 address.
 // An error can result when one of the associated IPv6 segments has a range of values that cannot be split into two ranges.
-func (addr *IPv6Address) GetEmbeddedIPv4Address() (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv6Address) GetEmbeddedIPv4Address() (*IPv4Address, addrerr.IncompatibleAddressError) {
 	section, err := addr.GetEmbeddedIPv4AddressSection()
 	if err != nil {
 		return nil, err
@@ -512,17 +513,17 @@ func (addr *IPv6Address) GetEmbeddedIPv4Address() (*IPv4Address, IncompatibleAdd
 }
 
 // GetIPv4AddressSection produces an IPv4 address section from any sequence of bytes in this IPv6 address section
-func (addr *IPv6Address) GetIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, IncompatibleAddressError) {
+func (addr *IPv6Address) GetIPv4AddressSection(startIndex, endIndex int) (*IPv4AddressSection, addrerr.IncompatibleAddressError) {
 	return addr.init().GetSection().GetIPv4AddressSection(startIndex, endIndex)
 }
 
 // Get6To4IPv4Address Returns the second and third segments as an {@link IPv4Address}.
-func (addr *IPv6Address) Get6To4IPv4Address() (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv6Address) Get6To4IPv4Address() (*IPv4Address, addrerr.IncompatibleAddressError) {
 	return addr.GetEmbeddedIPv4AddressAt(2)
 }
 
 //Produces an IPv4 address from any sequence of 4 bytes in this IPv6 address, starting at the given index.
-func (addr *IPv6Address) GetEmbeddedIPv4AddressAt(byteIndex int) (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv6Address) GetEmbeddedIPv4AddressAt(byteIndex int) (*IPv4Address, addrerr.IncompatibleAddressError) {
 	if byteIndex == IPv6MixedOriginalSegmentCount*IPv6BytesPerSegment {
 		return addr.GetEmbeddedIPv4Address()
 	}
@@ -540,7 +541,7 @@ func (addr *IPv6Address) GetEmbeddedIPv4AddressAt(byteIndex int) (*IPv4Address, 
 }
 
 // GetIPv6Address creates an IPv6 mixed address using the given address for the trailing embedded IPv4 segments
-func (addr *IPv6Address) GetIPv6Address(embedded IPv4Address) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) GetIPv6Address(embedded IPv4Address) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	return embedded.getIPv6Address(addr.WithoutPrefixLen().getDivisionsInternal())
 }
 
@@ -602,15 +603,15 @@ func (addr *IPv6Address) checkIdentity(section *IPv6AddressSection) *IPv6Address
 	//return &IPv6Address{ipAddressInternal{addressInternal{section: sec, zone: addr.zone, cache: &addressCache{}}}}
 }
 
-func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+func (addr *IPv6Address) Mask(other *IPv6Address) (masked *IPv6Address, err addrerr.IncompatibleAddressError) {
 	return addr.maskPrefixed(other, true)
 }
 
-//func (addr *IPv6Address) MaskPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+//func (addr *IPv6Address) MaskPrefixed(other *IPv6Address) (masked *IPv6Address, err addrerr.IncompatibleAddressError) {
 //	return addr.maskPrefixed(other, true)
 //}
 
-func (addr *IPv6Address) maskPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
+func (addr *IPv6Address) maskPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err addrerr.IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().maskPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
@@ -619,15 +620,15 @@ func (addr *IPv6Address) maskPrefixed(other *IPv6Address, retainPrefix bool) (ma
 	return
 }
 
-func (addr *IPv6Address) BitwiseOr(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+func (addr *IPv6Address) BitwiseOr(other *IPv6Address) (masked *IPv6Address, err addrerr.IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
 
-//func (addr *IPv6Address) BitwiseOrPrefixed(other *IPv6Address) (masked *IPv6Address, err IncompatibleAddressError) {
+//func (addr *IPv6Address) BitwiseOrPrefixed(other *IPv6Address) (masked *IPv6Address, err addrerr.IncompatibleAddressError) {
 //	return addr.bitwiseOrPrefixed(other, true)
 //}
 
-func (addr *IPv6Address) bitwiseOrPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err IncompatibleAddressError) {
+func (addr *IPv6Address) bitwiseOrPrefixed(other *IPv6Address, retainPrefix bool) (masked *IPv6Address, err addrerr.IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().bitwiseOrPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
@@ -688,12 +689,12 @@ func (addr *IPv6Address) IsZeroHostLen(prefLen BitCount) bool {
 	return addr.init().isZeroHostLen(prefLen)
 }
 
-func (addr *IPv6Address) ToZeroHost() (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) ToZeroHost() (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost(false)
 	return res.ToIPv6(), err
 }
 
-func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) ToZeroHostLen(prefixLength BitCount) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toZeroHostLen(prefixLength)
 	return res.ToIPv6(), err
 }
@@ -706,12 +707,12 @@ func (addr *IPv6Address) IsMaxHostLen(prefLen BitCount) bool {
 	return addr.init().isMaxHostLen(prefLen)
 }
 
-func (addr *IPv6Address) ToMaxHost() (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) ToMaxHost() (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toMaxHost()
 	return res.ToIPv6(), err
 }
 
-func (addr *IPv6Address) ToMaxHostLen(prefixLength BitCount) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) ToMaxHostLen(prefixLength BitCount) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toMaxHostLen(prefixLength)
 	return res.ToIPv6(), err
 }
@@ -739,7 +740,7 @@ func (addr *IPv6Address) SetPrefixLen(prefixLen BitCount) *IPv6Address {
 	return addr.init().setPrefixLen(prefixLen).ToIPv6()
 }
 
-func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToIPv6(), err
 }
@@ -748,7 +749,7 @@ func (addr *IPv6Address) AdjustPrefixLen(prefixLen BitCount) *IPv6Address {
 	return addr.init().adjustPrefixLen(prefixLen).ToIPv6()
 }
 
-func (addr *IPv6Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
 	return res.ToIPv6(), err
 }
@@ -1205,7 +1206,7 @@ func (addr *IPv6Address) MergeToPrefixBlocks(addrs ...*IPv6Address) []*IPv6Addre
 	return cloneToIPv6Addrs(blocks)
 }
 
-func (addr *IPv6Address) ReverseBytes() (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) ReverseBytes() (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.GetSection().ReverseBytes()
 	if err != nil {
 		return nil, err
@@ -1213,7 +1214,7 @@ func (addr *IPv6Address) ReverseBytes() (*IPv6Address, IncompatibleAddressError)
 	return addr.checkIdentity(res), nil
 }
 
-func (addr *IPv6Address) ReverseBits(perByte bool) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv6Address) ReverseBits(perByte bool) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.GetSection().ReverseBits(perByte)
 	if err != nil {
 		return nil, err
@@ -1264,7 +1265,7 @@ func (addr *IPv6Address) IsEUI64() bool {
 // ToEUI converts to the associated MACAddress.
 // An error is returned if the 0xfffe pattern is missing in segments 5 and 6,
 // or if an IPv6 segment's range of values cannot be split into two ranges of values.
-func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressError) {
+func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, addrerr.IncompatibleAddressError) {
 	segs, err := addr.toEUISegments(extended)
 	if err != nil {
 		return nil, err
@@ -1274,7 +1275,7 @@ func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, IncompatibleAddressE
 }
 
 //prefix length in this section is ignored when converting to MACSize
-func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, IncompatibleAddressError) {
+func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, addrerr.IncompatibleAddressError) {
 	seg1 := addr.GetSegment(5)
 	seg2 := addr.GetSegment(6)
 	if !seg1.MatchesWithMask(0xff, 0xff) || !seg2.MatchesWithPrefixMask(0xfe00, 8) {
@@ -1422,28 +1423,28 @@ func (addr *IPv6Address) ToCompressedWildcardString() string {
 	return addr.init().toCompressedWildcardString()
 }
 
-func (addr *IPv6Address) ToReverseDNSString() (string, IncompatibleAddressError) {
+func (addr *IPv6Address) ToReverseDNSString() (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toReverseDNSString()
 }
 
-func (addr *IPv6Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (addr *IPv6Address) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (addr *IPv6Address) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
@@ -1452,7 +1453,7 @@ func (addr *IPv6Address) ToBinaryString(with0bPrefix bool) (string, Incompatible
 
 // ToMixedString produces the mixed IPv6/IPv4 string.  It is the shortest such string (ie fully compressed).
 // For some address sections with ranges of values in the IPv4 part of the address, there is not mixed string, and an error is returned.
-func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
+func (addr *IPv6Address) ToMixedString() (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
@@ -1464,7 +1465,7 @@ func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
 		var cacheField **string
 		cacheField = &cache.mixedString
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressError) {
+			func() (string, addrerr.IncompatibleAddressError) {
 				return addr.GetSection().toMixedStringZoned(addr.zone)
 			})
 	}
@@ -1476,7 +1477,7 @@ func (addr *IPv6Address) ToMixedString() (string, IncompatibleAddressError) {
 // Errors can result from split digits with ranged values, or mixed IPv4/v6 with ranged values, when a range cannot be split up.
 // Options without split digits or mixed addresses do not produce errors.
 // Single addresses do not produce errors.
-func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string, IncompatibleAddressError) {
+func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}

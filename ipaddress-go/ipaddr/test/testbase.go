@@ -1910,7 +1910,7 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 //	for i := ipaddr.BitCount(0); i <= ipaddr.IPv6BitCount; i++ {
 //		//bc := i
 //		//cachedPrefLens[i] = &bc
-//		cachedPrefLens[i] = &ipaddr.PrefixBitCount{i}
+//		cachedPrefLens[i] = &ipaddr.prefixBitCount{i}
 //	}
 //	return cachedPrefLens
 //}

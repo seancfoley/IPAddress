@@ -1,5 +1,7 @@
 package ipaddr
 
+import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+
 // ExtendedSegmentSeries wraps either an Address or AddressSection.
 // ExtendedSegmentSeries can be used to write code that works with both Addresses and Address Sections,
 // going further than AddressSegmentSeries to offer additional methods with the series types in their signature.
@@ -54,10 +56,10 @@ type ExtendedSegmentSeries interface {
 	//ToPrefixBlockLen(BitCount) ExtendedSegmentSeries
 	ToPrefixBlock() ExtendedSegmentSeries
 
-	//ToZeroHostLen(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
-	//ToZeroHost() (ExtendedSegmentSeries, IncompatibleAddressError)
-	//ToMaxHostLen(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
-	//ToMaxHost() (ExtendedSegmentSeries, IncompatibleAddressError)
+	//ToZeroHostLen(BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
+	//ToZeroHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
+	//ToMaxHostLen(BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
+	//ToMaxHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
 	//ToZeroNetwork() ExtendedSegmentSeries
 
 	Increment(int64) ExtendedSegmentSeries
@@ -81,13 +83,13 @@ type ExtendedSegmentSeries interface {
 	//CoverWithPrefixBlock() ExtendedSegmentSeries
 
 	AdjustPrefixLen(BitCount) ExtendedSegmentSeries
-	AdjustPrefixLenZeroed(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
+	AdjustPrefixLenZeroed(BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError)
 	SetPrefixLen(BitCount) ExtendedSegmentSeries
-	SetPrefixLenZeroed(BitCount) (ExtendedSegmentSeries, IncompatibleAddressError)
+	SetPrefixLenZeroed(BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError)
 	WithoutPrefixLen() ExtendedSegmentSeries
 
-	ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError)
-	ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError)
+	ReverseBytes() (ExtendedSegmentSeries, addrerr.IncompatibleAddressError)
+	ReverseBits(perByte bool) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError)
 	ReverseSegments() ExtendedSegmentSeries
 }
 
@@ -162,19 +164,19 @@ func (w WrappedAddress) ToPrefixBlock() ExtendedSegmentSeries {
 	return WrapAddress(w.Address.ToPrefixBlock())
 }
 
-//func (w WrappedAddress) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddress) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapAddrWithErr(w.Address.ToZeroHostLen(bitCount)) //in Address/Section
 //}
 //
-//func (w WrappedAddress) ToZeroHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddress) ToZeroHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapAddrWithErr(w.Address.ToZeroHost()) // in Address/Section/Segment
 //}
 //
-//func (w WrappedAddress) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddress) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapAddrWithErr(w.Address.ToMaxHostLen(bitCount))
 //}
 //
-//func (w WrappedAddress) ToMaxHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddress) ToMaxHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapAddrWithErr(w.Address.ToMaxHost())
 //}
 //
@@ -247,7 +249,7 @@ func (w WrappedAddress) SetPrefixLen(prefixLen BitCount) ExtendedSegmentSeries {
 	return WrapAddress(w.Address.SetPrefixLen(prefixLen))
 }
 
-func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapAddrWithErr(w.Address.SetPrefixLenZeroed(prefixLen))
 }
 
@@ -255,15 +257,15 @@ func (w WrappedAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedSegmentSerie
 	return WrapAddress(w.Address.AdjustPrefixLen(prefixLen))
 }
 
-func (w WrappedAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapAddrWithErr(w.Address.AdjustPrefixLenZeroed(prefixLen))
 }
 
-func (w WrappedAddress) ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddress) ReverseBytes() (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapAddrWithErr(w.Address.ReverseBytes())
 }
 
-func (w WrappedAddress) ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddress) ReverseBits(perByte bool) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	addr, err := w.Address.ReverseBits(perByte)
 	if err != nil {
 		return nil, err
@@ -345,19 +347,19 @@ func (w WrappedAddressSection) ToPrefixBlock() ExtendedSegmentSeries {
 	return WrapSection(w.AddressSection.ToPrefixBlock())
 }
 
-//func (w WrappedAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapSectWithErr(w.AddressSection.ToZeroHostLen(bitCount))
 //}
 //
-//func (w WrappedAddressSection) ToZeroHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddressSection) ToZeroHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapSectWithErr(w.AddressSection.ToZeroHost())
 //}
 //
-//func (w WrappedAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapSectWithErr(w.AddressSection.ToMaxHostLen(bitCount))
 //}
 //
-//func (w WrappedAddressSection) ToMaxHost() (ExtendedSegmentSeries, IncompatibleAddressError) {
+//func (w WrappedAddressSection) ToMaxHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
 //	return wrapSectWithErr(w.AddressSection.ToMaxHost())
 //}
 //
@@ -430,7 +432,7 @@ func (w WrappedAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedSegmentS
 	return WrapSection(w.AddressSection.SetPrefixLen(prefixLen))
 }
 
-func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapSectWithErr(w.AddressSection.SetPrefixLenZeroed(prefixLen))
 }
 
@@ -438,15 +440,15 @@ func (w WrappedAddressSection) AdjustPrefixLen(adjustment BitCount) ExtendedSegm
 	return WrapSection(w.AddressSection.AdjustPrefixLen(adjustment))
 }
 
-func (w WrappedAddressSection) AdjustPrefixLenZeroed(adjustment BitCount) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddressSection) AdjustPrefixLenZeroed(adjustment BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapSectWithErr(w.AddressSection.AdjustPrefixLenZeroed(adjustment))
 }
 
-func (w WrappedAddressSection) ReverseBytes() (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddressSection) ReverseBytes() (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapSectWithErr(w.AddressSection.ReverseBytes())
 }
 
-func (w WrappedAddressSection) ReverseBits(perByte bool) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func (w WrappedAddressSection) ReverseBits(perByte bool) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	return wrapSectWithErr(w.AddressSection.ReverseBits(perByte))
 }
 
@@ -472,14 +474,14 @@ func convSectToIntf(sect *AddressSection) ExtendedSegmentSeries {
 	return WrapSection(sect)
 }
 
-func wrapSectWithErr(section *AddressSection, err IncompatibleAddressError) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func wrapSectWithErr(section *AddressSection, err addrerr.IncompatibleAddressError) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	if err == nil {
 		return WrapSection(section), nil
 	}
 	return nil, err
 }
 
-func wrapAddrWithErr(addr *Address, err IncompatibleAddressError) (ExtendedSegmentSeries, IncompatibleAddressError) {
+func wrapAddrWithErr(addr *Address, err addrerr.IncompatibleAddressError) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError) {
 	if err == nil {
 		return WrapAddress(addr), nil
 	}

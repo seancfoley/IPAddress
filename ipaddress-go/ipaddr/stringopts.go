@@ -643,9 +643,9 @@ type IPv6StringOptions interface {
 	GetCompressOptions() CompressOptions
 
 	// Whether every digit is separated from others by separators.  If mixed, this option is ignored.
-	IsSplitDigits() bool // can produce IncompatibleAddressError for ranged series
+	IsSplitDigits() bool // can produceaddrerr.IncompatibleAddressError for ranged series
 
-	IsMixed() bool // can produce IncompatibleAddressError for ranges in the IPv4 part of the series
+	IsMixed() bool // can produceaddrerr.IncompatibleAddressError for ranges in the IPv4 part of the series
 
 	GetZoneSeparator() byte
 }

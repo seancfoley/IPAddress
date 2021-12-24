@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"unsafe"
 )
@@ -290,7 +291,7 @@ func (seg *addressSegmentInternal) ToNormalizedString() string {
 	return stringer()
 }
 
-func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	var stringer func() string
 	if with0xPrefix {
 		stringer = func() string {
@@ -312,7 +313,7 @@ func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, Incom
 	return stringer(), nil
 }
 
-func (seg *addressSegmentInternal) reverseMultiValSeg(perByte bool) (res *AddressSegment, err IncompatibleAddressError) {
+func (seg *addressSegmentInternal) reverseMultiValSeg(perByte bool) (res *AddressSegment, err addrerr.IncompatibleAddressError) {
 	if isReversible := seg.isReversibleRange(perByte); isReversible {
 		// all reversible multi-valued segs reverse to the same segment
 		if seg.isPrefixed() {
@@ -326,7 +327,7 @@ func (seg *addressSegmentInternal) reverseMultiValSeg(perByte bool) (res *Addres
 	return
 }
 
-func (seg *addressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegment, err IncompatibleAddressError) {
+func (seg *addressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegment, err addrerr.IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg.toAddressSegment()
 		return
@@ -367,7 +368,7 @@ func (seg *addressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegmen
 	return
 }
 
-func (seg *addressSegmentInternal) ReverseBytes() (res *AddressSegment, err IncompatibleAddressError) {
+func (seg *addressSegmentInternal) ReverseBytes() (res *AddressSegment, err addrerr.IncompatibleAddressError) {
 	byteCount := seg.GetByteCount()
 	if byteCount <= 1 {
 		res = seg.toAddressSegment()

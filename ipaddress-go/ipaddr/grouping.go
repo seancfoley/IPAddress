@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -858,7 +859,7 @@ func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
 //		S createDivision(long value, long upperValue, int bitCount, int radix);
 //	}
 
-func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit BitCount) ([]*AddressDivision, IncompatibleAddressError) {
+func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit BitCount) ([]*AddressDivision, addrerr.IncompatibleAddressError) {
 	return grouping.createNewPrefixedDivisions(bitsPerDigit, nil)
 }
 
@@ -866,7 +867,7 @@ func (grouping *addressDivisionGroupingInternal) createNewDivisions(bitsPerDigit
 //	S createDivision(long value, long upperValue, int bitCount, int radix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength);
 //}
 
-func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bitsPerDigit BitCount, networkPrefixLength PrefixLen) ([]*AddressDivision, IncompatibleAddressError) {
+func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bitsPerDigit BitCount, networkPrefixLength PrefixLen) ([]*AddressDivision, addrerr.IncompatibleAddressError) {
 	//if(bitsPerDigit >= Integer.SIZE) {
 	//	//keep in mind once you hit 5 bits per digit, radix 32, you need 32 different digits, and there are only 26 alphabet characters and 10 digit chars, so 36
 	//	//so once you get higher than that, you need a new character set.

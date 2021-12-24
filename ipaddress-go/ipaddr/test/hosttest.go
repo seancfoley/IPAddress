@@ -423,14 +423,14 @@ func (t hostTester) run() {
 	t.hostTest(false, "[1.2.3.4/255.0.0.0]/::ffff") // note the colon placement here could be confused with port
 	t.hostTest(false, "[1.2.3.4/255.0.0.0]/ffff::ffff")
 
-	portNum1 := ipaddr.PortNum(1)
-	portNum3 := ipaddr.PortNum(3)
-	portNum33 := ipaddr.PortNum(33)
-	//portNum35 := ipaddr.PortNum(35)
-	portNum45 := ipaddr.PortNum(45)
-	portNum80 := ipaddr.PortNum(80)
-	portNum123 := ipaddr.PortNum(123)
-	portNum48888 := ipaddr.PortNum(48888)
+	portNum1 := ipaddr.PortInt(1)
+	portNum3 := ipaddr.PortInt(3)
+	portNum33 := ipaddr.PortInt(33)
+	//portNum35 := ipaddr.PortInt(35)
+	portNum45 := ipaddr.PortInt(45)
+	portNum80 := ipaddr.PortInt(80)
+	portNum123 := ipaddr.PortInt(123)
+	portNum48888 := ipaddr.PortInt(48888)
 
 	port1 := ipaddr.ToPort(portNum1)
 	port3 := ipaddr.ToPort(portNum3)
@@ -599,7 +599,7 @@ func (t hostTester) run() {
 	t.testNotHostInetSocketAddress("foo")
 	t.testHostInetSocketAddressService("1.2.3.4:http", func(s string) ipaddr.Port {
 		if s == "http" {
-			port80 := ipaddr.PortNum(80)
+			port80 := ipaddr.PortInt(80)
 			return ipaddr.ToPort(port80)
 			//return &port80
 		}
@@ -607,7 +607,7 @@ func (t hostTester) run() {
 	}, "1.2.3.4", 80)
 	t.testHostInetSocketAddressSA("1.2.3.4:http", func(s string) ipaddr.Port {
 		if s == "htt" {
-			port80 := ipaddr.PortNum(80)
+			port80 := ipaddr.PortInt(80)
 			return ipaddr.ToPort(port80)
 			//return &port80
 		}
@@ -866,7 +866,7 @@ func (t hostTester) isNotExpected(expectedPass bool, addr *ipaddr.HostName) bool
 	//}
 }
 
-func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortNum) *net.TCPAddr {
+func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortInt) *net.TCPAddr {
 	h := t.createHost(expected)
 	//if(h.IsAddress()) {
 	addr := h.GetAddress()
@@ -891,11 +891,11 @@ func (t hostTester) testNotHostInetSocketAddress(host string) {
 	t.testHostInetSocketAddressSA(host, nil, nil)
 }
 
-func (t hostTester) testHostInetSocketAddress(host, expected string, expectedPort ipaddr.PortNum) {
+func (t hostTester) testHostInetSocketAddress(host, expected string, expectedPort ipaddr.PortInt) {
 	t.testHostInetSocketAddressService(host, nil, expected, expectedPort)
 }
 
-func (t hostTester) testHostInetSocketAddressService(host string, serviceMapper func(string) ipaddr.Port, expected string, expectedPort ipaddr.PortNum) {
+func (t hostTester) testHostInetSocketAddressService(host string, serviceMapper func(string) ipaddr.Port, expected string, expectedPort ipaddr.PortInt) {
 	t.testHostInetSocketAddressSA(host, serviceMapper, t.toExpected(expected, expectedPort))
 }
 
@@ -989,11 +989,11 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 	if addressExpected != nil && addrHost != nil {
 		if serviceExpected == "" {
 			if portExpected != nil {
-				h2 := ipaddr.NewHostNameFromAddrPort(addrHost, portExpected.PortNum())
+				h2 := ipaddr.NewHostNameFromAddrPort(addrHost, portExpected.Num())
 				if !h2.Equal(hostName) {
 					t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 				}
-				h3 := ipaddr.NewHostNameFromAddrPort(addressExpected, portExpected.PortNum())
+				h3 := ipaddr.NewHostNameFromAddrPort(addressExpected, portExpected.Num())
 				if !h3.Equal(hostName) {
 					t.addFailure(newHostFailure("failed: host is "+h3.String(), hostName))
 				}

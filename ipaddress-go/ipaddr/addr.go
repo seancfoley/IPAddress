@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -340,7 +341,7 @@ func (addr *addressInternal) getDivisionsInternal() []*AddressDivision {
 }
 
 // when boundariesOnly is true, there will be no error
-//func (addr *addressInternal) toZeroHost(boundariesOnly bool) (res *Address, err IncompatibleAddressError) {
+//func (addr *addressInternal) toZeroHost(boundariesOnly bool) (res *Address, err addrerr.IncompatibleAddressError) {
 //	section, err := addr.section.toZeroHost(boundariesOnly)
 //	if err == nil {
 //		res = addr.checkIdentity(section)
@@ -348,7 +349,7 @@ func (addr *addressInternal) getDivisionsInternal() []*AddressDivision {
 //	return
 //}
 
-//func (addr *addressInternal) toMaxHost() (res *Address, err IncompatibleAddressError) {
+//func (addr *addressInternal) toMaxHost() (res *Address, err addrerr.IncompatibleAddressError) {
 //	section, err := addr.section.toMaxHost()
 //	if err == nil {
 //		res = addr.checkIdentity(section)
@@ -368,7 +369,7 @@ func (addr *addressInternal) toPrefixBlockLen(prefLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlockLen(prefLen))
 }
 
-func (addr *addressInternal) reverseBytes() (*Address, IncompatibleAddressError) {
+func (addr *addressInternal) reverseBytes() (*Address, addrerr.IncompatibleAddressError) {
 	sect, err := addr.section.ReverseBytes()
 	if err != nil {
 		return nil, err
@@ -376,7 +377,7 @@ func (addr *addressInternal) reverseBytes() (*Address, IncompatibleAddressError)
 	return addr.checkIdentity(sect), nil
 }
 
-func (addr *addressInternal) reverseBits(perByte bool) (*Address, IncompatibleAddressError) {
+func (addr *addressInternal) reverseBits(perByte bool) (*Address, addrerr.IncompatibleAddressError) {
 	sect, err := addr.section.ReverseBits(perByte)
 	if err != nil {
 		return nil, err
@@ -498,7 +499,7 @@ func (addr *addressInternal) adjustPrefixLen(prefixLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.adjustPrefixLen(prefixLen))
 }
 
-func (addr *addressInternal) adjustPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressError) {
+func (addr *addressInternal) adjustPrefixLenZeroed(prefixLen BitCount) (res *Address, err addrerr.IncompatibleAddressError) {
 	section, err := addr.section.adjustPrefixLenZeroed(prefixLen)
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -510,7 +511,7 @@ func (addr *addressInternal) setPrefixLen(prefixLen BitCount) *Address {
 	return addr.checkIdentity(addr.section.setPrefixLen(prefixLen))
 }
 
-func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Address, err IncompatibleAddressError) {
+func (addr *addressInternal) setPrefixLenZeroed(prefixLen BitCount) (res *Address, err addrerr.IncompatibleAddressError) {
 	section, err := addr.section.setPrefixLenZeroed(prefixLen)
 	if err == nil {
 		res = addr.checkIdentity(section)
@@ -748,7 +749,7 @@ func (addr *addressInternal) toCompressedString() string {
 	return addr.section.ToCompressedString()
 }
 
-func (addr *addressInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (addr *addressInternal) toOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
@@ -761,14 +762,14 @@ func (addr *addressInternal) toOctalString(with0Prefix bool) (string, Incompatib
 			cacheField = &cache.octalString
 		}
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressError) {
+			func() (string, addrerr.IncompatibleAddressError) {
 				return addr.section.toOctalStringZoned(with0Prefix, addr.zone)
 			})
 	}
 	return addr.section.ToOctalString(with0Prefix)
 }
 
-func (addr *addressInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (addr *addressInternal) toBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
@@ -781,14 +782,14 @@ func (addr *addressInternal) toBinaryString(with0bPrefix bool) (string, Incompat
 			cacheField = &cache.binaryString
 		}
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressError) {
+			func() (string, addrerr.IncompatibleAddressError) {
 				return addr.section.toBinaryStringZoned(with0bPrefix, addr.zone)
 			})
 	}
 	return addr.section.ToBinaryString(with0bPrefix)
 }
 
-func (addr *addressInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (addr *addressInternal) toHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr.hasZone() {
 		cache := addr.getStringCache()
 		if cache == nil {
@@ -801,7 +802,7 @@ func (addr *addressInternal) toHexString(with0xPrefix bool) (string, Incompatibl
 			cacheField = &cache.hexString
 		}
 		return cacheStrErr(cacheField,
-			func() (string, IncompatibleAddressError) {
+			func() (string, addrerr.IncompatibleAddressError) {
 				return addr.section.toHexStringZoned(with0xPrefix, addr.zone)
 			})
 	}
@@ -1050,11 +1051,11 @@ func (addr *Address) IncludesMax() bool {
 //	return addr.init().section.IsZeroHost()
 //}
 //
-//func (addr *Address) ToZeroHost() (*Address, IncompatibleAddressError) {
+//func (addr *Address) ToZeroHost() (*Address,addrerr.IncompatibleAddressError) {
 //	return addr.init().toZeroHost(false)
 //}
 
-//func (addr *Address) ToMaxHost() (*Address, IncompatibleAddressError) {
+//func (addr *Address) ToMaxHost() (*Address,addrerr.IncompatibleAddressError) {
 //	return addr.init().toMaxHost()
 //}
 
@@ -1077,7 +1078,7 @@ func (addr *Address) SetPrefixLen(prefixLen BitCount) *Address {
 	return addr.init().setPrefixLen(prefixLen)
 }
 
-func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressError) {
+func (addr *Address) SetPrefixLenZeroed(prefixLen BitCount) (*Address, addrerr.IncompatibleAddressError) {
 	return addr.init().setPrefixLenZeroed(prefixLen)
 }
 
@@ -1085,7 +1086,7 @@ func (addr *Address) AdjustPrefixLen(prefixLen BitCount) *Address {
 	return addr.adjustPrefixLen(prefixLen).ToAddressBase()
 }
 
-func (addr *Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*Address, IncompatibleAddressError) {
+func (addr *Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.adjustPrefixLenZeroed(prefixLen)
 	return res.ToAddressBase(), err
 }
@@ -1143,11 +1144,11 @@ func (addr *Address) Increment(increment int64) *Address {
 	return addr.init().increment(increment)
 }
 
-func (addr *Address) ReverseBytes() (*Address, IncompatibleAddressError) {
+func (addr *Address) ReverseBytes() (*Address, addrerr.IncompatibleAddressError) {
 	return addr.init().reverseBytes()
 }
 
-func (addr *Address) ReverseBits(perByte bool) (*Address, IncompatibleAddressError) {
+func (addr *Address) ReverseBits(perByte bool) (*Address, addrerr.IncompatibleAddressError) {
 	return addr.init().reverseBits(perByte)
 }
 
@@ -1218,21 +1219,21 @@ func (addr *Address) ToCompressedString() string {
 	return addr.init().toCompressedString()
 }
 
-func (addr *Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (addr *Address) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (addr *Address) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (addr *Address) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}

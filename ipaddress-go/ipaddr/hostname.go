@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"net"
 	//"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func NewHostNameParams(str string, params HostNameParameters) *HostName {
 }
 
 func NewHostNameFromAddrPort(addr *IPAddress, port int) *HostName {
-	portVal := PortNum(port)
+	portVal := PortInt(port)
 	hostStr := toNormalizedAddrPortString(addr, portVal)
 	parsedHost := parsedHost{
 		originalStr:     hostStr,
@@ -85,7 +86,7 @@ func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *Host
 	//	ipAddr = addr6.ToIP()
 	//}
 	if ipAddr != nil {
-		portVal := PortNum(port)
+		portVal := PortInt(port)
 		hostStr := toNormalizedAddrPortString(ipAddr, portVal)
 		parsedHost := parsedHost{
 			originalStr:     hostStr,
@@ -155,7 +156,7 @@ var zeroHost = NewHostName("")
 
 type hostData struct {
 	parsedHost    *parsedHost
-	validateError HostNameError
+	validateError addrerr.HostNameError
 }
 
 type resolveData struct {
@@ -193,7 +194,7 @@ func (host *HostName) GetValidationOptions() HostNameParameters {
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
-func (host *HostName) Validate() HostNameError {
+func (host *HostName) Validate() addrerr.HostNameError {
 	host = host.init()
 	data := host.hostData
 	if data == nil {
@@ -250,7 +251,7 @@ func (host *HostName) GetAddress() *IPAddress {
 
 // ToAddress resolves to an address.
 // This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid
-func (host *HostName) ToAddress() (addr *IPAddress, err AddressError) {
+func (host *HostName) ToAddress() (addr *IPAddress, err addrerr.AddressError) {
 	addresses, err := host.ToAddresses()
 	if len(addresses) > 0 {
 		addr = addresses[0]
@@ -259,21 +260,21 @@ func (host *HostName) ToAddress() (addr *IPAddress, err AddressError) {
 }
 
 // ToAddresses resolves to one or more addresses.
-// error can be AddressStringError, IncompatibleAddressError, HostNameError
+// error can be addrerr.AddressStringError,addrerr.IncompatibleAddressError, addrerr.HostNameError
 // This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid
-func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
+func (host *HostName) ToAddresses() (addrs []*IPAddress, err addrerr.AddressError) {
 	host = host.init()
 	data := host.resolveData
 	if data == nil {
 		//note that validation handles empty address resolution
-		err = host.Validate() //HostNameError
+		err = host.Validate() //addrerr.HostNameError
 		if err != nil {
 			return
 		}
 		// http://networkbit.ch/golang-dns-lookup/
 		parsedHost := host.parsedHost
 		if parsedHost.isAddressString() {
-			addr, addrErr := parsedHost.asAddress() // IncompatibleAddressError
+			addr, addrErr := parsedHost.asAddress() //addrerr.IncompatibleAddressError
 			addrs, err = []*IPAddress{addr}, addrErr
 			//note there is no need to apply prefix or mask here, it would have been applied to the address already
 		} else {
@@ -302,7 +303,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 				}
 				count := len(ips)
 				addrs = make([]*IPAddress, 0, count)
-				var errs []AddressError
+				var errs []addrerr.AddressError
 				for j := 0; j < count; j++ {
 					ip := ips[j]
 					if ipv4 := ip.To4(); ipv4 != nil {
@@ -323,7 +324,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 						}
 					}
 					if byteLen == IPv6ByteCount {
-						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedBytes(ip, networkPrefixLength) // AddressValueError
+						ipv6Addr, addrErr := NewIPv6AddressFromPrefixedBytes(ip, networkPrefixLength) // addrerr.AddressValueError
 						if addrErr != nil {
 							errs = append(errs, addrErr)
 						} else {
@@ -337,7 +338,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err AddressError) {
 						if networkPrefixLength != nil && networkPrefixLength.bitCount() > IPv4BitCount {
 							networkPrefixLength = cacheBitCount(IPv4BitCount)
 						}
-						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedBytes(ip, networkPrefixLength) // AddressValueError
+						ipv4Addr, addrErr := NewIPv4AddressFromPrefixedBytes(ip, networkPrefixLength) // addrerr.AddressValueError
 						if addrErr != nil {
 							errs = append(errs, addrErr)
 						} else {
@@ -536,7 +537,7 @@ func (host *HostName) toNormalizedString(wildcard, addTrailingDot bool) string {
 	return host.str
 }
 
-func toNormalizedPortString(port PortNum, builder *strings.Builder) {
+func toNormalizedPortString(port PortInt, builder *strings.Builder) {
 	builder.WriteByte(PortSeparator)
 	toUnsignedString(uint64(port), 10, builder)
 }
@@ -565,7 +566,7 @@ func toNormalizedHostString(addr *IPAddress, wildcard bool, builder *strings.Bui
 	}
 }
 
-func toNormalizedAddrPortString(addr *IPAddress, port PortNum) string {
+func toNormalizedAddrPortString(addr *IPAddress, port PortInt) string {
 	builder := strings.Builder{}
 	toNormalizedHostString(addr, false, &builder)
 	toNormalizedPortString(port, &builder)

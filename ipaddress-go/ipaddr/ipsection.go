@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -314,7 +315,7 @@ func (section *ipAddressSectionInternal) IncludesMaxHostLen(networkPrefixLength 
 	return true
 }
 
-func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *IPAddressSection, err IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *IPAddressSection, err addrerr.IncompatibleAddressError) {
 	segmentCount := section.GetSegmentCount()
 	if segmentCount == 0 {
 		return section.toIPAddressSection(), nil
@@ -342,10 +343,10 @@ func (section *ipAddressSectionInternal) toZeroHost(boundariesOnly bool) (res *I
 // boundariesOnly: whether we care if the masking works for all values in a range.
 // For instance, 1.2.3.2-4/31 cannot be zero-hosted, because applyng to the boundaries results in 1.2.3.2-4/31,
 // and that includes 1.2.3.3/31 which does not have host of zero.
-// So in that case, we'd normally have IncompatibleAddressError.  boundariesOnly as true avoids the exception,
+// So in that case, we'd normally haveaddrerr.IncompatibleAddressError.  boundariesOnly as true avoids the exception,
 // if we are really just interested in getting the zero-host boundaries,
 // and we don't care about the remaining values in-between.
-func (section *ipAddressSectionInternal) createZeroHost(prefLen BitCount, boundariesOnly bool) (*IPAddressSection, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) createZeroHost(prefLen BitCount, boundariesOnly bool) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	mask := section.addrType.getIPNetwork().GetNetworkMask(prefLen)
 	return section.getSubnetSegments(
 		getNetworkSegmentIndex(prefLen, section.GetBytesPerSegment(), section.GetBitsPerSegment()),
@@ -355,7 +356,7 @@ func (section *ipAddressSectionInternal) createZeroHost(prefLen BitCount, bounda
 		func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() })
 }
 
-func (section *ipAddressSectionInternal) toZeroHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) toZeroHostLen(prefixLength BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	var minIndex int
 	if section.isPrefixed() {
 		existingPrefLen := section.GetNetworkPrefixLen().bitCount()
@@ -403,7 +404,7 @@ func (section *ipAddressSectionInternal) createZeroNetwork() *IPAddressSection {
 	return res
 }
 
-func (section *ipAddressSectionInternal) toMaxHost() (res *IPAddressSection, err IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) toMaxHost() (res *IPAddressSection, err addrerr.IncompatibleAddressError) {
 	segmentCount := section.GetSegmentCount()
 	if segmentCount == 0 {
 		return section.toIPAddressSection(), nil
@@ -422,7 +423,7 @@ func (section *ipAddressSectionInternal) toMaxHost() (res *IPAddressSection, err
 	return section.createMaxHost()
 }
 
-func (section *ipAddressSectionInternal) createMaxHost() (*IPAddressSection, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) createMaxHost() (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	prefixLength := section.GetNetworkPrefixLen() // we know it is prefixed here so no panic on the derefence
 	mask := section.addrType.getIPNetwork().GetHostMask(prefixLength.bitCount())
 	return section.getOredSegments(
@@ -432,7 +433,7 @@ func (section *ipAddressSectionInternal) createMaxHost() (*IPAddressSection, Inc
 		func(i int) SegInt { return mask.GetSegment(i).GetSegmentValue() })
 }
 
-func (section *ipAddressSectionInternal) toMaxHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) toMaxHostLen(prefixLength BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	if section.isPrefixed() && prefixLength == section.GetNetworkPrefixLen().bitCount() {
 		return section.toMaxHost()
 	}
@@ -554,7 +555,7 @@ func (section *ipAddressSectionInternal) IsZeroHostLen(prefLen BitCount) bool {
 	return true
 }
 
-func (section *ipAddressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (*IPAddressSection, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	if adjustment == 0 && section.isPrefixed() {
 		return section.toIPAddressSection(), nil
 	}
@@ -594,7 +595,7 @@ func (section *ipAddressSectionInternal) adjustPrefixLen(adjustment BitCount) *I
 	return res
 }
 
-func (section *ipAddressSectionInternal) adjustPrefixLenZeroed(adjustment BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) adjustPrefixLenZeroed(adjustment BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	return section.adjustPrefixLength(adjustment, true)
 }
 
@@ -627,15 +628,15 @@ func (section *ipAddressSectionInternal) withoutPrefixLen() *IPAddressSection {
 	return res
 }
 
-func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSection) SizeMismatchError {
+func (section *ipAddressSectionInternal) checkSectionCount(other *IPAddressSection) addrerr.SizeMismatchError {
 	if other.GetSegmentCount() < section.GetSegmentCount() {
 		return &sizeMismatchError{incompatibleAddressError{addressError{key: "ipaddress.error.sizeMismatch"}}}
 	}
 	return nil
 }
 
-// error can be IncompatibleAddressError or SizeMismatchError
-func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, IncompatibleAddressError) {
+// error can beaddrerr.IncompatibleAddressError or SizeMismatchError
+func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	if err := section.checkSectionCount(msk); err != nil {
 		return nil, err
 	}
@@ -651,8 +652,8 @@ func (section *ipAddressSectionInternal) mask(msk *IPAddressSection, retainPrefi
 		func(i int) SegInt { return msk.GetSegment(i).GetSegmentValue() })
 }
 
-// error can be IncompatibleAddressError or SizeMismatchError
-func (section *ipAddressSectionInternal) bitwiseOr(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, IncompatibleAddressError) {
+// error can beaddrerr.IncompatibleAddressError or SizeMismatchError
+func (section *ipAddressSectionInternal) bitwiseOr(msk *IPAddressSection, retainPrefix bool) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	if err := section.checkSectionCount(msk); err != nil {
 		return nil, err
 	}
@@ -692,7 +693,7 @@ func (section *ipAddressSectionInternal) intersect(
 	other *IPAddressSection,
 	//IntFunction<S> segProducer,
 	//IntFunction<S> otherSegProducer
-) (res *IPAddressSection, err SizeMismatchError) {
+) (res *IPAddressSection, err addrerr.SizeMismatchError) {
 
 	//check if they are comparable section.  We only check segment count, we do not care about start index.
 	err = section.checkSectionCount(other)
@@ -788,7 +789,7 @@ func (section *ipAddressSectionInternal) subtract(
 	//IPAddressCreator<T, R, ?, S, ?> addrCreator,
 	//IntFunction<S> segProducer,
 	//SegFunction<R, R> prefixApplier
-) (res []*IPAddressSection, err SizeMismatchError) {
+) (res []*IPAddressSection, err addrerr.SizeMismatchError) {
 	//check if they are comparable section
 	//section.checkSectionCount(other);
 
@@ -977,7 +978,7 @@ func (section *ipAddressSectionInternal) coverWithPrefixBlock() *IPAddressSectio
 	return res.(WrappedIPAddressSection).IPAddressSection
 }
 
-func (section *ipAddressSectionInternal) coverWithPrefixBlockTo(other *IPAddressSection) (*IPAddressSection, SizeMismatchError) {
+func (section *ipAddressSectionInternal) coverWithPrefixBlockTo(other *IPAddressSection) (*IPAddressSection, addrerr.SizeMismatchError) {
 	if err := section.checkSectionCount(other); err != nil {
 		return nil, err
 	}
@@ -1087,7 +1088,7 @@ func (section *ipAddressSectionInternal) getSubnetSegments( // called by methods
 	verifyMask bool,
 	segProducer func(int) *AddressDivision,
 	segmentMaskProducer func(int) SegInt,
-) (*IPAddressSection, IncompatibleAddressError) {
+) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	newSect, err := section.addressSectionInternal.getSubnetSegments(startIndex, networkPrefixLength, verifyMask, segProducer, segmentMaskProducer)
 	return newSect.ToIP(), err
 }
@@ -1096,7 +1097,7 @@ func (section *ipAddressSectionInternal) getOredSegments(
 	networkPrefixLength PrefixLen,
 	verifyMask bool,
 	segProducer func(int) *AddressDivision,
-	segmentMaskProducer func(int) SegInt) (res *IPAddressSection, err IncompatibleAddressError) {
+	segmentMaskProducer func(int) SegInt) (res *IPAddressSection, err addrerr.IncompatibleAddressError) {
 	networkPrefixLength = checkPrefLen(networkPrefixLength, section.GetBitCount())
 	bitsPerSegment := section.GetBitsPerSegment()
 	count := section.GetSegmentCount()
@@ -1354,7 +1355,7 @@ func (section *ipAddressSectionInternal) toFullString() string {
 	return nilSection()
 }
 
-func (section *ipAddressSectionInternal) toReverseDNSString() (string, IncompatibleAddressError) {
+func (section *ipAddressSectionInternal) toReverseDNSString() (string, addrerr.IncompatibleAddressError) {
 	if sect := section.toIPv4AddressSection(); sect != nil {
 		return sect.ToReverseDNSString()
 	} else if sect := section.toIPv6AddressSection(); sect != nil {
@@ -1587,11 +1588,11 @@ func (section *IPAddressSection) GetUpper() *IPAddressSection {
 	return section.getUpper().ToIP()
 }
 
-func (section *IPAddressSection) ToZeroHost() (res *IPAddressSection, err IncompatibleAddressError) {
+func (section *IPAddressSection) ToZeroHost() (res *IPAddressSection, err addrerr.IncompatibleAddressError) {
 	return section.toZeroHost(false)
 }
 
-func (section *IPAddressSection) ToZeroHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *IPAddressSection) ToZeroHostLen(prefixLength BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	return section.ToZeroHostLen(prefixLength)
 }
 
@@ -1599,11 +1600,11 @@ func (section *IPAddressSection) ToZeroNetwork() *IPAddressSection {
 	return section.toZeroNetwork()
 }
 
-func (section *IPAddressSection) ToMaxHost() (res *IPAddressSection, err IncompatibleAddressError) {
+func (section *IPAddressSection) ToMaxHost() (res *IPAddressSection, err addrerr.IncompatibleAddressError) {
 	return section.toMaxHost()
 }
 
-func (section *IPAddressSection) ToMaxHostLen(prefixLength BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *IPAddressSection) ToMaxHostLen(prefixLength BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	return section.toMaxHostLen(prefixLength)
 }
 
@@ -1618,7 +1619,7 @@ func (section *IPAddressSection) SetPrefixLen(prefixLen BitCount) *IPAddressSect
 	return section.setPrefixLen(prefixLen).ToIP()
 }
 
-func (section *IPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *IPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.setPrefixLenZeroed(prefixLen)
 	return res.ToIP(), err
 }
@@ -1627,7 +1628,7 @@ func (section *IPAddressSection) AdjustPrefixLen(prefixLen BitCount) *IPAddressS
 	return section.adjustPrefixLen(prefixLen)
 }
 
-func (section *IPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, IncompatibleAddressError) {
+func (section *IPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	return section.adjustPrefixLenZeroed(prefixLen)
 }
 
@@ -1707,17 +1708,17 @@ func (section *IPAddressSection) CoverWithPrefixBlock() *IPAddressSection {
 	return section.coverWithPrefixBlock()
 }
 
-func (section *IPAddressSection) ReverseBits(perByte bool) (*IPAddressSection, IncompatibleAddressError) {
+func (section *IPAddressSection) ReverseBits(perByte bool) (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.reverseBits(perByte)
 	return res.ToIP(), err
 }
 
-func (section *IPAddressSection) ReverseBytes() (*IPAddressSection, IncompatibleAddressError) {
+func (section *IPAddressSection) ReverseBytes() (*IPAddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.reverseBytes(false)
 	return res.ToIP(), err
 }
 
-//func (section *IPAddressSection) ReverseBytesPerSegment() (*IPAddressSection, IncompatibleAddressError) {
+//func (section *IPAddressSection) ReverseBytesPerSegment() (*IPAddressSection,addrerr.IncompatibleAddressError) {
 //	res, err := section.reverseBytes(true)
 //	return res.ToIP(), err
 //}
@@ -1730,7 +1731,7 @@ func (section *IPAddressSection) ReverseSegments() *IPAddressSection {
 		return section
 	}
 	res, _ := section.reverseSegments(
-		func(i int) (*AddressSegment, IncompatibleAddressError) {
+		func(i int) (*AddressSegment, addrerr.IncompatibleAddressError) {
 			return section.GetSegment(i).withoutPrefixLen().ToSegmentBase(), nil
 		},
 	)
@@ -1765,21 +1766,21 @@ func (section *IPAddressSection) ToCompressedString() string {
 	return section.toCompressedString()
 }
 
-func (section *IPAddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (section *IPAddressSection) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toHexString(with0xPrefix)
 }
 
-func (section *IPAddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (section *IPAddressSection) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toOctalString(with0Prefix)
 }
 
-func (section *IPAddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (section *IPAddressSection) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
@@ -1821,7 +1822,7 @@ func (section *IPAddressSection) ToFullString() string {
 	return section.toFullString()
 }
 
-func (section *IPAddressSection) ToReverseDNSString() (string, IncompatibleAddressError) {
+func (section *IPAddressSection) ToReverseDNSString() (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}

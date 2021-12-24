@@ -1,6 +1,9 @@
 package ipaddr
 
-import "math/big"
+import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"math/big"
+)
 
 // A partition is a collection of addresses partitioned from an original address.
 // Much like an iterator, the elements of the partition can be iterated just once, after which it becomes empty.
@@ -325,7 +328,7 @@ func CheckBlockOrAddress(addr *IPAddress) *IPAddress {
 }
 
 // Ensures the address is either an individual address or a prefix block subnet.
-func checkBlockOrAddress(addr *IPAddress) (*IPAddress, IncompatibleAddressError) {
+func checkBlockOrAddress(addr *IPAddress) (*IPAddress, addrerr.IncompatibleAddressError) {
 	if !addr.isMultiple() {
 		if !addr.IsPrefixed() {
 			return addr, nil

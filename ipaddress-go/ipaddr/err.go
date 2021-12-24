@@ -4,37 +4,39 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
-/*
-Error hierarchy:
-
-AddressError
-	- IncompatibleAddressError
-		- SizeMismatchError
-	- HostIdentifierError
-		- HostNameError
-		- AddressStringError
-	- AddressValueError
-
-unused:
-NetworkMismatchException
-InconsistentPrefixException
-AddressPositionException
-AddressConversionException
-PrefixLenException
-*/
-
-type AddressError interface {
-	error
-
-	// GetKey() allows users to implement their own i18n error messages.
-	// The keys and mappings are listed in IPAddressResources.properties,
-	// so users of this library need only provide translations and implement
-	// their own method of i18n to incorporate those translations,
-	// such as the method provided by golang.org/x/text
-	GetKey() string
-}
+///*
+//Error hierarchy:
+//
+//AddressError
+//	-addrerr.IncompatibleAddressError
+//		- SizeMismatchError
+//	- HostIdentifierError
+//		- addrerr.HostNameError
+//		- addrerr.AddressStringError
+//	- addrerr.AddressValueError
+//
+//unused:
+//NetworkMismatchException
+//InconsistentPrefixException
+//AddressPositionException
+//AddressConversionException
+//PrefixLenException
+//*/
+//
+//type AddressError interface {
+//	error
+//
+//	// GetKey() allows users to implement their own i18n error messages.
+//	// The keys and mappings are listed in IPAddressResources.properties,
+//	// so users of this library need only provide translations and implement
+//	// their own method of i18n to incorporate those translations,
+//	// such as the method provided by golang.org/x/text
+//	GetKey() string
+//}
 
 type addressError struct {
 	// key to look up the error message
@@ -59,27 +61,27 @@ func (a *addressError) GetKey() string {
 	return a.key
 }
 
-type MergedAddressError interface {
-	AddressError
-	GetMerged() AddressError
-}
+//type MergedAddressError interface {
+//	AddressError
+//	GetMerged() AddressError
+//}
 
 type mergedError struct {
-	AddressError
-	merged []AddressError
+	addrerr.AddressError
+	merged []addrerr.AddressError
 }
 
-func (a *mergedError) GetMerged() []AddressError {
+func (a *mergedError) GetMerged() []addrerr.AddressError {
 	return a.merged
 }
 
-type HostIdentifierError interface {
-	AddressError
-}
-
-type AddressStringError interface {
-	HostIdentifierError
-}
+//type HostIdentifierError interface {
+//	AddressError
+//}
+//
+//type addrerr.AddressStringError interface {
+//	HostIdentifierError
+//}
 
 type addressStringError struct {
 	addressError
@@ -87,7 +89,7 @@ type addressStringError struct {
 
 type addressStringNestedError struct {
 	addressStringError
-	nested AddressStringError
+	nested addrerr.AddressStringError
 }
 
 func (a *addressStringNestedError) Error() string {
@@ -101,17 +103,17 @@ type addressStringIndexError struct {
 	index int
 }
 
-type HostNameError interface {
-	HostIdentifierError
-
-	GetAddrError() AddressError //returns the underlying address error, or nil
-}
+//type addrerr.HostNameError interface {
+//	HostIdentifierError
+//
+//	GetAddrError() AddressError //returns the underlying address error, or nil
+//}
 
 type hostNameError struct {
 	addressError
 }
 
-func (a *hostNameError) GetAddrError() AddressError {
+func (a *hostNameError) GetAddrError() addrerr.AddressError {
 	return nil
 }
 
@@ -126,10 +128,10 @@ type hostNameNestedError struct {
 
 type hostAddressNestedError struct {
 	hostNameIndexError
-	nested AddressError
+	nested addrerr.AddressError
 }
 
-func (a *hostAddressNestedError) GetAddrError() AddressError {
+func (a *hostAddressNestedError) GetAddrError() addrerr.AddressError {
 	return a.nested
 }
 
@@ -147,25 +149,25 @@ type hostNameIndexError struct {
 	index int
 }
 
-type IncompatibleAddressError interface {
-	AddressError
-}
+//typeaddrerr.IncompatibleAddressError interface {
+//	AddressError
+//}
 
 type incompatibleAddressError struct {
 	addressError
 }
 
-type SizeMismatchError interface {
-	IncompatibleAddressError
-}
+//type SizeMismatchError interface {
+//	IncompatibleAddressError
+//}
 
 type sizeMismatchError struct {
 	incompatibleAddressError
 }
 
-type PositionMismatchError interface {
-	IncompatibleAddressError
-}
+//type PositionMismatchError interface {
+//	IncompatibleAddressError
+//}
 
 type positionMismatchError struct {
 	section1, section2 *IPAddressSection
@@ -175,9 +177,9 @@ type positionMismatchError struct {
 	incompatibleAddressError
 }
 
-type AddressValueError interface {
-	AddressError
-}
+//type addrerr.AddressValueError interface {
+//	AddressError
+//}
 
 type addressValueError struct {
 	addressError

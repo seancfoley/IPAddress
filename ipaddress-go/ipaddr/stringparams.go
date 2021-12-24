@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -211,7 +212,7 @@ type divStringProvider interface {
 		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder)
 
 	getSplitRangeString(rangeSeparator string, wildcard string, radix int, uppercase bool,
-		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) IncompatibleAddressError
+		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string, appendable *strings.Builder) addrerr.IncompatibleAddressError
 
 	getSplitRangeStringLength(rangeSeparator string, wildcard string, leadingZeroCount int, radix int, uppercase bool,
 		splitDigitSeparator byte, reverseSplitDigits bool, stringPrefix string) int
@@ -1124,7 +1125,7 @@ func (params *ipv6StringParams) getTrailingSepCount(addr IPAddressSegmentSeries)
 	return count
 }
 
-func (params *ipv6StringParams) append(builder *strings.Builder, addr *IPv6AddressSection, zone Zone) (err IncompatibleAddressError) {
+func (params *ipv6StringParams) append(builder *strings.Builder, addr *IPv6AddressSection, zone Zone) (err addrerr.IncompatibleAddressError) {
 	if addr.GetDivisionCount() > 0 {
 		// Our order is label, then segments, then zone, then suffix, then prefix length.
 		err = params.appendSegments(params.appendLabel(builder), addr)
@@ -1139,7 +1140,7 @@ func (params *ipv6StringParams) append(builder *strings.Builder, addr *IPv6Addre
 	return
 }
 
-func (params *ipv6StringParams) appendSegment(segmentIndex int, div DivisionType, divPrefixLen PrefixLen, builder *strings.Builder, part AddressDivisionSeries) (count int, err IncompatibleAddressError) {
+func (params *ipv6StringParams) appendSegment(segmentIndex int, div DivisionType, divPrefixLen PrefixLen, builder *strings.Builder, part AddressDivisionSeries) (count int, err addrerr.IncompatibleAddressError) {
 	if params.isSplitDigits() {
 		writer := stringWriter{div}
 		count, err = writer.getStandardString(segmentIndex, params, builder)
@@ -1149,7 +1150,7 @@ func (params *ipv6StringParams) appendSegment(segmentIndex int, div DivisionType
 	return
 }
 
-func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IPv6AddressSegmentSeries) (err IncompatibleAddressError) {
+func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IPv6AddressSegmentSeries) (err addrerr.IncompatibleAddressError) {
 	divisionCount := addr.GetDivisionCount()
 	if divisionCount <= 0 {
 		return nil
@@ -1254,7 +1255,7 @@ func (params *ipv6StringParams) getZonedStringLength(addr *IPv6AddressSection, z
 	return 0
 }
 
-func (params *ipv6StringParams) toZonedSplitString(addr *IPv6AddressSection, zone Zone) (str string, err IncompatibleAddressError) {
+func (params *ipv6StringParams) toZonedSplitString(addr *IPv6AddressSection, zone Zone) (str string, err addrerr.IncompatibleAddressError) {
 	length := params.getZonedStringLength(addr, zone)
 	builder := strings.Builder{}
 	builder.Grow(length)
@@ -1446,7 +1447,7 @@ type stringWriter struct {
 
 // Produces a string to represent the segment, using wildcards and range characters.
 // Use this instead of getWildcardString() if you have a customized wildcard or range separator or you have a non-zero leadingZeroCount,
-func (writer stringWriter) getStandardString(segmentIndex int, params addressSegmentParams, appendable *strings.Builder) (digitCount int, err IncompatibleAddressError) {
+func (writer stringWriter) getStandardString(segmentIndex int, params addressSegmentParams, appendable *strings.Builder) (digitCount int, err addrerr.IncompatibleAddressError) {
 	//div := writer.div
 	if !writer.IsMultiple() {
 		splitDigits := params.isSplitDigits()
@@ -1678,7 +1679,7 @@ func (writer stringWriter) getLowerStandardString(segmentIndex int, params addre
 	return 0
 }
 
-func (writer stringWriter) getRangeString(segmentIndex int, params addressSegmentParams, appendable *strings.Builder) (digitCount int, err IncompatibleAddressError) {
+func (writer stringWriter) getRangeString(segmentIndex int, params addressSegmentParams, appendable *strings.Builder) (digitCount int, err addrerr.IncompatibleAddressError) {
 	splitDigits := params.isSplitDigits()
 	radix := params.getRadix()
 	leadingZeroCount := params.getLeadingZeros(segmentIndex)
@@ -1882,7 +1883,7 @@ func (writer stringWriter) getRangeStringWithCounts(
 func (writer stringWriter) writeSplitRangeString(
 	segmentIndex int,
 	params addressSegmentParams,
-	appendable *strings.Builder) (int, IncompatibleAddressError) {
+	appendable *strings.Builder) (int, addrerr.IncompatibleAddressError) {
 	stringPrefix := params.getSegmentStrPrefix()
 	radix := params.getRadix()
 	leadingZeroCount := params.getLeadingZeros(segmentIndex)

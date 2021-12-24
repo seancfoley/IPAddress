@@ -1,16 +1,17 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"sync"
 )
 
 type macAddressProvider interface {
-	getAddress() (*MACAddress, IncompatibleAddressError)
+	getAddress() (*MACAddress, addrerr.IncompatibleAddressError)
 }
 
 type macAddressEmptyProvider struct{}
 
-func (provider macAddressEmptyProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
+func (provider macAddressEmptyProvider) getAddress() (*MACAddress, addrerr.IncompatibleAddressError) {
 	return nil, nil
 }
 
@@ -22,7 +23,7 @@ type macAddressAllProvider struct {
 	creationLock      sync.Mutex
 }
 
-func (provider *macAddressAllProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
+func (provider *macAddressAllProvider) getAddress() (*MACAddress, addrerr.IncompatibleAddressError) {
 	addr := provider.address
 	if addr == nil {
 		provider.creationLock.Lock()
@@ -57,7 +58,7 @@ type wrappedMACAddressProvider struct {
 	address *MACAddress
 }
 
-func (provider wrappedMACAddressProvider) getAddress() (*MACAddress, IncompatibleAddressError) {
+func (provider wrappedMACAddressProvider) getAddress() (*MACAddress, addrerr.IncompatibleAddressError) {
 	return provider.address, nil
 }
 

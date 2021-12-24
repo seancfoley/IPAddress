@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 const (
@@ -735,10 +737,10 @@ func toUnsignedSplitRangeString(
 	splitDigitSeparator byte,
 	reverseSplitDigits bool,
 	stringPrefix string,
-	appendable *strings.Builder) (err IncompatibleAddressError) {
+	appendable *strings.Builder) (err addrerr.IncompatibleAddressError) {
 	//A split can be invalid.  Consider xxx.456-789.
 	//The number 691, which is in the range 456-789, is not in the range 4-7.5-8.6-9
-	//In such cases we throw IncompatibleAddressError
+	//In such cases we throwaddrerr.IncompatibleAddressError
 	//To avoid such cases, we must have lower digits covering the full range, for example 400-799 in which lower digits are both 0-9 ranges.
 	//If we have 401-799 then 500 will not be included when splitting.
 	//If we have 400-798 then 599 will not be included when splitting.
@@ -873,7 +875,7 @@ func appendRangeDigits(
 	splitDigitSeparator byte,
 	reverseSplitDigits bool,
 	stringPrefix string,
-	appendable *strings.Builder) IncompatibleAddressError {
+	appendable *strings.Builder) addrerr.IncompatibleAddressError {
 
 	dig := digits
 	if uppercase {

@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -314,7 +315,7 @@ func (seg *IPv4AddressSegment) WithoutPrefixLen() *IPv4AddressSegment {
 	return seg.withoutPrefixLen().ToIPv4()
 }
 
-func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err IncompatibleAddressError) {
+func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err addrerr.IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg
 		return
@@ -337,7 +338,7 @@ func (seg *IPv4AddressSegment) ReverseBits(_ bool) (res *IPv4AddressSegment, err
 	return
 }
 
-func (seg *IPv4AddressSegment) ReverseBytes() (*IPv4AddressSegment, IncompatibleAddressError) {
+func (seg *IPv4AddressSegment) ReverseBytes() (*IPv4AddressSegment, addrerr.IncompatibleAddressError) {
 	return seg, nil
 }
 
@@ -348,7 +349,7 @@ func (seg *IPv4AddressSegment) isJoinableTo(low *IPv4AddressSegment) bool {
 }
 
 // join joins with another IPv4 segment to produce a IPv6 segment.
-func (seg *IPv4AddressSegment) join(low *IPv4AddressSegment) (*IPv6AddressSegment, IncompatibleAddressError) {
+func (seg *IPv4AddressSegment) join(low *IPv4AddressSegment) (*IPv6AddressSegment, addrerr.IncompatibleAddressError) {
 	prefixLength := seg.getJoinedSegmentPrefixLen(low.GetSegmentPrefixLen())
 	if !seg.isJoinableTo(low) {
 		return nil, &incompatibleAddressError{addressError: addressError{key: "ipaddress.error.invalidMixedRange"}}

@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -40,7 +41,7 @@ var zeroMACAddressString = NewMACAddressString("")
 
 type macAddrData struct {
 	addressProvider   macAddressProvider
-	validateException AddressStringError
+	validateException addrerr.AddressStringError
 }
 
 type macAddrStringCache struct {
@@ -92,7 +93,7 @@ func (addrStr *MACAddressString) GetAddress() *MACAddress {
 	return addr
 }
 
-func (addrStr *MACAddressString) ToAddress() (*MACAddress, AddressError) {
+func (addrStr *MACAddressString) ToAddress() (*MACAddress, addrerr.AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -135,14 +136,14 @@ func (addrStr *MACAddressString) IsValid() bool {
 	return addrStr.Validate() == nil
 }
 
-func (addrStr *MACAddressString) getAddressProvider() (macAddressProvider, AddressStringError) {
+func (addrStr *MACAddressString) getAddressProvider() (macAddressProvider, addrerr.AddressStringError) {
 	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	return addrStr.addressProvider, err
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
-func (addrStr *MACAddressString) Validate() AddressStringError {
+func (addrStr *MACAddressString) Validate() addrerr.AddressStringError {
 	addrStr = addrStr.init()
 	data := addrStr.macAddrData
 	if data == nil {
@@ -223,7 +224,7 @@ func (addrStr *MACAddressString) Equal(other *MACAddressString) bool {
 			} else if other.GetAddress() != nil {
 				return false
 			}
-			// both are null, either empty or IncompatibleAddressError
+			// both are null, either empty oraddrerr.IncompatibleAddressError
 			return stringsMatch
 		}
 	} else if !other.IsValid() { // both are invalid

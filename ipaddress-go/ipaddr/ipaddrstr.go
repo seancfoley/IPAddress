@@ -1,6 +1,25 @@
+//
+// Copyright 2020-2021 Sean C Foley
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//     or at
+//     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -42,7 +61,7 @@ var zeroIPAddressString = NewIPAddressString("")
 
 type addrData struct {
 	addressProvider   ipAddressProvider
-	validateException AddressStringError
+	validateException addrerr.AddressStringError
 }
 
 type ipAddrStringCache struct {
@@ -170,7 +189,7 @@ func (addrStr *IPAddressString) ToNormalizedString() string {
 	return addrStr.String()
 }
 
-func (addrStr *IPAddressString) toNormalizedString(addressProvider ipAddressProvider) (result string, err IncompatibleAddressError) {
+func (addrStr *IPAddressString) toNormalizedString(addressProvider ipAddressProvider) (result string, err addrerr.IncompatibleAddressError) {
 	if addressProvider.isProvidingAllAddresses() {
 		result = SegmentWildcardStr
 	} else if addressProvider.isProvidingEmpty() {
@@ -208,8 +227,8 @@ func (addrStr *IPAddressString) GetAddress() *IPAddress {
 	return addr
 }
 
-// error can be AddressStringError or IncompatibleAddressError
-func (addrStr *IPAddressString) ToAddress() (*IPAddress, AddressError) {
+// error can be addrerr.AddressStringError oraddrerr.IncompatibleAddressError
+func (addrStr *IPAddressString) ToAddress() (*IPAddress, addrerr.AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -244,7 +263,7 @@ func (addrStr *IPAddressString) GetVersionedAddress(version IPVersion) *IPAddres
 //
 // If the string used to construct this object is an invalid format,
 // or a format that does not match the provided version, then an error is returned
-func (addrStr *IPAddressString) ToVersionedAddress(version IPVersion) (*IPAddress, AddressError) {
+func (addrStr *IPAddressString) ToVersionedAddress(version IPVersion) (*IPAddress, addrerr.AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -261,8 +280,8 @@ func (addrStr *IPAddressString) GetHostAddress() *IPAddress {
 	return addr
 }
 
-// ToHostAddress parses the address will ignoring the prefix length or mask.  The error can be AddressStringError or IncompatibleAddressError
-func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
+// ToHostAddress parses the address will ignoring the prefix length or mask.  The error can be addrerr.AddressStringError oraddrerr.IncompatibleAddressError
+func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, addrerr.AddressError) {
 	provider, err := addrStr.getAddressProvider()
 	if err != nil {
 		return nil, err
@@ -294,7 +313,7 @@ func (addrStr *IPAddressString) ToHostAddress() (*IPAddress, AddressError) {
 // For example, 1-2.3.4.1-2 produces the sequential range 1.3.4.1 to 2.3.4.2 that includes the address 1.255.255.2 not specified by the string.
 //
 // This method can also produce a range for a string for which no IPAddress instance can be created,
-// those cases where IsValid() returns true but ToAddress() returns IncompatibleAddressError and GetAddress() returns null.
+// those cases where IsValid() returns true but ToAddress() returnsaddrerr.IncompatibleAddressError and GetAddress() returns null.
 // The range cannot be produced for the other cases where GetAddress() returns null
 //
 // This is similar to ToSequentialRange() except that nil is returned when there is an error.
@@ -303,7 +322,7 @@ func (addrStr *IPAddressString) GetSequentialRange() (res *IPAddressSeqRange) {
 	return
 }
 
-func (addrStr *IPAddressString) ToSequentialRange() (res *IPAddressSeqRange, err AddressStringError) {
+func (addrStr *IPAddressString) ToSequentialRange() (res *IPAddressSeqRange, err addrerr.AddressStringError) {
 	addrStr = addrStr.init()
 	if err = addrStr.Validate(); err == nil {
 		res = addrStr.addressProvider.getProviderSeqRange()
@@ -312,23 +331,23 @@ func (addrStr *IPAddressString) ToSequentialRange() (res *IPAddressSeqRange, err
 }
 
 // Validates that this string is a valid IPv4 address, and if not, returns an error with a descriptive message indicating why it is not.
-func (addrStr *IPAddressString) ValidateIPv4() AddressStringError {
+func (addrStr *IPAddressString) ValidateIPv4() addrerr.AddressStringError {
 	return addrStr.ValidateVersion(IPv4)
 }
 
 // Validates that this string is a valid IPv6 address, and if not, returns an error with a descriptive message indicating why it is not.
-func (addrStr *IPAddressString) ValidateIPv6() AddressStringError {
+func (addrStr *IPAddressString) ValidateIPv6() addrerr.AddressStringError {
 	return addrStr.ValidateVersion(IPv6)
 }
 
-func (addrStr *IPAddressString) getAddressProvider() (ipAddressProvider, AddressStringError) {
+func (addrStr *IPAddressString) getAddressProvider() (ipAddressProvider, addrerr.AddressStringError) {
 	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	return addrStr.addressProvider, err
 }
 
 // Validate validates that this string is a valid address, and if not, returns an error with a descriptive message indicating why it is not.
-func (addrStr *IPAddressString) Validate() AddressStringError {
+func (addrStr *IPAddressString) Validate() addrerr.AddressStringError {
 	addrStr = addrStr.init()
 	data := addrStr.addrData
 	if data == nil {
@@ -343,7 +362,7 @@ func (addrStr *IPAddressString) Validate() AddressStringError {
 	return data.validateException
 }
 
-func (addrStr *IPAddressString) ValidateVersion(version IPVersion) AddressStringError {
+func (addrStr *IPAddressString) ValidateVersion(version IPVersion) addrerr.AddressStringError {
 	addrStr = addrStr.init()
 	err := addrStr.Validate()
 	if err != nil {
@@ -572,7 +591,7 @@ func (addrStr *IPAddressString) Equal(other *IPAddressString) bool {
 			}
 			// When a value provider produces no value, equality and comparison are based on the enum ipType,
 			// which can be null.
-			var err AddressError
+			var err addrerr.AddressError
 			addrProvider, err := addrStr.getAddressProvider()
 			if err != nil {
 				return stringsMatch
@@ -600,7 +619,7 @@ func (addrStr *IPAddressString) Equal(other *IPAddressString) bool {
 //and the prefix length is decreased, the bits moved outside the prefix become zero.
 //
 // If the address string represents a prefix block, then the result will also represent a prefix block.
-func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddressString, IncompatibleAddressError) {
+func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddressString, addrerr.IncompatibleAddressError) {
 	address := addrStr.GetAddress()
 	if address == nil {
 		return nil, nil
@@ -611,7 +630,7 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 	prefix := address.GetNetworkPrefixLen()
 	isPrefBlock := address.IsPrefixBlock()
 	var addr *IPAddress
-	var err IncompatibleAddressError
+	var err addrerr.IncompatibleAddressError
 	if adjustment < 0 && isPrefBlock {
 		if prefix != nil && prefix.bitCount()+adjustment < 0 {
 			return NewIPAddressStringParams(SegmentWildcardStr, addrStr.params), nil
@@ -634,7 +653,7 @@ func (addrStr *IPAddressString) Wrap() ExtendedIdentifierString {
 	return WrappedIPAddressString{addrStr}
 }
 
-func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err AddressStringError) {
+func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err addrerr.AddressStringError) {
 	return validator.validatePrefixLenStr(str, version)
 }
 

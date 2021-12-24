@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 )
 
@@ -268,7 +269,7 @@ func (seg *MACAddressSegment) PrefixIterator(segmentPrefixLen BitCount) MACSegme
 	return macSegmentIterator{seg.init().prefixedIterator(segmentPrefixLen)}
 }
 
-func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err IncompatibleAddressError) {
+func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err addrerr.IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg
 		return
@@ -291,21 +292,21 @@ func (seg *MACAddressSegment) ReverseBits(_ bool) (res *MACAddressSegment, err I
 	return
 }
 
-func (seg *MACAddressSegment) ReverseBytes() (*MACAddressSegment, IncompatibleAddressError) {
+func (seg *MACAddressSegment) ReverseBytes() (*MACAddressSegment, addrerr.IncompatibleAddressError) {
 	return seg, nil
 }
 
 // join joins with another MACSize segment to produce a IPv6 segment.
-func (seg *MACAddressSegment) join(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+func (seg *MACAddressSegment) join(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, addrerr.IncompatibleAddressError) {
 	return seg.joinSegs(macSegment1, false, prefixLength)
 }
 
 // join joins with another MACSize segment to produce a IPv6 segment with the second bit flipped from 1 to 0.
-func (seg *MACAddressSegment) joinAndFlip2ndBit(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+func (seg *MACAddressSegment) joinAndFlip2ndBit(macSegment1 *MACAddressSegment, prefixLength PrefixLen) (*IPv6AddressSegment, addrerr.IncompatibleAddressError) {
 	return seg.joinSegs(macSegment1, true, prefixLength)
 }
 
-func (seg *MACAddressSegment) joinSegs(macSegment1 *MACAddressSegment, flip bool, prefixLength PrefixLen) (*IPv6AddressSegment, IncompatibleAddressError) {
+func (seg *MACAddressSegment) joinSegs(macSegment1 *MACAddressSegment, flip bool, prefixLength PrefixLen) (*IPv6AddressSegment, addrerr.IncompatibleAddressError) {
 	if seg.isMultiple() {
 		// if the high segment has a range, the low segment must match the full range,
 		// otherwise it is not possible to create an equivalent range when joining

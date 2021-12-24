@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -376,7 +377,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 // then it is not copied.
 //
 // Used to create both IPv4 and MACSize segments
-func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) addrerr.IncompatibleAddressError {
 	//func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
 	if seg.isMultiple() {
 		return seg.visitSplitSegmentsMultiple(creator)
@@ -395,7 +396,7 @@ func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value,
 	}
 }
 
-//func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen), boundaryIndex, index int) IncompatibleAddressError {
+//func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen), boundaryIndex, index int)addrerr.IncompatibleAddressError {
 //	//func (seg *IPv6AddressSegment) visitSplitSegments(target func(index int, div *IPv4AddressSegment), boundaryIndex, index int) {
 //	if seg.isMult() {
 //		return seg.visitSplitSegmentsMultiple(creator, boundaryIndex, index)
@@ -417,7 +418,7 @@ func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value,
 //	}
 //}
 
-func (seg *IPv6AddressSegment) splitSegValues() (highLower, highUpper, lowLower, lowUpper SegInt, err IncompatibleAddressError) {
+func (seg *IPv6AddressSegment) splitSegValues() (highLower, highUpper, lowLower, lowUpper SegInt, err addrerr.IncompatibleAddressError) {
 	val := seg.GetSegmentValue()
 	upperVal := seg.GetUpperSegmentValue()
 	highLower = highByteIpv6(val)
@@ -431,7 +432,7 @@ func (seg *IPv6AddressSegment) splitSegValues() (highLower, highUpper, lowLower,
 }
 
 // Used to create both IPv4 and MACSize segments
-func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) addrerr.IncompatibleAddressError {
 	myPrefix := seg.GetSegmentPrefixLen()
 	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 	highLower, highUpper, lowLower, lowUpper, err := seg.splitSegValues()
@@ -445,7 +446,7 @@ func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int
 	return nil
 }
 
-//func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int, value, upperValue SegInt, prefLen PrefixLen), boundaryIndex, index int) IncompatibleAddressError {
+//func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int, value, upperValue SegInt, prefLen PrefixLen), boundaryIndex, index int)addrerr.IncompatibleAddressError {
 //	myPrefix := seg.GetSegmentPrefixLen()
 //	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)
 //	var highLower, highUpper, lowLower, lowUpper SegInt
@@ -499,7 +500,7 @@ func lowByteIpv6(value SegInt) SegInt {
 //
 // If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
 // then it is not copied.
-func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, startIndex int) addrerr.IncompatibleAddressError {
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
 			segs[ind] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
@@ -507,14 +508,14 @@ func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, star
 	})
 }
 
-//func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, startIndex int) IncompatibleAddressError {
+//func (seg *IPv6AddressSegment) getSplitSegments(segs []*IPv4AddressSegment, startIndex int)addrerr.IncompatibleAddressError {
 //	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div }, len(segs), index)
 //	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 //		segs[index] = NewIPv4RangePrefixedSegment(IPv4SegInt(value), IPv4SegInt(upperValue), prefLen)
 //	}, len(segs), index)
 //}
 
-func (seg *IPv6AddressSegment) splitIntoIPv4Segments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) splitIntoIPv4Segments(segs []*AddressDivision, startIndex int) addrerr.IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToDiv() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
@@ -523,7 +524,7 @@ func (seg *IPv6AddressSegment) splitIntoIPv4Segments(segs []*AddressDivision, st
 	})
 }
 
-func (seg *IPv6AddressSegment) splitIntoMACSegments(segs []*AddressDivision, startIndex int) IncompatibleAddressError {
+func (seg *IPv6AddressSegment) splitIntoMACSegments(segs []*AddressDivision, startIndex int) addrerr.IncompatibleAddressError {
 	//return seg.visitSplitSegments(func(index int, div *IPv4AddressSegment) { segs[index] = div.ToDiv() }, len(segs), index)
 	return seg.visitSplitSegments(func(index int, value, upperValue SegInt, prefLen PrefixLen) {
 		if ind := startIndex + index; ind < len(segs) {
@@ -532,7 +533,7 @@ func (seg *IPv6AddressSegment) splitIntoMACSegments(segs []*AddressDivision, sta
 	})
 }
 
-func (seg *IPv6AddressSegment) ReverseBits(perByte bool) (res *IPv6AddressSegment, err IncompatibleAddressError) {
+func (seg *IPv6AddressSegment) ReverseBits(perByte bool) (res *IPv6AddressSegment, err addrerr.IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg
 		return
@@ -556,7 +557,7 @@ func (seg *IPv6AddressSegment) ReverseBits(perByte bool) (res *IPv6AddressSegmen
 	return
 }
 
-func (seg *IPv6AddressSegment) ReverseBytes() (res *IPv6AddressSegment, err IncompatibleAddressError) {
+func (seg *IPv6AddressSegment) ReverseBytes() (res *IPv6AddressSegment, err addrerr.IncompatibleAddressError) {
 	if seg.divisionValues == nil {
 		res = seg
 		return

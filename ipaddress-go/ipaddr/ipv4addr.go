@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"net"
 )
@@ -26,7 +27,7 @@ func newIPv4Address(section *IPv4AddressSection) *IPv4Address {
 	return createAddress(section.ToSectionBase(), NoZone).ToIPv4()
 }
 
-func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueError) {
+func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, addrerr.AddressValueError) {
 	if section == nil {
 		return zeroIPv4, nil
 	}
@@ -40,7 +41,7 @@ func NewIPv4Address(section *IPv4AddressSection) (*IPv4Address, AddressValueErro
 	return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
-func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, AddressValueError) {
+func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, addrerr.AddressValueError) {
 	segCount := len(segments)
 	if segCount != IPv4SegmentCount {
 		return nil, &addressValueError{
@@ -57,7 +58,7 @@ func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, Addre
 	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
-func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, AddressValueError) {
+func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, addrerr.AddressValueError) {
 	segCount := len(segments)
 	if segCount != IPv4SegmentCount {
 		return nil, &addressValueError{
@@ -84,7 +85,7 @@ func NewIPv4AddressFromPrefixedUint32(val uint32, prefixLength PrefixLen) *IPv4A
 	return createAddress(section.ToSectionBase(), NoZone).ToIPv4()
 }
 
-func NewIPv4AddressFromBytes(bytes []byte) (addr *IPv4Address, err AddressValueError) {
+func NewIPv4AddressFromBytes(bytes []byte) (addr *IPv4Address, err addrerr.AddressValueError) {
 	if ipv4 := net.IP(bytes).To4(); ipv4 != nil {
 		bytes = ipv4
 	}
@@ -95,7 +96,7 @@ func NewIPv4AddressFromBytes(bytes []byte) (addr *IPv4Address, err AddressValueE
 	return
 }
 
-func NewIPv4AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr *IPv4Address, err AddressValueError) {
+func NewIPv4AddressFromPrefixedBytes(bytes []byte, prefixLength PrefixLen) (addr *IPv4Address, err addrerr.AddressValueError) {
 	if ipv4 := net.IP(bytes).To4(); ipv4 != nil {
 		bytes = ipv4
 	}
@@ -278,15 +279,15 @@ func (addr *IPv4Address) checkIdentity(section *IPv4AddressSection) *IPv4Address
 	return newIPv4Address(section)
 }
 
-func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	return addr.maskPrefixed(other, true)
 }
 
-//func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+//func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 //	return addr.maskPrefixed(other, true)
 //}
 
-func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
+func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().maskPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
@@ -295,18 +296,18 @@ func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (ma
 	return
 }
 
-func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
 
 //xxxx this is not bitwiseOrNetwork and I think it should go xxxx
 //// maybe rename, maybe drop this, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
 //// Maybe I should never drop the prefix - If they want to drop it they would before doing the bitwise
-//func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err IncompatibleAddressError) {
+//func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 //	return addr.bitwiseOrPrefixed(other, true)
 //}
 
-func (addr *IPv4Address) bitwiseOrPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err IncompatibleAddressError) {
+func (addr *IPv4Address) bitwiseOrPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().bitwiseOrPrefixed(other.GetSection(), retainPrefix)
 	if err == nil {
@@ -367,12 +368,12 @@ func (addr *IPv4Address) IsZeroHostLen(prefLen BitCount) bool {
 	return addr.init().isZeroHostLen(prefLen)
 }
 
-func (addr *IPv4Address) ToZeroHost() (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ToZeroHost() (*IPv4Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toZeroHost(false)
 	return res.ToIPv4(), err
 }
 
-func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ToZeroHostLen(prefixLength BitCount) (*IPv4Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toZeroHostLen(prefixLength)
 	return res.ToIPv4(), err
 }
@@ -385,12 +386,12 @@ func (addr *IPv4Address) IsMaxHostLen(prefLen BitCount) bool {
 	return addr.init().isMaxHostLen(prefLen)
 }
 
-func (addr *IPv4Address) ToMaxHost() (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ToMaxHost() (*IPv4Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toMaxHost()
 	return res.ToIPv4(), err
 }
 
-func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ToMaxHostLen(prefixLength BitCount) (*IPv4Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().toMaxHostLen(prefixLength)
 	return res.ToIPv4(), err
 }
@@ -426,7 +427,7 @@ func (addr *IPv4Address) SetPrefixLen(prefixLen BitCount) *IPv4Address {
 	return addr.init().setPrefixLen(prefixLen).ToIPv4()
 }
 
-func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) SetPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToIPv4(), err
 }
@@ -435,7 +436,7 @@ func (addr *IPv4Address) AdjustPrefixLen(prefixLen BitCount) *IPv4Address {
 	return addr.init().adjustPrefixLen(prefixLen).ToIPv4()
 }
 
-func (addr *IPv4Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) AdjustPrefixLenZeroed(prefixLen BitCount) (*IPv4Address, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
 	return res.ToIPv4(), err
 }
@@ -593,7 +594,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 // The broadcast address has the same prefix but a host that is all 1 bits.
 // If this address or subnet is not prefixed, this returns the address of all 1 bits, the "max" address.
 // This returns an error if a prefixed and ranged-valued segment cannot be converted to a host of all ones and remain a range of consecutive values.
-func (addr *IPv4Address) ToBroadcastAddress() (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ToBroadcastAddress() (*IPv4Address, addrerr.IncompatibleAddressError) {
 	return addr.ToMaxHost()
 }
 
@@ -601,7 +602,7 @@ func (addr *IPv4Address) ToBroadcastAddress() (*IPv4Address, IncompatibleAddress
 // The network address has the same prefix but a zero host.
 // If this address or subnet is not prefixed, this returns the zero "any" address.
 // This returns an error if a prefixed and ranged-valued segment cannot be converted to a host of all zeros and remain a range of consecutive values.
-func (addr *IPv4Address) ToNetworkAddress() (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ToNetworkAddress() (*IPv4Address, addrerr.IncompatibleAddressError) {
 	return addr.ToZeroHost()
 }
 
@@ -796,7 +797,7 @@ func (addr *IPv4Address) ReverseBytes() *IPv4Address {
 	return addr.checkIdentity(addr.GetSection().ReverseBytes())
 }
 
-func (addr *IPv4Address) ReverseBits(perByte bool) (*IPv4Address, IncompatibleAddressError) {
+func (addr *IPv4Address) ReverseBits(perByte bool) (*IPv4Address, addrerr.IncompatibleAddressError) {
 	addr = addr.init()
 	res, err := addr.GetSection().ReverseBits(perByte)
 	if err != nil {
@@ -846,7 +847,7 @@ func (addr *IPv4Address) GetNetwork() IPAddressNetwork {
 }
 
 // GetIPv6Address creates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
-func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Address, AddressError) {
+func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Address, addrerr.AddressError) {
 	//func (addr *IPv4Address) GetIPv6Address(segs []*IPv6AddressSegment) (*IPv6Address, AddressError) {
 	//if len(segs) < IPv6MixedOriginalSegmentCount {
 	if section.GetSegmentCount() < IPv6MixedOriginalSegmentCount {
@@ -866,7 +867,7 @@ func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Addre
 	return newIPv6Address(sect), nil
 }
 
-func (addr *IPv4Address) GetIPv4MappedAddress() (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv4Address) GetIPv4MappedAddress() (*IPv6Address, addrerr.IncompatibleAddressError) {
 	zero := zeroIPv6Seg.ToDiv()
 	segs := createSegmentArray(IPv6SegmentCount)
 	segs[0], segs[1], segs[2], segs[3], segs[4] = zero, zero, zero, zero, zero
@@ -880,7 +881,7 @@ func (addr *IPv4Address) GetIPv4MappedAddress() (*IPv6Address, IncompatibleAddre
 }
 
 // returns an error if the first or 3rd segments have a range of values that cannot be combined with their neighbouting segments into IPv6 segments
-func (addr *IPv4Address) getIPv6Address(ipv6Segs []*AddressDivision) (*IPv6Address, IncompatibleAddressError) {
+func (addr *IPv4Address) getIPv6Address(ipv6Segs []*AddressDivision) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	newSegs := createSegmentArray(IPv6SegmentCount)
 	copy(newSegs, ipv6Segs)
 	sect, err := createMixedSection(newSegs, addr)
@@ -890,7 +891,7 @@ func (addr *IPv4Address) getIPv6Address(ipv6Segs []*AddressDivision) (*IPv6Addre
 	return newIPv6Address(sect), nil
 }
 
-func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4Address) (res *IPv6AddressSection, err IncompatibleAddressError) {
+func createMixedSection(newIPv6Divisions []*AddressDivision, mixedSection *IPv4Address) (res *IPv6AddressSection, err addrerr.IncompatibleAddressError) {
 	ipv4Section := mixedSection.GetSection().WithoutPrefixLen()
 	var seg *IPv6AddressSegment
 	if seg, err = ipv4Section.GetSegment(0).join(ipv4Section.GetSegment(1)); err == nil {
@@ -992,7 +993,7 @@ func (addr *IPv4Address) ToFullString() string {
 
 // ToReverseDNSString returns the reverse DNS string.
 // The method helps implement the IPAddressSegmentSeries interface.  For IPV4, the error is always nil.
-func (addr *IPv4Address) ToReverseDNSString() (string, IncompatibleAddressError) {
+func (addr *IPv4Address) ToReverseDNSString() (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
@@ -1021,21 +1022,21 @@ func (addr *IPv4Address) ToCompressedWildcardString() string {
 	return addr.init().toCompressedWildcardString()
 }
 
-func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (addr *IPv4Address) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *IPv4Address) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (addr *IPv4Address) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (addr *IPv4Address) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
@@ -1049,7 +1050,7 @@ func (addr *IPv4Address) ToInetAtonString(radix Inet_aton_radix) string {
 	return addr.GetSection().ToInetAtonString(radix)
 }
 
-func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, IncompatibleAddressError) {
+func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCount int) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}

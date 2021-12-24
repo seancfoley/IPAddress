@@ -1,24 +1,23 @@
 package ipaddr
 
-import (
-	"math/big"
-)
+import "math/big"
 
 // BigDivInt is an unsigned integer type for unlimited size division values.
 type BigDivInt = big.Int
 
-// LargeDivisionValues represents divisions with unlimited length
-type LargeDivisionValues interface {
-	divisionValuesBase
-
-	GetValue() *BigDivInt
-
-	GetUpperValue() *BigDivInt
-}
-
-// IPAddressDivisionValues represents divisions with unlimited length and a stored prefix length
-type IPAddressLargeDivisionValues interface {
-	LargeDivisionValues
-
-	GetDivisionPrefixLength() *PrefixLen
-}
+//TODO LATER reinstate
+//// LargeDivisionValues represents divisions with unlimited length
+//type LargeDivisionValues interface {
+//	divisionValuesBase
+//
+//	GetValue() *BigDivInt
+//
+//	GetUpperValue() *BigDivInt
+//}
+//
+//// IPAddressDivisionValues represents divisions with unlimited length and a stored prefix length
+//type IPAddressLargeDivisionValues interface {
+//	LargeDivisionValues
+//
+//	GetDivisionPrefixLength() *PrefixLen
+//}

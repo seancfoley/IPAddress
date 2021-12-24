@@ -170,7 +170,7 @@ var maskMutex sync.Mutex
 func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength BitCount, cache []*IPAddress, network, withPrefixLength bool) *IPAddress {
 	bits := networkPrefixLength
 	//IPVersion version = getIPVersion();
-	addressBitLength := GetBitCount(version)
+	addressBitLength := version.GetBitCount()
 	if bits < 0 {
 		bits = 0
 	} else if bits > addressBitLength {
@@ -202,13 +202,13 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	}
 	onesSubnet := cache[onesSubnetIndex]
 	zerosSubnet := cache[zerosSubnetIndex]
-	segmentCount := GetSegmentCount(version)
-	bitsPerSegment := GetBitsPerSegment(version)
+	segmentCount := version.GetSegmentCount()
+	bitsPerSegment := version.GetBitsPerSegment()
 	//bytesPerSegment := GetBytesPerSegment(version);
 	//if(onesSubnet == nil || zerosSubnet == nil) {
 	//synchronized(cacheBitCountx) {
 	//onesSubnet = cacheBitCountx[onesSubnetIndex];
-	maxSegmentValue := GetMaxSegmentValue(version)
+	maxSegmentValue := version.GetMaxSegmentValue()
 	if onesSubnet == nil {
 		//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
 		newSegments := createSegmentArray(segmentCount)

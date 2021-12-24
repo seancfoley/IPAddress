@@ -436,9 +436,9 @@ func (parseData *addressParseData) isInferredUpperBoundary(segmentIndex int) boo
 	return parseData.getFlag(segmentIndex, keyInferredUpperBoundary)
 }
 
-func NewIPAddressParseData(str string) *ipAddressParseData {
-	return &ipAddressParseData{addressParseData: addressParseData{str: str}}
-}
+//func NewIPAddressParseData(str string) *ipAddressParseData {
+//	return &ipAddressParseData{addressParseData: addressParseData{str: str}}
+//}
 
 type ipAddressParseData struct {
 	addressParseData

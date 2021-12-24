@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"strconv"
 	"sync/atomic"
@@ -69,7 +70,7 @@ type addressSectionInternal struct {
 }
 
 //// error returned for nil sements
-//func (section *addressSectionInternal) initMult() AddressValueError {
+//func (section *addressSectionInternal) initMult() addrerr.AddressValueError {
 //	segCount := section.GetSegmentCount()
 //	if segCount != 0 {
 //		isMultiple := false
@@ -1022,7 +1023,7 @@ func (section *addressSectionInternal) createLowestHighestSections() (lower, upp
 	return
 }
 
-func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*AddressSegment, IncompatibleAddressError)) (res *AddressSection, err IncompatibleAddressError) {
+func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*AddressSegment, addrerr.IncompatibleAddressError)) (res *AddressSection, err addrerr.IncompatibleAddressError) {
 	count := section.GetSegmentCount()
 	if count == 0 { // case count == 1 we cannot exit early, we need to apply segProducer to each segment
 		if section.isPrefixed() {
@@ -1066,7 +1067,7 @@ func (section *addressSectionInternal) reverseSegments(segProducer func(int) (*A
 	//return creator.createSectionInternal(newSegs);
 }
 
-func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSection, err IncompatibleAddressError) {
+func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSection, err addrerr.IncompatibleAddressError) {
 	if perByte {
 		isSame := !section.isPrefixed() //when reversing, the prefix must go
 		count := section.GetSegmentCount()
@@ -1093,13 +1094,13 @@ func (section *addressSectionInternal) reverseBits(perByte bool) (res *AddressSe
 		//return creator.createSectionInternal(newSegs);
 	}
 	return section.reverseSegments(
-		func(i int) (*AddressSegment, IncompatibleAddressError) {
+		func(i int) (*AddressSegment, addrerr.IncompatibleAddressError) {
 			return section.GetSegment(i).ReverseBits(perByte)
 		},
 	)
 }
 
-func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *AddressSection, err IncompatibleAddressError) {
+func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *AddressSection, err addrerr.IncompatibleAddressError) {
 	if perSegment {
 		isSame := !section.isPrefixed() //when reversing, the prefix must go
 		count := section.GetSegmentCount()
@@ -1129,7 +1130,9 @@ func (section *addressSectionInternal) reverseBytes(perSegment bool) (res *Addre
 		return
 	}
 	return section.reverseSegments(
-		func(i int) (*AddressSegment, IncompatibleAddressError) { return section.GetSegment(i).ReverseBytes() },
+		func(i int) (*AddressSegment, addrerr.IncompatibleAddressError) {
+			return section.GetSegment(i).ReverseBytes()
+		},
 	)
 }
 
@@ -1304,10 +1307,10 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 //// boundariesOnly: whether we care if the masking works for all values in a range.
 //// For instance, 1.2.3.2-4/31 cannot be zero-hosted, because applyng to the boundaries results in 1.2.3.2-4/31,
 //// and that includes 1.2.3.3/31 which does not have host of zero.
-//// So in that case, we'd normally have IncompatibleAddressError.  boundariesOnly as true avoids the exception,
+//// So in that case, we'd normally haveaddrerr.IncompatibleAddressError.  boundariesOnly as true avoids the exception,
 //// if we are really just interested in getting the zero-host boundaries,
 //// and we don't care about the remaining values in-between.
-//func (section *addressSectionInternal) createZeroHost(prefLen BitCount, boundariesOnly bool) (*AddressSection, IncompatibleAddressError) {
+//func (section *addressSectionInternal) createZeroHost(prefLen BitCount, boundariesOnly bool) (*AddressSection,addrerr.IncompatibleAddressError) {
 //	//prefixLength := section.GetPrefixLen() //we know it is prefixed here so no panic on the derefence
 //	//xxxxxxx
 //	bitsPerSegment := section.GetBitsPerSegment()
@@ -1335,7 +1338,7 @@ func (section *addressSectionInternal) replaceLen(startIndex, endIndex int, repl
 //		})
 //}
 //
-//func (section *addressSectionInternal) toZeroHost(boundariesOnly bool) (res *AddressSection, err IncompatibleAddressError) {
+//func (section *addressSectionInternal) toZeroHost(boundariesOnly bool) (res *AddressSection, err addrerr.IncompatibleAddressError) {
 //	var prefLen BitCount
 //	if section.IsPrefixed() {
 //		prefLen = *section.GetPrefixLen()
@@ -1502,11 +1505,11 @@ func (section *addressSectionInternal) adjustPrefixLen(adjustment BitCount) *Add
 	return res
 }
 
-func (section *addressSectionInternal) adjustPrefixLenZeroed(adjustment BitCount) (*AddressSection, IncompatibleAddressError) {
+func (section *addressSectionInternal) adjustPrefixLenZeroed(adjustment BitCount) (*AddressSection, addrerr.IncompatibleAddressError) {
 	return section.adjustPrefixLength(adjustment, true)
 }
 
-func (section *addressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (*AddressSection, IncompatibleAddressError) {
+func (section *addressSectionInternal) adjustPrefixLength(adjustment BitCount, withZeros bool) (*AddressSection, addrerr.IncompatibleAddressError) {
 	if adjustment == 0 && section.isPrefixed() {
 		return section.toAddressSection(), nil
 	}
@@ -1524,14 +1527,14 @@ func (section *addressSectionInternal) setPrefixLen(prefixLen BitCount) *Address
 	return res
 }
 
-func (section *addressSectionInternal) setPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
+func (section *addressSectionInternal) setPrefixLenZeroed(prefixLen BitCount) (*AddressSection, addrerr.IncompatibleAddressError) {
 	return section.setPrefixLength(prefixLen, true)
 }
 
 func (section *addressSectionInternal) setPrefixLength(
 	networkPrefixLength BitCount,
 	withZeros bool,
-) (res *AddressSection, err IncompatibleAddressError) {
+) (res *AddressSection, err addrerr.IncompatibleAddressError) {
 	existingPrefixLength := section.GetPrefixLen()
 	if existingPrefixLength != nil && networkPrefixLength == existingPrefixLength.bitCount() {
 		res = section.toAddressSection()
@@ -2101,7 +2104,7 @@ func (section *addressSectionInternal) toCompressedString() string {
 	return nilSection()
 }
 
-func (section *addressSectionInternal) toHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toHexStringZoned(with0xPrefix, NoZone)
@@ -2113,19 +2116,19 @@ func (section *addressSectionInternal) toHexString(with0xPrefix bool) (string, I
 		cacheField = &cache.hexString
 	}
 	return cacheStrErr(cacheField,
-		func() (string, IncompatibleAddressError) {
+		func() (string, addrerr.IncompatibleAddressError) {
 			return section.toHexStringZoned(with0xPrefix, NoZone)
 		})
 }
 
-func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toHexStringZoned(with0xPrefix bool, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	if with0xPrefix {
 		return section.toLongStringZoned(zone, hexPrefixedParams)
 	}
 	return section.toLongStringZoned(zone, hexParams)
 }
 
-func (section *addressSectionInternal) toOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toOctalStringZoned(with0Prefix, NoZone)
@@ -2137,12 +2140,12 @@ func (section *addressSectionInternal) toOctalString(with0Prefix bool) (string, 
 		cacheField = &cache.octalString
 	}
 	return cacheStrErr(cacheField,
-		func() (string, IncompatibleAddressError) {
+		func() (string, addrerr.IncompatibleAddressError) {
 			return section.toOctalStringZoned(with0Prefix, NoZone)
 		})
 }
 
-func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	var opts StringOptions
 	if with0Prefix {
 		opts = octalPrefixedParams
@@ -2152,7 +2155,7 @@ func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone
 	return section.toLongOctalStringZoned(zone, opts)
 }
 
-func (section *addressSectionInternal) toLongOctalStringZoned(zone Zone, opts StringOptions) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toLongOctalStringZoned(zone Zone, opts StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
 	} else if isDual {
@@ -2187,7 +2190,7 @@ protected String toOctalString(boolean with0Prefix, CharSequence zone) throws In
 		IPAddressStringDivisionSeries part = new IPAddressDivisionGrouping(divs, getNetwork());
 		return toIPParams(with0Prefix ? IPStringCache.octalPrefixedParams : IPStringCache.octalParams).toZonedString(part, zone);
 	}
-func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string,addrerr.IncompatibleAddressError) {
 	isDual, err := section.isDualString()
 	if err != nil {
 		return "", err
@@ -2199,7 +2202,7 @@ func (section *addressSectionInternal) toLongStringZoned(zone Zone, params Strin
 	return section.ToCustomString(params), nil
 }
 */
-func (section *addressSectionInternal) toBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	cache := section.getStringCache()
 	if cache == nil {
 		return section.toBinaryStringZoned(with0bPrefix, NoZone)
@@ -2211,19 +2214,19 @@ func (section *addressSectionInternal) toBinaryString(with0bPrefix bool) (string
 		cacheField = &cache.binaryString
 	}
 	return cacheStrErr(cacheField,
-		func() (string, IncompatibleAddressError) {
+		func() (string, addrerr.IncompatibleAddressError) {
 			return section.toBinaryStringZoned(with0bPrefix, NoZone)
 		})
 }
 
-func (section *addressSectionInternal) toBinaryStringZoned(with0bPrefix bool, zone Zone) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toBinaryStringZoned(with0bPrefix bool, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	if with0bPrefix {
 		return section.toLongStringZoned(zone, binaryPrefixedParams)
 	}
 	return section.toLongStringZoned(zone, binaryParams)
 }
 
-func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, IncompatibleAddressError) {
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
 	} else if isDual {
@@ -2255,10 +2258,10 @@ func (section *addressSectionInternal) toCustomStringZoned(stringOptions StringO
 //	return toNormalizedString(stringOptions, section)
 //}
 
-func (section *addressSectionInternal) isDualString() (bool, IncompatibleAddressError) {
+func (section *addressSectionInternal) isDualString() (bool, addrerr.IncompatibleAddressError) {
 	count := section.GetSegmentCount()
 	if section.isMultiple() {
-		//at this point we know we will return true, but we determine now if we must return IncompatibleAddressError
+		//at this point we know we will return true, but we determine now if we must returnaddrerr.IncompatibleAddressError
 		for i := 0; i < count; i++ {
 			division := section.GetSegment(i)
 			if division.isMultiple() {
@@ -2432,7 +2435,7 @@ func (section *addressSectionInternal) getSubnetSegments( // called by methods t
 	verifyMask bool,
 	segProducer func(int) *AddressDivision,
 	segmentMaskProducer func(int) SegInt,
-) (res *AddressSection, err IncompatibleAddressError) {
+) (res *AddressSection, err addrerr.IncompatibleAddressError) {
 	networkPrefixLength = checkPrefLen(networkPrefixLength, section.GetBitCount())
 	bitsPerSegment := section.GetBitsPerSegment()
 	count := section.GetSegmentCount()
@@ -2649,7 +2652,7 @@ func (section *AddressSection) GetUpper() *AddressSection {
 	return section.getUpper()
 }
 
-//func (section *AddressSection) ToZeroHost() (res *AddressSection, err IncompatibleAddressError) {
+//func (section *AddressSection) ToZeroHost() (res *AddressSection, err addrerr.IncompatibleAddressError) {
 //	return section.toZeroHost(false)
 //}
 
@@ -2676,7 +2679,7 @@ func (section *AddressSection) SetPrefixLen(prefixLen BitCount) *AddressSection 
 	return section.setPrefixLen(prefixLen)
 }
 
-func (section *AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
+func (section *AddressSection) SetPrefixLenZeroed(prefixLen BitCount) (*AddressSection, addrerr.IncompatibleAddressError) {
 	return section.setPrefixLenZeroed(prefixLen)
 }
 
@@ -2684,7 +2687,7 @@ func (section *AddressSection) AdjustPrefixLen(prefixLen BitCount) *AddressSecti
 	return section.adjustPrefixLen(prefixLen).ToSectionBase()
 }
 
-func (section *AddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, IncompatibleAddressError) {
+func (section *AddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (*AddressSection, addrerr.IncompatibleAddressError) {
 	res, err := section.adjustPrefixLenZeroed(prefixLen)
 	return res.ToSectionBase(), err
 }
@@ -2784,15 +2787,15 @@ func (section *AddressSection) Increment(increment int64) *AddressSection {
 	return section.increment(increment)
 }
 
-func (section *AddressSection) ReverseBits(perByte bool) (*AddressSection, IncompatibleAddressError) {
+func (section *AddressSection) ReverseBits(perByte bool) (*AddressSection, addrerr.IncompatibleAddressError) {
 	return section.reverseBits(perByte)
 }
 
-func (section *AddressSection) ReverseBytes() (*AddressSection, IncompatibleAddressError) {
+func (section *AddressSection) ReverseBytes() (*AddressSection, addrerr.IncompatibleAddressError) {
 	return section.reverseBytes(false)
 }
 
-//func (section *AddressSection) ReverseBytesPerSegment() (*AddressSection, IncompatibleAddressError) {
+//func (section *AddressSection) ReverseBytesPerSegment() (*AddressSection,addrerr.IncompatibleAddressError) {
 //	return section.reverseBytes(true)
 //}
 
@@ -2804,7 +2807,7 @@ func (section *AddressSection) ReverseSegments() *AddressSection {
 		return section
 	}
 	res, _ := section.reverseSegments(
-		func(i int) (*AddressSegment, IncompatibleAddressError) {
+		func(i int) (*AddressSegment, addrerr.IncompatibleAddressError) {
 			return section.GetSegment(i).withoutPrefixLen(), nil
 		},
 	)
@@ -2839,21 +2842,21 @@ func (section *AddressSection) ToCompressedString() string {
 	return section.toCompressedString()
 }
 
-func (section *AddressSection) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (section *AddressSection) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toHexString(with0xPrefix)
 }
 
-func (section *AddressSection) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (section *AddressSection) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toOctalString(with0Prefix)
 }
 
-func (section *AddressSection) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (section *AddressSection) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
@@ -2900,7 +2903,7 @@ func seriesValsSame(one, two AddressSegmentSeries) bool {
 //	bitsPerSegment BitCount,
 //	expectedByteCount int,
 //	creator addressSegmentCreator,
-//	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+//	prefixLength PrefixLen) (segments []*AddressDivision, err addrerr.AddressValueError) {
 //
 //	//We allow two formats of bytes:
 //	//1. two's complement: top bit indicates sign.  Ranging over all 16-byte lengths gives all addresses, from both positive and negative numbers
@@ -2998,7 +3001,7 @@ func seriesValsSame(one, two AddressSegmentSeries) bool {
 //	bitsPerSegment BitCount,
 //	expectedByteCount int,
 //	creator addressSegmentCreator,
-//	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+//	prefixLength PrefixLen) (segments []*AddressDivision, err addrerr.AddressValueError) {
 //
 //	byteLen := len(bytes)
 //	missingBytes := expectedByteCount - byteLen
@@ -3045,7 +3048,7 @@ func seriesValsSame(one, two AddressSegmentSeries) bool {
 //	bytesPerSegment int,
 //	bitsPerSegment BitCount,
 //	creator addressSegmentCreator,
-//	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+//	prefixLength PrefixLen) (segments []*AddressDivision, err addrerr.AddressValueError) {
 //
 //	byteLen := len(bytes)
 //	segments = createSegmentArray(segmentCount)
@@ -3087,7 +3090,7 @@ func toSegments(
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	creator addressSegmentCreator,
-	prefixLength PrefixLen) (segments []*AddressDivision, err AddressValueError) {
+	prefixLength PrefixLen) (segments []*AddressDivision, err addrerr.AddressValueError) {
 
 	segments = createSegmentArray(segmentCount)
 	byteIndex, segmentIndex := len(bytes), segmentCount-1

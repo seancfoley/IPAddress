@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 // How address sections and addresses and ranges can be created here:
@@ -55,7 +57,7 @@ type sectionResult struct {
 
 	address, hostAddress *IPAddress
 
-	joinHostError, joinAddressError /* inet_aton, single seg */, mixedError, maskError IncompatibleAddressError
+	joinHostError, joinAddressError /* inet_aton, single seg */, mixedError, maskError addrerr.IncompatibleAddressError
 }
 
 func (res *sectionResult) withoutAddressException() bool {
@@ -80,11 +82,11 @@ func (parseData *parsedIPAddress) values() *translatedResult {
 	return &parseData.vals
 }
 
-func (parseData *parsedIPAddress) providerCompare(other ipAddressProvider) (int, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) providerCompare(other ipAddressProvider) (int, addrerr.IncompatibleAddressError) {
 	return providerCompare(parseData, other)
 }
 
-func (parseData *parsedIPAddress) providerEquals(other ipAddressProvider) (bool, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) providerEquals(other ipAddressProvider) (bool, addrerr.IncompatibleAddressError) {
 	return providerEquals(parseData, other)
 }
 
@@ -259,7 +261,7 @@ func (parseData *parsedIPAddress) getProviderMask() *IPAddress {
 	return parseData.getQualifier().getMaskLower()
 }
 
-func (parseData *parsedIPAddress) getProviderHostAddress() (*IPAddress, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) getProviderHostAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	addrs := parseData.getCachedAddresses(true)
 	if addrs.mixedError != nil {
 		return nil, addrs.mixedError
@@ -269,7 +271,7 @@ func (parseData *parsedIPAddress) getProviderHostAddress() (*IPAddress, Incompat
 	return addrs.hostAddress, nil
 }
 
-func (parseData *parsedIPAddress) getProviderAddress() (*IPAddress, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) getProviderAddress() (*IPAddress, addrerr.IncompatibleAddressError) {
 	addrs := parseData.getCachedAddresses(false)
 	if addrs.mixedError != nil {
 		return nil, addrs.mixedError
@@ -281,7 +283,7 @@ func (parseData *parsedIPAddress) getProviderAddress() (*IPAddress, Incompatible
 	return addrs.address, nil
 }
 
-func (parseData *parsedIPAddress) getVersionedAddress(version IPVersion) (*IPAddress, IncompatibleAddressError) {
+func (parseData *parsedIPAddress) getVersionedAddress(version IPVersion) (*IPAddress, addrerr.IncompatibleAddressError) {
 	thisVersion := parseData.getProviderIPVersion()
 	if version != thisVersion {
 		return nil, nil
@@ -2235,7 +2237,7 @@ func createFullRangeSegment(
 	parsedSegIndex int,
 	segmentPrefixLength PrefixLen,
 	mask *SegInt,
-	creator parsedAddressCreator) (result, hostResult, lower, upper *AddressDivision, err IncompatibleAddressError) {
+	creator parsedAddressCreator) (result, hostResult, lower, upper *AddressDivision, err addrerr.IncompatibleAddressError) {
 	var maskedLower, maskedUpper SegInt
 	hasMask := (mask != nil)
 	maskedIsDifferent := false
@@ -2282,7 +2284,7 @@ func createFullRangeSegment(
 func createAllAddress(
 	version IPVersion,
 	qualifier *parsedHostIdentifierStringQualifier,
-	originator HostIdentifierString) (res, hostAddr, lower, upper *IPAddress, err IncompatibleAddressError) {
+	originator HostIdentifierString) (res, hostAddr, lower, upper *IPAddress, err addrerr.IncompatibleAddressError) {
 
 	creator := version.toType().getIPNetwork().getIPAddressCreator()
 	//prefixLength := qualifier.getEquivalentPrefixLength()
@@ -2290,7 +2292,7 @@ func createAllAddress(
 	if mask != nil && mask.GetBlockMaskPrefixLen(true) != nil {
 		mask = nil //we don't do any masking if the mask is a subnet mask, instead we just map it to the corresponding prefix length
 	}
-	segmentCount := GetSegmentCount(version)
+	segmentCount := version.GetSegmentCount()
 	segments := make([]*AddressDivision, segmentCount)
 	hostSegments := make([]*AddressDivision, segmentCount)
 	lowerSegments := make([]*AddressDivision, segmentCount)

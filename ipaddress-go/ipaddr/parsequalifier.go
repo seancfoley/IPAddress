@@ -1,5 +1,7 @@
 package ipaddr
 
+import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+
 type parsedHostIdentifierStringQualifier struct {
 
 	// if there is a port for the host, this will be its numeric value
@@ -31,7 +33,7 @@ func (parsedQual *parsedHostIdentifierStringQualifier) clearPrefixOrMask() {
 	parsedQual.mask = nil
 }
 
-func (parsedQual *parsedHostIdentifierStringQualifier) merge(other *parsedHostIdentifierStringQualifier) (err IncompatibleAddressError) {
+func (parsedQual *parsedHostIdentifierStringQualifier) merge(other *parsedHostIdentifierStringQualifier) (err addrerr.IncompatibleAddressError) {
 	if parsedQual.networkPrefixLength == nil ||
 		(other.networkPrefixLength != nil && other.networkPrefixLength.bitCount() < parsedQual.networkPrefixLength.bitCount()) {
 		parsedQual.networkPrefixLength = other.networkPrefixLength

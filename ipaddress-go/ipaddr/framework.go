@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"net"
 )
@@ -69,7 +70,7 @@ type AddressComponent interface { //AddressSegment and above, AddressSegmentSeri
 	TestBit(BitCount) bool
 	IsOneBit(BitCount) bool
 
-	ToHexString(bool) (string, IncompatibleAddressError)
+	ToHexString(bool) (string, addrerr.IncompatibleAddressError)
 	ToNormalizedString() string
 }
 
@@ -141,8 +142,8 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 	ToCanonicalString() string
 	ToCompressedString() string
 
-	ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError)
-	ToOctalString(withPrefix bool) (string, IncompatibleAddressError)
+	ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError)
+	ToOctalString(withPrefix bool) (string, addrerr.IncompatibleAddressError)
 
 	GetSegmentStrings() []string
 
@@ -179,7 +180,7 @@ type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection
 	ToCompressedWildcardString() string
 	ToSegmentedBinaryString() string
 	ToSQLWildcardString() string
-	ToReverseDNSString() (string, IncompatibleAddressError)
+	ToReverseDNSString() (string, addrerr.IncompatibleAddressError)
 }
 
 var _, _ IPAddressSegmentSeries = &IPAddress{}, &IPAddressSection{}

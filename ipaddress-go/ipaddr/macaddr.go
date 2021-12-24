@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"net"
 	"sync/atomic"
@@ -40,7 +41,7 @@ func newMACAddress(section *MACAddressSection) *MACAddress {
 	return createAddress(section.ToSectionBase(), NoZone).ToMAC()
 }
 
-func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) {
+func NewMACAddress(section *MACAddressSection) (*MACAddress, addrerr.AddressValueError) {
 	segCount := section.GetSegmentCount()
 	if segCount != MediaAccessControlSegmentCount && segCount != ExtendedUniqueIdentifier64SegmentCount {
 		return nil, &addressValueError{
@@ -51,7 +52,7 @@ func NewMACAddress(section *MACAddressSection) (*MACAddress, AddressValueError) 
 	return createAddress(section.ToSectionBase(), NoZone).ToMAC(), nil
 }
 
-func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, AddressValueError) {
+func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, addrerr.AddressValueError) {
 	section, err := createMACSectionFromBytes(bytes)
 	if err != nil {
 		return nil, err
@@ -75,7 +76,7 @@ func NewMACAddressFromUint64Ext(val uint64, isExtended bool) *MACAddress {
 	return createAddress(section.ToSectionBase(), NoZone).ToMAC()
 }
 
-func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, AddressValueError) {
+func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, addrerr.AddressValueError) {
 	segsLen := len(segments)
 	if segsLen != MediaAccessControlSegmentCount && segsLen != ExtendedUniqueIdentifier64SegmentCount {
 		return nil, &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.mac.invalid.segment.count"}}
@@ -108,7 +109,7 @@ func NewMACAddressFromRangeExt(vals, upperVals MACSegmentValueProvider, isExtend
 	return
 }
 
-func createMACSectionFromBytes(bytes []byte) (*MACAddressSection, AddressValueError) {
+func createMACSectionFromBytes(bytes []byte) (*MACAddressSection, addrerr.AddressValueError) {
 	var segCount int
 	length := len(bytes)
 	//We round down the bytes to 6 bytes if we can.  Otherwise, we round up.
@@ -360,7 +361,7 @@ func (addr *MACAddress) SetPrefixLen(prefixLen BitCount) *MACAddress {
 	return addr.init().setPrefixLen(prefixLen).ToMAC()
 }
 
-func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
+func (addr *MACAddress) SetPrefixLenZeroed(prefixLen BitCount) (*MACAddress, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().setPrefixLenZeroed(prefixLen)
 	return res.ToMAC(), err
 }
@@ -369,7 +370,7 @@ func (addr *MACAddress) AdjustPrefixLen(prefixLen BitCount) *MACAddress {
 	return addr.init().adjustPrefixLen(prefixLen).ToMAC()
 }
 
-func (addr *MACAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (*MACAddress, IncompatibleAddressError) {
+func (addr *MACAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (*MACAddress, addrerr.IncompatibleAddressError) {
 	res, err := addr.init().adjustPrefixLenZeroed(prefixLen)
 	return res.ToMAC(), err
 }
@@ -507,7 +508,7 @@ func (addr *MACAddress) ReverseBytes() *MACAddress {
 	return addr.checkIdentity(addr.GetSection().ReverseBytes())
 }
 
-func (addr *MACAddress) ReverseBits(perByte bool) (*MACAddress, IncompatibleAddressError) {
+func (addr *MACAddress) ReverseBits(perByte bool) (*MACAddress, addrerr.IncompatibleAddressError) {
 	res, err := addr.GetSection().ReverseBits(perByte)
 	if err != nil {
 		return nil, err
@@ -591,7 +592,7 @@ func createLinkLocalPrefix() *IPv6AddressSection {
 
 // ToLinkLocalIPv6 converts to a link-local Ipv6 address.  Any MACSize prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
 // This will provide the latter 4 segments of an IPv6 address, to be paired with the link-local IPv6 prefix of 4 segments.
-func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, IncompatibleAddressError) {
+func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, addrerr.IncompatibleAddressError) {
 	sect, err := addr.ToEUI64IPv6()
 	if err != nil {
 		return nil, err
@@ -601,7 +602,7 @@ func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, IncompatibleAddressErro
 
 // ToEUI64IPv6 converts to an Ipv6 address section.  Any MACSize prefix length is ignored.  Other elements of this address section are incorporated into the conversion.
 // This will provide the latter 4 segments of an IPv6 address, to be paired with an IPv6 prefix of 4 segments.
-func (addr *MACAddress) ToEUI64IPv6() (*IPv6AddressSection, IncompatibleAddressError) {
+func (addr *MACAddress) ToEUI64IPv6() (*IPv6AddressSection, addrerr.IncompatibleAddressError) {
 	return NewIPv6SectionFromMAC(addr.init())
 }
 
@@ -629,7 +630,7 @@ func (addr *MACAddress) IsEUI64(asMAC bool) bool {
 //
 // If asMAC if true, this address is considered MACSize and the EUI-64 is extended using ff-ff, otherwise this address is considered EUI-48 and extended using ff-fe
 // Note that IPv6 treats MACSize as EUI-48 and extends MACSize to IPv6 addresses using ff-fe
-func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, IncompatibleAddressError) {
+func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, addrerr.IncompatibleAddressError) {
 	section := addr.GetSection()
 	if addr.GetSegmentCount() == ExtendedUniqueIdentifier48SegmentCount { //getSegmentCount() == EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT
 		//MACAddressSegment segs[] = creator.createSegmentArray(EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT);
@@ -718,33 +719,33 @@ func (addr *MACAddress) ToCompressedString() string {
 	return addr.init().toCompressedString()
 }
 
-func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, IncompatibleAddressError) {
+func (addr *MACAddress) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toHexString(with0xPrefix)
 }
 
-func (addr *MACAddress) ToOctalString(with0Prefix bool) (string, IncompatibleAddressError) {
+func (addr *MACAddress) ToOctalString(with0Prefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toOctalString(with0Prefix)
 }
 
-func (addr *MACAddress) ToBinaryString(with0bPrefix bool) (string, IncompatibleAddressError) {
+func (addr *MACAddress) ToBinaryString(with0bPrefix bool) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
-func (addr *MACAddress) GetDottedAddress() (*AddressDivisionGrouping, IncompatibleAddressError) {
+func (addr *MACAddress) GetDottedAddress() (*AddressDivisionGrouping, addrerr.IncompatibleAddressError) {
 	return addr.init().GetSection().GetDottedGrouping()
 }
 
 // ToDottedString produces the dotted hexadecimal format aaaa.bbbb.cccc
-func (addr *MACAddress) ToDottedString() (string, IncompatibleAddressError) {
+func (addr *MACAddress) ToDottedString() (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}
