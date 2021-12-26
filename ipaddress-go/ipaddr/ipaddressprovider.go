@@ -1,9 +1,10 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 // All IP address strings corresponds to exactly one of these types.
@@ -876,7 +877,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - go over the goland warnings, they do help a bit to find issues
-// - the go.mod file and any other module-related stuff
 // - license at top of every source file
 
 // Look into splitting this up.  Can we move the framework into new package? iterators?
@@ -890,7 +890,19 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // Code suggests that if imported, that would be influential
 // Yeah, I think that is key.  It is not about error.  It is about imported types.  ALso predeclared types, like int8, which also includes error too.
 // So moving them into another package would do the trick I think.
-// TODO iterators also go into separate package
 // TODO builders and params separated
-// pkgs: addrerr, addrfwork, addriter or iter, maybe addrformat
+// pkgs: addrerr, addrfwork, addriter or iter, maybe addrformat (iterators, string parameters/builders, framework interfaces)
+// kind leaning to putting them all in addrformat to match Java
+// OK, iterators will not work.  Because of cycle.  base points to iterators.  Next() of each iterator points to base.
+// In fact, this is a big reason why you ended up using one package.
+// string parameters/builders: should be separable.
+// framework interfaces: the checks for each framework interface not separable (actually, they are, IF you have the sub depending on the base, which is the reverse of what we have for addrerr).
+// So, it depends which way we want that dependency to go.  We probably want it to go like addrerr.  NOPE.  We have plenty of dependencies in the framework on the base.
+// But some interfaces in the framework used by the base!
+// We are screwed.  The two are intertwined.
+// so that leaves the string params and builders.
+//
 // TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
+// It may simply be because in local mode it skips the license check
+// TODO it seems the godoc doesn't list GetPrefixCount for IPv4Address, but it does for MACAddress.  Huh?
+// Is this because it only goes down one level?  Do I need to accomodate this (ie add to ipaddressInternal stuff from addressInternal?)

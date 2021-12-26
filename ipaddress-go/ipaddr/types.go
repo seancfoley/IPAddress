@@ -94,6 +94,31 @@ type PrefixBitCount struct {
 	bCount bitCount
 }
 
+/*
+//TODO this still does not work, what is to stop:
+p1 := ipaddr.ToPrefixLen(1)
+p2 := ipaddr.ToPrefixLen(2)
+*p1 = *p2
+
+So then we might try to make PrefixBitCount private, but then when we do the godocs, the methods do not appear for PrefixLen
+And making it private does not work anyway.
+Yeesh.
+You have two options as far as I can tell:
+1. copy to your own internal PrefixLen on function calls.  Returns a copy on calls to get the prefix len.
+2. Use interfaces.  So PrefixLen becomes an interface.  PrefixBitCount becomes private.  You can still store a ptr to a struct in the data structs.
+	But you must check that pointer for nil when accessing, and return nil for the interface.
+I do not think I like interface for this, since there really is no method, it is a value.
+
+I  think i may need to return to a BitCount pointer, and when we store to the field, we get our own pointer to store.
+And then when we return the prefix len, we need to make a copy.
+We can still use the bitCount() method to dereference.
+// TODO ensure you always assign the internal copy to addressDivisionGroupingBase
+// TODO when obtaining the prefix internally, use a getPrefixLength that does not copy iy
+// TODO the external methods must use a copy
+// TODO same for divisions/segments
+// Seems as though nothing needed for MAC
+*/
+
 // Len() returns the length of the prefix.  If the receiver is nil, representing the absence of a prefix length, returns 0.
 // It will also return 0 if the receiver is a prefix with length is 0.
 func (p *PrefixBitCount) Len() BitCount {
@@ -101,6 +126,10 @@ func (p *PrefixBitCount) Len() BitCount {
 		return 0
 	}
 	return p.bitCount()
+}
+
+func (p *PrefixBitCount) IsNil() bool {
+	return p == nil
 }
 
 //func (p *PrefixBitCount) Len() (len BitCount, exists bool) {
@@ -294,22 +323,31 @@ func cacheNilPrefix() *PrefixLen {
 	return &p
 }
 
-type Port = *PortNum
+type Port = *portNumVal
 
 type PortInt = int // using signed integers allows for easier arithmetic
 type portNum = uint16
 
+/*
+//TODO this still does not work, what is to stop:
+p1 := ipaddr.ToPrefixLen(1)
+p2 := ipaddr.ToPrefixLen(2)
+*p1 = *p2
+
+Do the same as what we do above
+*/
+
 const maxPortNumInternal, minPortNumInternal = math.MaxUint16, 0
 
-type PortNum struct {
+type portNumVal struct {
 	port portNum
 }
 
-func (p *PortNum) portNum() PortInt {
+func (p *portNumVal) portNum() PortInt {
 	return PortInt(p.port)
 }
 
-func (p *PortNum) Num() PortInt {
+func (p *portNumVal) Num() PortInt {
 	if p == nil {
 		return 0
 	}
@@ -317,7 +355,7 @@ func (p *PortNum) Num() PortInt {
 }
 
 // Equal compares two Port values for equality.
-func (p *PortNum) Equal(other Port) bool {
+func (p *portNumVal) Equal(other Port) bool {
 	if p == nil {
 		return other == nil
 	}
@@ -325,12 +363,12 @@ func (p *PortNum) Equal(other Port) bool {
 }
 
 // Matches compares a Port value with a port number
-func (p *PortNum) Matches(other PortInt) bool {
+func (p *portNumVal) Matches(other PortInt) bool {
 	return p != nil && p.portNum() == other
 }
 
 // Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
-func (p *PortNum) Compare(other Port) int {
+func (p *portNumVal) Compare(other Port) int {
 	if p == nil {
 		if other == nil {
 			return 0
@@ -342,7 +380,7 @@ func (p *PortNum) Compare(other Port) int {
 	return p.portNum() - other.portNum()
 }
 
-func (p *PortNum) String() string {
+func (p *portNumVal) String() string {
 	if p == nil {
 		return nilString()
 	}
@@ -362,7 +400,7 @@ func ToPort(i PortInt) Port {
 	} else if i > maxPortNumInternal {
 		i = maxPortNumInternal
 	}
-	return &PortNum{portNum(i)}
+	return &portNumVal{portNum(i)}
 }
 
 func bigOne() *big.Int {

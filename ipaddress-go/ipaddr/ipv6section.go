@@ -336,21 +336,21 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 	return
 }
 
-func NewIPv6SectionFromValues(vals IPv6SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
-	res = NewIPv6SectionFromPrefixedRangeValues(vals, nil, segmentCount, nil)
+func NewIPv6SectionFromVals(vals IPv6SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
+	res = NewIPv6SectionFromPrefixedRangeVals(vals, nil, segmentCount, nil)
 	return
 }
 
-func NewIPv6SectionFromPrefixedValues(vals IPv6SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
-	return NewIPv6SectionFromPrefixedRangeValues(vals, nil, segmentCount, prefixLength)
+func NewIPv6SectionFromPrefixedVals(vals IPv6SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
+	return NewIPv6SectionFromPrefixedRangeVals(vals, nil, segmentCount, prefixLength)
 }
 
-func NewIPv6SectionFromRangeValues(vals, upperVals IPv6SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
-	res = NewIPv6SectionFromPrefixedRangeValues(vals, upperVals, segmentCount, nil)
+func NewIPv6SectionFromRangeVals(vals, upperVals IPv6SegmentValueProvider, segmentCount int) (res *IPv6AddressSection) {
+	res = NewIPv6SectionFromPrefixedRangeVals(vals, upperVals, segmentCount, nil)
 	return
 }
 
-func NewIPv6SectionFromPrefixedRangeValues(vals, upperVals IPv6SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
+func NewIPv6SectionFromPrefixedRangeVals(vals, upperVals IPv6SegmentValueProvider, segmentCount int, prefixLength PrefixLen) (res *IPv6AddressSection) {
 	if segmentCount < 0 {
 		segmentCount = 0
 	}
@@ -1539,14 +1539,6 @@ func (section *IPv6AddressSection) GetIPv4AddressSection(startByteIndex, endByte
 
 func (section *IPv6AddressSection) createNonMixedSection() *EmbeddedIPv6AddressSection {
 	nonMixedCount := IPv6MixedOriginalSegmentCount
-	//nonMixedCount := 0
-	//addressSegmentIndex := section.addressSegmentIndex
-	//if count := IPv6MixedOriginalSegmentCount - int(addressSegmentIndex); count > 0 {
-	//	nonMixedCount = count
-	//}
-	//if count := IPv6MixedOriginalSegmentCount; count > 0 {
-	//	nonMixedCount = count
-	//}
 	mixedCount := section.GetSegmentCount() - nonMixedCount
 	var result *IPv6AddressSection
 	if mixedCount <= 0 {
@@ -1556,7 +1548,6 @@ func (section *IPv6AddressSection) createNonMixedSection() *EmbeddedIPv6AddressS
 		section.copySubSegmentsToSlice(0, nonMixedCount, nonMixed)
 		result = createIPv6Section(nonMixed)
 		result.initMultAndPrefLen()
-		//result = res
 	}
 	return &EmbeddedIPv6AddressSection{
 		embeddedIPv6AddressSection: embeddedIPv6AddressSection{result},

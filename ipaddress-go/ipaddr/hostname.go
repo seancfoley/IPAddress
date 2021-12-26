@@ -678,13 +678,14 @@ TODO LATER isUNCIPv6Literal and isReverseDNS
 // either as part of an address or as part of a domain (in which case the prefix applies to any resolved address),
 // Otherwise, returns nil.
 func (host *HostName) GetNetworkPrefixLen() PrefixLen {
+	//TODO callers must get a copy.
 	if host.IsAddress() {
 		addr, err := host.parsedHost.asAddress()
 		if err == nil {
-			return addr.GetNetworkPrefixLen()
+			return addr.getNetworkPrefixLen()
 		}
 	} else if host.IsAddressString() {
-		return host.parsedHost.asGenericAddressString().GetNetworkPrefixLen()
+		return host.parsedHost.asGenericAddressString().getNetworkPrefixLen()
 	} else if host.IsValid() {
 		return host.parsedHost.getEquivalentPrefixLen()
 	}

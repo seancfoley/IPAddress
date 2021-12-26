@@ -74,6 +74,8 @@ func main() {
 	fmt.Printf("lower is %+v\n", ipv4Prefixed.GetLower())
 	fmt.Printf("upper is %+v\n", ipv4Prefixed.GetUpper())
 
+	_ = addr.GetPrefixCount() // an inherited method
+
 	addr5 := ipaddr.IPAddress{} // expecting []
 	fmt.Printf("%+v\n", addr5)
 	addr5Upper := addr5.GetUpper()
@@ -416,6 +418,24 @@ func main() {
 		seg2.GetBlockMaskPrefixLen(false), // should be 8 - either 8 or nil
 		seg3.GetBlockMaskPrefixLen(false), // should be 8 - either 8 or nil
 	)
+
+	p1 := ipaddr.ToPrefixLen(1)
+	p2 := ipaddr.ToPrefixLen(2)
+	fmt.Printf("%v %v\n", p1, p2)
+	*p1 = *p2
+	fmt.Printf("%v %v\n", p1, p2)
+	p1 = ipaddr.ToPrefixLen(1)
+	p2 = ipaddr.ToPrefixLen(2)
+	fmt.Printf("%v %v\n", p1, p2)
+
+	pr1 := ipaddr.ToPort(3)
+	pr2 := ipaddr.ToPort(4)
+	fmt.Printf("%p %p %v %v\n", pr1, pr2, pr1, pr2)
+	*pr1 = *pr2
+	fmt.Printf("%p %p %v %v\n", pr1, pr2, pr1, pr2)
+	pr1 = ipaddr.ToPort(3)
+	pr2 = ipaddr.ToPort(4)
+	fmt.Printf("%v %v\n", pr1, pr2)
 
 	fmt.Printf("\n\n")
 	//_ = getDoc()

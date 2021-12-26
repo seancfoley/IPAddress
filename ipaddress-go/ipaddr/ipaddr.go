@@ -169,12 +169,17 @@ func (addr *ipAddressInternal) getIPVersion() IPVersion {
 	return IndeterminateIPVersion
 }
 
-func (addr *ipAddressInternal) GetNetworkPrefixLen() PrefixLen {
+func (addr *ipAddressInternal) getNetworkPrefixLen() PrefixLen {
 	section := addr.section
 	if section == nil {
 		return nil
 	}
-	return section.ToIP().GetNetworkPrefixLen()
+	return section.ToIP().getNetworkPrefixLen()
+}
+
+func (addr *ipAddressInternal) GetNetworkPrefixLen() PrefixLen {
+	//TODO callers must get a copy.  Internal callers must be mapped to getNetworkPrefixLen()
+	return addr.getNetworkPrefixLen()
 }
 
 func (addr *ipAddressInternal) IncludesZeroHost() bool {

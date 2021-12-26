@@ -1,7 +1,7 @@
 package ipaddr
 
 type IPAddressSeqRangeIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPAddressSeqRange
 }
 
@@ -63,7 +63,7 @@ func (it *rangeIterator) Next() (res *IPAddressSeqRange) {
 }
 
 type IPv4AddressSeqRangeIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPv4AddressSeqRange
 }
 
@@ -76,7 +76,7 @@ func (iter ipv4RangeIterator) Next() *IPv4AddressSeqRange {
 }
 
 type IPv6AddressSeqRangeIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPv6AddressSeqRange
 }
 

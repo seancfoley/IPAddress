@@ -1,7 +1,7 @@
 package ipaddr
 
 type SegmentsIterator interface {
-	iteratorBase
+	HasNext
 	Next() []*AddressDivision
 }
 
@@ -163,7 +163,7 @@ func rangeSegmentsIterator(
 }
 
 type SectionIterator interface {
-	HasNext() bool
+	HasNext
 	Next() *AddressSection
 }
 
@@ -270,7 +270,7 @@ func prefixSectIterator(
 
 // IPSectionIterator iterates through IP address and subnet sections
 type IPSectionIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPAddressSection
 }
 
@@ -284,7 +284,7 @@ func (iter ipSectionIterator) Next() *IPAddressSection {
 
 // IPv4SectionIterator iterates through IPv4 address and subnet sections
 type IPv4SectionIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPv4AddressSection
 }
 
@@ -298,7 +298,7 @@ func (iter ipv4SectionIterator) Next() *IPv4AddressSection {
 
 // IPv6SectionIterator iterates through IPv6 address and subnet sections
 type IPv6SectionIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPv6AddressSection
 }
 
@@ -312,7 +312,7 @@ func (iter ipv6SectionIterator) Next() *IPv6AddressSection {
 
 // MACSectionIterator iterates through MACSize address and subnet sections
 type MACSectionIterator interface {
-	iteratorBase
+	HasNext
 	Next() *MACAddressSection
 }
 

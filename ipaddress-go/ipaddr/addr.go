@@ -2,10 +2,11 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 const (
@@ -148,10 +149,15 @@ func (addr *addressInternal) isPrefixed() bool {
 }
 
 func (addr *addressInternal) GetPrefixLen() PrefixLen {
+	//TODO callers must get a copy.  Internal callers must be mapped to getPrefixLen()
+	return addr.getPrefixLen()
+}
+
+func (addr *addressInternal) getPrefixLen() PrefixLen {
 	if addr.section == nil {
 		return nil
 	}
-	return addr.section.GetPrefixLen()
+	return addr.section.getPrefixLen()
 }
 
 func (addr *addressInternal) IsSinglePrefixBlock() bool {

@@ -125,8 +125,13 @@ func (section *ipAddressSectionInternal) GetIPVersion() IPVersion {
 	return IndeterminateIPVersion
 }
 
-func (section *ipAddressSectionInternal) GetNetworkPrefixLen() PrefixLen {
+func (section *ipAddressSectionInternal) getNetworkPrefixLen() PrefixLen {
 	return section.prefixLength
+}
+
+func (section *ipAddressSectionInternal) GetNetworkPrefixLen() PrefixLen {
+	//TODO callers must get a copy.  Internal callers must be mapped to getNetworkPrefixLen()
+	return section.getNetworkPrefixLen()
 }
 
 //func (section *ipAddressSectionInternal) CompareSize(other AddressDivisionSeries) int {
@@ -1914,7 +1919,7 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 		if applyPrefixSubnet {
 			segProducer = (*AddressDivision).toPrefixedNetworkDivision
 		} else {
-			segProducer = (*AddressDivision).toPrefixedDivision
+			segProducer = (*AddressDivision).toPrefixedDivision // TODO in some cases, where we just created the segments, and not a prefix subnet, we already know that the segs are correct
 		}
 		applyPrefixToSegments(
 			prefLen,
@@ -2001,7 +2006,7 @@ func createSegmentsUint64(
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	creator addressSegmentCreator,
-	prefixLength PrefixLen) []*AddressDivision {
+	assignedPrefixLength PrefixLen) []*AddressDivision {
 	segmentMask := ^(^SegInt(0) << uint(bitsPerSegment))
 	lowSegCount := getHostSegmentIndex(64, bytesPerSegment, bitsPerSegment)
 	newSegs := make([]*AddressDivision, segLen)
@@ -2014,7 +2019,7 @@ func createSegmentsUint64(
 	bytes := lowBytes
 	for {
 		for {
-			segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
+			segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, assignedPrefixLength, segmentIndex)
 			value := segmentMask & SegInt(bytes)
 			seg := creator.createSegment(value, value, segmentPrefixLength)
 			newSegs[segmentIndex] = seg

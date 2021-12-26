@@ -276,7 +276,7 @@ func (params *ipAddressStringParameters) AllowsIPv6() bool {
 	return !params.noIPv6
 }
 
-func (params *ipAddressStringParameters) inferVersion() IPVersion {
+func (params *ipAddressStringParameters) inferVersion() IPVersion { //TODO move this baby into validate.go so I can use IPAddressStringParameters in there and move ipAddressStringParameters out of IPAddressString
 	if params.AllowsIPv6() {
 		if !params.AllowsIPv4() {
 			return IPv6

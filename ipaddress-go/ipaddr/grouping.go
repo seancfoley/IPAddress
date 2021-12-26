@@ -427,8 +427,13 @@ func (grouping *addressDivisionGroupingInternal) initDivs() *addressDivisionGrou
 	return grouping
 }
 
-func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
+func (grouping *addressDivisionGroupingInternal) getPrefixLen() PrefixLen {
 	return grouping.prefixLength
+}
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
+	//TODO return copy of prefix len, but only for external calls, we need to map internal calls to getPrefixLen()
+	return grouping.getPrefixLen()
 }
 
 func (grouping *addressDivisionGroupingInternal) isPrefixed() bool {

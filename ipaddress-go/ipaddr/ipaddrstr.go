@@ -92,12 +92,19 @@ func (addrStr *IPAddressString) GetValidationOptions() IPAddressStringParameters
 // IsPrefixed returns whether this address string has an associated prefix length.
 // If so, the prefix length is given by GetNetworkPrefixLen()
 func (addrStr *IPAddressString) IsPrefixed() bool {
-	return addrStr.GetNetworkPrefixLen() != nil
+	return addrStr.getNetworkPrefixLen() != nil
 }
 
 // If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
 // The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
 func (addrStr *IPAddressString) GetNetworkPrefixLen() PrefixLen {
+	//TODO must make a copy of PrefixLen
+	return addrStr.getNetworkPrefixLen()
+}
+
+// If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
+// The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
+func (addrStr *IPAddressString) getNetworkPrefixLen() PrefixLen {
 	addrStr = addrStr.init()
 	if addrStr.IsValid() {
 		return addrStr.addressProvider.getProviderNetworkPrefixLen()
@@ -633,7 +640,7 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 	var err addrerr.IncompatibleAddressError
 	if adjustment < 0 && isPrefBlock {
 		if prefix != nil && prefix.bitCount()+adjustment < 0 {
-			return NewIPAddressStringParams(SegmentWildcardStr, addrStr.params), nil
+			return NewIPAddressStringParams(SegmentWildcardStr, addrStr.GetValidationOptions()), nil
 		}
 		addr, err = address.AdjustPrefixLenZeroed(adjustment)
 		if err != nil {

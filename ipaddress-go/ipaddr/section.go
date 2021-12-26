@@ -587,23 +587,23 @@ func createDivisionsFromSegs(
 	bytesPerSegment int,
 	maxValuePerSegment SegInt,
 	zeroSeg, zeroSegZeroPrefix, zeroSegPrefixBlock *IPAddressSegment,
-	prefLen PrefixLen) (divs []*AddressDivision, newPref PrefixLen, isMultiple bool) {
+	assignedPrefLen PrefixLen) (divs []*AddressDivision, newPref PrefixLen, isMultiple bool) {
 	//segCount := len(orig)
 	//segCount := segProvider.GetSegmentCount()
 	divs = make([]*AddressDivision, segCount)
 	var previousSegPrefixed bool
 	//var newPref PrefixLen
 	prefixedSegment := -1
-	if prefLen != nil {
-		p := prefLen.bitCount()
+	if assignedPrefLen != nil {
+		p := assignedPrefLen.bitCount()
 		if p < 0 {
 			p = 0
-			prefLen = cacheBitCount(p)
+			assignedPrefLen = cacheBitCount(p)
 		} else {
 			boundaryBits := BitCount(segCount << bitsToSegmentShift)
 			if p > boundaryBits {
 				p = boundaryBits
-				prefLen = cacheBitCount(p)
+				assignedPrefLen = cacheBitCount(p)
 			}
 		}
 		prefixedSegment = getNetworkSegmentIndex(p, bytesPerSegment, bitsPerSegment)
@@ -616,8 +616,8 @@ func createDivisionsFromSegs(
 			if previousSegPrefixed {
 				divs[i] = zeroSegZeroPrefix.ToDiv()
 			} else if i == prefixedSegment {
-				newPref = prefLen
-				segPref := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen.bitCount(), prefixedSegment)
+				newPref = assignedPrefLen //TODO must use a copy of assignedPrefLen
+				segPref := getPrefixedSegmentPrefixLength(bitsPerSegment, assignedPrefLen.bitCount(), prefixedSegment)
 				if i+1 < segCount && isPrefixSubnet(
 					func(segmentIndex int) SegInt {
 						seg := segProvider(segmentIndex + i + 1)
@@ -663,7 +663,7 @@ func createDivisionsFromSegs(
 				}
 			} else {
 				if i == prefixedSegment || (prefixedSegment > 0 && segIsPrefixed) {
-					assignedSegPref := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen.bitCount(), prefixedSegment)
+					assignedSegPref := getPrefixedSegmentPrefixLength(bitsPerSegment, assignedPrefLen.bitCount(), prefixedSegment)
 					if segIsPrefixed {
 						if assignedSegPref == nil || segPrefix.bitCount() < assignedSegPref.bitCount() {
 							if segPrefix.bitCount() == 0 && i > 0 {
@@ -676,13 +676,12 @@ func createDivisionsFromSegs(
 											cacheBitCount(bitsPerSegment)))
 								}
 							}
-							//assignedSegPref = segPrefix
 							newPref = getNetworkPrefixLen(bitsPerSegment, segPrefix.bitCount(), i)
 						} else {
-							newPref = prefLen
+							newPref = assignedPrefLen //TODO must use a copy of assignedPrefLen
 						}
 					} else {
-						newPref = prefLen
+						newPref = assignedPrefLen //TODO must use a copy of assignedPrefLen
 					}
 					if isPrefixSubnet(
 						func(segmentIndex int) SegInt {
@@ -3090,7 +3089,7 @@ func toSegments(
 	bytesPerSegment int,
 	bitsPerSegment BitCount,
 	creator addressSegmentCreator,
-	prefixLength PrefixLen) (segments []*AddressDivision, err addrerr.AddressValueError) {
+	assignedPrefixLength PrefixLen) (segments []*AddressDivision, err addrerr.AddressValueError) {
 
 	segments = createSegmentArray(segmentCount)
 	byteIndex, segmentIndex := len(bytes), segmentCount-1
@@ -3106,7 +3105,7 @@ func toSegments(
 			value |= SegInt(byteValue)
 		}
 		byteIndex = k
-		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, prefixLength, segmentIndex)
+		segmentPrefixLength := getSegmentPrefixLength(bitsPerSegment, assignedPrefixLength, segmentIndex)
 		seg := creator.createSegment(value, value, segmentPrefixLength)
 		segments[segmentIndex] = seg
 	}

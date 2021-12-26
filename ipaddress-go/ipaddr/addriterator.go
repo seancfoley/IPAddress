@@ -2,7 +2,7 @@ package ipaddr
 
 // AddrIterator iterates through IP addresses, subnets and ranges
 type AddressIterator interface {
-	iteratorBase
+	HasNext
 	Next() *Address
 }
 
@@ -97,7 +97,7 @@ func rangeAddrIterator(
 
 // IPv4AddressIterator iterates through IP addresses, subnets and ranges
 type IPAddressIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPAddress
 }
 
@@ -127,7 +127,7 @@ func (iter ipAddrSliceIterator) Next() (res *IPAddress) {
 
 // IPv4AddressIterator iterates through IPv4 addresses, subnets and ranges
 type IPv4AddressIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPv4Address
 }
 
@@ -149,7 +149,7 @@ func (iter ipv4IPAddressIterator) Next() *IPv4Address {
 
 // IPv6AddressIterator iterates through IPv4 addresses, subnets and ranges
 type IPv6AddressIterator interface {
-	iteratorBase
+	HasNext
 	Next() *IPv6Address
 }
 
@@ -171,7 +171,7 @@ func (iter ipv6IPAddressIterator) Next() *IPv6Address {
 
 // MACAddressIterator iterates through MACSize addresses, subnets and ranges
 type MACAddressIterator interface {
-	iteratorBase
+	HasNext
 	Next() *MACAddress
 }
 
@@ -184,12 +184,12 @@ func (iter macAddressIterator) Next() *MACAddress {
 }
 
 type ExtendedSegmentSeriesIterator interface {
-	iteratorBase
+	HasNext
 	Next() ExtendedSegmentSeries
 }
 
 type ExtendedIPSegmentSeriesIterator interface {
-	iteratorBase
+	HasNext
 	Next() ExtendedIPSegmentSeries
 }
 

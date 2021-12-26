@@ -164,7 +164,7 @@ func (it *delimitedStringsIterator) increment() {
 }
 
 type StringIterator interface {
-	iteratorBase
+	HasNext
 	Next() string
 }
 

@@ -717,7 +717,7 @@ func newIPv6SegmentVal(value IPv6SegInt) *ipv6SegmentValues {
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
 		}
 		result := &block.block[resultIndex]
-		checkValues(value, value, result)
+		checkValuesIPv6(value, value, result)
 		return result
 	}
 	return &ipv6SegmentValues{
@@ -775,7 +775,7 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 			atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
 		}
 		result := &blockCache.block[resultIndex]
-		checkValues(value, value, result)
+		checkValuesIPv6(value, value, result)
 		return result
 	}
 	var isSinglePrefBlock *bool
@@ -800,7 +800,7 @@ func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //T
 	}
 }
 
-func checkValues(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
+func checkValuesIPv6(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
 	if result.value != value || result.upperValue != upperValue {
 		panic("huh")
 	}
@@ -906,14 +906,14 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 					atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
 				}
 				result := &blockCache.block[resultIndex]
-				checkValues(value, upperValue, result)
+				checkValuesIPv6(value, upperValue, result)
 				return result
 			}
 			if value == 0 {
 				// cache is 0-0xffff for any prefix length
 				if upperValue == IPv6MaxValuePerSegment {
 					result := &allPrefixedCacheIPv6[prefixIndex]
-					checkValues(value, upperValue, result)
+					checkValuesIPv6(value, upperValue, result)
 					return result
 				}
 			}

@@ -103,11 +103,16 @@ func (addrStr *MACAddressString) ToAddress() (*MACAddress, addrerr.AddressError)
 
 // IsPrefixed returns whether this address represents the set of all addresses with the same prefix
 func (addrStr *MACAddressString) IsPrefixed() bool {
-	return addrStr.GetPrefixLen() != nil
+	return addrStr.getPrefixLen() != nil
 }
 
 // GetPrefixLen returns the prefix length if this address is a valid prefixed address, otherwise returns null
 func (addrStr *MACAddressString) GetPrefixLen() PrefixLen {
+	//TODO callers must get a copy
+	return addrStr.getPrefixLen()
+}
+
+func (addrStr *MACAddressString) getPrefixLen() PrefixLen {
 	addr := addrStr.GetAddress()
 	if addr != nil {
 		return addr.GetPrefixLen()
