@@ -36,9 +36,9 @@ type RangeParameters interface {
 	AllowsInferredBoundary() bool
 }
 
-func AllowsNoRange(p RangeParameters) bool {
-	return !(p.AllowsWildcard() || p.AllowsRangeSeparator() || p.AllowsSingleWildcard())
-}
+//func AllowsNoRange(p RangeParameters) bool {
+//	return !(p.AllowsWildcard() || p.AllowsRangeSeparator() || p.AllowsSingleWildcard())
+//}
 
 var _ AddressStringFormatParameters = &addressStringFormatParameters{}
 var _ AddressStringParameters = &addressStringParameters{}

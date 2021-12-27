@@ -19,10 +19,6 @@ var (
 //	return cacheBits(i)
 //}
 
-func cacheBits(i int) PrefixLen {
-	return cacheBitCount(BitCount(i))
-}
-
 //// Equal compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
 //func (p *BitCount) Equal(other *BitCount) bool {
 //	if p == nil {
@@ -85,17 +81,23 @@ This solves all our requirements, and is the only solution to do so, specificall
 // The zero value, which is nil, indicates that there is no prefix length.
 type PrefixLen = *PrefixBitCount
 
+type PrefixBitCount uint8
+
+// is it possible to change PrefixBitCount?  To make PrefixLen easier to construct?
+//maybe switch to: type PrefixBitCount uint8
+//Because it seems to me, the alias is not required
+//And you do not seem to use bitCount anywhere
+
 type BitCount = int // using signed integers allows for easier arithmetic
-type bitCount = uint8
+//type bitCount = uint8
 
 const maxBitCountInternal, minBitCountInternal = math.MaxUint8, 0
 
-type PrefixBitCount struct {
-	bCount bitCount
-}
+//type PrefixBitCount struct {
+//	bCount bitCount
+//}
 
 /*
-//TODO this still does not work, what is to stop:
 p1 := ipaddr.ToPrefixLen(1)
 p2 := ipaddr.ToPrefixLen(2)
 *p1 = *p2
@@ -112,10 +114,10 @@ I do not think I like interface for this, since there really is no method, it is
 I  think i may need to return to a BitCount pointer, and when we store to the field, we get our own pointer to store.
 And then when we return the prefix len, we need to make a copy.
 We can still use the bitCount() method to dereference.
-// TODO ensure you always assign the internal copy to addressDivisionGroupingBase
-// TODO when obtaining the prefix internally, use a getPrefixLength that does not copy iy
-// TODO the external methods must use a copy
-// TODO same for divisions/segments
+// - ensure you always assign the internal copy to addressDivisionGroupingBase
+// - when obtaining the prefix internally, use a getPrefixLength that does not copy it
+// - the external methods must use a copy
+// - same for divisions/segments
 // Seems as though nothing needed for MAC
 */
 
@@ -140,8 +142,19 @@ func (p *PrefixBitCount) IsNil() bool {
 //}
 
 // before calling this, check for nil
+//func (p *PrefixBitCount) bitCount() BitCount {
+//	return BitCount(p.bCount)
+//}
 func (p *PrefixBitCount) bitCount() BitCount {
-	return BitCount(p.bCount)
+	return BitCount(*p)
+}
+
+func (p *PrefixBitCount) copy() PrefixLen {
+	if p == nil {
+		return nil
+	}
+	res := *p
+	return &res
 }
 
 // Equal compares two PrefixLen values for equality.  This method is intended for the PrefixLen type.  BitCount values should be compared with == operator.
@@ -237,8 +250,9 @@ var cachedPrefixBitCounts, cachedPrefixLens = initPrefLens()
 func initPrefLens() ([]PrefixBitCount, []PrefixLen) {
 	cachedPrefBitcounts := make([]PrefixBitCount, IPv6BitCount+1)
 	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
-	for i := bitCount(0); i <= IPv6BitCount; i++ {
-		cachedPrefBitcounts[i] = PrefixBitCount{i}
+	for i := 0; i <= IPv6BitCount; i++ {
+		//cachedPrefBitcounts[i] = PrefixBitCount{i}
+		cachedPrefBitcounts[i] = PrefixBitCount(i)
 		cachedPrefLens[i] = &cachedPrefBitcounts[i]
 	}
 	return cachedPrefBitcounts, cachedPrefLens
@@ -248,7 +262,23 @@ func initPrefLens() ([]PrefixBitCount, []PrefixLen) {
 // although in practice it really only makes sense to have a prefix length that is no larger than the item (such as an address) with the prefix.
 // If bit count argument is negative, the resulting prefix length will be zero.
 // If bit count argument is larger than 255, the resulting prefix length will be 255.
-func ToPrefixLen(i BitCount) PrefixLen {
+//func ToPrefixLen(i BitCount) PrefixLen {
+//	if i < minBitCountInternal {
+//		i = minBitCountInternal
+//	}
+//	if i <= IPv6BitCount {
+//		return &cachedPrefixBitCounts[i]
+//	}
+//	if i > maxBitCountInternal {
+//		i = maxBitCountInternal
+//	}
+//	//return &PrefixBitCount{bitCount(i)}
+//	res := PrefixBitCount(i)
+//	return &res
+//}
+
+func cacheBitCount(i BitCount) PrefixLen {
+	//return ToPrefixLen(i)
 	if i < minBitCountInternal {
 		i = minBitCountInternal
 	}
@@ -258,11 +288,12 @@ func ToPrefixLen(i BitCount) PrefixLen {
 	if i > maxBitCountInternal {
 		i = maxBitCountInternal
 	}
-	return &PrefixBitCount{bitCount(i)}
+	//return &PrefixBitCount{bitCount(i)}
+	res := PrefixBitCount(i)
+	return &res
 }
-
-func cacheBitCount(i BitCount) PrefixLen {
-	return ToPrefixLen(i)
+func cacheBits(i int) PrefixLen { //TODO dump this, you do not need this and CacheBitCount
+	return cacheBitCount(BitCount(i))
 }
 
 func cachePrefix(i BitCount) *PrefixLen {
@@ -275,8 +306,17 @@ func cachePrefix(i BitCount) *PrefixLen {
 	if i > maxBitCountInternal {
 		i = maxBitCountInternal
 	}
-	res := &PrefixBitCount{bitCount(i)}
+	val := PrefixBitCount(i)
+	res := &val
+	//res := &PrefixBitCount{bitCount(i)}
 	return &res
+}
+
+func cachePrefixLen(external PrefixLen) PrefixLen {
+	if external == nil {
+		return nil
+	}
+	return cacheBitCount(external.bitCount())
 }
 
 //func initPrefLens() []PrefixLen {
@@ -323,13 +363,16 @@ func cacheNilPrefix() *PrefixLen {
 	return &p
 }
 
-type Port = *portNumVal
+const maxPortNumInternal, minPortNumInternal = math.MaxUint16, 0
+
+// Port represents the port of a UDP or TCP address.  It ca
+type Port = *PortNum
 
 type PortInt = int // using signed integers allows for easier arithmetic
-type portNum = uint16
+//type portNum = uint16
 
 /*
-//TODO this still does not work, what is to stop:
+// the same as for prefixLen
 p1 := ipaddr.ToPrefixLen(1)
 p2 := ipaddr.ToPrefixLen(2)
 *p1 = *p2
@@ -337,25 +380,35 @@ p2 := ipaddr.ToPrefixLen(2)
 Do the same as what we do above
 */
 
-const maxPortNumInternal, minPortNumInternal = math.MaxUint16, 0
+type PortNum uint16
 
-type portNumVal struct {
-	port portNum
+//type PortNum struct {
+//	port portNum
+//}
+
+func (p *PortNum) portNum() PortInt {
+	//return PortInt(p.port)
+	return PortInt(*p)
 }
 
-func (p *portNumVal) portNum() PortInt {
-	return PortInt(p.port)
+func (p *PortNum) copy() Port {
+	if p == nil {
+		return nil
+	}
+	res := *p
+	return &res
 }
 
-func (p *portNumVal) Num() PortInt {
+func (p *PortNum) Num() PortInt {
 	if p == nil {
 		return 0
 	}
-	return PortInt(p.port)
+	//return PortInt(p.port)
+	return PortInt(*p)
 }
 
 // Equal compares two Port values for equality.
-func (p *portNumVal) Equal(other Port) bool {
+func (p *PortNum) Equal(other Port) bool {
 	if p == nil {
 		return other == nil
 	}
@@ -363,12 +416,12 @@ func (p *portNumVal) Equal(other Port) bool {
 }
 
 // Matches compares a Port value with a port number
-func (p *portNumVal) Matches(other PortInt) bool {
+func (p *PortNum) Matches(other PortInt) bool {
 	return p != nil && p.portNum() == other
 }
 
 // Compare compares PrefixLen values, returning -1, 0, or 1 if the receiver is less than, equal to, or greater than the argument.
-func (p *portNumVal) Compare(other Port) int {
+func (p *PortNum) Compare(other Port) int {
 	if p == nil {
 		if other == nil {
 			return 0
@@ -380,7 +433,7 @@ func (p *portNumVal) Compare(other Port) int {
 	return p.portNum() - other.portNum()
 }
 
-func (p *portNumVal) String() string {
+func (p *PortNum) String() string {
 	if p == nil {
 		return nilString()
 	}
@@ -388,20 +441,27 @@ func (p *portNumVal) String() string {
 }
 
 func cachePorts(i PortInt) Port {
-	return ToPort(i)
-}
-
-// ToPort creates a port for use with a HostName.  A prefix length can only range from 0 to 65535.
-// If the port number argument is negative, the resulting Port will be zero.
-// If the port number argument is larger than 65535, the resulting Port will be 65535.
-func ToPort(i PortInt) Port {
+	//return ToPort(i)
 	if i < minPortNumInternal {
 		i = minPortNumInternal
 	} else if i > maxPortNumInternal {
 		i = maxPortNumInternal
 	}
-	return &portNumVal{portNum(i)}
+	res := PortNum(i)
+	return &res
 }
+
+//// ToPort creates a port for use with a HostName.  A prefix length can only range from 0 to 65535.
+//// If the port number argument is negative, the resulting Port will be zero.
+//// If the port number argument is larger than 65535, the resulting Port will be 65535.
+//func ToPort(i PortInt) Port {
+//	if i < minPortNumInternal {
+//		i = minPortNumInternal
+//	} else if i > maxPortNumInternal {
+//		i = maxPortNumInternal
+//	}
+//	return &PortNum{portNum(i)}
+//}
 
 func bigOne() *big.Int {
 	return big.NewInt(1)

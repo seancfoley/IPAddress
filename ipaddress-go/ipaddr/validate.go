@@ -2197,19 +2197,19 @@ func parseHostNameQualifier(
 	return
 }
 
-// ValidateZone returns the index of the first invalid character of the zone, or -1 if the zone is valid
-func ValidateZone(zone Zone) int {
-	for i := 0; i < len(zone); i++ {
-		c := zone[i]
-		if c == PrefixLenSeparator {
-			return i
-		}
-		if c == IPv6SegmentSeparator {
-			return i
-		}
-	}
-	return -1
-}
+//// ValidateZone returns the index of the first invalid character of the zone, or -1 if the zone is valid
+//func ValidateZone(zone Zone) int {
+//	for i := 0; i < len(zone); i++ {
+//		c := zone[i]
+//		if c == PrefixLenSeparator {
+//			return i
+//		}
+//		if c == IPv6SegmentSeparator {
+//			return i
+//		}
+//	}
+//	return -1
+//}
 
 func isReserved(c byte) bool {
 	isUnreserved :=

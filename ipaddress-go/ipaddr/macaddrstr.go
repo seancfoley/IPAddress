@@ -108,14 +108,13 @@ func (addrStr *MACAddressString) IsPrefixed() bool {
 
 // GetPrefixLen returns the prefix length if this address is a valid prefixed address, otherwise returns null
 func (addrStr *MACAddressString) GetPrefixLen() PrefixLen {
-	//TODO callers must get a copy
-	return addrStr.getPrefixLen()
+	return addrStr.getPrefixLen().copy()
 }
 
 func (addrStr *MACAddressString) getPrefixLen() PrefixLen {
 	addr := addrStr.GetAddress()
 	if addr != nil {
-		return addr.GetPrefixLen()
+		return addr.getPrefixLen()
 	}
 	return nil
 }

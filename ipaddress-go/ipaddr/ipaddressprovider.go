@@ -431,7 +431,7 @@ func (cached *cachedAddressProvider) getCachedAddresses() (address, hostAddress 
 
 func (cached *cachedAddressProvider) getProviderNetworkPrefixLen() (p PrefixLen) {
 	if addr, _ := cached.getProviderAddress(); addr != nil {
-		p = addr.GetNetworkPrefixLen()
+		p = addr.getNetworkPrefixLen()
 	}
 	return
 }
@@ -901,6 +901,10 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // But some interfaces in the framework used by the base!
 // We are screwed.  The two are intertwined.
 // so that leaves the string params and builders.
+// There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
+// TODO So, what can you do?  I wanted to remove the dependency from the subpackage to the main.  And you can do this by replacing IPVersion and other dependencies.
+//
+// TODO replace "Parameters" with "Params everywhere in public types and methods
 //
 // TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
 // It may simply be because in local mode it skips the license check

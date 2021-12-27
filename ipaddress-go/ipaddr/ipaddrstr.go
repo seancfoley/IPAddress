@@ -98,8 +98,7 @@ func (addrStr *IPAddressString) IsPrefixed() bool {
 // If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
 // The prefix length may be expressed explicitly with the notation "\xx" where xx is a decimal value, or it may be expressed implicitly as a network mask such as /255.255.0.0
 func (addrStr *IPAddressString) GetNetworkPrefixLen() PrefixLen {
-	//TODO must make a copy of PrefixLen
-	return addrStr.getNetworkPrefixLen()
+	return addrStr.getNetworkPrefixLen().copy()
 }
 
 // If this address is a valid address with an associated network prefix length then this returns that prefix length, otherwise returns null.
@@ -634,7 +633,7 @@ func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddress
 	if adjustment == 0 && addrStr.IsPrefixed() {
 		return addrStr, nil
 	}
-	prefix := address.GetNetworkPrefixLen()
+	prefix := address.getNetworkPrefixLen()
 	isPrefBlock := address.IsPrefixBlock()
 	var addr *IPAddress
 	var err addrerr.IncompatibleAddressError

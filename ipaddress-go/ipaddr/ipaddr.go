@@ -178,8 +178,7 @@ func (addr *ipAddressInternal) getNetworkPrefixLen() PrefixLen {
 }
 
 func (addr *ipAddressInternal) GetNetworkPrefixLen() PrefixLen {
-	//TODO callers must get a copy.  Internal callers must be mapped to getNetworkPrefixLen()
-	return addr.getNetworkPrefixLen()
+	return addr.getNetworkPrefixLen().copy()
 }
 
 func (addr *ipAddressInternal) IncludesZeroHost() bool {
@@ -369,7 +368,7 @@ func (addr *ipAddressInternal) coverWithPrefixBlockTo(other *IPAddress) *IPAddre
 func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddress {
 	var prefLen BitCount
 	if addr.isPrefixed() {
-		prefLen = addr.GetNetworkPrefixLen().bitCount()
+		prefLen = addr.getNetworkPrefixLen().bitCount()
 	} else {
 		prefLen = addr.GetBitCount()
 	}
@@ -379,7 +378,7 @@ func (addr *ipAddressInternal) getNetworkMask(network IPAddressNetwork) *IPAddre
 func (addr *ipAddressInternal) getHostMask(network IPAddressNetwork) *IPAddress {
 	var prefLen BitCount
 	if addr.isPrefixed() {
-		prefLen = addr.GetNetworkPrefixLen().bitCount()
+		prefLen = addr.getNetworkPrefixLen().bitCount()
 	}
 	return network.GetHostMask(prefLen)
 }

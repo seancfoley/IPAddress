@@ -837,7 +837,7 @@ func (m MixedCompressionOptions) compressMixed(addressSection *IPv6AddressSectio
 			mixedDistance := IPv6MixedOriginalSegmentCount
 			mixedCount := addressSection.GetSegmentCount() - mixedDistance
 			if mixedCount > 0 {
-				return (BitCount(mixedDistance) * addressSection.GetBitsPerSegment()) >= addressSection.GetNetworkPrefixLen().bitCount()
+				return (BitCount(mixedDistance) * addressSection.GetBitsPerSegment()) >= addressSection.getNetworkPrefixLen().bitCount()
 			}
 		}
 		return true

@@ -331,7 +331,8 @@ func isPrefixSubnet(
 	prefixedSegment := getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
 	i := prefixedSegment
 	if i < segmentCount {
-		zero := PrefixBitCount{}
+		//zero := PrefixBitCount{}
+		zero := PrefixBitCount(0)
 		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen, i)
 		for {
 			//we want to see if there is a sequence of zeros followed by a sequence of full-range bits from the prefix onwards

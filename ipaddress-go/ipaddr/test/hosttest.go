@@ -432,13 +432,13 @@ func (t hostTester) run() {
 	portNum123 := ipaddr.PortInt(123)
 	portNum48888 := ipaddr.PortInt(48888)
 
-	port1 := ipaddr.ToPort(portNum1)
-	port3 := ipaddr.ToPort(portNum3)
-	port33 := ipaddr.ToPort(portNum33)
-	port45 := ipaddr.ToPort(portNum45)
-	port80 := ipaddr.ToPort(portNum80)
-	port123 := ipaddr.ToPort(portNum123)
-	port48888 := ipaddr.ToPort(portNum48888)
+	port1 := ToPort(portNum1)
+	port3 := ToPort(portNum3)
+	port33 := ToPort(portNum33)
+	port45 := ToPort(portNum45)
+	port80 := ToPort(portNum80)
+	port123 := ToPort(portNum123)
+	port48888 := ToPort(portNum48888)
 
 	//port1 := &portNum1
 	//port3 := &portNum3
@@ -600,7 +600,7 @@ func (t hostTester) run() {
 	t.testHostInetSocketAddressService("1.2.3.4:http", func(s string) ipaddr.Port {
 		if s == "http" {
 			port80 := ipaddr.PortInt(80)
-			return ipaddr.ToPort(port80)
+			return ToPort(port80)
 			//return &port80
 		}
 		return nil
@@ -608,7 +608,7 @@ func (t hostTester) run() {
 	t.testHostInetSocketAddressSA("1.2.3.4:http", func(s string) ipaddr.Port {
 		if s == "htt" {
 			port80 := ipaddr.PortInt(80)
-			return ipaddr.ToPort(port80)
+			return ToPort(port80)
 			//return &port80
 		}
 		return nil
@@ -1016,4 +1016,9 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 	//	addFailure(new Failure(e.getMessage(), hostName));
 	//}
 	t.incrementTestCount()
+}
+
+func ToPort(i ipaddr.PortInt) ipaddr.Port {
+	res := ipaddr.PortNum(i)
+	return &res
 }

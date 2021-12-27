@@ -550,7 +550,7 @@ func (addr *MACAddress) GetODISection() *MACAddressSection {
 // Returns a section in which the range of values match the full block for the OUI (organizationally unique identifier) bytes
 func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
 	segmentCount := addr.GetSegmentCount()
-	currentPref := addr.GetPrefixLen()
+	currentPref := addr.getPrefixLen()
 	newPref := BitCount(MACOrganizationalUniqueIdentifierSegmentCount) << 3 //ouiSegmentCount * MACAddress.BITS_PER_SEGMENT
 	createNew := currentPref == nil || currentPref.bitCount() > newPref
 	if !createNew {
@@ -648,7 +648,7 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, addrerr.IncompatibleAd
 		//segs[4] = asMAC ? ffSegment : creator.createSegment(0xfe);
 		section.copySubDivisions(3, 6, segs[5:])
 		//section.getSegments(3,  6, segs, 5);
-		prefixLen := addr.GetPrefixLen()
+		prefixLen := addr.getPrefixLen()
 		//Integer prefLength = getPrefixLength();
 		if prefixLen != nil {
 			//MACAddressSection resultSection = creator.createSectionInternal(segs, true);

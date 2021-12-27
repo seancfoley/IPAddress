@@ -221,7 +221,7 @@ func sectIterator(
 		original:        original,
 		iterator:        iterator,
 		valsAreMultiple: valsAreMultiple,
-		prefixLen:       original.GetPrefixLen(),
+		prefixLen:       original.getPrefixLen(),
 	}
 }
 
@@ -264,7 +264,7 @@ func prefixSectIterator(
 	return &prefixSectionIterator{
 		original:  original,
 		iterator:  iterator,
-		prefixLen: original.GetPrefixLen(),
+		prefixLen: original.getPrefixLen(),
 	}
 }
 

@@ -304,11 +304,11 @@ func partitionWithSingleBlockSize(newAddr *IPAddress) *Partition {
 	// such as 1.2.*.*, which is handled as prefix block iterator for 1.2.0.0/16,
 	// but 1.2.3-4.5 is handled as iterator with no prefix lengths involved
 	series := newAddr.AssignMinPrefixForBlock()
-	if series.GetPrefixLen().bitCount() != newAddr.GetBitCount() {
+	if series.getPrefixLen().bitCount() != newAddr.GetBitCount() {
 		return &Partition{
 			original: newAddr,
 			iterator: series.PrefixBlockIterator(),
-			count:    series.GetPrefixCountLen(series.GetPrefixLen().bitCount()),
+			count:    series.GetPrefixCountLen(series.getPrefixLen().bitCount()),
 		}
 	}
 	return &Partition{

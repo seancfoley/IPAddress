@@ -1916,7 +1916,10 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 //}
 
 func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
-	return ipaddr.ToPrefixLen(i)
+	res := ipaddr.PrefixBitCount(i)
+	return &res
+	//return ipaddr.ToPrefixLen(i)
+	//return &ipaddr.PrefixBitCount(i)
 }
 
 //var px = ipaddr.PrefixX{}

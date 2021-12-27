@@ -432,8 +432,7 @@ func (grouping *addressDivisionGroupingInternal) getPrefixLen() PrefixLen {
 }
 
 func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
-	//TODO return copy of prefix len, but only for external calls, we need to map internal calls to getPrefixLen()
-	return grouping.getPrefixLen()
+	return grouping.getPrefixLen().copy()
 }
 
 func (grouping *addressDivisionGroupingInternal) isPrefixed() bool {
@@ -506,13 +505,13 @@ func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefi
 }
 
 func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool { //Note for any given prefix length you can compare with GetMinPrefixLenForBlock
-	prefLen := grouping.GetPrefixLen()
+	prefLen := grouping.getPrefixLen()
 	return prefLen != nil && grouping.ContainsPrefixBlock(prefLen.bitCount())
 }
 
 func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //Note for any given prefix length you can compare with GetPrefixLenForSingleBlock
 	calc := func() bool {
-		prefLen := grouping.GetPrefixLen()
+		prefLen := grouping.getPrefixLen()
 		return prefLen != nil && grouping.ContainsSinglePrefixBlock(prefLen.bitCount())
 	}
 	cache := grouping.cache
@@ -525,7 +524,7 @@ func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //
 			res = &trueVal
 
 			// we can also set related cache fields
-			pref := grouping.GetPrefixLen()
+			pref := grouping.getPrefixLen()
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.equivalentPrefix))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(pref))
 
@@ -612,7 +611,7 @@ func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() Pr
 		} else {
 			// we can also set related cache fields
 			var isSingleBlock *bool
-			if grouping.isPrefixed() && (*res).Equal(grouping.GetPrefixLen()) {
+			if grouping.isPrefixed() && (*res).Equal(grouping.getPrefixLen()) {
 				isSingleBlock = &trueVal
 			} else {
 				isSingleBlock = &falseVal

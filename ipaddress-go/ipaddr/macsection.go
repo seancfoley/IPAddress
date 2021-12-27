@@ -234,7 +234,7 @@ func (section *MACAddressSection) IsPrefixed() bool {
 
 func (section *MACAddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
-		return section.GetPrefixCountLen(section.GetPrefixLen().bitCount())
+		return section.GetPrefixCountLen(section.getPrefixLen().bitCount())
 	})
 }
 
@@ -458,7 +458,7 @@ func (section *MACAddressSection) Increment(incrementVal int64) *MACAddressSecti
 		section.UpperUint64Value(),
 		section.addressSectionInternal.getLower,
 		section.addressSectionInternal.getUpper,
-		section.GetPrefixLen()).ToMAC()
+		section.getPrefixLen()).ToMAC()
 	//			}
 	//			BigInteger lowerValue = getValue();
 	//			BigInteger upperValue = getUpperValue();
@@ -788,7 +788,7 @@ func (section *MACAddressSection) GetDottedGrouping() (*AddressDivisionGrouping,
 		//					newSegmentBitCount,
 		//MACDefaultTextualRadix);
 	}
-	grouping := createInitializedGrouping(newSegs, section.GetPrefixLen())
+	grouping := createInitializedGrouping(newSegs, section.getPrefixLen())
 	return grouping, nil
 	//AddressDivisionGrouping dottedGrouping;
 	//if(cachedPrefixLength == null) {

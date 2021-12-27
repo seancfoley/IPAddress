@@ -11,17 +11,6 @@ type addressNetwork interface {
 	getAddressCreator() parsedAddressCreator
 }
 
-// IPAddressNetwork represents the full collection of addresses for a given IP version.
-// You can create your own network objects satisfying this interface, allowing you to create your own address types,
-// or to provide your own IP address conversion between IPv4 and IPv6.
-// When creating your own network, for IP addresses to be associated with it, you must:
-// - create each address using the creator methods in the instance creator returned from GetIPAddressCreator(),
-//	which will associate each address with said network when creating the address
-// - return the network object from the IPAddressStringParameters implementation used for parsing an IPAddressString,
-//	which will associate the parsed address with the network
-// Addresses deprived from an existing address, using masking, iterating, or any other address manipulation,
-// will be associated with the same network as the original address, by using the network's address creator instance.
-// Addresses created by instantiation not through the network's creator instance will be associated with the default network.
 type IPAddressNetwork interface {
 	GetLoopback() *IPAddress
 

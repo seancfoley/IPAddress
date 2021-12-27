@@ -456,7 +456,7 @@ func (section *IPv6AddressSection) GetBlockCount(segmentCount int) *big.Int {
 
 func (section *IPv6AddressSection) GetPrefixCount() *big.Int {
 	return section.cachePrefixCount(func() *big.Int {
-		return section.GetPrefixCountLen(section.GetPrefixLen().bitCount())
+		return section.GetPrefixCountLen(section.getPrefixLen().bitCount())
 	})
 }
 
@@ -774,7 +774,7 @@ func (section *IPv6AddressSection) getCompressIndexAndCount(options CompressOpti
 				maxCount = count
 			}
 			if preferHost && section.IsPrefixed() &&
-				(BitCount(index+count)*section.GetBitsPerSegment()) > section.GetNetworkPrefixLen().bitCount() { //this range contains the host
+				(BitCount(index+count)*section.GetBitsPerSegment()) > section.getNetworkPrefixLen().bitCount() { //this range contains the host
 				//Since we are going backwards, this means we select as the maximum any zero segment that includes the host
 				break
 			}
@@ -856,7 +856,7 @@ func (section *IPv6AddressSection) Increment(increment int64) *IPv6AddressSectio
 	if isOverflow {
 		return nil
 	}
-	prefixLength := section.GetPrefixLen()
+	prefixLength := section.getPrefixLen()
 	result := fastIncrement(
 		section.ToSectionBase(),
 		increment,
@@ -1618,9 +1618,9 @@ func createMixedAddressGrouping(divisions []*AddressDivision, mixedCache *mixedC
 	ipv4Section := mixedCache.embeddedIPv4Section
 	grouping.isMult = ipv6Section.isMultiple() || ipv4Section.isMultiple()
 	if ipv6Section.IsPrefixed() {
-		grouping.prefixLength = ipv6Section.GetPrefixLen()
+		grouping.prefixLength = ipv6Section.getPrefixLen()
 	} else if ipv4Section.IsPrefixed() {
-		grouping.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + ipv4Section.GetPrefixLen().bitCount())
+		grouping.prefixLength = cacheBitCount(ipv6Section.GetBitCount() + ipv4Section.getPrefixLen().bitCount())
 	}
 	return grouping
 }

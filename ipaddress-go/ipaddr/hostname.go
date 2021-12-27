@@ -440,7 +440,7 @@ func (host *HostName) AsAddressString() *IPAddressString {
 func (host *HostName) GetPort() Port {
 	host = host.init()
 	if host.IsValid() {
-		return host.parsedHost.getPort()
+		return host.parsedHost.getPort().copy()
 	}
 	return nil
 }
@@ -678,16 +678,15 @@ TODO LATER isUNCIPv6Literal and isReverseDNS
 // either as part of an address or as part of a domain (in which case the prefix applies to any resolved address),
 // Otherwise, returns nil.
 func (host *HostName) GetNetworkPrefixLen() PrefixLen {
-	//TODO callers must get a copy.
 	if host.IsAddress() {
 		addr, err := host.parsedHost.asAddress()
 		if err == nil {
-			return addr.getNetworkPrefixLen()
+			return addr.getNetworkPrefixLen().copy()
 		}
 	} else if host.IsAddressString() {
-		return host.parsedHost.asGenericAddressString().getNetworkPrefixLen()
+		return host.parsedHost.asGenericAddressString().getNetworkPrefixLen().copy()
 	} else if host.IsValid() {
-		return host.parsedHost.getEquivalentPrefixLen()
+		return host.parsedHost.getEquivalentPrefixLen().copy()
 	}
 	return nil
 }

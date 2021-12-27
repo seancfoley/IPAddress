@@ -149,8 +149,7 @@ func (addr *addressInternal) isPrefixed() bool {
 }
 
 func (addr *addressInternal) GetPrefixLen() PrefixLen {
-	//TODO callers must get a copy.  Internal callers must be mapped to getPrefixLen()
-	return addr.getPrefixLen()
+	return addr.getPrefixLen().copy()
 }
 
 func (addr *addressInternal) getPrefixLen() PrefixLen {
@@ -161,12 +160,12 @@ func (addr *addressInternal) getPrefixLen() PrefixLen {
 }
 
 func (addr *addressInternal) IsSinglePrefixBlock() bool {
-	prefLen := addr.GetPrefixLen()
+	prefLen := addr.getPrefixLen()
 	return prefLen != nil && addr.section.IsSinglePrefixBlock()
 }
 
 func (addr *addressInternal) IsPrefixBlock() bool {
-	prefLen := addr.GetPrefixLen()
+	prefLen := addr.getPrefixLen()
 	return prefLen != nil && addr.section.ContainsPrefixBlock(prefLen.bitCount())
 }
 
@@ -570,13 +569,13 @@ func (addr *addressInternal) addrIterator(excludeFunc func([]*AddressDivision) b
 	return addrIterator(
 		useOriginal,
 		original,
-		original.GetPrefixLen(),
+		original.getPrefixLen(),
 		false,
 		iterator)
 }
 
 func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterator {
-	prefLen := addr.GetPrefixLen()
+	prefLen := addr.getPrefixLen()
 	if prefLen == nil {
 		return addr.addrIterator(nil)
 	}
@@ -630,14 +629,14 @@ func (addr *addressInternal) prefixIterator(isBlockIterator bool) AddressIterato
 		return addrIterator(
 			useOriginal,
 			address,
-			address.GetPrefixLen(),
+			address.getPrefixLen(),
 			prefLength < addr.GetBitCount(),
 			iterator)
 	}
 	return prefixAddrIterator(
 		useOriginal,
 		address,
-		address.GetPrefixLen(),
+		address.getPrefixLen(),
 		iterator)
 }
 
@@ -672,7 +671,7 @@ func (addr *addressInternal) blockIterator(segmentCount int) AddressIterator {
 	return addrIterator(
 		useOriginal,
 		address,
-		address.GetPrefixLen(),
+		address.getPrefixLen(),
 		addr.section.isMultipleFrom(segmentCount),
 		iterator)
 }
