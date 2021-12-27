@@ -468,7 +468,7 @@ func makePrefixCache() (allPrefixedCacheIPv4 []ipv4SegmentValues) {
 		for i := range allPrefixedCacheIPv4 {
 			vals := &allPrefixedCacheIPv4[i]
 			vals.upperValue = IPv4MaxValuePerSegment
-			vals.prefLen = cacheBits(i)
+			vals.prefLen = cacheBitCount(i)
 			vals.cache.isSinglePrefBlock = &falseVal
 		}
 		allPrefixedCacheIPv4[0].cache.isSinglePrefBlock = &trueVal

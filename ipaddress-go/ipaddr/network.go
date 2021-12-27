@@ -217,11 +217,11 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 				//onesSubnet = creator.createAddressInternal(newSegments, cacheBits(addressBitLength)); /* address creation */
 
 			} else {
-				segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, cacheBits(0)))
+				segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, cacheBitCount(0)))
 				//newSegments[0] = firstSegment
 				//fillDivs(newSegments[1:], segment)
 				fillDivs(newSegments, segment)
-				onesSubnet = createIPAddress(createSection(newSegments, cacheBits(0), version.toType()), NoZone)
+				onesSubnet = createIPAddress(createSection(newSegments, cacheBitCount(0), version.toType()), NoZone)
 			}
 		} else {
 			segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, nil))
@@ -244,7 +244,7 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 		newSegments := createSegmentArray(segmentCount)
 		//S seg;
 		if withPrefixLength {
-			prefLen := cacheBits(0)
+			prefLen := cacheBitCount(0)
 			if network {
 				segment := createAddressDivision(zeroSeg.deriveNewSeg(0, prefLen))
 				//seg = creator.createSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);

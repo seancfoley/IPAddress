@@ -81,11 +81,11 @@ func (seg *ipAddressSegmentInternal) MatchesWithPrefixMask(value SegInt, network
 func (seg *ipAddressSegmentInternal) checkForPrefixMask() (networkMaskLen, hostMaskLen PrefixLen) {
 	val := seg.GetSegmentValue()
 	if val == 0 {
-		networkMaskLen, hostMaskLen = cacheBits(0), cacheBitCount(seg.GetBitCount())
+		networkMaskLen, hostMaskLen = cacheBitCount(0), cacheBitCount(seg.GetBitCount())
 	} else {
 		maxVal := seg.GetMaxValue()
 		if val == maxVal {
-			networkMaskLen, hostMaskLen = cacheBitCount(seg.GetBitCount()), cacheBits(0)
+			networkMaskLen, hostMaskLen = cacheBitCount(seg.GetBitCount()), cacheBitCount(0)
 		} else {
 			var shifted SegInt
 			trailingOnes := seg.GetTrailingBitCount(true)

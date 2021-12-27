@@ -688,7 +688,7 @@ func makePrefixCacheIPv6() (allPrefixedCacheIPv6 []ipv6SegmentValues) {
 		for i := range allPrefixedCacheIPv6 {
 			vals := &allPrefixedCacheIPv6[i]
 			vals.upperValue = IPv6MaxValuePerSegment
-			vals.prefLen = cacheBits(i)
+			vals.prefLen = cacheBitCount(i)
 			vals.cache.isSinglePrefBlock = &falseVal
 		}
 		allPrefixedCacheIPv6[0].cache.isSinglePrefBlock = &trueVal

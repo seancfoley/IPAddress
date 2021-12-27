@@ -248,8 +248,8 @@ var cachedPrefixBitCounts, cachedPrefixLens = initPrefLens()
 //var noPrefix PrefixLen = &minusOne
 
 func initPrefLens() ([]PrefixBitCount, []PrefixLen) {
-	cachedPrefBitcounts := make([]PrefixBitCount, IPv6BitCount+1)
-	cachedPrefLens := make([]PrefixLen, IPv6BitCount+1)
+	cachedPrefBitcounts := make([]PrefixBitCount, maxBitCountInternal)
+	cachedPrefLens := make([]PrefixLen, maxBitCountInternal)
 	for i := 0; i <= IPv6BitCount; i++ {
 		//cachedPrefBitcounts[i] = PrefixBitCount{i}
 		cachedPrefBitcounts[i] = PrefixBitCount(i)
@@ -282,25 +282,21 @@ func cacheBitCount(i BitCount) PrefixLen {
 	if i < minBitCountInternal {
 		i = minBitCountInternal
 	}
-	if i <= IPv6BitCount {
+	if i < len(cachedPrefixBitCounts) {
 		return &cachedPrefixBitCounts[i]
 	}
 	if i > maxBitCountInternal {
 		i = maxBitCountInternal
 	}
-	//return &PrefixBitCount{bitCount(i)}
 	res := PrefixBitCount(i)
 	return &res
-}
-func cacheBits(i int) PrefixLen { //TODO dump this, you do not need this and CacheBitCount
-	return cacheBitCount(BitCount(i))
 }
 
 func cachePrefix(i BitCount) *PrefixLen {
 	if i < minBitCountInternal {
 		i = minBitCountInternal
 	}
-	if i <= IPv6BitCount {
+	if i < len(cachedPrefixLens) {
 		return &cachedPrefixLens[i]
 	}
 	if i > maxBitCountInternal {
@@ -308,7 +304,6 @@ func cachePrefix(i BitCount) *PrefixLen {
 	}
 	val := PrefixBitCount(i)
 	res := &val
-	//res := &PrefixBitCount{bitCount(i)}
 	return &res
 }
 
@@ -500,7 +495,7 @@ func checkPrefLen(prefixLength PrefixLen, max BitCount) PrefixLen {
 		if prefLen > max {
 			return cacheBitCount(max)
 		} else if prefLen < 0 {
-			return cacheBits(0)
+			return cacheBitCount(0)
 		}
 	}
 	return prefixLength

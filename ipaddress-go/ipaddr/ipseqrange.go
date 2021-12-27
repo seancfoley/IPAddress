@@ -356,7 +356,7 @@ func (rng *ipAddressSeqRangeInternal) ContainsSinglePrefixBlock(prefixLen BitCou
 func (rng *ipAddressSeqRangeInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	lower := rng.lower
 	if lower == nil {
-		return cacheBits(0) // returns true for 0 bits
+		return cacheBitCount(0) // returns true for 0 bits
 	}
 	upper := rng.upper
 	count := lower.GetSegmentCount()
