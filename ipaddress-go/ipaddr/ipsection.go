@@ -1903,7 +1903,7 @@ func BitsPerSegment(version IPVersion) BitCount {
 //}
 
 // handles prefix block subnets, and ensures segment prefixes match the section prefix
-func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection, singleOnly bool, boundaryBits BitCount) {
+func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAddressSection, singleOnly, checkPrefixes bool, boundaryBits BitCount) {
 	prefLen := prefixLength.bitCount()
 	if prefLen < 0 {
 		prefLen = 0
@@ -1917,21 +1917,25 @@ func assignPrefix(prefixLength PrefixLen, segments []*AddressDivision, res *IPAd
 	if segLen > 0 {
 		var segProducer func(*AddressDivision, PrefixLen) *AddressDivision
 		applyPrefixSubnet := !singleOnly && isPrefixSubnetDivs(segments, prefLen)
-		if applyPrefixSubnet {
-			segProducer = (*AddressDivision).toPrefixedNetworkDivision
-		} else {
-			segProducer = (*AddressDivision).toPrefixedDivision // TODO in some cases, where we just created the segments, and not a prefix subnet, we already know that the segs are correct
+		if applyPrefixSubnet || checkPrefixes {
+			if applyPrefixSubnet {
+				segProducer = (*AddressDivision).toPrefixedNetworkDivision
+			} else {
+				segProducer = (*AddressDivision).toPrefixedDivision
+			}
+			applyPrefixToSegments(
+				prefLen,
+				segments,
+				res.GetBitsPerSegment(),
+				res.GetBytesPerSegment(),
+				segProducer)
+			//if applyPrefixSubnet && !res.isMult {
+			//	res.isMult = res.GetSegment(segLen - 1).isMultiple()
+			//}
+			if applyPrefixSubnet {
+				res.isMult = res.isMult || res.GetSegment(segLen-1).isMultiple()
+			}
 		}
-		applyPrefixToSegments(
-			prefLen,
-			segments,
-			res.GetBitsPerSegment(),
-			res.GetBytesPerSegment(),
-			segProducer)
-		//if applyPrefixSubnet && !res.isMult {
-		//	res.isMult = res.GetSegment(segLen - 1).isMultiple()
-		//}
-		res.isMult = res.isMult || applyPrefixSubnet && res.GetSegment(segLen-1).isMultiple()
 	}
 	res.prefixLength = prefixLength
 	return

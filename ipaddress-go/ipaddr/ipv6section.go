@@ -85,7 +85,7 @@ func newPrefixedIPv6SectionParsed(segments []*AddressDivision /* , startIndex in
 	res = createIPv6Section(segments)
 	res.isMult = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, BitCount(len(segments)<<ipv6BitsToSegmentBitshift))
+		assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, false, BitCount(len(segments)<<ipv6BitsToSegmentBitshift))
 	}
 	return
 }
@@ -182,7 +182,7 @@ func newIPv6SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 	if err == nil {
 		res = createIPv6Section(segments)
 		if prefixLength != nil {
-			assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
+			assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
 		}
 		if expectedByteCount == len(bytes) && len(bytes) > 0 {
 			bytes = cloneBytes(bytes)
@@ -212,7 +212,7 @@ func newIPv6SectionFromWords(words []big.Word, segmentCount int, prefixLength Pr
 	if err == nil {
 		res = createIPv6Section(segments)
 		if prefixLength != nil {
-			assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
+			assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
 		}
 	}
 	return
@@ -323,7 +323,7 @@ func NewIPv6SectionFromPrefixedUint64(highBytes, lowBytes uint64, segmentCount i
 	//if err == nil {
 	res = createIPv6Section(segments)
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIP(), false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
+		assignPrefix(prefixLength, segments, res.ToIP(), false, false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
 	}
 	//if expectedByteCount == len(bytes) {
 	//	bytes = cloneBytes(bytes)
@@ -364,7 +364,7 @@ func NewIPv6SectionFromPrefixedRangeVals(vals, upperVals IPv6SegmentValueProvide
 	res = createIPv6Section(segments)
 	res.isMult = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIP(), false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
+		assignPrefix(prefixLength, segments, res.ToIP(), false, false, BitCount(segmentCount<<ipv6BitsToSegmentBitshift))
 	}
 	return
 }

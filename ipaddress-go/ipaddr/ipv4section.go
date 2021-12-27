@@ -73,7 +73,7 @@ func newPrefixedIPv4SectionParsed(segments []*AddressDivision, isMultiple bool, 
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, BitCount(len(segments)<<ipv4BitsToSegmentBitshift))
+		assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, false, BitCount(len(segments)<<ipv4BitsToSegmentBitshift))
 	}
 	return
 }
@@ -126,7 +126,7 @@ func NewIPv4SectionFromPrefixedUint32(bytes uint32, segmentCount int, prefixLeng
 		prefixLength)
 	res = createIPv4Section(segments)
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIP(), false, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
+		assignPrefix(prefixLength, segments, res.ToIP(), false, false, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
 	}
 	return
 }
@@ -160,7 +160,7 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 	if err == nil {
 		res = createIPv4Section(segments)
 		if prefixLength != nil {
-			assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
+			assignPrefix(prefixLength, segments, res.ToIP(), singleOnly, false, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
 		}
 		if expectedByteCount == len(bytes) && len(bytes) > 0 {
 			bytes = cloneBytes(bytes)
@@ -201,7 +201,7 @@ func NewIPv4SectionFromPrefixedRange(vals, upperVals IPv4SegmentValueProvider, s
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
 	if prefixLength != nil {
-		assignPrefix(prefixLength, segments, res.ToIP(), false, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
+		assignPrefix(prefixLength, segments, res.ToIP(), false, false, BitCount(segmentCount<<ipv4BitsToSegmentBitshift))
 	}
 	return
 }

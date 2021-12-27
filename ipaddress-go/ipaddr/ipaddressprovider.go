@@ -891,7 +891,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // Code suggests that if imported, that would be influential
 // Yeah, I think that is key.  It is not about error.  It is about imported types.  ALso predeclared types, like int8, which also includes error too.
 // So moving them into another package would do the trick I think.
-// TODO builders and params separated
+//  builders and params separated
 // pkgs: addrerr, addrfwork, addriter or iter, maybe addrformat (iterators, string parameters/builders, framework interfaces)
 // kind leaning to putting them all in addrformat to match Java
 // OK, iterators will not work.  Because of cycle.  base points to iterators.  Next() of each iterator points to base.
@@ -903,14 +903,13 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // We are screwed.  The two are intertwined.
 // so that leaves the string params and builders.
 // There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
-// TODO So, what can you do?  I wanted to remove the dependency from the subpackage to the main.  And you can do this by replacing IPVersion and other dependencies.
 //
 // TODO replace "Parameters" with "Params everywhere in public types and methods
 //
 // TODO rename addrFormat addrParams, then recreate addrFormat
 // TODO it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
 // ACTUALLY, still not possible, due to stuff like: ToAddressBase() *Address
-// Parts of the framework we use cannot be moved
+// Parts of the framework we use cannot be moved (actually no, it is the reverse direction we need to be careful about)
 //
 // TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
 // It may simply be because in local mode it skips the license check

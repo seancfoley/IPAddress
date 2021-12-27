@@ -29,7 +29,7 @@ const (
 	IPv6UncSegmentSeparator  = '-'
 	IPv6UncZoneSeparator     = 's'
 	IPv6UncRangeSeparator    = AlternativeRangeSeparator
-	IPv6UncRangeSeparatorStr = string(AlternativeRangeSeparator)
+	IPv6UncRangeSeparatorStr = AlternativeRangeSeparatorStr
 	IPv6UncSuffix            = ".ipv6-literal.net"
 
 	IPv6SegmentMaxChars    = 4

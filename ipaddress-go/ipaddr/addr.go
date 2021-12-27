@@ -10,23 +10,23 @@ import (
 )
 
 const (
-	HexPrefix                            = "0x"
-	OctalPrefix                          = "0"
-	BinaryPrefix                         = "0b"
-	RangeSeparator                  byte = '-'
-	RangeSeparatorStr                    = string(RangeSeparator)
-	AlternativeRangeSeparator       byte = '\u00bb'
-	AlternativeRangeSeparatorStr         = string(AlternativeRangeSeparator)
-	ExtendedDigitsRangeSeparator         = AlternativeRangeSeparator
-	ExtendedDigitsRangeSeparatorStr      = AlternativeRangeSeparatorStr
+	HexPrefix                       = "0x"
+	OctalPrefix                     = "0"
+	BinaryPrefix                    = "0b"
+	RangeSeparator                  = '-'
+	RangeSeparatorStr               = "-"
+	AlternativeRangeSeparator       = '\u00bb'
+	AlternativeRangeSeparatorStr    = "\u00bb"
+	ExtendedDigitsRangeSeparator    = '\u00bb'
+	ExtendedDigitsRangeSeparatorStr = "\u00bb"
 
-	SegmentWildcard             byte = '*'
-	SegmentWildcardStr               = string(SegmentWildcard)
-	AlternativeSegmentWildcard  byte = '¿'
-	SegmentSqlWildcard          byte = '%'
-	SegmentSqlWildcardStr            = string(SegmentSqlWildcard)
-	SegmentSqlSingleWildcard    byte = '_'
-	SegmentSqlSingleWildcardStr      = string(SegmentSqlSingleWildcard)
+	SegmentWildcard             = '*'
+	SegmentWildcardStr          = "*"
+	AlternativeSegmentWildcard  = '¿'
+	SegmentSqlWildcard          = '%'
+	SegmentSqlWildcardStr       = "%"
+	SegmentSqlSingleWildcard    = '_'
+	SegmentSqlSingleWildcardStr = "_"
 )
 
 var segmentWildcardStr = SegmentWildcardStr

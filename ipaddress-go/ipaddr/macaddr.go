@@ -26,10 +26,10 @@ const (
 
 	MACSegmentMaxChars = 2
 
-	MACDashSegmentSeparator   = dash
-	MACColonSegmentSeparator  = colon
-	MacSpaceSegmentSeparator  = space
-	MacDottedSegmentSeparator = dot
+	MACDashSegmentSeparator   = '-'
+	MACColonSegmentSeparator  = ':'
+	MacSpaceSegmentSeparator  = ' '
+	MacDottedSegmentSeparator = '.'
 
 	MacDashedSegmentRangeSeparator    = '|'
 	MacDashedSegmentRangeSeparatorStr = "|"
