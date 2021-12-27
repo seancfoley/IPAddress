@@ -1,4 +1,6 @@
-package ipaddr
+package addrformat
+
+import "strings"
 
 //func convertIPAddrParams(orig IPAddressStringParameters) *ipAddressStringParameters { //note this is a duplicate of getPrivateParams which calls ToIPAddressStringParamsBuilder(orig).ToParams()
 //	if params, ok := orig.(*ipAddressStringParameters); ok {
@@ -91,6 +93,18 @@ package ipaddr
 //		GetParentBuilder().
 //		//
 //		ToParams().(*ipAddressStringParameters)
+//}
+
+func CopyIPAddressStringParams(orig IPAddressStringParameters) IPAddressStringParameters {
+	if p, ok := orig.(*ipAddressStringParameters); ok {
+		return p
+	}
+	return new(IPAddressStringParametersBuilder).Set(orig).ToParams()
+}
+
+//func DefaultIPAddressParams() IPAddressStringParameters {
+//	xxx use builder instead xxx
+//	return &ipAddressStringParameters{}
 //}
 
 type IPAddressStringParameters interface {
@@ -274,17 +288,6 @@ func (params *ipAddressStringParameters) AllowsIPv4() bool {
 
 func (params *ipAddressStringParameters) AllowsIPv6() bool {
 	return !params.noIPv6
-}
-
-func (params *ipAddressStringParameters) inferVersion() IPVersion { //TODO move this baby into validate.go so I can use IPAddressStringParameters in there and move ipAddressStringParameters out of IPAddressString
-	if params.AllowsIPv6() {
-		if !params.AllowsIPv4() {
-			return IPv6
-		}
-	} else if params.AllowsIPv4() {
-		return IPv4
-	}
-	return IndeterminateIPVersion
 }
 
 func (params *ipAddressStringParameters) GetIPv4Parameters() IPv4AddressStringParameters {
@@ -874,3 +877,118 @@ func (builder *IPv4AddressStringParametersBuilder) AllowBinary(allow bool) *IPv4
 	builder.allowBinary(allow)
 	return builder
 }
+
+type IPVersion string
+
+const (
+	IndeterminateIPVersion IPVersion = ""
+	IPv4                   IPVersion = "IPv4"
+	IPv6                   IPVersion = "IPv6"
+)
+
+func (version IPVersion) IsIPv6() bool {
+	return strings.EqualFold(string(version), string(IPv6))
+}
+
+func (version IPVersion) IsIPv4() bool {
+	return strings.EqualFold(string(version), string(IPv4))
+}
+
+func (version IPVersion) IsIndeterminate() bool {
+	if len(version) == 4 {
+		// we allow mixed case in the event code is converted a string to IPVersion
+		dig := version[3]
+		return (dig != '4' && dig != '6') || !strings.EqualFold(string(version[:3]), "IPv")
+	}
+	return true
+}
+
+//// returns an index starting from 0 with IndeterminateIPVersion being the highest
+//func (version IPVersion) index() int {
+//	if version.IsIPv4() {
+//		return 0
+//	} else if version.IsIPv6() {
+//		return 1
+//	}
+//	return 2
+//}
+//
+//func (version IPVersion) Equal(other IPVersion) bool {
+//	return strings.EqualFold(string(version), string(other)) || (version.IsIndeterminate() && other.IsIndeterminate())
+//}
+
+func (version IPVersion) String() string {
+	return string(version)
+}
+
+//func (version IPVersion) getNetwork() (network IPAddressNetwork) {
+//	if version.IsIPv6() {
+//		network = IPv6Network
+//	} else if version.IsIPv4() {
+//		network = IPv4Network
+//	}
+//	return
+//}
+//
+//func (version IPVersion) toType() (t addrType) {
+//	if version.IsIPv6() {
+//		t = ipv6Type
+//	} else if version.IsIPv4() {
+//		t = ipv4Type
+//	}
+//	return
+//}
+
+//func (version IPVersion) GetMaxSegmentValue() SegInt {
+//	if version.IsIPv4() {
+//		return IPv4MaxValuePerSegment
+//	} else if version.IsIPv6() {
+//		return IPv6MaxValuePerSegment
+//	}
+//	return 0
+//}
+//
+//func (version IPVersion) GetBytesPerSegment() int {
+//	if version.IsIPv4() {
+//		return IPv4BytesPerSegment
+//	} else if version.IsIPv6() {
+//		return IPv6BytesPerSegment
+//	}
+//	return 0
+//}
+//
+//func (version IPVersion) GetBitsPerSegment() BitCount {
+//	if version.IsIPv4() {
+//		return IPv4BitsPerSegment
+//	} else if version.IsIPv6() {
+//		return IPv6BitsPerSegment
+//	}
+//	return 0
+//}
+//
+//func (version IPVersion) GetByteCount() int {
+//	if version.IsIPv4() {
+//		return IPv4ByteCount
+//	} else if version.IsIPv6() {
+//		return IPv6ByteCount
+//	}
+//	return 0
+//}
+//
+//func (version IPVersion) GetSegmentCount() int {
+//	if version.IsIPv4() {
+//		return IPv4SegmentCount
+//	} else if version.IsIPv6() {
+//		return IPv6SegmentCount
+//	}
+//	return 0
+//}
+//
+//func (version IPVersion) GetBitCount() BitCount {
+//	if version.IsIPv4() {
+//		return IPv4BitCount
+//	} else if version.IsIPv6() {
+//		return IPv6BitCount
+//	}
+//	return 0
+//}

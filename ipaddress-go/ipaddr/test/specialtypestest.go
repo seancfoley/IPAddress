@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 	"math/big"
 	"net"
 	"strconv"
@@ -14,11 +15,11 @@ type specialTypesTester struct {
 var (
 	//hostOptionsSpecial            = new(ipaddr.HostNameParametersBuilder).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).GetIPAddressParametersBuilder().AllowEmpty(false).SetRangeParameters(ipaddr.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
 	//addressOptionsSpecial         = new(ipaddr.IPAddressStringParametersBuilder).Set(hostOptionsSpecial.GetIPAddressParameters()).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	hostOptionsSpecial            = new(ipaddr.HostNameParametersBuilder).AllowEmpty(true).GetIPAddressParametersBuilder().AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).SetRangeParameters(ipaddr.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
-	addressOptionsSpecial         = new(ipaddr.IPAddressStringParametersBuilder).Set(hostOptionsSpecial.GetIPAddressParameters()).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	macOptionsSpecial             = new(ipaddr.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowEmpty(true).SetRangeParameters(ipaddr.WildcardOnly).AllowAll(true).ToParams()
-	emptyAddressOptions           = new(ipaddr.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).GetParentBuilder().ToParams()
-	emptyAddressNoLoopbackOptions = new(ipaddr.HostNameParametersBuilder).Set(emptyAddressOptions).GetIPAddressParametersBuilder().ParseEmptyStrAs(ipaddr.NoAddressOption).GetParentBuilder().ToParams()
+	hostOptionsSpecial            = new(addrformat.HostNameParametersBuilder).AllowEmpty(true).GetIPAddressParametersBuilder().AllowEmpty(true).ParseEmptyStrAs(addrformat.LoopbackOption).SetRangeParameters(addrformat.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
+	addressOptionsSpecial         = new(addrformat.IPAddressStringParametersBuilder).Set(hostOptionsSpecial.GetIPAddressParameters()).AllowEmpty(true).ParseEmptyStrAs(addrformat.LoopbackOption).ToParams()
+	macOptionsSpecial             = new(addrformat.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowEmpty(true).SetRangeParameters(addrformat.WildcardOnly).AllowAll(true).ToParams()
+	emptyAddressOptions           = new(addrformat.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().AllowEmpty(true).ParseEmptyStrAs(addrformat.LoopbackOption).GetParentBuilder().ToParams()
+	emptyAddressNoLoopbackOptions = new(addrformat.HostNameParametersBuilder).Set(emptyAddressOptions).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrformat.NoAddressOption).GetParentBuilder().ToParams()
 )
 
 func (t specialTypesTester) run() {
@@ -205,39 +206,39 @@ func (t specialTypesTester) testIPv6Strings(addr string,
 
 func (t specialTypesTester) testEmptyValues() {
 	//zeroHostOptions := new(ipaddr.HostNameParametersBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	zeroHostOptions := new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(ipaddr.LoopbackOption).GetParentBuilder().ToParams()
-	zeroAddrOptions := new(ipaddr.IPAddressStringParametersBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
+	zeroHostOptions := new(addrformat.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrformat.LoopbackOption).GetParentBuilder().ToParams()
+	zeroAddrOptions := new(addrformat.IPAddressStringParametersBuilder).ParseEmptyStrAs(addrformat.LoopbackOption).ToParams()
 	t.testEmptyValuesOpts(hostOptionsSpecial, addressOptionsSpecial)
 
-	zeroHostOptions = new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(ipaddr.ZeroAddressOption).GetParentBuilder().ToParams()
-	zeroAddrOptions = new(ipaddr.IPAddressStringParametersBuilder).ParseEmptyStrAs(ipaddr.ZeroAddressOption).ToParams()
+	zeroHostOptions = new(addrformat.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrformat.ZeroAddressOption).GetParentBuilder().ToParams()
+	zeroAddrOptions = new(addrformat.IPAddressStringParametersBuilder).ParseEmptyStrAs(addrformat.ZeroAddressOption).ToParams()
 	t.testEmptyValuesOpts(zeroHostOptions, zeroAddrOptions)
 
-	zeroHostOptions = new(ipaddr.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(ipaddr.NoAddressOption).GetParentBuilder().ToParams()
-	zeroAddrOptions = new(ipaddr.IPAddressStringParametersBuilder).ParseEmptyStrAs(ipaddr.NoAddressOption).ToParams()
+	zeroHostOptions = new(addrformat.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrformat.NoAddressOption).GetParentBuilder().ToParams()
+	zeroAddrOptions = new(addrformat.IPAddressStringParametersBuilder).ParseEmptyStrAs(addrformat.NoAddressOption).ToParams()
 	t.testEmptyValuesOpts(zeroHostOptions, zeroAddrOptions)
 }
 
-func (t specialTypesTester) testEmptyValuesOpts(hp ipaddr.HostNameParameters, sp ipaddr.IPAddressStringParameters) {
+func (t specialTypesTester) testEmptyValuesOpts(hp addrformat.HostNameParameters, sp addrformat.IPAddressStringParameters) {
 	hostEmpty := t.createParamsHost("", hp)
 	addressEmpty := t.createParamsAddress("", sp)
 
 	// preferredVersion := new(ipaddr.IPAddressStringParametersBuilder).ToParams().GetPreferredVersion()
-	preferredAddressVersion := sp.GetPreferredVersion()
-	preferredHostVersion := hp.GetPreferredVersion()
+	preferredAddressVersion := ipaddr.IPVersion(sp.GetPreferredVersion())
+	preferredHostVersion := ipaddr.IPVersion(hp.GetPreferredVersion())
 
 	//var addr, addr2 net.IP
 	var addr net.IP
 	if preferredAddressVersion.IsIPv6() {
-		if sp.EmptyStrParsedAs() == ipaddr.LoopbackOption {
+		if sp.EmptyStrParsedAs() == addrformat.LoopbackOption {
 			addr = net.IPv6loopback
-		} else if sp.EmptyStrParsedAs() == ipaddr.ZeroAddressOption {
+		} else if sp.EmptyStrParsedAs() == addrformat.ZeroAddressOption {
 			addr = net.IPv6zero
 		}
 	} else {
-		if sp.EmptyStrParsedAs() == ipaddr.LoopbackOption {
+		if sp.EmptyStrParsedAs() == addrformat.LoopbackOption {
 			addr = net.IPv4(127, 0, 0, 1)
-		} else if sp.EmptyStrParsedAs() == ipaddr.ZeroAddressOption {
+		} else if sp.EmptyStrParsedAs() == addrformat.ZeroAddressOption {
 			addr = net.IPv4(0, 0, 0, 0)
 		}
 	}

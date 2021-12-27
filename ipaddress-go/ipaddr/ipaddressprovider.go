@@ -5,6 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 )
 
 // All IP address strings corresponds to exactly one of these types.
@@ -86,7 +87,7 @@ type ipAddressProvider interface {
 
 	// If the address was created by parsing, this provides the parameters used when creating the address,
 	// otherwise nil
-	getParameters() IPAddressStringParameters
+	getParameters() addrformat.IPAddressStringParameters
 
 	// containsProvider is an optimized contains that does not need to create address objects to return an answer.
 	// Unconventional addresses may require that the address objects are created, in such cases null is returned.
@@ -199,7 +200,7 @@ func (p *ipAddrProvider) getProviderNetworkPrefixLen() PrefixLen {
 	return nil
 }
 
-func (p *ipAddrProvider) getParameters() IPAddressStringParameters {
+func (p *ipAddrProvider) getParameters() addrformat.IPAddressStringParameters {
 	return nil
 }
 
@@ -466,10 +467,10 @@ type versionedAddressCreator struct {
 
 	versionedValues [2]*IPAddress
 
-	parameters IPAddressStringParameters
+	parameters addrformat.IPAddressStringParameters
 }
 
-func (versioned *versionedAddressCreator) getParameters() IPAddressStringParameters {
+func (versioned *versionedAddressCreator) getParameters() addrformat.IPAddressStringParameters {
 	return versioned.parameters
 }
 
@@ -512,15 +513,15 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
+func emptyAddressCreator(emptyStrOption addrformat.EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
 	var preferIPv6 bool = version.IsIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
-	if emptyStrOption == NoAddressOption {
+	if emptyStrOption == addrformat.NoAddressOption {
 		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
 		versionedCreator = func() *IPAddress { return nil }
-	} else if emptyStrOption == LoopbackOption {
+	} else if emptyStrOption == addrformat.LoopbackOption {
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneLoop := func() *IPAddress {
@@ -572,8 +573,8 @@ func emptyAddressCreator(emptyStrOption EmptyStrOption, version IPVersion, zone 
 	return
 }
 
-func newLoopbackCreator(options IPAddressStringParameters, zone Zone) *loopbackCreator {
-	var version = options.GetPreferredVersion()
+func newLoopbackCreator(options addrformat.IPAddressStringParameters, zone Zone) *loopbackCreator {
+	var version = IPVersion(options.GetPreferredVersion())
 	addrCreator, versionedCreator := emptyAddressCreator(options.EmptyStrParsedAs(), version, zone)
 	cached := cachedAddressProvider{
 		addressCreator: func() (address, hostAddress *IPAddress, addrErr, hosterr addrerr.IncompatibleAddressError) {
@@ -652,9 +653,9 @@ func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, ad
 	return adjusted.versionedAddressCreator.getProviderHostAddress()
 }
 
-func newMaskCreator(options IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
+func newMaskCreator(options addrformat.IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
 	if adjustedVersion == IndeterminateIPVersion {
-		adjustedVersion = options.GetPreferredVersion()
+		adjustedVersion = IPVersion(options.GetPreferredVersion())
 	}
 	createVersionedMask := func(version IPVersion, prefLen PrefixLen, withPrefixLength bool) *IPAddress {
 		if version == IPv4 {
@@ -696,7 +697,7 @@ type maskCreator struct {
 	adjustedAddressCreator
 }
 
-func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options IPAddressStringParameters) ipAddressProvider {
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrformat.IPAddressStringParameters) ipAddressProvider {
 	result := &allCreator{
 		adjustedAddressCreator: adjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLen(),
@@ -905,6 +906,11 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO So, what can you do?  I wanted to remove the dependency from the subpackage to the main.  And you can do this by replacing IPVersion and other dependencies.
 //
 // TODO replace "Parameters" with "Params everywhere in public types and methods
+//
+// TODO rename addrFormat addrParams, then recreate addrFormat
+// TODO it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
+// ACTUALLY, still not possible, due to stuff like: ToAddressBase() *Address
+// Parts of the framework we use cannot be moved
 //
 // TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
 // It may simply be because in local mode it skips the license check

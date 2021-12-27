@@ -2,20 +2,23 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 	"strings"
 	"sync/atomic"
 	"unsafe"
 )
 
-var defaultMACAddrParameters = &macAddressStringParameters{}
+//var defaultMACAddrParameters = addrformat.DefaultMACAddressStringParams()
+
+var defaultMACAddrParameters = new(addrformat.MACAddressStringParametersBuilder).ToParams()
 
 // NewMACAddressStringParams constructs a MACAddressString that will parse the given string according to the given parameters
-func NewMACAddressStringParams(str string, params MACAddressStringParameters) *MACAddressString {
-	var p *macAddressStringParameters
+func NewMACAddressStringParams(str string, params addrformat.MACAddressStringParameters) *MACAddressString {
+	var p addrformat.MACAddressStringParameters
 	if params == nil {
 		p = defaultMACAddrParameters
 	} else {
-		p = getPrivateMACParams(params)
+		p = addrformat.CopyMACAddressStringParams(params)
 	}
 	return &MACAddressString{str: strings.TrimSpace(str), params: p, macAddrStringCache: new(macAddrStringCache)}
 }
@@ -50,7 +53,7 @@ type macAddrStringCache struct {
 
 type MACAddressString struct {
 	str    string
-	params *macAddressStringParameters // when nil, defaultParameters is used
+	params addrformat.MACAddressStringParameters // when nil, defaultParameters is used
 	*macAddrStringCache
 }
 
@@ -61,12 +64,12 @@ func (addrStr *MACAddressString) init() *MACAddressString {
 	return addrStr
 }
 
-func (addrStr *MACAddressString) getParams() *macAddressStringParameters {
-	return addrStr.init().params
-}
+//func (addrStr *MACAddressString) getParams() *macAddressStringParameters {
+//	return addrStr.init().params
+//}
 
-func (addrStr *MACAddressString) GetValidationOptions() MACAddressStringParameters {
-	return addrStr.getParams()
+func (addrStr *MACAddressString) GetValidationOptions() addrformat.MACAddressStringParameters {
+	return addrStr.init().params
 }
 
 func (addrStr *MACAddressString) String() string {
@@ -241,10 +244,10 @@ func (addrStr *MACAddressString) Wrap() ExtendedIdentifierString {
 	return WrappedMACAddressString{addrStr}
 }
 
-func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
-	if p, ok := orig.(*macAddressStringParameters); ok {
-		return p
-	}
-	return new(MACAddressStringParametersBuilder).Set(orig).ToParams().(*macAddressStringParameters)
-	//return ToMACAddressStringParamsBuilder(orig).ToParams().(*macAddressStringParameters)
-}
+//func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
+//	if p, ok := orig.(*macAddressStringParameters); ok {
+//		return p
+//	}
+//	return new(MACAddressStringParametersBuilder).Set(orig).ToParams().(*macAddressStringParameters)
+//	//return ToMACAddressStringParamsBuilder(orig).ToParams().(*macAddressStringParameters)
+//}

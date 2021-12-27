@@ -2,12 +2,14 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"net"
 	//"strconv"
 	"strings"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 )
 
 const (
@@ -24,12 +26,12 @@ func NewHostName(str string) *HostName {
 }
 
 // NewHostNameParams constructs an HostName that will parse the given string according to the given parameters
-func NewHostNameParams(str string, params HostNameParameters) *HostName {
-	var prms *hostNameParameters
+func NewHostNameParams(str string, params addrformat.HostNameParameters) *HostName {
+	var prms addrformat.HostNameParameters
 	if params == nil {
 		prms = defaultHostParameters
 	} else {
-		prms = getPrivateHostParams(params)
+		prms = addrformat.CopyHostNameParams(params)
 	}
 	str = strings.TrimSpace(str)
 	return &HostName{str: str, params: prms, hostCache: &hostCache{}}
@@ -150,7 +152,9 @@ func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (ho
 	return
 }
 
-var defaultHostParameters = &hostNameParameters{}
+//var defaultHostParameters = addrformat.DefaultHostNameParams()
+
+var defaultHostParameters = new(addrformat.HostNameParametersBuilder).ToParams()
 
 var zeroHost = NewHostName("")
 
@@ -174,7 +178,7 @@ type hostCache struct {
 
 type HostName struct {
 	str    string
-	params *hostNameParameters
+	params addrformat.HostNameParameters
 	*hostCache
 }
 
@@ -185,12 +189,12 @@ func (host *HostName) init() *HostName {
 	return host
 }
 
-func (host *HostName) getParams() *hostNameParameters {
-	return host.init().params
-}
+//func (host *HostName) getParams() *hostNameParameters {
+//	return host.init().params
+//}
 
-func (host *HostName) GetValidationOptions() HostNameParameters {
-	return host.getParams()
+func (host *HostName) GetValidationOptions() addrformat.HostNameParameters {
+	return host.init().params
 }
 
 // Validate validates that this string is a valid address, and if not, throws an exception with a descriptive message indicating why it is not.
@@ -279,7 +283,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err addrerr.AddressErro
 			//note there is no need to apply prefix or mask here, it would have been applied to the address already
 		} else {
 			strHost := parsedHost.getHost()
-			validationOptions := host.getParams()
+			validationOptions := host.GetValidationOptions()
 			if len(strHost) == 0 {
 				//emptyStringOpt := validationOptions.EmptyStrParsedAs()
 				//if emptyStringOpt != NoAddressOption {
@@ -356,7 +360,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err addrerr.AddressErro
 				count = len(addrs)
 				if count > 0 {
 					// sort by preferred version
-					preferredVersion := validationOptions.GetPreferredVersion()
+					preferredVersion := IPVersion(validationOptions.GetPreferredVersion())
 					boundaryCase := 8
 					if count > boundaryCase {
 						c := 0
@@ -935,11 +939,4 @@ func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) 
 			translated.WriteByte(c)
 		}
 	}
-}
-
-func getPrivateHostParams(orig HostNameParameters) *hostNameParameters {
-	if p, ok := orig.(*hostNameParameters); ok {
-		return p
-	}
-	return new(HostNameParametersBuilder).Set(orig).ToParams().(*hostNameParameters)
 }

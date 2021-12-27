@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 	"math/rand"
 	"sort"
 	"time"
@@ -12,8 +13,8 @@ type OrderingSupplier func(string, int) *Ordering
 type OrderingComparator func(one, two *Ordering) int
 
 var (
-	orderingOpts    = new(ipaddr.IPAddressStringParametersBuilder).AllowAll(true).SetRangeParameters(ipaddr.WildcardAndRange).ParseEmptyStrAs(ipaddr.NoAddressOption).GetIPv6AddressParametersBuilder().AllowZone(false).GetParentBuilder().ToParams()
-	macOrderingOpts = new(ipaddr.MACAddressStringParametersBuilder).AllowAll(true).AllowEmpty(true).SetRangeParameters(ipaddr.WildcardAndRange).ToParams()
+	orderingOpts    = new(addrformat.IPAddressStringParametersBuilder).AllowAll(true).SetRangeParameters(addrformat.WildcardAndRange).ParseEmptyStrAs(addrformat.NoAddressOption).GetIPv6AddressParametersBuilder().AllowZone(false).GetParentBuilder().ToParams()
+	macOrderingOpts = new(addrformat.MACAddressStringParametersBuilder).AllowAll(true).AllowEmpty(true).SetRangeParameters(addrformat.WildcardAndRange).ToParams()
 )
 
 type addressOrderTest struct {

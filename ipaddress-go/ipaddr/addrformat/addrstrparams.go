@@ -1,4 +1,4 @@
-package ipaddr
+package addrformat
 
 type AddressStringFormatParameters interface {
 	AllowsWildcardedSeparator() bool

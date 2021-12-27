@@ -19,19 +19,21 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"strings"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 )
 
 // NewIPAddressStringParams constructs an IPAddressString that will parse the given string according to the given parameters
-func NewIPAddressStringParams(str string, params IPAddressStringParameters) *IPAddressString {
-	var p *ipAddressStringParameters
+func NewIPAddressStringParams(str string, params addrformat.IPAddressStringParameters) *IPAddressString {
+	var p addrformat.IPAddressStringParameters
 	if params == nil {
 		p = defaultIPAddrParameters
 	} else {
-		p = getPrivateParams(params)
+		p = addrformat.CopyIPAddressStringParams(params)
 	}
 	return &IPAddressString{str: strings.TrimSpace(str), params: p, ipAddrStringCache: new(ipAddrStringCache)}
 }
@@ -55,7 +57,9 @@ func newIPAddressStringFromAddr(str string, addr *IPAddress) *IPAddressString {
 
 var validator strValidator
 
-var defaultIPAddrParameters = &ipAddressStringParameters{}
+var defaultIPAddrParameters = new(addrformat.IPAddressStringParametersBuilder).ToParams()
+
+//var defaultIPAddrParameters = addrformat.DefaultIPAddressParams()
 
 var zeroIPAddressString = NewIPAddressString("")
 
@@ -70,7 +74,7 @@ type ipAddrStringCache struct {
 
 type IPAddressString struct {
 	str    string
-	params *ipAddressStringParameters // when nil, default parameters is used, never access this field directly
+	params addrformat.IPAddressStringParameters // when nil, default parameters is used, never access this field directly
 	*ipAddrStringCache
 }
 
@@ -81,12 +85,12 @@ func (addrStr *IPAddressString) init() *IPAddressString {
 	return addrStr
 }
 
-func (addrStr *IPAddressString) getParams() *ipAddressStringParameters {
-	return addrStr.init().params
-}
+//func (addrStr *IPAddressString) getParams() addrformat.IPAddressStringParameters {
+//	return addrStr.init().params
+//}
 
-func (addrStr *IPAddressString) GetValidationOptions() IPAddressStringParameters {
-	return addrStr.getParams()
+func (addrStr *IPAddressString) GetValidationOptions() addrformat.IPAddressStringParameters {
+	return addrStr.init().params
 }
 
 // IsPrefixed returns whether this address string has an associated prefix length.
@@ -663,10 +667,9 @@ func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, e
 	return validator.validatePrefixLenStr(str, version)
 }
 
-func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters {
-	if p, ok := orig.(*ipAddressStringParameters); ok {
-		return p
-	}
-	return new(IPAddressStringParametersBuilder).Set(orig).ToParams().(*ipAddressStringParameters)
-	//return ToIPAddressStringParamsBuilder(orig).ToParams().(*ipAddressStringParameters)
-}
+//func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters {
+//	if p, ok := orig.(*ipAddressStringParameters); ok {
+//		return p
+//	}
+//	return new(IPAddressStringParametersBuilder).Set(orig).ToParams().(*ipAddressStringParameters)
+//}

@@ -345,8 +345,8 @@ func splitIntoSequentialBlocks(
 	bitsPerSegment := lower.GetBitsPerSegment()
 	var segSegment int
 	var lowerValue, upperValue SegInt
-	//SeriesStack stack = null;
-	var stack SeriesStack
+	//seriesStack stack = null;
+	var stack seriesStack
 	var toAdd list.List
 	toAdd.Init()
 	//Deque<IPAddressSegmentSeries> toAdd = null;
@@ -487,7 +487,7 @@ func splitIntoPrefixBlocks(
 	//		ArrayList<IPAddressSegmentSeries> blocks = new ArrayList<>();
 	var previousSegmentBits BitCount
 	var currentSegment int
-	var stack SeriesStack
+	var stack seriesStack
 
 	segCount := lower.GetDivisionCount()
 	bitsPerSegment := lower.GetBitsPerSegment()
@@ -685,14 +685,14 @@ func applyOperatorToLowerUpper(
 //	return operatorFunctor(sourceLowerUpper, lower, upper)
 //}
 
-type SeriesStack struct {
+type seriesStack struct {
 	seriesPairs []ExtendedIPSegmentSeries // stack items
 	indexes     []int                     // stack items
 	bits        []BitCount                // stack items
 }
 
 // grows to have capacity at least as large as size
-func (stack *SeriesStack) init(size int) {
+func (stack *seriesStack) init(size int) {
 	if stack.seriesPairs == nil {
 		stack.seriesPairs = make([]ExtendedIPSegmentSeries, 0, size<<1)
 		stack.indexes = make([]int, 0, size)
@@ -700,13 +700,13 @@ func (stack *SeriesStack) init(size int) {
 	}
 }
 
-func (stack *SeriesStack) push(lower, upper ExtendedIPSegmentSeries, previousSegmentBits BitCount, currentSegment int) {
+func (stack *seriesStack) push(lower, upper ExtendedIPSegmentSeries, previousSegmentBits BitCount, currentSegment int) {
 	stack.seriesPairs = append(stack.seriesPairs, lower, upper)
 	stack.indexes = append(stack.indexes, currentSegment)
 	stack.bits = append(stack.bits, previousSegmentBits)
 }
 
-func (stack *SeriesStack) pop() (popped bool, lower, upper ExtendedIPSegmentSeries, previousSegmentBits BitCount, currentSegment int) {
+func (stack *seriesStack) pop() (popped bool, lower, upper ExtendedIPSegmentSeries, previousSegmentBits BitCount, currentSegment int) {
 	seriesPairs := stack.seriesPairs
 	length := len(seriesPairs)
 	if length <= 0 {

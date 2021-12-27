@@ -1,4 +1,4 @@
-package ipaddr
+package addrformat
 
 //func convertHostParams(orig HostNameParameters) *hostNameParameters {
 //	if params, ok := orig.(*hostNameParameters); ok {
@@ -20,6 +20,18 @@ package ipaddr
 //		SetIPAddressParameters(orig.GetIPAddressParameters()).
 //		//
 //		ToParams().(*hostNameParameters)
+//}
+
+func CopyHostNameParams(orig HostNameParameters) HostNameParameters {
+	if p, ok := orig.(*hostNameParameters); ok {
+		return p
+	}
+	return new(HostNameParametersBuilder).Set(orig).ToParams()
+}
+
+//func DefaultHostNameParams() HostNameParameters {
+//	xxx use builder instead xxx
+//	return &hostNameParameters{}
 //}
 
 type HostNameParameters interface {

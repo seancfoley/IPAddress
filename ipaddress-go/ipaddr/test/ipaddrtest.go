@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 	"math"
 	"math/big"
 	//"math/bits"
@@ -4852,7 +4853,7 @@ func (t ipAddressTester) testLeadingZeroAddr(addrStr string, hasLeadingZeros boo
 		t.addFailure(newFailure("unexpected error "+err.Error(), str))
 	}
 	//try {
-	params := new(ipaddr.IPAddressStringParametersBuilder).
+	params := new(addrformat.IPAddressStringParametersBuilder).
 		GetIPv4AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().
 		GetIPv6AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
@@ -4879,7 +4880,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 	}
 	value := addr.GetValue()
 
-	params := new(ipaddr.IPAddressStringParametersBuilder).
+	params := new(addrformat.IPAddressStringParametersBuilder).
 		GetIPv4AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
@@ -4893,7 +4894,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		}
 	}
 
-	params = new(ipaddr.IPAddressStringParametersBuilder).Set(params).GetIPv4AddressParametersBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
+	params = new(addrformat.IPAddressStringParametersBuilder).Set(params).GetIPv4AddressParametersBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if err == nil {
@@ -4906,7 +4907,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		}
 	}
 
-	params = new(ipaddr.IPAddressStringParametersBuilder).Set(params).Allow_inet_aton(false).ToParams()
+	params = new(addrformat.IPAddressStringParametersBuilder).Set(params).Allow_inet_aton(false).ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if isInetAtonOctal {

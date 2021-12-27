@@ -1,4 +1,4 @@
-package ipaddr
+package addrformat
 
 //func convertMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
 //	if params, ok := orig.(*macAddressStringParameters); ok {
@@ -48,6 +48,18 @@ const (
 	UnspecifiedMACSize MACAddressSize = ""
 )
 
+func CopyMACAddressStringParams(orig MACAddressStringParameters) MACAddressStringParameters {
+	if p, ok := orig.(*macAddressStringParameters); ok {
+		return p
+	}
+	return new(MACAddressStringParametersBuilder).Set(orig).ToParams()
+}
+
+//func DefaultMACAddressStringParams() MACAddressStringParameters {
+//	xxx use builder instead xxx
+//	return &macAddressStringParameters{}
+//}
+
 type MACAddressStringParameters interface {
 	AddressStringParameters
 
@@ -68,7 +80,7 @@ type MACAddressStringFormatParameters interface {
 	AllowsShortSegments() bool
 }
 
-var _ MACAddressStringFormatParameters = &macAddressStringFormatParameters{}
+//var _ MACAddressStringFormatParameters = &macAddressStringFormatParameters{}
 
 // ipAddressStringParameters has parameters for parsing IP address strings
 // They are immutable and must be constructed using an IPAddressStringParametersBuilder
@@ -82,7 +94,7 @@ type macAddressStringParameters struct {
 	noAllowDotted,
 	noAllowSpaceDelimited bool
 	allAddresses MACAddressSize
-	network      *MACAddressNetwork
+	//network      *MACAddressNetwork
 }
 
 func (params *macAddressStringParameters) AddressSize() MACAddressSize {
@@ -180,10 +192,10 @@ func (builder *MACAddressStringParametersBuilder) SetAddressSize(size MACAddress
 	return builder
 }
 
-func (builder *MACAddressStringParametersBuilder) SetNetwork(network *MACAddressNetwork) *MACAddressStringParametersBuilder {
-	builder.params.network = network
-	return builder
-}
+//func (builder *MACAddressStringParametersBuilder) SetNetwork(network *MACAddressNetwork) *MACAddressStringParametersBuilder {
+//	builder.params.network = network
+//	return builder
+//}
 
 func (builder *MACAddressStringParametersBuilder) AllowDashed(allow bool) *MACAddressStringParametersBuilder {
 	builder.params.noAllowDashed = !allow

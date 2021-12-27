@@ -2,13 +2,15 @@ package test
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math/big"
 	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
 )
 
 type ipAddressRangeTester struct {
@@ -433,22 +435,22 @@ func (t ipAddressRangeTester) run() {
 	t.ipv6test(false, "1:*::1/1:*::2")
 	t.ipv6test(true, "1:*::1/1::2")
 
-	t.ipv4rangetest(true, "1.1.*.100-101", ipaddr.WildcardAndRange)
-	t.ipv4rangetest(true, "1.2.*.101-100", ipaddr.WildcardAndRange)   //downwards range
-	t.ipv4rangetest(false, "1.2.*.1010-100", ipaddr.WildcardAndRange) //downwards range
-	t.ipv4rangetest(true, "1.2.*.101-101", ipaddr.WildcardAndRange)
-	t.ipv6rangetest(true, "1:2:f4:a-ff:0-2::1", ipaddr.WildcardAndRange)
-	t.ipv6rangetest(true, "1:2:4:ff-a:0-2::1", ipaddr.WildcardAndRange)     //downwards range
-	t.ipv6rangetest(false, "1:2:4:ff1ff-a:0-2::1", ipaddr.WildcardAndRange) //downwards range
-	t.ipv4rangetest(true, "1.2.*.101-100/24", ipaddr.WildcardAndRange)      //downwards range but covered CIDR
+	t.ipv4rangetest(true, "1.1.*.100-101", addrformat.WildcardAndRange)
+	t.ipv4rangetest(true, "1.2.*.101-100", addrformat.WildcardAndRange)   //downwards range
+	t.ipv4rangetest(false, "1.2.*.1010-100", addrformat.WildcardAndRange) //downwards range
+	t.ipv4rangetest(true, "1.2.*.101-101", addrformat.WildcardAndRange)
+	t.ipv6rangetest(true, "1:2:f4:a-ff:0-2::1", addrformat.WildcardAndRange)
+	t.ipv6rangetest(true, "1:2:4:ff-a:0-2::1", addrformat.WildcardAndRange)     //downwards range
+	t.ipv6rangetest(false, "1:2:4:ff1ff-a:0-2::1", addrformat.WildcardAndRange) //downwards range
+	t.ipv4rangetest(true, "1.2.*.101-100/24", addrformat.WildcardAndRange)      //downwards range but covered CIDR
 
 	//these tests create strings that validate ipv4 and ipv6 differently, allowing ranges for one and not the other
-	t.ipv4rangestest(true, "1.*.3.4", ipaddr.WildcardAndRange, ipaddr.NoRange)
-	t.ipv4rangestest(false, "1.*.3.4", ipaddr.NoRange, ipaddr.WildcardAndRange)
-	t.ipv6rangestest(false, "a:*::1.*.3.4", ipaddr.WildcardAndRange, ipaddr.NoRange)
-	t.ipv6rangestest(true, "a:*::1.*.3.4", ipaddr.NoRange, ipaddr.WildcardAndRange)
-	t.ipv6rangestest(false, "a:*::", ipaddr.WildcardAndRange, ipaddr.NoRange)
-	t.ipv6rangestest(true, "a:*::", ipaddr.NoRange, ipaddr.WildcardAndRange)
+	t.ipv4rangestest(true, "1.*.3.4", addrformat.WildcardAndRange, addrformat.NoRange)
+	t.ipv4rangestest(false, "1.*.3.4", addrformat.NoRange, addrformat.WildcardAndRange)
+	t.ipv6rangestest(false, "a:*::1.*.3.4", addrformat.WildcardAndRange, addrformat.NoRange)
+	t.ipv6rangestest(true, "a:*::1.*.3.4", addrformat.NoRange, addrformat.WildcardAndRange)
+	t.ipv6rangestest(false, "a:*::", addrformat.WildcardAndRange, addrformat.NoRange)
+	t.ipv6rangestest(true, "a:*::", addrformat.NoRange, addrformat.WildcardAndRange)
 
 	//		octal, hex, dec overflow
 	//		do it with 1, 2, 3, 4 segments
@@ -1921,7 +1923,7 @@ func (t ipAddressRangeTester) run() {
 	t.testCountExcludeZeros("1.2.3.4/31", 2, 1)
 	t.testCountExcludeZeros("1.2.3.4/30", 4, 3)
 	t.testCountExcludeZeros("1.2.3.6/30", 1, 1)
-	t.testCountRangeParams("1.1-2.3.4", 2, 2, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1.1-2.3.4", 2, 2, addrformat.WildcardAndRange)
 	t.testCountExcludeZeros("1.2.3.0/24", 256, 255)
 	t.testCountExcludeZeros("1.*.3.4", 256, 256)
 	t.testCountExcludeZeros("1.2.252.0/22", 4*256, (4*256)-1)
@@ -2032,24 +2034,24 @@ func (t ipAddressRangeTester) run() {
 	t.testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 48, 3)
 
 	//these can take a while, since they generate 48640, 65536, and 32758 addresses respectively
-	t.testCountRangeParams("1.*.11-200.4", 190*256, 190*256, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1.*.11-200.4", 190*256, 190*256, addrformat.WildcardAndRange)
 	t.testCountExcludeZeros("1.3.*.4/16", 256, 256)
-	t.testCountRangeParams("1.2.*.1-3/25", 256*3, 256*3, ipaddr.WildcardAndRange)
-	t.testCountRangeParams("1.2.*.0-2/25", 256*3, (256*3)-256, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1.2.*.1-3/25", 256*3, 256*3, addrformat.WildcardAndRange)
+	t.testCountRangeParams("1.2.*.0-2/25", 256*3, (256*3)-256, addrformat.WildcardAndRange)
 
 	t.testCountRangeParams("11-13.*.0.0/23", 3*256*2*256,
-		((3*256)*(2*256))-(3*256), ipaddr.WildcardAndRange)
+		((3*256)*(2*256))-(3*256), addrformat.WildcardAndRange)
 
 	//this one test can take a while, since it generates (0xffff + 1) = 65536 addresses
 	t.testCountExcludeZeros("*::1", 0xffff+1, 0xffff+1)
 
-	t.testCountRangeParams("1-3::1", 3, 3, ipaddr.WildcardAndRange)
-	t.testCountRangeParams("0-299::1", 0x299+1, 0x299+1, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1-3::1", 3, 3, addrformat.WildcardAndRange)
+	t.testCountRangeParams("0-299::1", 0x299+1, 0x299+1, addrformat.WildcardAndRange)
 
 	//this one test can take a while, since it generates 3 * (0xffff + 1) = 196606 addresses
-	t.testCountRangeParams("1:2:4:*:0-2::1", 3*(0xffff+1), 3*(0xffff+1), ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1:2:4:*:0-2::1", 3*(0xffff+1), 3*(0xffff+1), addrformat.WildcardAndRange)
 
-	t.testCountRangeParams("1:2:4:0-2:0-2::1", 3*3, 3*3, ipaddr.WildcardAndRange)
+	t.testCountRangeParams("1:2:4:0-2:0-2::1", 3*3, 3*3, addrformat.WildcardAndRange)
 	t.testCountExcludeZeros("1::2:3", 1, 1)
 	t.testCountExcludeZeros("1::2:3/128", 1, 0)
 	t.testCountExcludeZeros("1::2:3/127", 1, 1)
@@ -2308,23 +2310,23 @@ func setBigString(str string, base int) *big.Int {
 	return res
 }
 
-func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions addrformat.RangeParameters) {
 	t.iprangestest(pass, x, false, false, true, ipv4RangeOptions, ipv6RangeOptions)
 }
 
-func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions addrformat.RangeParameters) {
 	t.iprangetest(pass, x, false, false, true, rangeOptions)
 }
 
-func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options addrformat.RangeParameters) {
 	t.iprangestest(pass, x, false, false, false, ipv4Options, ipv6Options)
 }
 
-func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options addrformat.RangeParameters) {
 	t.iprangetest(pass, x, false, false, false, options)
 }
 
-func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions addrformat.RangeParameters) {
 	addr := t.createDoubleParametrizedAddress(x, ipv4RangeOptions, ipv6RangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2332,7 +2334,7 @@ func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth,
 	}
 }
 
-func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions addrformat.RangeParameters) {
 	addr := t.createParametrizedAddress(x, rangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2436,7 +2438,7 @@ func (t ipAddressRangeTester) testPrefixCount(original string, number uint64) {
 	t.testPrefixCountImpl(w.Wrap(), number)
 }
 
-func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions ipaddr.RangeParameters) {
+func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions addrformat.RangeParameters) {
 	w := t.createParametrizedAddress(original, rangeOptions)
 	t.testCountRedirect(w.Wrap(), number, excludeZerosNumber)
 }

@@ -1,6 +1,9 @@
 package ipaddr
 
-import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+)
 
 type parsedHostIdentifierStringQualifier struct {
 
@@ -94,7 +97,7 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getService() string {
 	return parsedQual.service
 }
 
-func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions IPAddressStringParameters) IPVersion {
+func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions addrformat.IPAddressStringParameters) IPVersion {
 	if parsedQual.networkPrefixLength != nil {
 		if parsedQual.networkPrefixLength.bitCount() > IPv4BitCount &&
 			!validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize() {
