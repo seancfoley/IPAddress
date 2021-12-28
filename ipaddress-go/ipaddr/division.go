@@ -824,6 +824,67 @@ func (div *addressDivisionInternal) getDefaultRangeSeparatorString() string {
 	return "-"
 }
 
+//// only needed for godoc / pkgsite
+
+func (div *addressDivisionInternal) GetBitCount() BitCount {
+	return div.addressDivisionBase.GetBitCount()
+}
+
+func (div *addressDivisionInternal) GetByteCount() int {
+	return div.addressDivisionBase.GetByteCount()
+}
+
+func (div *addressDivisionInternal) GetValue() *BigDivInt {
+	return div.addressDivisionBase.GetValue()
+}
+
+func (div *addressDivisionInternal) GetUpperValue() *BigDivInt {
+	return div.addressDivisionBase.GetUpperValue()
+}
+
+func (div *addressDivisionInternal) Bytes() []byte {
+	return div.addressDivisionBase.Bytes()
+}
+
+func (div *addressDivisionInternal) UpperBytes() []byte {
+	return div.addressDivisionBase.UpperBytes()
+}
+
+func (div *addressDivisionInternal) CopyBytes(bytes []byte) []byte {
+	return div.addressDivisionBase.CopyBytes(bytes)
+}
+
+func (div *addressDivisionInternal) CopyUpperBytes(bytes []byte) []byte {
+	return div.addressDivisionBase.CopyUpperBytes(bytes)
+}
+
+//func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.Int {
+//
+//
+//}
+
+func (div *addressDivisionInternal) IsZero() bool {
+	return div.addressDivisionBase.IsZero()
+}
+
+func (div *addressDivisionInternal) IncludesZero() bool {
+	return div.addressDivisionBase.IncludesZero()
+}
+
+func (div *addressDivisionInternal) IsMax() bool {
+	return div.addressDivisionBase.IsMax()
+}
+
+func (div *addressDivisionInternal) IncludesMax() bool {
+	return div.addressDivisionBase.IncludesMax()
+}
+
+func (div *addressDivisionInternal) IsFullRange() bool {
+	return div.addressDivisionBase.IsFullRange()
+}
+
+//// end needed for godoc / pkgsite
+
 func NewDivision(val DivInt, bitCount BitCount) *AddressDivision {
 	return NewRangePrefixDivision(val, val, nil, bitCount)
 }

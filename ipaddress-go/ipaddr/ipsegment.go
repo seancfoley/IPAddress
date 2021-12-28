@@ -1,6 +1,7 @@
 package ipaddr
 
 import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	//"net"
 	"math/bits"
@@ -327,6 +328,150 @@ func (seg *ipAddressSegmentInternal) GetSegmentHostMask(networkBits BitCount) Se
 func (seg *ipAddressSegmentInternal) toIPAddressSegment() *IPAddressSegment {
 	return (*IPAddressSegment)(unsafe.Pointer(seg))
 }
+
+//// only needed for godoc / pkgsite
+
+func (seg *ipAddressSegmentInternal) GetBitCount() BitCount {
+	return seg.addressSegmentInternal.GetBitCount()
+}
+
+func (seg *ipAddressSegmentInternal) GetByteCount() int {
+	return seg.addressSegmentInternal.GetByteCount()
+}
+
+func (seg *ipAddressSegmentInternal) GetValue() *BigDivInt {
+	return seg.addressSegmentInternal.GetValue()
+}
+
+func (seg *ipAddressSegmentInternal) GetUpperValue() *BigDivInt {
+	return seg.addressSegmentInternal.GetUpperValue()
+}
+
+func (seg *ipAddressSegmentInternal) Bytes() []byte {
+	return seg.addressSegmentInternal.Bytes()
+}
+
+func (seg *ipAddressSegmentInternal) UpperBytes() []byte {
+	return seg.addressSegmentInternal.UpperBytes()
+}
+
+func (seg *ipAddressSegmentInternal) CopyBytes(bytes []byte) []byte {
+	return seg.addressSegmentInternal.CopyBytes(bytes)
+}
+
+func (seg *ipAddressSegmentInternal) CopyUpperBytes(bytes []byte) []byte {
+	return seg.addressSegmentInternal.CopyUpperBytes(bytes)
+}
+
+func (seg *ipAddressSegmentInternal) IsZero() bool {
+	return seg.addressSegmentInternal.IsZero()
+}
+
+func (seg *ipAddressSegmentInternal) IncludesZero() bool {
+	return seg.addressSegmentInternal.IncludesZero()
+}
+
+func (seg *ipAddressSegmentInternal) IsMax() bool {
+	return seg.addressSegmentInternal.IsMax()
+}
+
+func (seg *ipAddressSegmentInternal) IncludesMax() bool {
+	return seg.addressSegmentInternal.IncludesMax()
+}
+
+func (seg *ipAddressSegmentInternal) IsFullRange() bool {
+	return seg.addressSegmentInternal.IsFullRange()
+}
+
+func (seg *ipAddressSegmentInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return seg.addressSegmentInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (seg *ipAddressSegmentInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return seg.addressSegmentInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (seg *ipAddressSegmentInternal) GetMinPrefixLenForBlock() BitCount {
+	return seg.addressSegmentInternal.GetMinPrefixLenForBlock()
+}
+
+func (seg *ipAddressSegmentInternal) GetPrefixLenForSingleBlock() PrefixLen {
+	return seg.addressSegmentInternal.GetPrefixLenForSingleBlock()
+}
+
+func (seg *ipAddressSegmentInternal) IsSinglePrefix(divisionPrefixLength BitCount) bool {
+	return seg.addressSegmentInternal.IsSinglePrefix(divisionPrefixLength)
+}
+
+func (seg *ipAddressSegmentInternal) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
+	return seg.addressSegmentInternal.PrefixContains(other, prefixLength)
+}
+
+func (seg *ipAddressSegmentInternal) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
+	return seg.addressSegmentInternal.PrefixEqual(other, prefixLength)
+}
+
+func (seg *ipAddressSegmentInternal) GetSegmentValue() SegInt {
+	return seg.addressSegmentInternal.GetSegmentValue()
+}
+
+func (seg *ipAddressSegmentInternal) GetUpperSegmentValue() SegInt {
+	return seg.addressSegmentInternal.GetUpperSegmentValue()
+}
+
+func (seg *ipAddressSegmentInternal) Matches(value SegInt) bool {
+	return seg.addressSegmentInternal.Matches(value)
+}
+
+func (seg *ipAddressSegmentInternal) MatchesWithMask(value, mask SegInt) bool {
+	return seg.addressSegmentInternal.MatchesWithMask(value, mask)
+}
+
+func (seg *ipAddressSegmentInternal) MatchesValsWithMask(lowerValue, upperValue, mask SegInt) bool {
+	return seg.addressSegmentInternal.MatchesValsWithMask(lowerValue, upperValue, mask)
+}
+
+func (seg *ipAddressSegmentInternal) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
+	return seg.addressSegmentInternal.GetPrefixCountLen(segmentPrefixLength)
+}
+
+func (seg *ipAddressSegmentInternal) GetPrefixValueCountLen(segmentPrefixLength BitCount) SegIntCount {
+	return seg.addressSegmentInternal.GetPrefixValueCountLen(segmentPrefixLength)
+}
+
+func (seg *ipAddressSegmentInternal) GetValueCount() SegIntCount {
+	return seg.addressSegmentInternal.GetValueCount()
+}
+
+func (seg *ipAddressSegmentInternal) GetMaxValue() SegInt {
+	return seg.addressSegmentInternal.GetMaxValue()
+}
+
+func (seg *ipAddressSegmentInternal) TestBit(n BitCount) bool {
+	return seg.addressSegmentInternal.TestBit(n)
+}
+
+func (seg *ipAddressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
+	return seg.addressSegmentInternal.IsOneBit(segmentBitIndex)
+}
+
+func (seg *ipAddressSegmentInternal) ToNormalizedString() string {
+	return seg.addressSegmentInternal.ToNormalizedString()
+}
+
+func (seg *ipAddressSegmentInternal) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
+	return seg.addressSegmentInternal.ToHexString(with0xPrefix)
+}
+
+func (seg *ipAddressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegment, err addrerr.IncompatibleAddressError) {
+	return seg.addressSegmentInternal.ReverseBits(perByte)
+}
+
+func (seg *ipAddressSegmentInternal) ReverseBytes() (res *AddressSegment, err addrerr.IncompatibleAddressError) {
+	return seg.addressSegmentInternal.ReverseBytes()
+}
+
+//// end needed for godoc / pkgsite
 
 type IPAddressSegment struct {
 	ipAddressSegmentInternal

@@ -131,6 +131,8 @@ func NewIPv6AddressFromPrefixedZonedBytes(bytes []byte, prefixLength PrefixLen, 
 	return
 }
 
+//TODO LATER maybe integrate with net.Interface "Name"
+
 //
 //func NewIPv6AddressFromIPAddr(ipAddr *net.IPAddr) (addr *IPv6Address, err addrerr.AddressValueError) {
 //	return newIPv6AddressFromZonedIP(ipAddr.IP, ipAddr.Zone)

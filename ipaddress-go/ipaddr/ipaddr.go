@@ -496,13 +496,49 @@ func (addr *ipAddressInternal) getNetwork() IPAddressNetwork {
 	return addr.getSection().getNetwork()
 }
 
-//func (addr *ipAddressInternal) GetGenericIPDivision(index int) IPAddressGenericDivision {
-//	return addr.GetSegment(index)
-//}
+//// only needed for godoc / pkgsite
 
-//func (addr *ipAddressInternal) CompareSize(other AddressDivisionSeries) int {
-//	return addr.toIPAddress().CompareSize(other)
-//}
+func (addr *ipAddressInternal) GetPrefixCount() *big.Int {
+	return addr.addressInternal.GetPrefixCount()
+}
+
+func (addr *ipAddressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+	return addr.addressInternal.GetPrefixCountLen(prefixLen)
+}
+
+func (addr *ipAddressInternal) GetBlockCount(segmentCount int) *big.Int {
+	return addr.addressInternal.GetBlockCount(segmentCount)
+}
+
+func (addr *ipAddressInternal) GetPrefixLen() PrefixLen {
+	return addr.addressInternal.GetPrefixLen()
+}
+
+func (addr *ipAddressInternal) IsSinglePrefixBlock() bool {
+	return addr.addressInternal.IsSinglePrefixBlock()
+}
+
+func (addr *ipAddressInternal) IsPrefixBlock() bool {
+	return addr.addressInternal.IsPrefixBlock()
+}
+
+func (addr *ipAddressInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return addr.addressInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (addr *ipAddressInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return addr.addressInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (addr *ipAddressInternal) GetMinPrefixLenForBlock() BitCount {
+	return addr.addressInternal.GetMinPrefixLenForBlock()
+}
+
+func (addr *ipAddressInternal) GetPrefixLenForSingleBlock() PrefixLen {
+	return addr.addressInternal.GetPrefixLenForSingleBlock()
+}
+
+//// end needed for godoc / pkgsite
 
 var zeroIPAddr = createIPAddress(zeroSection, NoZone)
 

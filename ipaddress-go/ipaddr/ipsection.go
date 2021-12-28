@@ -1411,6 +1411,173 @@ func (section *ipAddressSectionInternal) toIPAddressSection() *IPAddressSection 
 	return (*IPAddressSection)(unsafe.Pointer(section))
 }
 
+//// only needed for godoc / pkgsite
+
+func (section *ipAddressSectionInternal) GetBitCount() BitCount {
+	return section.addressSectionInternal.GetBitCount()
+}
+
+func (section *ipAddressSectionInternal) GetByteCount() int {
+	return section.addressSectionInternal.GetByteCount()
+}
+
+//IPv6v4, Div,  Not needed Addr because of GetGenericSegment
+//func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) DivisionType {
+//
+//IPv6v4, Div, Not needed Addr
+//func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
+
+func (section *ipAddressSectionInternal) IsZero() bool {
+	return section.addressSectionInternal.IsZero()
+}
+
+func (section *ipAddressSectionInternal) IncludesZero() bool {
+	return section.addressSectionInternal.IncludesZero()
+}
+
+func (section *ipAddressSectionInternal) IsMax() bool {
+	return section.addressSectionInternal.IsMax()
+}
+
+func (section *ipAddressSectionInternal) IncludesMax() bool {
+	return section.addressSectionInternal.IncludesMax()
+}
+
+func (section *ipAddressSectionInternal) IsFullRange() bool {
+	return section.addressSectionInternal.IsFullRange()
+}
+
+func (section *ipAddressSectionInternal) GetSequentialBlockIndex() int {
+	return section.addressSectionInternal.GetSequentialBlockIndex()
+}
+
+func (section *ipAddressSectionInternal) GetSequentialBlockCount() *big.Int {
+	return section.addressSectionInternal.GetSequentialBlockCount()
+}
+
+//func (section *ipAddressSectionInternal) GetPrefixCount() *big.Int {
+//
+//func (section *ipAddressSectionInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+
+//IPv6v4, Div,
+//func (section *ipAddressSectionInternal) GetBlockCount(divisionCount int) *big.Int {
+//
+//}
+
+//func (section *ipAddressSectionInternal) GetPrefixLen() PrefixLen {
+//
+//}
+
+func (section *ipAddressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return section.addressSectionInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (section *ipAddressSectionInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return section.addressSectionInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (section *ipAddressSectionInternal) IsPrefixBlock() bool {
+	return section.addressSectionInternal.IsPrefixBlock()
+}
+
+func (section *ipAddressSectionInternal) IsSinglePrefixBlock() bool {
+	return section.addressSectionInternal.IsSinglePrefixBlock()
+}
+
+func (section *ipAddressSectionInternal) GetMinPrefixLenForBlock() BitCount {
+	return section.addressSectionInternal.GetMinPrefixLenForBlock()
+}
+
+func (section *ipAddressSectionInternal) GetPrefixLenForSingleBlock() PrefixLen {
+	return section.addressSectionInternal.GetPrefixLenForSingleBlock()
+}
+
+func (section *ipAddressSectionInternal) GetValue() *big.Int {
+	return section.addressSectionInternal.GetValue()
+}
+
+func (section *ipAddressSectionInternal) GetUpperValue() *big.Int {
+	return section.addressSectionInternal.GetUpperValue()
+}
+
+func (section *ipAddressSectionInternal) Bytes() []byte {
+	return section.addressSectionInternal.Bytes()
+}
+
+func (section *ipAddressSectionInternal) UpperBytes() []byte {
+	return section.addressSectionInternal.UpperBytes()
+}
+
+func (section *ipAddressSectionInternal) CopyBytes(bytes []byte) []byte {
+	return section.addressSectionInternal.CopyBytes(bytes)
+}
+
+func (section *ipAddressSectionInternal) CopyUpperBytes(bytes []byte) []byte {
+	return section.addressSectionInternal.CopyUpperBytes(bytes)
+}
+
+func (section *ipAddressSectionInternal) IsSequential() bool {
+	return section.addressSectionInternal.IsSequential()
+}
+
+func (section *ipAddressSectionInternal) GetBitsPerSegment() BitCount {
+	return section.addressSectionInternal.GetBitsPerSegment()
+}
+
+func (section *ipAddressSectionInternal) GetBytesPerSegment() int {
+	return section.addressSectionInternal.GetBytesPerSegment()
+}
+
+//func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
+//
+//}
+
+func (section *ipAddressSectionInternal) GetGenericSegment(index int) AddressSegmentType {
+	return section.addressSectionInternal.GetGenericSegment(index)
+}
+
+func (section *ipAddressSectionInternal) GetSegmentCount() int {
+	return section.addressSectionInternal.GetSegmentCount()
+}
+
+//func (section *ipAddressSectionInternal) GetBitCount() BitCount {
+//
+//}
+//
+//func (section *ipAddressSectionInternal) GetByteCount() int {
+//
+//}
+
+func (section *ipAddressSectionInternal) GetMaxSegmentValue() SegInt {
+	return section.addressSectionInternal.GetMaxSegmentValue()
+}
+
+func (section *ipAddressSectionInternal) TestBit(n BitCount) bool {
+	return section.addressSectionInternal.TestBit(n)
+}
+
+func (section *ipAddressSectionInternal) IsOneBit(prefixBitIndex BitCount) bool {
+	return section.addressSectionInternal.IsOneBit(prefixBitIndex)
+}
+
+func (section *ipAddressSectionInternal) PrefixEqual(other AddressSectionType) bool {
+	return section.addressSectionInternal.PrefixEqual(other)
+}
+
+func (section *ipAddressSectionInternal) PrefixContains(other AddressSectionType) bool {
+	return section.addressSectionInternal.PrefixContains(other)
+}
+
+//func (section *ipAddressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+//
+//}
+//
+//func (section *ipAddressSectionInternal) GetSequentialBlockCount() *big.Int {
+//
+//}
+
+//// end needed for godoc / pkgsite
+
 //
 //
 //

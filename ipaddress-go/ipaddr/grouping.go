@@ -1014,6 +1014,66 @@ func (grouping *addressDivisionGroupingInternal) createNewPrefixedDivisions(bits
 	return divs, nil
 }
 
+//// only needed for godoc / pkgsite
+
+func (grouping addressDivisionGroupingInternal) GetBitCount() BitCount {
+	return grouping.addressDivisionGroupingBase.GetBitCount()
+}
+
+func (grouping addressDivisionGroupingInternal) GetByteCount() int {
+	return grouping.addressDivisionGroupingBase.GetByteCount()
+}
+
+func (grouping *addressDivisionGroupingInternal) GetGenericDivision(index int) DivisionType {
+	return grouping.addressDivisionGroupingBase.GetGenericDivision(index)
+}
+
+func (grouping *addressDivisionGroupingInternal) GetDivisionCount() int {
+	return grouping.addressDivisionGroupingBase.GetDivisionCount()
+}
+
+func (grouping *addressDivisionGroupingInternal) IsZero() bool {
+	return grouping.addressDivisionGroupingBase.IsZero()
+}
+
+func (grouping *addressDivisionGroupingInternal) IncludesZero() bool {
+	return grouping.addressDivisionGroupingBase.IncludesZero()
+}
+
+func (grouping *addressDivisionGroupingInternal) IsMax() bool {
+	return grouping.addressDivisionGroupingBase.IsMax()
+}
+
+func (grouping *addressDivisionGroupingInternal) IncludesMax() bool {
+	return grouping.addressDivisionGroupingBase.IncludesMax()
+}
+
+func (grouping *addressDivisionGroupingInternal) IsFullRange() bool {
+	return grouping.addressDivisionGroupingBase.IsFullRange()
+}
+
+func (grouping *addressDivisionGroupingInternal) GetSequentialBlockIndex() int {
+	return grouping.addressDivisionGroupingBase.GetSequentialBlockIndex()
+}
+
+func (grouping *addressDivisionGroupingInternal) GetSequentialBlockCount() *big.Int {
+	return grouping.addressDivisionGroupingBase.GetSequentialBlockCount()
+}
+
+//func (grouping *addressDivisionGroupingBase) GetPrefixCount() *big.Int {
+//
+//}
+//
+//func (grouping *addressDivisionGroupingBase) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+//
+//}
+
+func (grouping *addressDivisionGroupingInternal) GetBlockCount(divisionCount int) *big.Int {
+	return grouping.addressDivisionGroupingBase.GetBlockCount(divisionCount)
+}
+
+//// end needed for godoc / pkgsite
+
 type AddressDivisionGrouping struct {
 	addressDivisionGroupingInternal
 }

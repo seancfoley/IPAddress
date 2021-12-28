@@ -100,7 +100,7 @@ func (grouping *addressDivisionGroupingBase) hasNoDivisions() bool {
 }
 
 // GetBitCount returns the total number of bits across all divisions
-func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) {
+func (grouping *addressDivisionGroupingBase) GetBitCount() (res BitCount) {
 	for i := 0; i < grouping.GetDivisionCount(); i++ {
 		res += grouping.getDivision(i).GetBitCount()
 	}
@@ -108,7 +108,7 @@ func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) {
 }
 
 // GetBitCount returns the total number of bytes across all divisions (rounded up)
-func (grouping addressDivisionGroupingBase) GetByteCount() int {
+func (grouping *addressDivisionGroupingBase) GetByteCount() int {
 	return (int(grouping.GetBitCount()) + 7) >> 3
 }
 

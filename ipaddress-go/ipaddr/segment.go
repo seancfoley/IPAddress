@@ -516,6 +516,82 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 	return
 }
 
+//// only needed for godoc / pkgsite
+
+func (seg *addressSegmentInternal) GetBitCount() BitCount {
+	return seg.addressDivisionInternal.GetBitCount()
+}
+
+func (seg *addressSegmentInternal) GetByteCount() int {
+	return seg.addressDivisionInternal.GetByteCount()
+}
+
+func (seg *addressSegmentInternal) GetValue() *BigDivInt {
+	return seg.addressDivisionInternal.GetValue()
+}
+
+func (seg *addressSegmentInternal) GetUpperValue() *BigDivInt {
+	return seg.addressDivisionInternal.GetUpperValue()
+}
+
+func (seg *addressSegmentInternal) Bytes() []byte {
+	return seg.addressDivisionInternal.Bytes()
+}
+
+func (seg *addressSegmentInternal) UpperBytes() []byte {
+	return seg.addressDivisionInternal.UpperBytes()
+}
+
+func (seg *addressSegmentInternal) CopyBytes(bytes []byte) []byte {
+	return seg.addressDivisionInternal.CopyBytes(bytes)
+}
+
+func (seg *addressSegmentInternal) CopyUpperBytes(bytes []byte) []byte {
+	return seg.addressDivisionInternal.CopyUpperBytes(bytes)
+}
+
+func (seg *addressSegmentInternal) IsZero() bool {
+	return seg.addressDivisionInternal.IsZero()
+}
+
+func (seg *addressSegmentInternal) IncludesZero() bool {
+	return seg.addressDivisionInternal.IncludesZero()
+}
+
+func (seg *addressSegmentInternal) IsMax() bool {
+	return seg.addressDivisionInternal.IsMax()
+}
+
+func (seg *addressSegmentInternal) IncludesMax() bool {
+	return seg.addressDivisionInternal.IncludesMax()
+}
+
+func (seg *addressSegmentInternal) IsFullRange() bool {
+	return seg.addressDivisionInternal.IsFullRange()
+}
+
+func (seg *addressSegmentInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+	return seg.addressDivisionInternal.ContainsPrefixBlock(prefixLen)
+}
+
+func (seg *addressSegmentInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+	return seg.addressDivisionInternal.ContainsSinglePrefixBlock(prefixLen)
+}
+
+func (seg *addressSegmentInternal) GetMinPrefixLenForBlock() BitCount {
+	return seg.addressDivisionInternal.GetMinPrefixLenForBlock()
+}
+
+func (seg *addressSegmentInternal) GetPrefixLenForSingleBlock() PrefixLen {
+	return seg.addressDivisionInternal.GetPrefixLenForSingleBlock()
+}
+
+func (seg *addressSegmentInternal) IsSinglePrefix(divisionPrefixLength BitCount) bool {
+	return seg.addressDivisionInternal.IsSinglePrefix(divisionPrefixLength)
+}
+
+//// end needed for godoc / pkgsite
+
 //
 
 type AddressSegment struct {
