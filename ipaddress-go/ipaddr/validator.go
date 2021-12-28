@@ -3,8 +3,6 @@ package ipaddr
 import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 
 const (
-	//MAX_PREFIX = IPv6BitCount //the largest allowed value x for a /x prefix following an address or host name
-	//public static final int MAX_PREFIX_CHARS = Integer.toString(MAX_PREFIX).length();
 	SmtpIPv6Identifier = "IPv6:"
 	IPvFuture          = 'v'
 )

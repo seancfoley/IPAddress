@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 )
 
 const (
@@ -26,12 +26,12 @@ func NewHostName(str string) *HostName {
 }
 
 // NewHostNameParams constructs an HostName that will parse the given string according to the given parameters
-func NewHostNameParams(str string, params addrformat.HostNameParameters) *HostName {
-	var prms addrformat.HostNameParameters
+func NewHostNameParams(str string, params addrparam.HostNameParameters) *HostName {
+	var prms addrparam.HostNameParameters
 	if params == nil {
 		prms = defaultHostParameters
 	} else {
-		prms = addrformat.CopyHostNameParams(params)
+		prms = addrparam.CopyHostNameParams(params)
 	}
 	str = strings.TrimSpace(str)
 	return &HostName{str: str, params: prms, hostCache: &hostCache{}}
@@ -154,7 +154,7 @@ func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (ho
 
 //var defaultHostParameters = addrformat.DefaultHostNameParams()
 
-var defaultHostParameters = new(addrformat.HostNameParametersBuilder).ToParams()
+var defaultHostParameters = new(addrparam.HostNameParametersBuilder).ToParams()
 
 var zeroHost = NewHostName("")
 
@@ -178,7 +178,7 @@ type hostCache struct {
 
 type HostName struct {
 	str    string
-	params addrformat.HostNameParameters
+	params addrparam.HostNameParameters
 	*hostCache
 }
 
@@ -193,7 +193,7 @@ func (host *HostName) init() *HostName {
 //	return host.init().params
 //}
 
-func (host *HostName) GetValidationOptions() addrformat.HostNameParameters {
+func (host *HostName) GetValidationOptions() addrparam.HostNameParameters {
 	return host.init().params
 }
 
@@ -736,7 +736,7 @@ func (host *HostName) IsLoopback() bool {
 	return host.IsAddress() && host.AsAddress().IsLoopback()
 }
 
-// ToTCPAddrService returns the TCPAddr if this HostName both resolves to an address and has an associated service or port
+// ToTCPAddrService returns the TCPAddr if this HostName both resolves to an address and has an associated service or port, otherwise returns nil
 func (host *HostName) ToNetTCPAddrService(serviceMapper func(string) Port) *net.TCPAddr {
 	if host.IsValid() {
 		port := host.GetPort()

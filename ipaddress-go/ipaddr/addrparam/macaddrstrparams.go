@@ -1,4 +1,4 @@
-package addrformat
+package addrparam
 
 //func convertMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
 //	if params, ok := orig.(*macAddressStringParameters); ok {

@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 )
 
 type macAddressProvider interface {
@@ -20,7 +20,7 @@ func (provider macAddressEmptyProvider) getAddress() (*MACAddress, addrerr.Incom
 var defaultMACAddressEmptyProvider = macAddressEmptyProvider{}
 
 type macAddressAllProvider struct {
-	validationOptions addrformat.MACAddressStringParameters
+	validationOptions addrparam.MACAddressStringParameters
 	address           *MACAddress
 	creationLock      sync.Mutex
 }
@@ -36,7 +36,7 @@ func (provider *macAddressAllProvider) getAddress() (*MACAddress, addrerr.Incomp
 			size := validationOptions.AddressSize()
 			creator := macType.getNetwork().getAddressCreator()
 			var segCount int
-			if size == addrformat.EUI64Size {
+			if size == addrparam.EUI64Size {
 				segCount = ExtendedUniqueIdentifier64SegmentCount
 			} else {
 				segCount = MediaAccessControlSegmentCount

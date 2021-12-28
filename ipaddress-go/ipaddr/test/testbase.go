@@ -3,7 +3,7 @@ package test
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"math"
 	"math/big"
 	"strconv"
@@ -1382,7 +1382,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses
 		//t.confirmHostStrings(ipAddr, false, unc);//these two are valid hosts with embedded addresses
 	} else {
-		params := new(addrformat.IPAddressStringParametersBuilder).Allow_inet_aton(false).ToParams()
+		params := new(addrparam.IPAddressStringParametersBuilder).Allow_inet_aton(false).ToParams()
 		fullAddrString := ipaddr.NewIPAddressStringParams(full, params)
 		t.confirmIPAddrStrings(ipAddr, fullAddrString)
 		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses
@@ -1391,7 +1391,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	if ipAddr.IsIPv6() {
 		t.confirmHostStrings(ipAddr, false, full)
 	} else {
-		params := new(addrformat.HostNameParametersBuilder).GetIPAddressParametersBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
+		params := new(addrparam.HostNameParametersBuilder).GetIPAddressParametersBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
 		fullAddrString := ipaddr.NewHostNameParams(full, params)
 		t.confirmHostNameStrings(ipAddr, fullAddrString)
 	}

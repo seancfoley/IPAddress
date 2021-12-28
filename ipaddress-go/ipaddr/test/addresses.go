@@ -2,12 +2,12 @@ package test
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"net"
 )
 
 var (
-	hostOptions = new(addrformat.HostNameParametersBuilder).
+	hostOptions = new(addrparam.HostNameParametersBuilder).
 			AllowEmpty(false).
 		//ParseEmptyStrAs(ipaddr.NoAddressOption).
 		NormalizeToLowercase(true).
@@ -18,7 +18,7 @@ var (
 		GetIPAddressParametersBuilder(). //GetAddressOptionsBuilder().
 		AllowPrefix(true).
 		AllowMask(true).
-		SetRangeParameters(addrformat.NoRange).
+		SetRangeParameters(addrparam.NoRange).
 		Allow_inet_aton(false).
 		AllowEmpty(false).
 		//ParseEmptyStrAs(ipaddr.NoAddressOption).
@@ -43,16 +43,16 @@ var (
 		AllowBinary(true).
 		GetParentBuilder().GetParentBuilder().ToParams()
 
-	hostInetAtonOptions = new(addrformat.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().Allow_inet_aton(true).AllowSingleSegment(true).GetParentBuilder().ToParams()
+	hostInetAtonOptions = new(addrparam.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().Allow_inet_aton(true).AllowSingleSegment(true).GetParentBuilder().ToParams()
 
 	//var addressOptions = ipaddr.ToIPAddressParametersBuilder(hostOptions).ToParams()
-	addressOptions = new(addrformat.IPAddressStringParametersBuilder).Set(hostOptions.GetIPAddressParameters()).ToParams()
+	addressOptions = new(addrparam.IPAddressStringParametersBuilder).Set(hostOptions.GetIPAddressParameters()).ToParams()
 
-	macAddressOptions = new(addrformat.MACAddressStringParametersBuilder).
+	macAddressOptions = new(addrparam.MACAddressStringParametersBuilder).
 				AllowEmpty(false).
 				AllowAll(false).
 				GetFormatParametersBuilder().
-				SetRangeParameters(addrformat.NoRange).
+				SetRangeParameters(addrparam.NoRange).
 				AllowLeadingZeros(true).
 				AllowUnlimitedLeadingZeros(false).
 				AllowWildcardedSeparator(true).
@@ -66,9 +66,9 @@ type testAddresses interface {
 
 	createInetAtonAddress(string) *ipaddr.IPAddressString
 
-	createParametrizedAddress(string, addrformat.RangeParameters) *ipaddr.IPAddressString
+	createParametrizedAddress(string, addrparam.RangeParameters) *ipaddr.IPAddressString
 
-	createParamsAddress(string, addrformat.IPAddressStringParameters) *ipaddr.IPAddressString
+	createParamsAddress(string, addrparam.IPAddressStringParameters) *ipaddr.IPAddressString
 
 	createAddressFromIP(ip net.IP) *ipaddr.IPAddress
 
@@ -76,13 +76,13 @@ type testAddresses interface {
 
 	createIPv6Address(high, low uint64) *ipaddr.IPv6Address
 
-	createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params addrformat.RangeParameters) *ipaddr.IPAddressString
+	createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params addrparam.RangeParameters) *ipaddr.IPAddressString
 
 	createHost(string) *ipaddr.HostName
 
 	createInetAtonHost(string) *ipaddr.HostName
 
-	createParamsHost(string, addrformat.HostNameParameters) *ipaddr.HostName
+	createParamsHost(string, addrparam.HostNameParameters) *ipaddr.HostName
 
 	createMACAddress(string) *ipaddr.MACAddressString
 
@@ -90,7 +90,7 @@ type testAddresses interface {
 
 	createMACAddressFromUint64(bytes uint64, extended bool) *ipaddr.MACAddress
 
-	createMACParamsAddress(string, addrformat.MACAddressStringParameters) *ipaddr.MACAddressString
+	createMACParamsAddress(string, addrparam.MACAddressStringParameters) *ipaddr.MACAddressString
 
 	isLenient() bool
 
@@ -101,39 +101,39 @@ type addresses struct {
 	// eventually we could have caching in here
 }
 
-func (t *addresses) createParametrizedAddress(str string, params addrformat.RangeParameters) *ipaddr.IPAddressString {
-	var opts addrformat.IPAddressStringParameters
-	if params == addrformat.NoRange {
+func (t *addresses) createParametrizedAddress(str string, params addrparam.RangeParameters) *ipaddr.IPAddressString {
+	var opts addrparam.IPAddressStringParameters
+	if params == addrparam.NoRange {
 		opts = noRangeAddressOptions
-	} else if params == addrformat.WildcardOnly {
+	} else if params == addrparam.WildcardOnly {
 		opts = wildcardOnlyAddressOptions
-	} else if params == addrformat.WildcardAndRange {
+	} else if params == addrparam.WildcardAndRange {
 		opts = wildcardAndRangeAddressOptions
 	} else {
-		opts = new(addrformat.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).
+		opts = new(addrparam.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).
 			SetRangeParameters(params).ToParams()
 	}
 	return ipaddr.NewIPAddressStringParams(str, opts)
 
 }
 
-func (t *addresses) createParamsAddress(str string, opts addrformat.IPAddressStringParameters) *ipaddr.IPAddressString {
+func (t *addresses) createParamsAddress(str string, opts addrparam.IPAddressStringParameters) *ipaddr.IPAddressString {
 	return ipaddr.NewIPAddressStringParams(str, opts)
 }
 
-func (t *addresses) createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params addrformat.RangeParameters) *ipaddr.IPAddressString {
-	var opts addrformat.IPAddressStringParameters
+func (t *addresses) createDoubleParametrizedAddress(str string, ipv4Params, ipv6Params addrparam.RangeParameters) *ipaddr.IPAddressString {
+	var opts addrparam.IPAddressStringParameters
 	if ipv4Params == ipv6Params {
-		if ipv4Params == addrformat.NoRange {
+		if ipv4Params == addrparam.NoRange {
 			opts = noRangeAddressOptions
-		} else if ipv4Params == addrformat.WildcardOnly {
+		} else if ipv4Params == addrparam.WildcardOnly {
 			opts = wildcardOnlyAddressOptions
-		} else if ipv4Params == addrformat.WildcardAndRange {
+		} else if ipv4Params == addrparam.WildcardAndRange {
 			opts = wildcardAndRangeAddressOptions
 		}
 	}
 	if opts == nil {
-		opts = new(addrformat.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).
+		opts = new(addrparam.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).
 			GetIPv4AddressParametersBuilder().SetRangeParameters(ipv4Params).GetParentBuilder().
 			GetIPv6AddressParametersBuilder().SetRangeParameters(ipv6Params).GetParentBuilder().ToParams()
 	}
@@ -174,7 +174,7 @@ func (t *addresses) createMACAddressFromUint64(bytes uint64, extended bool) *ipa
 	return addr
 }
 
-func (t *addresses) createMACParamsAddress(str string, opts addrformat.MACAddressStringParameters) *ipaddr.MACAddressString {
+func (t *addresses) createMACParamsAddress(str string, opts addrparam.MACAddressStringParameters) *ipaddr.MACAddressString {
 	return ipaddr.NewMACAddressStringParams(str, opts)
 }
 
@@ -186,7 +186,7 @@ func (t *addresses) createInetAtonHost(str string) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, hostInetAtonOptions)
 }
 
-func (t *addresses) createParamsHost(str string, params addrformat.HostNameParameters) *ipaddr.HostName {
+func (t *addresses) createParamsHost(str string, params addrparam.HostNameParameters) *ipaddr.HostName {
 	return ipaddr.NewHostNameParams(str, params)
 }
 
@@ -203,15 +203,15 @@ type rangedAddresses struct {
 }
 
 var (
-	wildcardAndRangeAddressOptions = new(addrformat.IPAddressStringParametersBuilder).Set(addressOptions).AllowAll(true).SetRangeParameters(addrformat.WildcardAndRange).ToParams()
-	wildcardOnlyAddressOptions     = new(addrformat.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(addrformat.WildcardOnly).ToParams()
-	noRangeAddressOptions          = new(addrformat.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(addrformat.NoRange).ToParams()
+	wildcardAndRangeAddressOptions = new(addrparam.IPAddressStringParametersBuilder).Set(addressOptions).AllowAll(true).SetRangeParameters(addrparam.WildcardAndRange).ToParams()
+	wildcardOnlyAddressOptions     = new(addrparam.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(addrparam.WildcardOnly).ToParams()
+	noRangeAddressOptions          = new(addrparam.IPAddressStringParametersBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParameters(addrparam.NoRange).ToParams()
 
-	wildcardAndRangeMACAddressOptions = new(addrformat.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParametersBuilder().SetRangeParameters(addrformat.WildcardAndRange).GetParentBuilder().ToParams()
-	wildcardOnlyMACAddressOptions     = new(addrformat.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(addrformat.WildcardOnly).GetParentBuilder().ToParams()
-	noRangeMACAddressOptions          = new(addrformat.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(addrformat.NoRange).GetParentBuilder().ToParams()
+	wildcardAndRangeMACAddressOptions = new(addrparam.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParametersBuilder().SetRangeParameters(addrparam.WildcardAndRange).GetParentBuilder().ToParams()
+	wildcardOnlyMACAddressOptions     = new(addrparam.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(addrparam.WildcardOnly).GetParentBuilder().ToParams()
+	noRangeMACAddressOptions          = new(addrparam.MACAddressStringParametersBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParametersBuilder().SetRangeParameters(addrparam.NoRange).GetParentBuilder().ToParams()
 
-	hostInetAtonwildcardAndRangeOptions = new(addrformat.HostNameParametersBuilder).
+	hostInetAtonwildcardAndRangeOptions = new(addrparam.HostNameParametersBuilder).
 						AllowEmpty(false).
 		//ParseEmptyStrAs(ipaddr.NoAddressOption).
 		NormalizeToLowercase(true).
@@ -219,7 +219,7 @@ var (
 		AllowBracketedIPv4(true).GetIPAddressParametersBuilder().
 		AllowPrefix(true).
 		AllowMask(true).
-		SetRangeParameters(addrformat.WildcardAndRange).
+		SetRangeParameters(addrparam.WildcardAndRange).
 		Allow_inet_aton(true).
 		AllowEmpty(false).
 		//ParseEmptyStrAs(ipaddr.NoAddressOption).
@@ -230,18 +230,18 @@ var (
 		AllowWildcardedSeparator(true).
 		GetParentBuilder().GetParentBuilder().ToParams()
 
-	inetAtonwildcardAndRangeOptions = new(addrformat.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
+	inetAtonwildcardAndRangeOptions = new(addrparam.IPAddressStringParametersBuilder).Set(hostInetAtonwildcardAndRangeOptions.GetIPAddressParameters()).ToParams()
 
-	hostWildcardOptions = new(addrformat.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().
-				AllowAll(true).SetRangeParameters(addrformat.WildcardOnly).GetParentBuilder().ToParams()
+	hostWildcardOptions = new(addrparam.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().
+				AllowAll(true).SetRangeParameters(addrparam.WildcardOnly).GetParentBuilder().ToParams()
 
-	hostOnlyOptions = new(addrformat.HostNameParametersBuilder).Set(hostOptions).AllowIPAddress(false).ToParams()
+	hostOnlyOptions = new(addrparam.HostNameParametersBuilder).Set(hostOptions).AllowIPAddress(false).ToParams()
 
 	//hostWildcardOptions = new(ipaddr.HostNameParametersBuilder).AllowEmpty(false).GetIPAddressParametersBuilder().Set(wildcardOnlyAddressOptions).GetParentBuilder().ToParams()
 
-	hostWildcardAndRangeOptions = new(addrformat.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(addrformat.WildcardAndRange).GetParentBuilder().ToParams()
+	hostWildcardAndRangeOptions = new(addrparam.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(addrparam.WildcardAndRange).GetParentBuilder().ToParams()
 
-	hostWildcardAndRangeInetAtonOptions = new(addrformat.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(addrformat.WildcardAndRange).Allow_inet_aton(true).GetParentBuilder().ToParams()
+	hostWildcardAndRangeInetAtonOptions = new(addrparam.HostNameParametersBuilder).Set(hostWildcardOptions).GetIPAddressParametersBuilder().SetRangeParameters(addrparam.WildcardAndRange).Allow_inet_aton(true).GetParentBuilder().ToParams()
 
 	//addressWildcardOptions = wildcardAndRangeAddressOptions
 )
@@ -272,8 +272,8 @@ func (t *rangedAddresses) allowsRange() bool {
 //}
 
 var (
-	defaultOptions     = new(addrformat.IPAddressStringParametersBuilder).ToParams()
-	defaultHostOptions = new(addrformat.HostNameParametersBuilder).ToParams()
+	defaultOptions     = new(addrparam.IPAddressStringParametersBuilder).ToParams()
+	defaultHostOptions = new(addrparam.HostNameParametersBuilder).ToParams()
 )
 
 type allAddresses struct {

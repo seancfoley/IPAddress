@@ -1,4 +1,4 @@
-package addrformat
+package addrparam
 
 //func convertHostParams(orig HostNameParameters) *hostNameParameters {
 //	if params, ok := orig.(*hostNameParameters); ok {

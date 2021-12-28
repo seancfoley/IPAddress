@@ -5,7 +5,7 @@ import (
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 )
 
 // All IP address strings corresponds to exactly one of these types.
@@ -87,7 +87,7 @@ type ipAddressProvider interface {
 
 	// If the address was created by parsing, this provides the parameters used when creating the address,
 	// otherwise nil
-	getParameters() addrformat.IPAddressStringParameters
+	getParameters() addrparam.IPAddressStringParameters
 
 	// containsProvider is an optimized contains that does not need to create address objects to return an answer.
 	// Unconventional addresses may require that the address objects are created, in such cases null is returned.
@@ -200,7 +200,7 @@ func (p *ipAddrProvider) getProviderNetworkPrefixLen() PrefixLen {
 	return nil
 }
 
-func (p *ipAddrProvider) getParameters() addrformat.IPAddressStringParameters {
+func (p *ipAddrProvider) getParameters() addrparam.IPAddressStringParameters {
 	return nil
 }
 
@@ -467,10 +467,10 @@ type versionedAddressCreator struct {
 
 	versionedValues [2]*IPAddress
 
-	parameters addrformat.IPAddressStringParameters
+	parameters addrparam.IPAddressStringParameters
 }
 
-func (versioned *versionedAddressCreator) getParameters() addrformat.IPAddressStringParameters {
+func (versioned *versionedAddressCreator) getParameters() addrparam.IPAddressStringParameters {
 	return versioned.parameters
 }
 
@@ -513,15 +513,15 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func emptyAddressCreator(emptyStrOption addrformat.EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
+func emptyAddressCreator(emptyStrOption addrparam.EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
 	var preferIPv6 bool = version.IsIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
-	if emptyStrOption == addrformat.NoAddressOption {
+	if emptyStrOption == addrparam.NoAddressOption {
 		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
 		versionedCreator = func() *IPAddress { return nil }
-	} else if emptyStrOption == addrformat.LoopbackOption {
+	} else if emptyStrOption == addrparam.LoopbackOption {
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneLoop := func() *IPAddress {
@@ -573,7 +573,7 @@ func emptyAddressCreator(emptyStrOption addrformat.EmptyStrOption, version IPVer
 	return
 }
 
-func newLoopbackCreator(options addrformat.IPAddressStringParameters, zone Zone) *loopbackCreator {
+func newLoopbackCreator(options addrparam.IPAddressStringParameters, zone Zone) *loopbackCreator {
 	var version = IPVersion(options.GetPreferredVersion())
 	addrCreator, versionedCreator := emptyAddressCreator(options.EmptyStrParsedAs(), version, zone)
 	cached := cachedAddressProvider{
@@ -653,7 +653,7 @@ func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, ad
 	return adjusted.versionedAddressCreator.getProviderHostAddress()
 }
 
-func newMaskCreator(options addrformat.IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
+func newMaskCreator(options addrparam.IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
 	if adjustedVersion == IndeterminateIPVersion {
 		adjustedVersion = IPVersion(options.GetPreferredVersion())
 	}
@@ -697,7 +697,7 @@ type maskCreator struct {
 	adjustedAddressCreator
 }
 
-func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrformat.IPAddressStringParameters) ipAddressProvider {
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrparam.IPAddressStringParameters) ipAddressProvider {
 	result := &allCreator{
 		adjustedAddressCreator: adjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLen(),
@@ -904,14 +904,366 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // so that leaves the string params and builders.
 // There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
 //
-// TODO replace "Parameters" with "Params everywhere in public types and methods
+// TODO replace "Parameters" with "Params" everywhere in public types and methods
 //
-// TODO rename addrFormat addrParams, then recreate addrFormat
-// TODO it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
+//  rename addrFormat addrParams, then recreate addrFormat
+//  it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
 // ACTUALLY, still not possible, due to stuff like: ToAddressBase() *Address
 // Parts of the framework we use cannot be moved (actually no, it is the reverse direction we need to be careful about)
+// we can only move:
+// BitCount
+// PrefixLen
+//
+// AddressItem
+// AddressComponent
+// AddressDivisionSeries
+//
+// DivisionType
+// Does not seem worth it
+// Nor do I think that base types like BitCount belong in addrformat
+// TODO it does like look perhaps you can split off StringOptions, StringOptionsBuilder - which would split off about 17 types, not bad
 //
 // TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
 // It may simply be because in local mode it skips the license check
 // TODO it seems the godoc doesn't list GetPrefixCount for IPv4Address, but it does for MACAddress.  Huh?
 // Is this because it only goes down one level?  Do I need to accomodate this (ie add to ipaddressInternal stuff from addressInternal?)
+// Yes.
+/*
+-------------------------
+
+The labels Ip, IPv4, MAC, Addr, Div indicate which methods need to be added where (note I am assuming ipv6 matches IPv4) Addr is AddrSegment and Address and AddressSection
+
+Div is AddressDivision and AddressDivisionGrouping
+
+You can make copies in ipAddressSegmentInternal to cover IP, IPv4, IPv6
+
+Then you can cover MAC and Addr in addressSegmentInternal
+
+Then you can cover Div in addressDivisionInternal
+
+Ip, Addr, Div
+func (div *addressDivisionBase) GetBitCount() BitCount {
+
+Ip, Addr, Div
+func (div *addressDivisionBase) GetByteCount() int {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) GetValue() *BigDivInt {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) GetUpperValue() *BigDivInt {
+
+Ip, Addr, Div
+func (div *addressDivisionBase) Bytes() []byte {
+
+Ip, Addr, Div
+func (div *addressDivisionBase) UpperBytes() []byte {
+
+Ip, Addr, Div
+func (div *addressDivisionBase) CopyBytes(bytes []byte) []byte {
+
+Ip, Addr, Div
+func (div *addressDivisionBase) CopyUpperBytes(bytes []byte) []byte {
+
+Ip, Addr
+func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.Int {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) IsZero() bool {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) IncludesZero() bool {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) IsMax() bool {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) IncludesMax() bool {
+
+Ip, Ipv4, MAC, Addr, Div
+func (div *addressDivisionBase) IsFullRange() bool {
+
+-----------------------------------
+
+Ipv4, MAC, Addr
+func (div *addressDivisionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+
+Ip, Ipv4, MAC, Addr
+func (div *addressDivisionInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+
+Ip, Ipv4, MAC, Addr
+func (div *addressDivisionInternal) GetMinPrefixLenForBlock() BitCount {
+
+Ip, Ipv4, MAC, Addr
+func (div *addressDivisionInternal) GetPrefixLenForSingleBlock() PrefixLen {
+
+Ip, Ipv4, MAC, Addr
+func (div *addressDivisionInternal) IsSinglePrefix(divisionPrefixLength BitCount) bool {
+
+Ip
+func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCount) *big.Int {
+
+
+----------------------------------
+
+Ip
+func (seg *addressSegmentInternal) PrefixContains(other AddressSegmentType, prefixLength BitCount) bool {
+
+Ip
+func (seg *addressSegmentInternal) PrefixEqual(other AddressSegmentType, prefixLength BitCount) bool {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) GetSegmentValue() SegInt {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) GetUpperSegmentValue() SegInt {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) Matches(value SegInt) bool {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) MatchesWithMask(value, mask SegInt) bool {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) MatchesValsWithMask(lowerValue, upperValue, mask SegInt) bool {
+
+Ip,
+func (seg *addressSegmentInternal) GetPrefixCountLen(segmentPrefixLength BitCount) *big.Int {
+
+func (seg *addressSegmentInternal) GetPrefixValueCountLen(segmentPrefixLength BitCount) SegIntCount {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) GetValueCount() SegIntCount {
+
+Ip
+func (seg *addressSegmentInternal) GetMaxValue() SegInt {
+
+Ip, Ipv4
+func (div *addressSegmentInternal) TestBit(n BitCount) bool {
+
+Ip
+func (div *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) ToNormalizedString() string {
+
+Ip, Ipv4
+func (seg *addressSegmentInternal) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
+
+Ip
+func (seg *addressSegmentInternal) ReverseBits(perByte bool) (res *AddressSegment, err addrerr.IncompatibleAddressError) {
+
+Ip
+func (seg *addressSegmentInternal) ReverseBytes() (res *AddressSegment, err addrerr.IncompatibleAddressError) {
+
+
+
+-----------
+
+func (seg *ipAddressSegmentInternal) IsPrefixBlock() bool {
+
+func (seg *ipAddressSegmentInternal) IsSinglePrefixBlock() bool {
+
+func (seg *ipAddressSegmentInternal) GetPrefixValueCount() SegIntCount {
+
+func (seg *ipAddressSegmentInternal) GetSegmentPrefixLen() PrefixLen {
+
+func (seg *ipAddressSegmentInternal) MatchesWithPrefixMask(value SegInt, networkBits BitCount) bool {
+
+func (seg *ipAddressSegmentInternal) GetBlockMaskPrefixLen(network bool) PrefixLen {
+
+func (seg *ipAddressSegmentInternal) GetTrailingBitCount(ones bool) BitCount {
+
+func (seg *ipAddressSegmentInternal) GetLeadingBitCount(ones bool) BitCount {
+
+func (seg *ipAddressSegmentInternal) GetSegmentNetworkMask(networkBits BitCount) SegInt {
+
+func (seg *ipAddressSegmentInternal) GetSegmentHostMask(networkBits BitCount) SegInt {
+
+
+
+
+/////////////////////////////////////////////////////////
+
+You can make copies in ipAddressInternal to cover IP, IPv4, IPv6
+
+func (addr *addressInternal) GetBitCount() BitCount {
+
+func (addr *addressInternal) GetByteCount() int {
+
+IP, IPv4
+func (addr *addressInternal) GetPrefixCount() *big.Int {
+
+IP, IPv4
+func (addr *addressInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+
+IP, IPv4
+func (addr *addressInternal) GetBlockCount(segmentCount int) *big.Int {
+
+IP, IPv4
+func (addr *addressInternal) GetPrefixLen() PrefixLen {
+
+IP, IPv4
+func (addr *addressInternal) IsSinglePrefixBlock() bool {
+
+IP, IPv4
+func (addr *addressInternal) IsPrefixBlock() bool {
+
+IP, IPv4
+func (addr *addressInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+
+IP, IPv4
+func (addr *addressInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+
+IP,
+func (addr *addressInternal) GetMinPrefixLenForBlock() BitCount {
+
+IP,
+func (addr *addressInternal) GetPrefixLenForSingleBlock() PrefixLen {
+
+
+
+
+/////////////////////////////////////////////////////////
+
+You can make copies in ipAddressSectionInternal to cover IP, IPv4, IPv6
+
+Then you can cover MAC and Addr in addressSectionInternal
+
+Then you can cover Div and IPv6v4 in addressDivisiongrouping
+
+IP, IPv4, IPv6v4, Div,
+func (grouping addressDivisionGroupingBase) GetBitCount() (res BitCount) {
+
+IP, IPv4, IPv6v4, Div,
+func (grouping addressDivisionGroupingBase) GetByteCount() int {
+
+IPv6v4, Div,  Not needed Addr because of GetGenericSegment
+func (grouping *addressDivisionGroupingBase) GetGenericDivision(index int) DivisionType {
+
+IPv6v4, Div, Not needed Addr
+func (grouping *addressDivisionGroupingBase) GetDivisionCount() int {
+
+IP, IPv4, IPv6v4, MAC, Addr, Div,
+func (grouping *addressDivisionGroupingBase) IsZero() bool {]
+
+IP, IPv4, IPv6v4, MAC, Addr, Div,
+func (grouping *addressDivisionGroupingBase) IncludesZero() bool {
+
+IP, IPv4 IPv6v4, MAC, Addr, Div,
+func (grouping *addressDivisionGroupingBase) IsMax() bool {
+
+IP, IPv4, IPv6v4, MAC, Addr, Div,
+func (grouping *addressDivisionGroupingBase) IncludesMax() bool {
+
+IP, IPv4, IPv6v4, MAC, Addr, Div,
+func (grouping *addressDivisionGroupingBase) IsFullRange() bool {
+
+IP, IPv4, IPv6v4, MAC, Addr, Div,
+func (grouping *addressDivisionGroupingBase) GetSequentialBlockIndex() int {
+
+IP, IPv4, IPv6v4, Div,
+func (grouping *addressDivisionGroupingBase) GetSequentialBlockCount() *big.Int {
+
+func (grouping *addressDivisionGroupingBase) GetPrefixCount() *big.Int {
+
+func (grouping *addressDivisionGroupingBase) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+
+IPv6v4, Div,
+func (grouping *addressDivisionGroupingBase) GetBlockCount(divisionCount int) *big.Int {
+
+
+------------
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixCount() *big.Int {
+
+func (grouping *addressDivisionGroupingInternal) GetPrefixCountLen(prefixLen BitCount) *big.Int {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) GetPrefixLen() PrefixLen {
+
+IP, IPv4,
+func (grouping *addressDivisionGroupingInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) ContainsSinglePrefixBlock(prefixLen BitCount) bool {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) IsPrefixBlock() bool {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) GetMinPrefixLenForBlock() BitCount {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) GetPrefixLenForSingleBlock() PrefixLen {
+
+IP, IPv4,, MAC Addr,
+func (grouping *addressDivisionGroupingInternal) GetValue() *big.Int {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) GetUpperValue() *big.Int {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) Bytes() []byte {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) UpperBytes() []byte {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) CopyBytes(bytes []byte) []byte {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) CopyUpperBytes(bytes []byte) []byte {
+
+IP, IPv4, MAC, Addr,
+func (grouping *addressDivisionGroupingInternal) IsSequential() bool {
+
+
+-----------
+
+IP,
+func (section *addressSectionInternal) GetBitsPerSegment() BitCount {
+
+IP,
+func (section *addressSectionInternal) GetBytesPerSegment() int {
+
+func (section *addressSectionInternal) GetSegment(index int) *AddressSegment {
+
+IP, IPv4
+func (section *addressSectionInternal) GetGenericSegment(index int) AddressSegmentType {
+
+IP, IPv4
+func (section *addressSectionInternal) GetSegmentCount() int {
+
+IP, IPv4
+func (section *addressSectionInternal) GetBitCount() BitCount {
+
+IP, IPv4
+func (section *addressSectionInternal) GetByteCount() int {
+
+IP, IPv4
+func (section *addressSectionInternal) GetMaxSegmentValue() SegInt {
+
+IP, IPv4
+func (section *addressSectionInternal) TestBit(n BitCount) bool {
+
+IP, IPv4
+func (section *addressSectionInternal) IsOneBit(prefixBitIndex BitCount) bool {
+
+IP, IPv4
+func (section *addressSectionInternal) PrefixEqual(other AddressSectionType) (res bool) {
+
+IP, IPv4
+func (section *addressSectionInternal) PrefixContains(other AddressSectionType) (res bool) {
+
+IP, IPv4
+func (section *addressSectionInternal) ContainsPrefixBlock(prefixLen BitCount) bool {
+
+IP, IPv4
+func (section *addressSectionInternal) GetSequentialBlockCount() *big.Int {
+
+
+*/

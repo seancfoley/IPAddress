@@ -2,7 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -10,15 +10,15 @@ import (
 
 //var defaultMACAddrParameters = addrformat.DefaultMACAddressStringParams()
 
-var defaultMACAddrParameters = new(addrformat.MACAddressStringParametersBuilder).ToParams()
+var defaultMACAddrParameters = new(addrparam.MACAddressStringParametersBuilder).ToParams()
 
 // NewMACAddressStringParams constructs a MACAddressString that will parse the given string according to the given parameters
-func NewMACAddressStringParams(str string, params addrformat.MACAddressStringParameters) *MACAddressString {
-	var p addrformat.MACAddressStringParameters
+func NewMACAddressStringParams(str string, params addrparam.MACAddressStringParameters) *MACAddressString {
+	var p addrparam.MACAddressStringParameters
 	if params == nil {
 		p = defaultMACAddrParameters
 	} else {
-		p = addrformat.CopyMACAddressStringParams(params)
+		p = addrparam.CopyMACAddressStringParams(params)
 	}
 	return &MACAddressString{str: strings.TrimSpace(str), params: p, macAddrStringCache: new(macAddrStringCache)}
 }
@@ -53,7 +53,7 @@ type macAddrStringCache struct {
 
 type MACAddressString struct {
 	str    string
-	params addrformat.MACAddressStringParameters // when nil, defaultParameters is used
+	params addrparam.MACAddressStringParameters // when nil, defaultParameters is used
 	*macAddrStringCache
 }
 
@@ -68,7 +68,7 @@ func (addrStr *MACAddressString) init() *MACAddressString {
 //	return addrStr.init().params
 //}
 
-func (addrStr *MACAddressString) GetValidationOptions() addrformat.MACAddressStringParameters {
+func (addrStr *MACAddressString) GetValidationOptions() addrparam.MACAddressStringParameters {
 	return addrStr.init().params
 }
 

@@ -225,10 +225,10 @@ func (iter ipsectionSeriesIterator) Next() ExtendedIPSegmentSeries {
 	return WrapIPSection(iter.IPSectionIterator.Next())
 }
 
-type UnwrappedIPddressIterator struct {
+type UnwrappedIPAddressIterator struct {
 	IPAddressIterator
 }
 
-func (iter UnwrappedIPddressIterator) Next() *Address {
+func (iter UnwrappedIPAddressIterator) Next() *Address {
 	return iter.IPAddressIterator.Next().ToAddressBase()
 }

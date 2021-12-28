@@ -24,16 +24,16 @@ import (
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 )
 
 // NewIPAddressStringParams constructs an IPAddressString that will parse the given string according to the given parameters
-func NewIPAddressStringParams(str string, params addrformat.IPAddressStringParameters) *IPAddressString {
-	var p addrformat.IPAddressStringParameters
+func NewIPAddressStringParams(str string, params addrparam.IPAddressStringParameters) *IPAddressString {
+	var p addrparam.IPAddressStringParameters
 	if params == nil {
 		p = defaultIPAddrParameters
 	} else {
-		p = addrformat.CopyIPAddressStringParams(params)
+		p = addrparam.CopyIPAddressStringParams(params)
 	}
 	return &IPAddressString{str: strings.TrimSpace(str), params: p, ipAddrStringCache: new(ipAddrStringCache)}
 }
@@ -57,7 +57,7 @@ func newIPAddressStringFromAddr(str string, addr *IPAddress) *IPAddressString {
 
 var validator strValidator
 
-var defaultIPAddrParameters = new(addrformat.IPAddressStringParametersBuilder).ToParams()
+var defaultIPAddrParameters = new(addrparam.IPAddressStringParametersBuilder).ToParams()
 
 //var defaultIPAddrParameters = addrformat.DefaultIPAddressParams()
 
@@ -74,7 +74,7 @@ type ipAddrStringCache struct {
 
 type IPAddressString struct {
 	str    string
-	params addrformat.IPAddressStringParameters // when nil, default parameters is used, never access this field directly
+	params addrparam.IPAddressStringParameters // when nil, default parameters is used, never access this field directly
 	*ipAddrStringCache
 }
 
@@ -89,7 +89,7 @@ func (addrStr *IPAddressString) init() *IPAddressString {
 //	return addrStr.init().params
 //}
 
-func (addrStr *IPAddressString) GetValidationOptions() addrformat.IPAddressStringParameters {
+func (addrStr *IPAddressString) GetValidationOptions() addrparam.IPAddressStringParameters {
 	return addrStr.init().params
 }
 

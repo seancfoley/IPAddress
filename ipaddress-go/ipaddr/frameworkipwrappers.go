@@ -93,342 +93,342 @@ type WrappedIPAddress struct {
 	*IPAddress
 }
 
-func (w WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
-	res := w.IPAddress
+func (addr WrappedIPAddress) Unwrap() IPAddressSegmentSeries {
+	res := addr.IPAddress
 	if res == nil {
 		return nil
 	}
 	return res
 }
 
-func (w WrappedIPAddress) ToIPv4() IPv4AddressSegmentSeries {
-	return w.IPAddress.ToIPv4()
+func (addr WrappedIPAddress) ToIPv4() IPv4AddressSegmentSeries {
+	return addr.IPAddress.ToIPv4()
 }
 
-func (w WrappedIPAddress) ToIPv6() IPv6AddressSegmentSeries {
-	return w.IPAddress.ToIPv6()
+func (addr WrappedIPAddress) ToIPv6() IPv6AddressSegmentSeries {
+	return addr.IPAddress.ToIPv6()
 }
 
-func (w WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.GetNetworkMask())
+func (addr WrappedIPAddress) GetNetworkMask() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.GetNetworkMask())
 }
 
-func (w WrappedIPAddress) GetHostMask() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.GetHostMask())
+func (addr WrappedIPAddress) GetHostMask() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.GetHostMask())
 }
 
-func (w WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return ipaddressSeriesIterator{w.IPAddress.SequentialBlockIterator()}
+func (addr WrappedIPAddress) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
+	return ipaddressSeriesIterator{addr.IPAddress.SequentialBlockIterator()}
 }
 
-func (w WrappedIPAddress) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
-	return ipaddressSeriesIterator{w.IPAddress.BlockIterator(segmentCount)}
+func (addr WrappedIPAddress) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
+	return ipaddressSeriesIterator{addr.IPAddress.BlockIterator(segmentCount)}
 }
 
-func (w WrappedIPAddress) Iterator() ExtendedIPSegmentSeriesIterator {
-	return ipaddressSeriesIterator{w.IPAddress.Iterator()}
+func (addr WrappedIPAddress) Iterator() ExtendedIPSegmentSeriesIterator {
+	return ipaddressSeriesIterator{addr.IPAddress.Iterator()}
 }
 
-func (w WrappedIPAddress) PrefixIterator() ExtendedIPSegmentSeriesIterator {
-	return ipaddressSeriesIterator{w.IPAddress.PrefixIterator()}
+func (addr WrappedIPAddress) PrefixIterator() ExtendedIPSegmentSeriesIterator {
+	return ipaddressSeriesIterator{addr.IPAddress.PrefixIterator()}
 }
 
-func (w WrappedIPAddress) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return ipaddressSeriesIterator{w.IPAddress.PrefixBlockIterator()}
+func (addr WrappedIPAddress) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
+	return ipaddressSeriesIterator{addr.IPAddress.PrefixBlockIterator()}
 }
 
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
-func (w WrappedIPAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.ToBlock(segmentIndex, lower, upper))
+func (addr WrappedIPAddress) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.ToBlock(segmentIndex, lower, upper))
 }
 
-func (w WrappedIPAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.ToPrefixBlockLen(bitCount))
+func (addr WrappedIPAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.ToPrefixBlockLen(bitCount))
 }
 
-func (w WrappedIPAddress) ToPrefixBlock() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.ToPrefixBlock())
+func (addr WrappedIPAddress) ToPrefixBlock() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.ToPrefixBlock())
 }
 
-func (w WrappedIPAddress) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.ToZeroHostLen(bitCount)) //in IPAddress/Section
+func (addr WrappedIPAddress) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.ToZeroHostLen(bitCount)) //in IPAddress/Section
 }
 
-func (w WrappedIPAddress) ToZeroHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.ToZeroHost()) // in IPAddress/Section/Segment
+func (addr WrappedIPAddress) ToZeroHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.ToZeroHost()) // in IPAddress/Section/Segment
 }
 
-func (w WrappedIPAddress) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.ToMaxHostLen(bitCount))
+func (addr WrappedIPAddress) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.ToMaxHostLen(bitCount))
 }
 
-func (w WrappedIPAddress) ToMaxHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.ToMaxHost())
+func (addr WrappedIPAddress) ToMaxHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.ToMaxHost())
 }
 
-func (w WrappedIPAddress) ToZeroNetwork() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.ToZeroNetwork()) //IPAddress/Section.  ToZeroHost() is in IPAddress/Section/Segment
+func (addr WrappedIPAddress) ToZeroNetwork() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.ToZeroNetwork()) //IPAddress/Section.  ToZeroHost() is in IPAddress/Section/Segment
 }
 
-func (w WrappedIPAddress) Increment(i int64) ExtendedIPSegmentSeries {
-	return convIPAddrToIntf(w.IPAddress.Increment(i))
+func (addr WrappedIPAddress) Increment(i int64) ExtendedIPSegmentSeries {
+	return convIPAddrToIntf(addr.IPAddress.Increment(i))
 }
 
-func (w WrappedIPAddress) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
-	return convIPAddrToIntf(w.IPAddress.IncrementBoundary(i))
+func (addr WrappedIPAddress) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
+	return convIPAddrToIntf(addr.IPAddress.IncrementBoundary(i))
 }
 
-func (w WrappedIPAddress) GetLower() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.GetLower())
+func (addr WrappedIPAddress) GetLower() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.GetLower())
 }
 
-func (w WrappedIPAddress) GetUpper() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.GetUpper())
+func (addr WrappedIPAddress) GetUpper() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.GetUpper())
 }
 
-func (w WrappedIPAddress) GetSection() *IPAddressSection {
-	return w.IPAddress.GetSection()
+func (addr WrappedIPAddress) GetSection() *IPAddressSection {
+	return addr.IPAddress.GetSection()
 }
 
-func (w WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
-	return convIPAddrToIntf(w.IPAddress.AssignPrefixForSingleBlock())
+func (addr WrappedIPAddress) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
+	return convIPAddrToIntf(addr.IPAddress.AssignPrefixForSingleBlock())
 }
 
-func (w WrappedIPAddress) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.AssignMinPrefixForBlock())
+func (addr WrappedIPAddress) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.AssignMinPrefixForBlock())
 }
 
-func (w WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.WithoutPrefixLen())
+func (addr WrappedIPAddress) WithoutPrefixLen() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.WithoutPrefixLen())
 }
 
-func (w WrappedIPAddress) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddress.spanWithPrefixBlocks()
+func (addr WrappedIPAddress) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
+	return addr.IPAddress.spanWithPrefixBlocks()
 }
 
-func (w WrappedIPAddress) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddress.spanWithSequentialBlocks()
+func (addr WrappedIPAddress) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
+	return addr.IPAddress.spanWithSequentialBlocks()
 }
 
-func (w WrappedIPAddress) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
-	return w.IPAddress.coverSeriesWithPrefixBlock()
+func (addr WrappedIPAddress) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
+	return addr.IPAddress.coverSeriesWithPrefixBlock()
 }
 
-func (w WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressType)
-	return ok && w.IPAddress.Contains(addr)
+func (addr WrappedIPAddress) Contains(other ExtendedIPSegmentSeries) bool {
+	a, ok := other.Unwrap().(AddressType)
+	return ok && addr.IPAddress.Contains(a)
 }
 
-func (w WrappedIPAddress) CompareSize(other ExtendedIPSegmentSeries) int {
-	if addr, ok := other.Unwrap().(AddressType); ok {
-		return w.IPAddress.CompareSize(addr)
+func (addr WrappedIPAddress) CompareSize(other ExtendedIPSegmentSeries) int {
+	if a, ok := other.Unwrap().(AddressType); ok {
+		return addr.IPAddress.CompareSize(a)
 	}
-	return w.GetCount().Cmp(other.GetCount())
+	return addr.GetCount().Cmp(other.GetCount())
 }
 
-func (w WrappedIPAddress) Equal(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressType)
-	return ok && w.IPAddress.Equal(addr)
+func (addr WrappedIPAddress) Equal(other ExtendedIPSegmentSeries) bool {
+	a, ok := other.Unwrap().(AddressType)
+	return ok && addr.IPAddress.Equal(a)
 }
 
-func (w WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.SetPrefixLen(prefixLen))
+func (addr WrappedIPAddress) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.SetPrefixLen(prefixLen))
 }
 
-func (w WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.SetPrefixLenZeroed(prefixLen))
+func (addr WrappedIPAddress) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.SetPrefixLenZeroed(prefixLen))
 }
 
-func (w WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.AdjustPrefixLen(prefixLen))
+func (addr WrappedIPAddress) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.AdjustPrefixLen(prefixLen))
 }
 
-func (w WrappedIPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.AdjustPrefixLenZeroed(prefixLen))
+func (addr WrappedIPAddress) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.AdjustPrefixLenZeroed(prefixLen))
 }
 
-func (w WrappedIPAddress) ReverseBytes() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.ReverseBytes())
+func (addr WrappedIPAddress) ReverseBytes() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.ReverseBytes())
 }
 
-func (w WrappedIPAddress) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPAddrWithErr(w.IPAddress.ReverseBits(perByte))
+func (addr WrappedIPAddress) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPAddrWithErr(addr.IPAddress.ReverseBits(perByte))
 }
 
-func (w WrappedIPAddress) ReverseSegments() ExtendedIPSegmentSeries {
-	return WrapIPAddress(w.IPAddress.ReverseSegments())
+func (addr WrappedIPAddress) ReverseSegments() ExtendedIPSegmentSeries {
+	return WrapIPAddress(addr.IPAddress.ReverseSegments())
 }
 
 type WrappedIPAddressSection struct {
 	*IPAddressSection
 }
 
-func (w WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
-	res := w.IPAddressSection
+func (section WrappedIPAddressSection) Unwrap() IPAddressSegmentSeries {
+	res := section.IPAddressSection
 	if res == nil {
 		return nil
 	}
 	return res
 }
 
-func (w WrappedIPAddressSection) ToIPv4() IPv4AddressSegmentSeries {
-	return w.IPAddressSection.ToIPv4()
+func (section WrappedIPAddressSection) ToIPv4() IPv4AddressSegmentSeries {
+	return section.IPAddressSection.ToIPv4()
 }
 
-func (w WrappedIPAddressSection) ToIPv6() IPv6AddressSegmentSeries {
-	return w.IPAddressSection.ToIPv6()
+func (section WrappedIPAddressSection) ToIPv6() IPv6AddressSegmentSeries {
+	return section.IPAddressSection.ToIPv6()
 }
 
-func (w WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.GetNetworkMask())
+func (section WrappedIPAddressSection) GetNetworkMask() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.GetNetworkMask())
 }
 
-func (w WrappedIPAddressSection) GetHostMask() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.GetHostMask())
+func (section WrappedIPAddressSection) GetHostMask() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.GetHostMask())
 }
 
-func (w WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return ipsectionSeriesIterator{w.IPAddressSection.SequentialBlockIterator()}
+func (section WrappedIPAddressSection) SequentialBlockIterator() ExtendedIPSegmentSeriesIterator {
+	return ipsectionSeriesIterator{section.IPAddressSection.SequentialBlockIterator()}
 }
 
-func (w WrappedIPAddressSection) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
-	return ipsectionSeriesIterator{w.IPAddressSection.BlockIterator(segmentCount)}
+func (section WrappedIPAddressSection) BlockIterator(segmentCount int) ExtendedIPSegmentSeriesIterator {
+	return ipsectionSeriesIterator{section.IPAddressSection.BlockIterator(segmentCount)}
 }
 
-func (w WrappedIPAddressSection) Iterator() ExtendedIPSegmentSeriesIterator {
-	return ipsectionSeriesIterator{w.IPAddressSection.Iterator()}
+func (section WrappedIPAddressSection) Iterator() ExtendedIPSegmentSeriesIterator {
+	return ipsectionSeriesIterator{section.IPAddressSection.Iterator()}
 }
 
-func (w WrappedIPAddressSection) PrefixIterator() ExtendedIPSegmentSeriesIterator {
-	return ipsectionSeriesIterator{w.IPAddressSection.PrefixIterator()}
+func (section WrappedIPAddressSection) PrefixIterator() ExtendedIPSegmentSeriesIterator {
+	return ipsectionSeriesIterator{section.IPAddressSection.PrefixIterator()}
 }
 
-func (w WrappedIPAddressSection) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
-	return ipsectionSeriesIterator{w.IPAddressSection.PrefixBlockIterator()}
+func (section WrappedIPAddressSection) PrefixBlockIterator() ExtendedIPSegmentSeriesIterator {
+	return ipsectionSeriesIterator{section.IPAddressSection.PrefixBlockIterator()}
 }
 
 // creates a sequential block by changing the segment at the given index to have the given lower and upper value,
 // and changing the following segments to be full-range
-func (w WrappedIPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.ToBlock(segmentIndex, lower, upper))
+func (section WrappedIPAddressSection) ToBlock(segmentIndex int, lower, upper SegInt) ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.ToBlock(segmentIndex, lower, upper))
 }
 
-func (w WrappedIPAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.ToPrefixBlockLen(bitCount))
+func (section WrappedIPAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.ToPrefixBlockLen(bitCount))
 }
 
-func (w WrappedIPAddressSection) ToPrefixBlock() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.ToPrefixBlock())
+func (section WrappedIPAddressSection) ToPrefixBlock() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.ToPrefixBlock())
 }
 
-func (w WrappedIPAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.ToZeroHostLen(bitCount))
+func (section WrappedIPAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.ToZeroHostLen(bitCount))
 }
 
-func (w WrappedIPAddressSection) ToZeroHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.ToZeroHost())
+func (section WrappedIPAddressSection) ToZeroHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.ToZeroHost())
 }
 
-func (w WrappedIPAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.ToMaxHostLen(bitCount))
+func (section WrappedIPAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.ToMaxHostLen(bitCount))
 }
 
-func (w WrappedIPAddressSection) ToMaxHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.ToMaxHost())
+func (section WrappedIPAddressSection) ToMaxHost() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.ToMaxHost())
 }
 
-func (w WrappedIPAddressSection) ToZeroNetwork() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.ToZeroNetwork())
+func (section WrappedIPAddressSection) ToZeroNetwork() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.ToZeroNetwork())
 }
 
-func (w WrappedIPAddressSection) Increment(i int64) ExtendedIPSegmentSeries {
-	return convIPSectToIntf(w.IPAddressSection.Increment(i))
+func (section WrappedIPAddressSection) Increment(i int64) ExtendedIPSegmentSeries {
+	return convIPSectToIntf(section.IPAddressSection.Increment(i))
 }
 
-func (w WrappedIPAddressSection) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
-	return convIPSectToIntf(w.IPAddressSection.IncrementBoundary(i))
+func (section WrappedIPAddressSection) IncrementBoundary(i int64) ExtendedIPSegmentSeries {
+	return convIPSectToIntf(section.IPAddressSection.IncrementBoundary(i))
 }
 
-func (w WrappedIPAddressSection) GetLower() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.GetLower())
+func (section WrappedIPAddressSection) GetLower() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.GetLower())
 }
 
-func (w WrappedIPAddressSection) GetUpper() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.GetUpper())
+func (section WrappedIPAddressSection) GetUpper() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.GetUpper())
 }
 
-func (w WrappedIPAddressSection) GetSection() *IPAddressSection {
-	return w.IPAddressSection
+func (section WrappedIPAddressSection) GetSection() *IPAddressSection {
+	return section.IPAddressSection
 }
 
-func (w WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
-	return convIPSectToIntf(w.IPAddressSection.AssignPrefixForSingleBlock())
+func (section WrappedIPAddressSection) AssignPrefixForSingleBlock() ExtendedIPSegmentSeries {
+	return convIPSectToIntf(section.IPAddressSection.AssignPrefixForSingleBlock())
 }
 
-func (w WrappedIPAddressSection) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.AssignMinPrefixForBlock())
+func (section WrappedIPAddressSection) AssignMinPrefixForBlock() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.AssignMinPrefixForBlock())
 }
 
-func (w WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.WithoutPrefixLen())
+func (section WrappedIPAddressSection) WithoutPrefixLen() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.WithoutPrefixLen())
 }
 
-func (w WrappedIPAddressSection) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddressSection.spanWithPrefixBlocks()
+func (section WrappedIPAddressSection) SpanWithPrefixBlocks() []ExtendedIPSegmentSeries {
+	return section.IPAddressSection.spanWithPrefixBlocks()
 }
 
-func (w WrappedIPAddressSection) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
-	return w.IPAddressSection.spanWithSequentialBlocks()
+func (section WrappedIPAddressSection) SpanWithSequentialBlocks() []ExtendedIPSegmentSeries {
+	return section.IPAddressSection.spanWithSequentialBlocks()
 }
 
-func (w WrappedIPAddressSection) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
-	return w.IPAddressSection.coverSeriesWithPrefixBlock()
+func (section WrappedIPAddressSection) CoverWithPrefixBlock() ExtendedIPSegmentSeries {
+	return section.IPAddressSection.coverSeriesWithPrefixBlock()
 }
 
-func (w WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressSectionType)
-	return ok && w.IPAddressSection.Contains(addr)
+func (section WrappedIPAddressSection) Contains(other ExtendedIPSegmentSeries) bool {
+	s, ok := other.Unwrap().(AddressSectionType)
+	return ok && section.IPAddressSection.Contains(s)
 }
 
-func (w WrappedIPAddressSection) Equal(other ExtendedIPSegmentSeries) bool {
-	addr, ok := other.Unwrap().(AddressSectionType)
-	return ok && w.IPAddressSection.Equal(addr)
+func (section WrappedIPAddressSection) Equal(other ExtendedIPSegmentSeries) bool {
+	s, ok := other.Unwrap().(AddressSectionType)
+	return ok && section.IPAddressSection.Equal(s)
 }
 
-func (w WrappedIPAddressSection) CompareSize(other ExtendedIPSegmentSeries) int {
-	if addr, ok := other.Unwrap().(AddressSectionType); ok {
-		return w.IPAddressSection.CompareSize(addr)
+func (section WrappedIPAddressSection) CompareSize(other ExtendedIPSegmentSeries) int {
+	if s, ok := other.Unwrap().(AddressSectionType); ok {
+		return section.IPAddressSection.CompareSize(s)
 	}
-	return w.GetCount().Cmp(other.GetCount())
+	return section.GetCount().Cmp(other.GetCount())
 }
 
-func (w WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.SetPrefixLen(prefixLen))
+func (section WrappedIPAddressSection) SetPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.SetPrefixLen(prefixLen))
 }
 
-func (w WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.SetPrefixLenZeroed(prefixLen))
+func (section WrappedIPAddressSection) SetPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.SetPrefixLenZeroed(prefixLen))
 }
 
-func (w WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.AdjustPrefixLen(prefixLen))
+func (section WrappedIPAddressSection) AdjustPrefixLen(prefixLen BitCount) ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.AdjustPrefixLen(prefixLen))
 }
 
-func (w WrappedIPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.AdjustPrefixLenZeroed(prefixLen))
+func (section WrappedIPAddressSection) AdjustPrefixLenZeroed(prefixLen BitCount) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.AdjustPrefixLenZeroed(prefixLen))
 }
 
-func (w WrappedIPAddressSection) ReverseBytes() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.ReverseBytes())
+func (section WrappedIPAddressSection) ReverseBytes() (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.ReverseBytes())
 }
 
-func (w WrappedIPAddressSection) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
-	return wrapIPSectWithErr(w.IPAddressSection.ReverseBits(perByte))
+func (section WrappedIPAddressSection) ReverseBits(perByte bool) (ExtendedIPSegmentSeries, addrerr.IncompatibleAddressError) {
+	return wrapIPSectWithErr(section.IPAddressSection.ReverseBits(perByte))
 }
 
-func (w WrappedIPAddressSection) ReverseSegments() ExtendedIPSegmentSeries {
-	return WrapIPSection(w.IPAddressSection.ReverseSegments())
+func (section WrappedIPAddressSection) ReverseSegments() ExtendedIPSegmentSeries {
+	return WrapIPSection(section.IPAddressSection.ReverseSegments())
 }
 
 var _ ExtendedIPSegmentSeries = WrappedIPAddress{}

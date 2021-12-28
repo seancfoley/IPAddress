@@ -1,4 +1,4 @@
-package addrformat
+package addrparam
 
 import "strings"
 

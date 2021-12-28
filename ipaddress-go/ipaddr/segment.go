@@ -158,15 +158,15 @@ func (seg *addressSegmentInternal) GetMaxValue() SegInt {
 }
 
 // TestBit computes (this & (1 << n)) != 0), using the lower value of this segment.
-func (div *addressSegmentInternal) TestBit(n BitCount) bool {
-	value := div.GetSegmentValue()
+func (seg *addressSegmentInternal) TestBit(n BitCount) bool {
+	value := seg.GetSegmentValue()
 	return (value & (1 << uint(n))) != 0
 }
 
 // Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
-func (div *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
-	value := div.GetSegmentValue()
-	bitCount := div.GetBitCount()
+func (seg *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
+	value := seg.GetSegmentValue()
+	bitCount := seg.GetBitCount()
 	return (value & (1 << uint(bitCount-(segmentBitIndex+1)))) != 0
 }
 

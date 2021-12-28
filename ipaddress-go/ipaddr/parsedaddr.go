@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 )
 
 // How address sections and addresses and ranges can be created here:
@@ -70,7 +70,7 @@ type parsedIPAddress struct {
 
 	ipAddrProvider // provides a few methods like isInvalid
 
-	options               addrformat.IPAddressStringParameters
+	options               addrparam.IPAddressStringParameters
 	originator            HostIdentifierString
 	vals                  translatedResult
 	skipCntains           boolSetting
@@ -99,7 +99,7 @@ func (parseData *parsedIPAddress) getType() ipType {
 	return fromVersion(parseData.getProviderIPVersion())
 }
 
-func (parseData *parsedIPAddress) getParameters() addrformat.IPAddressStringParameters {
+func (parseData *parsedIPAddress) getParameters() addrparam.IPAddressStringParameters {
 	return parseData.options
 }
 

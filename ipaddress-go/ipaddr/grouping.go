@@ -1072,7 +1072,7 @@ func (grouping *AddressDivisionGrouping) GetDivisionStrings() []string {
 
 // The zero grouping, produced by zero sections like IPv4AddressSection{} or AddressDivisionGrouping{}, can represent a zero-length section of any address type,
 // It is not considered equal to constructions of specific zero length sections of groupings like NewIPv4Section(nil) which can only represent a zero-length section of a sinle address type.
-func (grouping *AddressDivisionGrouping) IsZeroGrouping() bool {
+func (grouping *AddressDivisionGrouping) IsZeroGrouping() bool { // TODO is there a better name for this?  Hard to distinbguish from isZero()
 	return grouping != nil && grouping.matchesZeroGrouping()
 }
 

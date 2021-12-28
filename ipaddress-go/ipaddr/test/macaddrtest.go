@@ -3,7 +3,7 @@ package test
 import (
 	"bytes"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrformat"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"math"
 	"math/big"
 	"net"
@@ -835,7 +835,7 @@ func (t macAddressTester) testLongShort(longAddr, shortAddr string) {
 }
 
 func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeLong bool) {
-	params := new(addrformat.MACAddressStringParametersBuilder).SetAddressSize(addrformat.MACSize).ToParams()
+	params := new(addrparam.MACAddressStringParametersBuilder).SetAddressSize(addrparam.MACSize).ToParams()
 	longString := ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString := ipaddr.NewMACAddressStringParams(shortAddr, params)
 	if !shortString.IsValid() {
@@ -844,7 +844,7 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 	if longString.IsValid() {
 		t.addFailure(newMACFailure("long valid "+longString.String(), longString))
 	}
-	params = new(addrformat.MACAddressStringParametersBuilder).SetAddressSize(addrformat.EUI64Size).ToParams()
+	params = new(addrparam.MACAddressStringParametersBuilder).SetAddressSize(addrparam.EUI64Size).ToParams()
 	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
 	isValid := shortString.IsValid()
@@ -863,7 +863,7 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 	if shortCanBeLong && shortString.GetAddress().GetSegmentCount() != ipaddr.ExtendedUniqueIdentifier64SegmentCount {
 		t.addFailure(newMACFailure("also not enough segments "+shortString.String(), shortString))
 	}
-	params = new(addrformat.MACAddressStringParametersBuilder).SetAddressSize(addrformat.UnspecifiedMACSize).ToParams()
+	params = new(addrparam.MACAddressStringParametersBuilder).SetAddressSize(addrparam.UnspecifiedMACSize).ToParams()
 	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
 	if !shortString.IsValid() {
