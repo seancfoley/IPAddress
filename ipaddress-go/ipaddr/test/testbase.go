@@ -1491,7 +1491,7 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 	} else {
 		var addrIterator ipaddr.AddressIterator
 		if excludeZeroHosts {
-			addrIterator = ipaddr.UnwrappedIPddressIterator{getNonZeroHostIterator(val.ToAddressBase().ToIP())}
+			addrIterator = ipaddr.UnwrappedIPAddressIterator{getNonZeroHostIterator(val.ToAddressBase().ToIP())}
 		} else {
 			addrIterator = val.ToAddressBase().Iterator()
 		}
