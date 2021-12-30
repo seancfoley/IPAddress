@@ -511,7 +511,7 @@ func (t hostTester) run() {
 	t.testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:a-b-c", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "a-b-c", "")
 	t.testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:12345x789012345", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "12345x789012345", "")
 
-	expectPortParams := new(addrparam.HostNameParametersBuilder).Set(hostOptions).ExpectPort(true).ToParams()
+	expectPortParams := new(addrparam.HostNameParamsBuilder).Set(hostOptions).ExpectPort(true).ToParams()
 	t.testHostAddressWithService("fe80::6a05:caff:fe3:nfs", "fe80::6a05:caff:fe3", "nfs", "")
 	t.testHostAddressPortZone("fe80::6a05:caff:fe3:123", "fe80::6a05:caff:fe3:123", nil, "")
 	hostName := t.createParamsHost("fe80::6a05:caff:fe3:123", expectPortParams)
@@ -650,7 +650,7 @@ func (t hostTester) testMatches(matches bool, host1, host2 string) {
 	t.testMatchesParams(matches, host1, host2, hostOptions)
 }
 
-func (t hostTester) testMatchesParams(matches bool, host1, host2 string, options addrparam.HostNameParameters) {
+func (t hostTester) testMatchesParams(matches bool, host1, host2 string, options addrparam.HostNameParams) {
 	h1 := t.createParamsHost(host1, options)
 	h2 := t.createParamsHost(host2, options)
 	if matches != h1.Equal(h2) && matches != hostConversionMatches(h1, h2) {

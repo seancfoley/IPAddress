@@ -20,7 +20,7 @@ func (provider macAddressEmptyProvider) getAddress() (*MACAddress, addrerr.Incom
 var defaultMACAddressEmptyProvider = macAddressEmptyProvider{}
 
 type macAddressAllProvider struct {
-	validationOptions addrparam.MACAddressStringParameters
+	validationOptions addrparam.MACAddressStringParams
 	address           *MACAddress
 	creationLock      sync.Mutex
 }

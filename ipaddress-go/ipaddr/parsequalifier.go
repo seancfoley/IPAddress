@@ -97,10 +97,10 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getService() string {
 	return parsedQual.service
 }
 
-func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions addrparam.IPAddressStringParameters) IPVersion {
+func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions addrparam.IPAddressStringParams) IPVersion {
 	if parsedQual.networkPrefixLength != nil {
 		if parsedQual.networkPrefixLength.bitCount() > IPv4BitCount &&
-			!validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize() {
+			!validationOptions.GetIPv4Params().AllowsPrefixesBeyondAddressSize() {
 			return IPv6
 		}
 	} else if mask := parsedQual.mask; mask != nil {

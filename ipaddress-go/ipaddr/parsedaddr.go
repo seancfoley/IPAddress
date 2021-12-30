@@ -70,7 +70,7 @@ type parsedIPAddress struct {
 
 	ipAddrProvider // provides a few methods like isInvalid
 
-	options               addrparam.IPAddressStringParameters
+	options               addrparam.IPAddressStringParams
 	originator            HostIdentifierString
 	vals                  translatedResult
 	skipCntains           boolSetting
@@ -99,7 +99,7 @@ func (parseData *parsedIPAddress) getType() ipType {
 	return fromVersion(parseData.getProviderIPVersion())
 }
 
-func (parseData *parsedIPAddress) getParameters() addrparam.IPAddressStringParameters {
+func (parseData *parsedIPAddress) getParameters() addrparam.IPAddressStringParams {
 	return parseData.options
 }
 

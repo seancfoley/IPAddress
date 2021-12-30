@@ -34,13 +34,13 @@ func main() {
 	grouping.GetSegmentCount()
 	//grouping.hasNoDivisions()
 
-	builder := addrparam.IPAddressStringParametersBuilder{}
+	builder := addrparam.IPAddressStringParamsBuilder{}
 	params := builder.AllowAll(false).ToParams()
 	fmt.Printf("%+v\n", params)
 
 	//params := ipaddr.ipAddressStringParameters{}
 	////fmt.Printf("%+v\n", params)
-	//init := ipaddr.IPAddressStringParametersBuilder{}
+	//init := ipaddr.IPAddressStringParamsBuilder{}
 	//params2 := init.AllowAll(false).ToParams()
 	//params = *params2
 	//_ = params

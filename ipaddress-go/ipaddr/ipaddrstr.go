@@ -28,8 +28,8 @@ import (
 )
 
 // NewIPAddressStringParams constructs an IPAddressString that will parse the given string according to the given parameters
-func NewIPAddressStringParams(str string, params addrparam.IPAddressStringParameters) *IPAddressString {
-	var p addrparam.IPAddressStringParameters
+func NewIPAddressStringParams(str string, params addrparam.IPAddressStringParams) *IPAddressString {
+	var p addrparam.IPAddressStringParams
 	if params == nil {
 		p = defaultIPAddrParameters
 	} else {
@@ -57,7 +57,7 @@ func newIPAddressStringFromAddr(str string, addr *IPAddress) *IPAddressString {
 
 var validator strValidator
 
-var defaultIPAddrParameters = new(addrparam.IPAddressStringParametersBuilder).ToParams()
+var defaultIPAddrParameters = new(addrparam.IPAddressStringParamsBuilder).ToParams()
 
 //var defaultIPAddrParameters = addrformat.DefaultIPAddressParams()
 
@@ -74,7 +74,7 @@ type ipAddrStringCache struct {
 
 type IPAddressString struct {
 	str    string
-	params addrparam.IPAddressStringParameters // when nil, default parameters is used, never access this field directly
+	params addrparam.IPAddressStringParams // when nil, default parameters is used, never access this field directly
 	*ipAddrStringCache
 }
 
@@ -85,11 +85,11 @@ func (addrStr *IPAddressString) init() *IPAddressString {
 	return addrStr
 }
 
-//func (addrStr *IPAddressString) getParams() addrformat.IPAddressStringParameters {
+//func (addrStr *IPAddressString) getParams() addrformat.IPAddressStringParams {
 //	return addrStr.init().params
 //}
 
-func (addrStr *IPAddressString) GetValidationOptions() addrparam.IPAddressStringParameters {
+func (addrStr *IPAddressString) GetValidationOptions() addrparam.IPAddressStringParams {
 	return addrStr.init().params
 }
 
@@ -667,9 +667,9 @@ func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, e
 	return validator.validatePrefixLenStr(str, version)
 }
 
-//func getPrivateParams(orig IPAddressStringParameters) *ipAddressStringParameters {
+//func getPrivateParams(orig IPAddressStringParams) *ipAddressStringParameters {
 //	if p, ok := orig.(*ipAddressStringParameters); ok {
 //		return p
 //	}
-//	return new(IPAddressStringParametersBuilder).Set(orig).ToParams().(*ipAddressStringParameters)
+//	return new(IPAddressStringParamsBuilder).Set(orig).ToParams().(*ipAddressStringParameters)
 //}

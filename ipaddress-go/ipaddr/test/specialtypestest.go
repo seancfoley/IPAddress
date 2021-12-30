@@ -13,13 +13,13 @@ type specialTypesTester struct {
 }
 
 var (
-	//hostOptionsSpecial            = new(ipaddr.HostNameParametersBuilder).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).GetIPAddressParametersBuilder().AllowEmpty(false).SetRangeParameters(ipaddr.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
-	//addressOptionsSpecial         = new(ipaddr.IPAddressStringParametersBuilder).Set(hostOptionsSpecial.GetIPAddressParameters()).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	hostOptionsSpecial            = new(addrparam.HostNameParametersBuilder).AllowEmpty(true).GetIPAddressParametersBuilder().AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).SetRangeParameters(addrparam.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
-	addressOptionsSpecial         = new(addrparam.IPAddressStringParametersBuilder).Set(hostOptionsSpecial.GetIPAddressParameters()).AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).ToParams()
-	macOptionsSpecial             = new(addrparam.MACAddressStringParametersBuilder).Set(macAddressOptions).AllowEmpty(true).SetRangeParameters(addrparam.WildcardOnly).AllowAll(true).ToParams()
-	emptyAddressOptions           = new(addrparam.HostNameParametersBuilder).Set(hostOptions).GetIPAddressParametersBuilder().AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).GetParentBuilder().ToParams()
-	emptyAddressNoLoopbackOptions = new(addrparam.HostNameParametersBuilder).Set(emptyAddressOptions).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrparam.NoAddressOption).GetParentBuilder().ToParams()
+	//hostOptionsSpecial            = new(ipaddr.HostNameParamsBuilder).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).GetIPAddressParamsBuilder().AllowEmpty(false).SetRangeParams(ipaddr.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
+	//addressOptionsSpecial         = new(ipaddr.IPAddressStringParamsBuilder).Set(hostOptionsSpecial.GetIPAddressParams()).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
+	hostOptionsSpecial            = new(addrparam.HostNameParamsBuilder).AllowEmpty(true).GetIPAddressParamsBuilder().AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).SetRangeParams(addrparam.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
+	addressOptionsSpecial         = new(addrparam.IPAddressStringParamsBuilder).Set(hostOptionsSpecial.GetIPAddressParams()).AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).ToParams()
+	macOptionsSpecial             = new(addrparam.MACAddressStringParamsBuilder).Set(macAddressOptions).AllowEmpty(true).SetRangeParams(addrparam.WildcardOnly).AllowAll(true).ToParams()
+	emptyAddressOptions           = new(addrparam.HostNameParamsBuilder).Set(hostOptions).GetIPAddressParamsBuilder().AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).GetParentBuilder().ToParams()
+	emptyAddressNoLoopbackOptions = new(addrparam.HostNameParamsBuilder).Set(emptyAddressOptions).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.NoAddressOption).GetParentBuilder().ToParams()
 )
 
 func (t specialTypesTester) run() {
@@ -205,25 +205,25 @@ func (t specialTypesTester) testIPv6Strings(addr string,
 }
 
 func (t specialTypesTester) testEmptyValues() {
-	//zeroHostOptions := new(ipaddr.HostNameParametersBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	zeroHostOptions := new(addrparam.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrparam.LoopbackOption).GetParentBuilder().ToParams()
-	zeroAddrOptions := new(addrparam.IPAddressStringParametersBuilder).ParseEmptyStrAs(addrparam.LoopbackOption).ToParams()
+	//zeroHostOptions := new(ipaddr.HostNameParamsBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
+	zeroHostOptions := new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.LoopbackOption).GetParentBuilder().ToParams()
+	zeroAddrOptions := new(addrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrparam.LoopbackOption).ToParams()
 	t.testEmptyValuesOpts(hostOptionsSpecial, addressOptionsSpecial)
 
-	zeroHostOptions = new(addrparam.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrparam.ZeroAddressOption).GetParentBuilder().ToParams()
-	zeroAddrOptions = new(addrparam.IPAddressStringParametersBuilder).ParseEmptyStrAs(addrparam.ZeroAddressOption).ToParams()
+	zeroHostOptions = new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.ZeroAddressOption).GetParentBuilder().ToParams()
+	zeroAddrOptions = new(addrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrparam.ZeroAddressOption).ToParams()
 	t.testEmptyValuesOpts(zeroHostOptions, zeroAddrOptions)
 
-	zeroHostOptions = new(addrparam.HostNameParametersBuilder).GetIPAddressParametersBuilder().ParseEmptyStrAs(addrparam.NoAddressOption).GetParentBuilder().ToParams()
-	zeroAddrOptions = new(addrparam.IPAddressStringParametersBuilder).ParseEmptyStrAs(addrparam.NoAddressOption).ToParams()
+	zeroHostOptions = new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.NoAddressOption).GetParentBuilder().ToParams()
+	zeroAddrOptions = new(addrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrparam.NoAddressOption).ToParams()
 	t.testEmptyValuesOpts(zeroHostOptions, zeroAddrOptions)
 }
 
-func (t specialTypesTester) testEmptyValuesOpts(hp addrparam.HostNameParameters, sp addrparam.IPAddressStringParameters) {
+func (t specialTypesTester) testEmptyValuesOpts(hp addrparam.HostNameParams, sp addrparam.IPAddressStringParams) {
 	hostEmpty := t.createParamsHost("", hp)
 	addressEmpty := t.createParamsAddress("", sp)
 
-	// preferredVersion := new(ipaddr.IPAddressStringParametersBuilder).ToParams().GetPreferredVersion()
+	// preferredVersion := new(ipaddr.IPAddressStringParamsBuilder).ToParams().GetPreferredVersion()
 	preferredAddressVersion := ipaddr.IPVersion(sp.GetPreferredVersion())
 	preferredHostVersion := ipaddr.IPVersion(hp.GetPreferredVersion())
 
@@ -274,18 +274,18 @@ func (t specialTypesTester) testEmptyValuesOpts(hp addrparam.HostNameParameters,
 	//	InetAddress addr = InetAddress.getByName("");
 	//	InetAddress addr2 = InetAddress.getByName(null);
 	//
-	//	var  params ipaddr.IPAddressStringFormatParameters
+	//	var  params ipaddr.IPAddressStringFormatParams
 	//	if preferredVersion.IsIPv6() {
-	//		params = addressOptionsSpecial.GetIPv6Parameters()
+	//		params = addressOptionsSpecial.GetIPv6Params()
 	//	} else {
-	//		params = addressOptionsSpecial.GetIPv4Parameters()
+	//		params = addressOptionsSpecial.GetIPv4Params()
 	//	}
 
-	//IPAddressStringFormatParameters params = addr instanceof Inet6Address ? ADDRESS_OPTIONS_SPECIAL.getIPv6Parameters() : ADDRESS_OPTIONS_SPECIAL.getIPv4Parameters();
+	//IPAddressStringFormatParams params = addr instanceof Inet6Address ? ADDRESS_OPTIONS_SPECIAL.getIPv6Parameters() : ADDRESS_OPTIONS_SPECIAL.getIPv4Parameters();
 	//IPAddressNetwork<?, ?, ?, ?, ?> network = params.getNetwork();
 	//IPAddress address = network.getAddressCreator().createAddress(addr.getAddress());
 
-	//IPAddressStringFormatParameters params2 = addr2 instanceof Inet6Address ? ADDRESS_OPTIONS_SPECIAL.getIPv6Parameters() : ADDRESS_OPTIONS_SPECIAL.getIPv4Parameters();
+	//IPAddressStringFormatParams params2 = addr2 instanceof Inet6Address ? ADDRESS_OPTIONS_SPECIAL.getIPv6Parameters() : ADDRESS_OPTIONS_SPECIAL.getIPv4Parameters();
 	//IPAddressNetwork<?, ?, ?, ?, ?> network2 = params2.getNetwork();
 	//IPAddress address2 = network2.getAddressCreator().createAddress(addr2.getAddress());
 

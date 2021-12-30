@@ -26,8 +26,8 @@ func NewHostName(str string) *HostName {
 }
 
 // NewHostNameParams constructs an HostName that will parse the given string according to the given parameters
-func NewHostNameParams(str string, params addrparam.HostNameParameters) *HostName {
-	var prms addrparam.HostNameParameters
+func NewHostNameParams(str string, params addrparam.HostNameParams) *HostName {
+	var prms addrparam.HostNameParams
 	if params == nil {
 		prms = defaultHostParameters
 	} else {
@@ -154,7 +154,7 @@ func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (ho
 
 //var defaultHostParameters = addrformat.DefaultHostNameParams()
 
-var defaultHostParameters = new(addrparam.HostNameParametersBuilder).ToParams()
+var defaultHostParameters = new(addrparam.HostNameParamsBuilder).ToParams()
 
 var zeroHost = NewHostName("")
 
@@ -178,7 +178,7 @@ type hostCache struct {
 
 type HostName struct {
 	str    string
-	params addrparam.HostNameParameters
+	params addrparam.HostNameParams
 	*hostCache
 }
 
@@ -193,7 +193,7 @@ func (host *HostName) init() *HostName {
 //	return host.init().params
 //}
 
-func (host *HostName) GetValidationOptions() addrparam.HostNameParameters {
+func (host *HostName) GetValidationOptions() addrparam.HostNameParams {
 	return host.init().params
 }
 

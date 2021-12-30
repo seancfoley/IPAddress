@@ -10,11 +10,11 @@ import (
 
 //var defaultMACAddrParameters = addrformat.DefaultMACAddressStringParams()
 
-var defaultMACAddrParameters = new(addrparam.MACAddressStringParametersBuilder).ToParams()
+var defaultMACAddrParameters = new(addrparam.MACAddressStringParamsBuilder).ToParams()
 
 // NewMACAddressStringParams constructs a MACAddressString that will parse the given string according to the given parameters
-func NewMACAddressStringParams(str string, params addrparam.MACAddressStringParameters) *MACAddressString {
-	var p addrparam.MACAddressStringParameters
+func NewMACAddressStringParams(str string, params addrparam.MACAddressStringParams) *MACAddressString {
+	var p addrparam.MACAddressStringParams
 	if params == nil {
 		p = defaultMACAddrParameters
 	} else {
@@ -53,7 +53,7 @@ type macAddrStringCache struct {
 
 type MACAddressString struct {
 	str    string
-	params addrparam.MACAddressStringParameters // when nil, defaultParameters is used
+	params addrparam.MACAddressStringParams // when nil, defaultParameters is used
 	*macAddrStringCache
 }
 
@@ -68,7 +68,7 @@ func (addrStr *MACAddressString) init() *MACAddressString {
 //	return addrStr.init().params
 //}
 
-func (addrStr *MACAddressString) GetValidationOptions() addrparam.MACAddressStringParameters {
+func (addrStr *MACAddressString) GetValidationOptions() addrparam.MACAddressStringParams {
 	return addrStr.init().params
 }
 
@@ -244,10 +244,10 @@ func (addrStr *MACAddressString) Wrap() ExtendedIdentifierString {
 	return WrappedMACAddressString{addrStr}
 }
 
-//func getPrivateMACParams(orig MACAddressStringParameters) *macAddressStringParameters {
+//func getPrivateMACParams(orig MACAddressStringParams) *macAddressStringParameters {
 //	if p, ok := orig.(*macAddressStringParameters); ok {
 //		return p
 //	}
-//	return new(MACAddressStringParametersBuilder).Set(orig).ToParams().(*macAddressStringParameters)
+//	return new(MACAddressStringParamsBuilder).Set(orig).ToParams().(*macAddressStringParameters)
 //	//return ToMACAddressStringParamsBuilder(orig).ToParams().(*macAddressStringParameters)
 //}

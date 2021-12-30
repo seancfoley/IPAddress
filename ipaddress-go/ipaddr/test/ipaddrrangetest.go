@@ -389,8 +389,8 @@ func (t ipAddressRangeTester) run() {
 	t.testMatches(true, "::0b0000111100001111-f0f0:3", "::f0f-f0f0:3")
 	t.testMatches(true, "::0B0000111100001111-f0f0:3", "::f0f-f0f0:3")
 
-	allowsIPv4PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
-	allowsIPv6PrefixBeyondAddressSize := t.createAddress("::1").GetValidationOptions().GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
+	allowsIPv4PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv4Params().AllowsPrefixesBeyondAddressSize()
+	allowsIPv6PrefixBeyondAddressSize := t.createAddress("::1").GetValidationOptions().GetIPv6Params().AllowsPrefixesBeyondAddressSize()
 
 	t.ipv4test(true, "1.2.*.4/1")
 	t.ipv4test(false, "1.2.*.4/-1")
@@ -2310,23 +2310,23 @@ func setBigString(str string, base int) *big.Int {
 	return res
 }
 
-func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions addrparam.RangeParameters) {
+func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions addrparam.RangeParams) {
 	t.iprangestest(pass, x, false, false, true, ipv4RangeOptions, ipv6RangeOptions)
 }
 
-func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions addrparam.RangeParameters) {
+func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions addrparam.RangeParams) {
 	t.iprangetest(pass, x, false, false, true, rangeOptions)
 }
 
-func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options addrparam.RangeParameters) {
+func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options addrparam.RangeParams) {
 	t.iprangestest(pass, x, false, false, false, ipv4Options, ipv6Options)
 }
 
-func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options addrparam.RangeParameters) {
+func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options addrparam.RangeParams) {
 	t.iprangetest(pass, x, false, false, false, options)
 }
 
-func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions addrparam.RangeParameters) {
+func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions addrparam.RangeParams) {
 	addr := t.createDoubleParametrizedAddress(x, ipv4RangeOptions, ipv6RangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2334,7 +2334,7 @@ func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth,
 	}
 }
 
-func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions addrparam.RangeParameters) {
+func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions addrparam.RangeParams) {
 	addr := t.createParametrizedAddress(x, rangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2438,7 +2438,7 @@ func (t ipAddressRangeTester) testPrefixCount(original string, number uint64) {
 	t.testPrefixCountImpl(w.Wrap(), number)
 }
 
-func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions addrparam.RangeParameters) {
+func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions addrparam.RangeParams) {
 	w := t.createParametrizedAddress(original, rangeOptions)
 	t.testCountRedirect(w.Wrap(), number, excludeZerosNumber)
 }

@@ -1,11 +1,11 @@
 package addrparam
 
-//func convertHostParams(orig HostNameParameters) *hostNameParameters {
+//func convertHostParams(orig HostNameParams) *hostNameParameters {
 //	if params, ok := orig.(*hostNameParameters); ok {
 //		return params
 //	}
 //
-//	paramsBuilder := HostNameParametersBuilder{}
+//	paramsBuilder := HostNameParamsBuilder{}
 //	return paramsBuilder.
 //		// general settings
 //		AllowIPAddress(orig.AllowsIPAddress()).
@@ -17,26 +17,26 @@ package addrparam
 //		ExpectPort(orig.ExpectsPort()).
 //		AllowEmpty(orig.AllowsEmpty()).
 //		NormalizeToLowercase(orig.NormalizesToLowercase()).
-//		SetIPAddressParameters(orig.GetIPAddressParameters()).
+//		SetIPAddressParams(orig.GetIPAddressParams()).
 //		//
 //		ToParams().(*hostNameParameters)
 //}
 
-func CopyHostNameParams(orig HostNameParameters) HostNameParameters {
+func CopyHostNameParams(orig HostNameParams) HostNameParams {
 	if p, ok := orig.(*hostNameParameters); ok {
 		return p
 	}
-	return new(HostNameParametersBuilder).Set(orig).ToParams()
+	return new(HostNameParamsBuilder).Set(orig).ToParams()
 }
 
-//func DefaultHostNameParams() HostNameParameters {
+//func DefaultHostNameParams() HostNameParams {
 //	xxx use builder instead xxx
 //	return &hostNameParameters{}
 //}
 
-type HostNameParameters interface {
+type HostNameParams interface {
 	// AllowsEmpty determines if an empty host string, when not a valid address, is considered valid.
-	// The parser will first parse as an empty address, if allowed by the nested IPAddressStringParameters.
+	// The parser will first parse as an empty address, if allowed by the nested IPAddressStringParams.
 	// Otherwise, it will be considered an empty host if this returns true, or an invalid host if it returns false.
 	AllowsEmpty() bool
 
@@ -55,13 +55,13 @@ type HostNameParameters interface {
 	AllowsService() bool
 	ExpectsPort() bool
 
-	GetIPAddressParameters() IPAddressStringParameters
+	GetIPAddressParams() IPAddressStringParams
 
-	//ToAddressOptionsBuilder() IPAddressStringParametersBuilder
+	//ToAddressOptionsBuilder() IPAddressStringParamsBuilder
 }
 
 // hostNameParameters has parameters for parsing IP address strings
-// They are immutable and can be constructed using an HostNameParametersBuilder
+// They are immutable and can be constructed using an HostNameParamsBuilder
 type hostNameParameters struct {
 	ipParams ipAddressStringParameters
 
@@ -73,7 +73,7 @@ type hostNameParameters struct {
 	noNormalizeToLower, noIPAddress, noPort, noService, expectPort bool
 }
 
-//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParametersBuilder {xxx no longer use this xxxx
+//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParamsBuilder {xxx no longer use this xxxx
 //	return params.ipParams.ToBuilder()
 //}
 
@@ -117,27 +117,27 @@ func (params *hostNameParameters) ExpectsPort() bool {
 	return params.expectPort
 }
 
-func (params *hostNameParameters) GetIPAddressParameters() IPAddressStringParameters {
+func (params *hostNameParameters) GetIPAddressParams() IPAddressStringParams {
 	return &params.ipParams
 }
 
-// HostNameParametersBuilder builds a hostNameParameters
-type HostNameParametersBuilder struct {
+// HostNameParamsBuilder builds a HostNameParams
+type HostNameParamsBuilder struct {
 	hostNameParameters
 
-	ipAddressBuilder IPAddressStringParametersBuilder
+	ipAddressBuilder IPAddressStringParamsBuilder
 }
 
-//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParametersBuilder {xxx no longer use this xxxx
+//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParamsBuilder {xxx no longer use this xxxx
 //	return params.ipParams.ToBuilder()
 //}
 
-//func ToIPAddressParametersBuilder(params HostNameParameters) *IPAddressStringParametersBuilder {
-//	return ToIPAddressStringParamsBuilder(params.GetIPAddressParameters())
+//func ToIPAddressParametersBuilder(params HostNameParams) *IPAddressStringParamsBuilder {
+//	return ToIPAddressStringParamsBuilder(params.GetIPAddressParams())
 //}
 
-//func ToHostNameParametersBuilder(params HostNameParameters) *HostNameParametersBuilder {
-//	var result HostNameParametersBuilder
+//func ToHostNameParametersBuilder(params HostNameParams) *HostNameParamsBuilder {
+//	var result HostNameParamsBuilder
 //	if p, ok := params.(*hostNameParameters); ok {
 //		result.hostNameParameters = *p
 //	} else {
@@ -154,11 +154,11 @@ type HostNameParametersBuilder struct {
 //			expectPort:         params.ExpectsPort(),
 //		}
 //	}
-//	result.SetIPAddressParameters(params.GetIPAddressParameters())
+//	result.SetIPAddressParams(params.GetIPAddressParams())
 //	return &result
 //}
 
-func (builder *HostNameParametersBuilder) ToParams() HostNameParameters {
+func (builder *HostNameParamsBuilder) ToParams() HostNameParams {
 	// We do not return a pointer to builder.params because that would make it possible to change a ipAddressStringParameters
 	// by continuing to use the same builder,
 	// and we want immutable objects for thread-safety,
@@ -168,14 +168,14 @@ func (builder *HostNameParametersBuilder) ToParams() HostNameParameters {
 	return &result
 }
 
-func (builder *HostNameParametersBuilder) GetIPAddressParametersBuilder() (result *IPAddressStringParametersBuilder) {
+func (builder *HostNameParamsBuilder) GetIPAddressParamsBuilder() (result *IPAddressStringParamsBuilder) {
 	result = &builder.ipAddressBuilder
 	result.parent = builder
 	return
 }
 
-func (builder *HostNameParametersBuilder) Set(params HostNameParameters) *HostNameParametersBuilder {
-	//var result HostNameParametersBuilder
+func (builder *HostNameParamsBuilder) Set(params HostNameParams) *HostNameParamsBuilder {
+	//var result HostNameParamsBuilder
 	if p, ok := params.(*hostNameParameters); ok {
 		builder.hostNameParameters = *p
 	} else {
@@ -192,27 +192,27 @@ func (builder *HostNameParametersBuilder) Set(params HostNameParameters) *HostNa
 			expectPort:         params.ExpectsPort(),
 		}
 	}
-	builder.SetIPAddressParameters(params.GetIPAddressParameters())
+	builder.SetIPAddressParams(params.GetIPAddressParams())
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) SetIPAddressParameters(params IPAddressStringParameters) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) SetIPAddressParams(params IPAddressStringParams) *HostNameParamsBuilder {
 	//builder.ipAddressBuilder = *ToIPAddressStringParamsBuilder(params)
 	builder.ipAddressBuilder.Set(params)
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) AllowEmpty(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) AllowEmpty(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noEmpty = !allow
 	return builder
 }
 
-//func (builder *HostNameParametersBuilder) SetEmptyLoopback(isLoopback bool) *HostNameParametersBuilder {
+//func (builder *HostNameParamsBuilder) SetEmptyLoopback(isLoopback bool) *HostNameParamsBuilder {
 //	builder.hostNameParameters.emptyIsNotLoopback = !isLoopback
 //	return builder
 //}
 //
-//func (builder *HostNameParametersBuilder) ParseEmptyStrAs(option EmptyStrOption) *HostNameParametersBuilder {
+//func (builder *HostNameParamsBuilder) ParseEmptyStrAs(option EmptyStrOption) *HostNameParamsBuilder {
 //	builder.hostNameParameters.emptyStringOption = option
 //	if option != NoAddressOption {
 //		builder.AllowEmpty(true)
@@ -220,42 +220,42 @@ func (builder *HostNameParametersBuilder) AllowEmpty(allow bool) *HostNameParame
 //	return builder
 //}
 
-func (builder *HostNameParametersBuilder) SetPreferredVersion(version IPVersion) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) SetPreferredVersion(version IPVersion) *HostNameParamsBuilder {
 	builder.hostNameParameters.preferredVersion = version
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) AllowBracketedIPv4(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) AllowBracketedIPv4(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noBracketedIPv4 = !allow
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) AllowBracketedIPv6(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) AllowBracketedIPv6(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noBracketedIPv6 = !allow
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) NormalizeToLowercase(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) NormalizeToLowercase(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noNormalizeToLower = !allow
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) AllowIPAddress(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) AllowIPAddress(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noIPAddress = !allow
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) AllowPort(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) AllowPort(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noPort = !allow
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) AllowService(allow bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) AllowService(allow bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.noService = !allow
 	return builder
 }
 
-func (builder *HostNameParametersBuilder) ExpectPort(expect bool) *HostNameParametersBuilder {
+func (builder *HostNameParamsBuilder) ExpectPort(expect bool) *HostNameParamsBuilder {
 	builder.hostNameParameters.expectPort = expect
 	return builder
 }

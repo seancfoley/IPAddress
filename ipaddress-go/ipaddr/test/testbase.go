@@ -1007,7 +1007,7 @@ func (t testBase) confirmMACAddrStrings(macAddr *ipaddr.MACAddress, strs ...stri
 	return true
 }
 
-//private static final IPAddressStringParameters DEFAULT_BASIC_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
+//private static final IPAddressStringParams DEFAULT_BASIC_VALIDATION_OPTIONS = new IPAddressStringParams.Builder().toParams();
 
 func (t testBase) confirmAddrStrings(ipAddr *ipaddr.IPAddress, strs ...string) bool {
 	for _, str := range strs {
@@ -1383,7 +1383,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses
 		//t.confirmHostStrings(ipAddr, false, unc);//these two are valid hosts with embedded addresses
 	} else {
-		params := new(addrparam.IPAddressStringParametersBuilder).Allow_inet_aton(false).ToParams()
+		params := new(addrparam.IPAddressStringParamsBuilder).Allow_inet_aton(false).ToParams()
 		fullAddrString := ipaddr.NewIPAddressStringParams(full, params)
 		t.confirmIPAddrStrings(ipAddr, fullAddrString)
 		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses
@@ -1392,7 +1392,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	if ipAddr.IsIPv6() {
 		t.confirmHostStrings(ipAddr, false, full)
 	} else {
-		params := new(addrparam.HostNameParametersBuilder).GetIPAddressParametersBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
+		params := new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
 		fullAddrString := ipaddr.NewHostNameParams(full, params)
 		t.confirmHostNameStrings(ipAddr, fullAddrString)
 	}

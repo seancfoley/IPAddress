@@ -3,15 +3,15 @@ package test
 import (
 	"bytes"
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math"
 	"math/big"
-	//"math/bits"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 type ipAddressTester struct {
@@ -423,8 +423,8 @@ func (t ipAddressTester) run() {
 	t.ipv6test(false, "1:2::/1:2::/16")
 	t.ipv6test(false, "1:2::/1.2.3.4") //mask mismatch
 
-	allowsIPv4PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
-	allowsIPv6PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
+	allowsIPv4PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv4Params().AllowsPrefixesBeyondAddressSize()
+	allowsIPv6PrefixBeyondAddressSize := t.createAddress("1.2.3.4").GetValidationOptions().GetIPv6Params().AllowsPrefixesBeyondAddressSize()
 
 	//test some valid and invalid prefixes
 	t.ipv4test(true, "1.2.3.4/1")
@@ -3284,7 +3284,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 			}
 		}
 		// }
-		//IPAddressStringFormatParameters params = address.isIPv4() ? ADDRESS_OPTIONS.getIPv4Parameters() : ADDRESS_OPTIONS.getIPv6Parameters();
+		//IPAddressStringFormatParams params = address.isIPv4() ? ADDRESS_OPTIONS.getIPv4Parameters() : ADDRESS_OPTIONS.getIPv6Parameters();
 		//IPAddressNetwork<?, ?, ?, ?, ?> addressNetwork = params.getNetwork();
 		//IPAddressCreator<?, ?, ?, ?, ?> creator = addressNetwork.getAddressCreator();
 		//IPAddress another = network ? creator.createAddress(bytes, cacheTestBits(prefixBits)) : creator.createAddress(bytes);
@@ -3430,11 +3430,11 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 	//}
 
 	if !needsConversion {
-		//var params ipaddr.RangeParameters
+		//var params ipaddr.RangeParams
 		//if w.IsIPv4() {
-		//	params = wstr.GetValidationOptions().GetIPv4Parameters().GetRangeParameters()
+		//	params = wstr.GetValidationOptions().GetIPv4Params().GetRangeParams()
 		//} else {
-		//	params = wstr.GetValidationOptions().GetIPv6Parameters().GetRangeParameters()
+		//	params = wstr.GetValidationOptions().GetIPv6Params().GetRangeParams()
 		//}
 		//noRangeParsingAllowed := ipaddr.AllowsNoRange(params)
 
@@ -4854,9 +4854,9 @@ func (t ipAddressTester) testLeadingZeroAddr(addrStr string, hasLeadingZeros boo
 		t.addFailure(newFailure("unexpected error "+err.Error(), str))
 	}
 	//try {
-	params := new(addrparam.IPAddressStringParametersBuilder).
-		GetIPv4AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().
-		GetIPv6AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
+	params := new(addrparam.IPAddressStringParamsBuilder).
+		GetIPv4AddressParamsBuilder().AllowLeadingZeros(false).GetParentBuilder().
+		GetIPv6AddressParamsBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if err == nil {
@@ -4881,8 +4881,8 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 	}
 	value := addr.GetValue()
 
-	params := new(addrparam.IPAddressStringParametersBuilder).
-		GetIPv4AddressParametersBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
+	params := new(addrparam.IPAddressStringParamsBuilder).
+		GetIPv4AddressParamsBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if err == nil {
@@ -4895,7 +4895,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		}
 	}
 
-	params = new(addrparam.IPAddressStringParametersBuilder).Set(params).GetIPv4AddressParametersBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
+	params = new(addrparam.IPAddressStringParamsBuilder).Set(params).GetIPv4AddressParamsBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if err == nil {
@@ -4908,7 +4908,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		}
 	}
 
-	params = new(addrparam.IPAddressStringParametersBuilder).Set(params).Allow_inet_aton(false).ToParams()
+	params = new(addrparam.IPAddressStringParamsBuilder).Set(params).Allow_inet_aton(false).ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if isInetAtonOctal {

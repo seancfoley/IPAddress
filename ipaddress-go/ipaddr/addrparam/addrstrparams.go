@@ -1,15 +1,15 @@
 package addrparam
 
-type AddressStringFormatParameters interface {
+type AddressStringFormatParams interface {
 	AllowsWildcardedSeparator() bool
 	AllowsLeadingZeros() bool
 	AllowsUnlimitedLeadingZeros() bool
 
-	// RangeParameters describes whether ranges of values are allowed
-	GetRangeParameters() RangeParameters
+	// RangeParams describes whether ranges of values are allowed
+	GetRangeParams() RangeParams
 }
 
-type AddressStringParameters interface {
+type AddressStringParams interface {
 	AllowsEmpty() bool
 	AllowsSingleSegment() bool
 
@@ -19,7 +19,7 @@ type AddressStringParameters interface {
 	AllowsAll() bool
 }
 
-type RangeParameters interface {
+type RangeParams interface {
 	// whether '*' is allowed to denote segments covering all possible segment values
 	AllowsWildcard() bool
 
@@ -36,20 +36,20 @@ type RangeParameters interface {
 	AllowsInferredBoundary() bool
 }
 
-//func AllowsNoRange(p RangeParameters) bool {
+//func AllowsNoRange(p RangeParams) bool {
 //	return !(p.AllowsWildcard() || p.AllowsRangeSeparator() || p.AllowsSingleWildcard())
 //}
 
-var _ AddressStringFormatParameters = &addressStringFormatParameters{}
-var _ AddressStringParameters = &addressStringParameters{}
-var _ RangeParameters = &rangeParameters{}
+var _ AddressStringFormatParams = &addressStringFormatParameters{}
+var _ AddressStringParams = &addressStringParameters{}
+var _ RangeParams = &rangeParameters{}
 
 type rangeParameters struct {
 	noWildcard, noValueRange, noReverseRange, noSingleWildcard, noInferredBoundary bool
 }
 
 var (
-	NoRange RangeParameters = &rangeParameters{
+	NoRange RangeParams = &rangeParameters{
 		noWildcard:         true,
 		noValueRange:       true,
 		noReverseRange:     true,
@@ -58,63 +58,63 @@ var (
 	}
 
 	// use this to support addresses like 1.*.3.4 or 1::*:3 or 1.2_.3.4 or 1::a__:3
-	WildcardOnly RangeParameters = &rangeParameters{
+	WildcardOnly RangeParams = &rangeParameters{
 		noValueRange:   true,
 		noReverseRange: true,
 		//noSingleWildcard: true,
 	}
 
 	// use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff::
-	WildcardAndRange RangeParameters = &rangeParameters{}
+	WildcardAndRange RangeParams = &rangeParameters{}
 )
 
 // whether '*' is allowed to denote segments covering all possible segment values
-func (rp *rangeParameters) AllowsWildcard() bool {
-	return !rp.noWildcard
+func (builder *rangeParameters) AllowsWildcard() bool {
+	return !builder.noWildcard
 }
 
 // whether '-' (or the expected range separator for the address) is allowed to denote a range from lower to higher, like 1-10
-func (rp *rangeParameters) AllowsRangeSeparator() bool {
-	return !rp.noValueRange
+func (builder *rangeParameters) AllowsRangeSeparator() bool {
+	return !builder.noValueRange
 }
 
 // whether '-' (or the expected range separator for the address) is allowed to denote a range from higher to lower, like 10-1
-func (rp *rangeParameters) AllowsReverseRange() bool {
-	return !rp.noReverseRange
+func (builder *rangeParameters) AllowsReverseRange() bool {
+	return !builder.noReverseRange
 }
 
 // whether a missing range value before or after a '-' is allowed to denote the mininum or maximum potential value
-func (rp *rangeParameters) AllowsInferredBoundary() bool {
-	return !rp.noInferredBoundary
+func (builder *rangeParameters) AllowsInferredBoundary() bool {
+	return !builder.noInferredBoundary
 }
 
 // whether to allow a segment terminating with '_' characters, which represent any digit
-func (rp *rangeParameters) AllowsSingleWildcard() bool {
-	return !rp.noSingleWildcard
+func (builder *rangeParameters) AllowsSingleWildcard() bool {
+	return !builder.noSingleWildcard
 }
 
-type RangeParametersBuilder struct {
+type RangeParamsBuilder struct {
 	rangeParameters
 	parent interface{}
 }
 
-func (params *RangeParametersBuilder) ToParams() RangeParameters {
-	return &params.rangeParameters
+func (builder *RangeParamsBuilder) ToParams() RangeParams {
+	return &builder.rangeParameters
 }
 
-func (params *RangeParametersBuilder) Set(rangeParams RangeParameters) *RangeParametersBuilder {
+func (builder *RangeParamsBuilder) Set(rangeParams RangeParams) *RangeParamsBuilder {
 	if rp, ok := rangeParams.(*rangeParameters); ok {
-		params.rangeParameters = *rp
-		//return &RangeParametersBuilder{rangeParameters: *rp}
+		builder.rangeParameters = *rp
+		//return &RangeParamsBuilder{rangeParameters: *rp}
 	} else {
-		params.rangeParameters = rangeParameters{
+		builder.rangeParameters = rangeParameters{
 			noWildcard:         !rangeParams.AllowsWildcard(),
 			noValueRange:       !rangeParams.AllowsRangeSeparator(),
 			noReverseRange:     !rangeParams.AllowsReverseRange(),
 			noSingleWildcard:   !rangeParams.AllowsSingleWildcard(),
 			noInferredBoundary: !rangeParams.AllowsInferredBoundary(),
 		}
-		//return &RangeParametersBuilder{rangeParameters: rangeParameters{
+		//return &RangeParamsBuilder{rangeParameters: rangeParameters{
 		//	noWildcard:         !rangeParams.AllowsWildcard(),
 		//	noValueRange:       !rangeParams.AllowsRangeSeparator(),
 		//	noReverseRange:     !rangeParams.AllowsReverseRange(),
@@ -122,15 +122,15 @@ func (params *RangeParametersBuilder) Set(rangeParams RangeParameters) *RangePar
 		//	noInferredBoundary: !rangeParams.AllowsInferredBoundary(),
 		//}}
 	}
-	return params
+	return builder
 }
 
-//func ToRangeParamsBuilder(rangeParams RangeParameters) *RangeParametersBuilder {
+//func ToRangeParamsBuilder(rangeParams RangeParams) *RangeParamsBuilder {
 //	xxx
 //	if rp, ok := rangeParams.(*rangeParameters); ok {
-//		return &RangeParametersBuilder{rangeParameters: *rp}
+//		return &RangeParamsBuilder{rangeParameters: *rp}
 //	} else {
-//		return &RangeParametersBuilder{rangeParameters: rangeParameters{
+//		return &RangeParamsBuilder{rangeParameters: rangeParameters{
 //			noWildcard:         !rangeParams.AllowsWildcard(),
 //			noValueRange:       !rangeParams.AllowsRangeSeparator(),
 //			noReverseRange:     !rangeParams.AllowsReverseRange(),
@@ -140,61 +140,61 @@ func (params *RangeParametersBuilder) Set(rangeParams RangeParameters) *RangePar
 //	}
 //}
 
-// If this builder was obtained by a call to IPv4AddressStringParametersBuilder.GetRangeParametersBuilder(), returns the IPv4AddressStringParametersBuilder
-func (rp *RangeParametersBuilder) GetIPv4ParentBuilder() *IPv4AddressStringParametersBuilder {
-	parent := rp.parent
-	if p, ok := parent.(*IPv4AddressStringParametersBuilder); ok {
+// If this builder was obtained by a call to IPv4AddressStringParamsBuilder.GetRangeParamsBuilder(), returns the IPv4AddressStringParamsBuilder
+func (builder *RangeParamsBuilder) GetIPv4ParentBuilder() *IPv4AddressStringParamsBuilder {
+	parent := builder.parent
+	if p, ok := parent.(*IPv4AddressStringParamsBuilder); ok {
 		return p
 	}
 	return nil
 }
 
-// If this builder was obtained by a call to IPv6AddressStringParametersBuilder.GetRangeParametersBuilder(), returns the IPv6AddressStringParametersBuilder
-func (rp *RangeParametersBuilder) GetIPv6ParentBuilder() *IPv6AddressStringParametersBuilder {
-	parent := rp.parent
-	if p, ok := parent.(*IPv6AddressStringParametersBuilder); ok {
+// If this builder was obtained by a call to IPv6AddressStringParamsBuilder.GetRangeParamsBuilder(), returns the IPv6AddressStringParamsBuilder
+func (builder *RangeParamsBuilder) GetIPv6ParentBuilder() *IPv6AddressStringParamsBuilder {
+	parent := builder.parent
+	if p, ok := parent.(*IPv6AddressStringParamsBuilder); ok {
 		return p
 	}
 	return nil
 }
 
-// If this builder was obtained by a call to IPv6AddressStringParametersBuilder.GetRangeParametersBuilder(), returns the IPv6AddressStringParametersBuilder
-func (rp *RangeParametersBuilder) GetMACParentBuilder() *MACAddressStringFormatParametersBuilder {
-	parent := rp.parent
-	if p, ok := parent.(*MACAddressStringFormatParametersBuilder); ok {
+// If this builder was obtained by a call to IPv6AddressStringParamsBuilder.GetRangeParamsBuilder(), returns the IPv6AddressStringParamsBuilder
+func (builder *RangeParamsBuilder) GetMACParentBuilder() *MACAddressStringFormatParamsBuilder {
+	parent := builder.parent
+	if p, ok := parent.(*MACAddressStringFormatParamsBuilder); ok {
 		return p
 	}
 	return nil
 }
 
 // whether '*' is allowed to denote segments covering all possible segment values
-func (rp *RangeParametersBuilder) AllowWildcard(allow bool) *RangeParametersBuilder {
-	rp.noWildcard = !allow
-	return rp
+func (builder *RangeParamsBuilder) AllowWildcard(allow bool) *RangeParamsBuilder {
+	builder.noWildcard = !allow
+	return builder
 }
 
 // whether '-' (or the expected range separator for the address) is allowed to denote a range from lower to higher, like 1-10
-func (rp *RangeParametersBuilder) AllowRangeSeparator(allow bool) *RangeParametersBuilder {
-	rp.noValueRange = !allow
-	return rp
+func (builder *RangeParamsBuilder) AllowRangeSeparator(allow bool) *RangeParamsBuilder {
+	builder.noValueRange = !allow
+	return builder
 }
 
 // whether '-' (or the expected range separator for the address) is allowed to denote a range from higher to lower, like 10-1
-func (rp *RangeParametersBuilder) AllowReverseRange(allow bool) *RangeParametersBuilder {
-	rp.noReverseRange = !allow
-	return rp
+func (builder *RangeParamsBuilder) AllowReverseRange(allow bool) *RangeParamsBuilder {
+	builder.noReverseRange = !allow
+	return builder
 }
 
 // whether a missing range value before or after a '-' is allowed to denote the mininum or maximum potential value
-func (rp *RangeParametersBuilder) AllowInferredBoundary(allow bool) *RangeParametersBuilder {
-	rp.noInferredBoundary = !allow
-	return rp
+func (builder *RangeParamsBuilder) AllowInferredBoundary(allow bool) *RangeParamsBuilder {
+	builder.noInferredBoundary = !allow
+	return builder
 }
 
 // whether to allow a segment terminating with '_' characters, which represent any digit
-func (rp *RangeParametersBuilder) AllowSingleWildcard(allow bool) *RangeParametersBuilder {
-	rp.noSingleWildcard = !allow
-	return rp
+func (builder *RangeParamsBuilder) AllowSingleWildcard(allow bool) *RangeParamsBuilder {
+	builder.noSingleWildcard = !allow
+	return builder
 }
 
 type addressStringParameters struct {
@@ -213,14 +213,14 @@ func (params *addressStringParameters) AllowsAll() bool {
 	return !params.noAll
 }
 
-// AddressStringParametersBuilder builds an AddressStringParameters
-type AddressStringParametersBuilder struct {
+// AddressStringParamsBuilder builds an AddressStringParams
+type AddressStringParamsBuilder struct {
 	addressStringParameters
 }
 
-//func ToAddressStringParamsBuilder(params AddressStringParameters) *AddressStringParametersBuilder {
+//func ToAddressStringParamsBuilder(params AddressStringParams) *AddressStringParamsBuilder {
 //	xxx
-//	var result AddressStringParametersBuilder
+//	var result AddressStringParamsBuilder
 //	if p, ok := params.(*addressStringParameters); ok {
 //		result.addressStringParameters = *p
 //	} else {
@@ -233,8 +233,8 @@ type AddressStringParametersBuilder struct {
 //	return &result
 //}
 
-func (builder *AddressStringParametersBuilder) set(params AddressStringParameters) {
-	//var result AddressStringParametersBuilder
+func (builder *AddressStringParamsBuilder) set(params AddressStringParams) {
+	//var result AddressStringParamsBuilder
 	if p, ok := params.(*addressStringParameters); ok {
 		builder.addressStringParameters = *p
 	} else {
@@ -247,25 +247,25 @@ func (builder *AddressStringParametersBuilder) set(params AddressStringParameter
 	//return &result
 }
 
-func (builder *AddressStringParametersBuilder) ToParams() AddressStringParameters {
+func (builder *AddressStringParamsBuilder) ToParams() AddressStringParams {
 	return &builder.addressStringParameters
 }
 
-func (builder *AddressStringParametersBuilder) allowEmpty(allow bool) {
+func (builder *AddressStringParamsBuilder) allowEmpty(allow bool) {
 	builder.noEmpty = !allow
 }
 
-func (builder *AddressStringParametersBuilder) allowAll(allow bool) {
+func (builder *AddressStringParamsBuilder) allowAll(allow bool) {
 	builder.noAll = !allow
 }
 
-func (builder *AddressStringParametersBuilder) allowSingleSegment(allow bool) {
+func (builder *AddressStringParamsBuilder) allowSingleSegment(allow bool) {
 	builder.noSingleSegment = !allow
 }
 
 //
 //
-// AddressStringFormatParameters are parameters specific to a given address type or version that is supplied
+// AddressStringFormatParams are parameters specific to a given address type or version that is supplied
 type addressStringFormatParameters struct {
 	rangeParams rangeParameters
 
@@ -284,7 +284,7 @@ func (params *addressStringFormatParameters) AllowsUnlimitedLeadingZeros() bool 
 	return !params.noUnlimitedLeadingZeros
 }
 
-func (params *addressStringFormatParameters) GetRangeParameters() RangeParameters {
+func (params *addressStringFormatParameters) GetRangeParams() RangeParams {
 	return &params.rangeParams
 }
 
@@ -294,10 +294,10 @@ func (params *addressStringFormatParameters) GetRangeParameters() RangeParameter
 type AddressStringFormatParamsBuilder struct {
 	addressStringFormatParameters
 
-	rangeParamsBuilder RangeParametersBuilder
+	rangeParamsBuilder RangeParamsBuilder
 }
 
-//func ToAddressStringFormatParamsBuilder(params AddressStringFormatParameters) *AddressStringFormatParamsBuilder {
+//func ToAddressStringFormatParamsBuilder(params AddressStringFormatParams) *AddressStringFormatParamsBuilder {
 //	xx
 //	var result AddressStringFormatParamsBuilder
 //	if p, ok := params.(*addressStringFormatParameters); ok {
@@ -309,49 +309,49 @@ type AddressStringFormatParamsBuilder struct {
 //			noUnlimitedLeadingZeros: !params.AllowsUnlimitedLeadingZeros(),
 //		}
 //	}
-//	result.rangeParamsBuilder = *ToRangeParamsBuilder(params.GetRangeParameters())
+//	result.rangeParamsBuilder = *ToRangeParamsBuilder(params.GetRangeParams())
 //	return &result
 //}
 
-func (params *AddressStringFormatParamsBuilder) ToParams() AddressStringFormatParameters {
-	result := &params.addressStringFormatParameters
-	result.rangeParams = *params.rangeParamsBuilder.ToParams().(*rangeParameters)
+func (builder *AddressStringFormatParamsBuilder) ToParams() AddressStringFormatParams {
+	result := &builder.addressStringFormatParameters
+	result.rangeParams = *builder.rangeParamsBuilder.ToParams().(*rangeParameters)
 	return result
 }
 
-func (params *AddressStringFormatParamsBuilder) set(parms AddressStringFormatParameters) {
+func (builder *AddressStringFormatParamsBuilder) set(parms AddressStringFormatParams) {
 	//var result AddressStringFormatParamsBuilder
 	if p, ok := parms.(*addressStringFormatParameters); ok {
-		params.addressStringFormatParameters = *p
+		builder.addressStringFormatParameters = *p
 	} else {
-		params.addressStringFormatParameters = addressStringFormatParameters{
+		builder.addressStringFormatParameters = addressStringFormatParameters{
 			noWildcardedSeparator:   !parms.AllowsWildcardedSeparator(),
 			noLeadingZeros:          !parms.AllowsLeadingZeros(),
 			noUnlimitedLeadingZeros: !parms.AllowsUnlimitedLeadingZeros(),
 		}
 	}
-	//params.rangeParamsBuilder = *ToRangeParamsBuilder(parms.GetRangeParameters())
-	params.rangeParamsBuilder.Set(parms.GetRangeParameters())
+	//params.rangeParamsBuilder = *ToRangeParamsBuilder(parms.GetRangeParams())
+	builder.rangeParamsBuilder.Set(parms.GetRangeParams())
 	//return &result
 }
 
-func (params *AddressStringFormatParamsBuilder) setRangeParameters(rangeParams RangeParameters) {
+func (builder *AddressStringFormatParamsBuilder) setRangeParameters(rangeParams RangeParams) {
 	//params.rangeParamsBuilder = *ToRangeParamsBuilder(rangeParams)
-	params.rangeParamsBuilder.Set(rangeParams)
+	builder.rangeParamsBuilder.Set(rangeParams)
 }
 
-func (params *AddressStringFormatParamsBuilder) GetRangeParametersBuilder() RangeParameters {
-	return &params.rangeParamsBuilder
+func (builder *AddressStringFormatParamsBuilder) GetRangeParamsBuilder() RangeParams {
+	return &builder.rangeParamsBuilder
 }
 
-func (params *AddressStringFormatParamsBuilder) allowWildcardedSeparator(allow bool) {
-	params.noWildcardedSeparator = !allow
+func (builder *AddressStringFormatParamsBuilder) allowWildcardedSeparator(allow bool) {
+	builder.noWildcardedSeparator = !allow
 }
 
-func (params *AddressStringFormatParamsBuilder) allowLeadingZeros(allow bool) {
-	params.noLeadingZeros = !allow
+func (builder *AddressStringFormatParamsBuilder) allowLeadingZeros(allow bool) {
+	builder.noLeadingZeros = !allow
 }
 
-func (params *AddressStringFormatParamsBuilder) allowUnlimitedLeadingZeros(allow bool) {
-	params.noUnlimitedLeadingZeros = !allow
+func (builder *AddressStringFormatParamsBuilder) allowUnlimitedLeadingZeros(allow bool) {
+	builder.noUnlimitedLeadingZeros = !allow
 }

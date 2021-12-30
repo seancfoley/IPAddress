@@ -127,6 +127,7 @@ var zeroIPv4SegPrefixBlock = NewIPv4RangePrefixedSegment(0, IPv4MaxValuePerSegme
 
 //TODO seems you are missing GetSegmentValue and GetUpperSegmentValue from IPv4AddressSegment, IPv6AddressSegment, MACAddressSegment that convert to IPv4SegInt, IPV6SegInt, MACSegInt
 //But that was intentional since those methods in the div framework.  Do you want to provide GetIPv4SegmentValue and similar?  Maybe you should.
+// Or, why not simply create additional GetSegmentValue and GetUpperSegmentValue methods?  Seriously.  Oh, because of interface.
 
 type IPv4AddressSegment struct {
 	ipAddressSegmentInternal

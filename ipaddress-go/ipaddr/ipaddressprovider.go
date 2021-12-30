@@ -87,7 +87,7 @@ type ipAddressProvider interface {
 
 	// If the address was created by parsing, this provides the parameters used when creating the address,
 	// otherwise nil
-	getParameters() addrparam.IPAddressStringParameters
+	getParameters() addrparam.IPAddressStringParams
 
 	// containsProvider is an optimized contains that does not need to create address objects to return an answer.
 	// Unconventional addresses may require that the address objects are created, in such cases null is returned.
@@ -200,7 +200,7 @@ func (p *ipAddrProvider) getProviderNetworkPrefixLen() PrefixLen {
 	return nil
 }
 
-func (p *ipAddrProvider) getParameters() addrparam.IPAddressStringParameters {
+func (p *ipAddrProvider) getParameters() addrparam.IPAddressStringParams {
 	return nil
 }
 
@@ -467,10 +467,10 @@ type versionedAddressCreator struct {
 
 	versionedValues [2]*IPAddress
 
-	parameters addrparam.IPAddressStringParameters
+	parameters addrparam.IPAddressStringParams
 }
 
-func (versioned *versionedAddressCreator) getParameters() addrparam.IPAddressStringParameters {
+func (versioned *versionedAddressCreator) getParameters() addrparam.IPAddressStringParams {
 	return versioned.parameters
 }
 
@@ -573,7 +573,7 @@ func emptyAddressCreator(emptyStrOption addrparam.EmptyStrOption, version IPVers
 	return
 }
 
-func newLoopbackCreator(options addrparam.IPAddressStringParameters, zone Zone) *loopbackCreator {
+func newLoopbackCreator(options addrparam.IPAddressStringParams, zone Zone) *loopbackCreator {
 	var version = IPVersion(options.GetPreferredVersion())
 	addrCreator, versionedCreator := emptyAddressCreator(options.EmptyStrParsedAs(), version, zone)
 	cached := cachedAddressProvider{
@@ -653,7 +653,7 @@ func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, ad
 	return adjusted.versionedAddressCreator.getProviderHostAddress()
 }
 
-func newMaskCreator(options addrparam.IPAddressStringParameters, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
+func newMaskCreator(options addrparam.IPAddressStringParams, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
 	if adjustedVersion == IndeterminateIPVersion {
 		adjustedVersion = IPVersion(options.GetPreferredVersion())
 	}
@@ -697,7 +697,7 @@ type maskCreator struct {
 	adjustedAddressCreator
 }
 
-func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrparam.IPAddressStringParameters) ipAddressProvider {
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrparam.IPAddressStringParams) ipAddressProvider {
 	result := &allCreator{
 		adjustedAddressCreator: adjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLen(),
@@ -904,7 +904,9 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // so that leaves the string params and builders.
 // There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
 //
-// TODO replace "Parameters" with "Params" everywhere in public types and methods
+// TODO replace "Parameters" with "Params" everywhere in public types and methods, also a bunch of types in there do not use same name for receiver, some use w
+// TODO package names addrstr and addrparam, I think I want to keep them separate, but, hard time picking package names
+// addrstr would apply to both, addrinstr and addroutstr?  nah  strparams?  nah
 //
 //  rename addrFormat addrParams, then recreate addrFormat
 //  it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
@@ -921,7 +923,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // DivisionType
 // Does not seem worth it
 // Nor do I think that base types like BitCount belong in addrformat
-// TODO it does like look perhaps you can split off StringOptions, StringOptionsBuilder - which would split off about 17 types, not bad
+//  it does like look perhaps you can split off StringOptions, StringOptionsBuilder - which would split off about 17 types, not bad
 //
 // TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
 // It may simply be because in local mode it skips the license check

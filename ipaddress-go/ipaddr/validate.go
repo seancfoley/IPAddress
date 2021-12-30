@@ -69,7 +69,7 @@ func isSingleSegmentIPv6(
 	totalDigits int,
 	isRange bool,
 	frontTotalDigits int,
-	ipv6SpecificOptions addrparam.IPv6AddressStringParameters) (isSingle bool, err addrerr.AddressStringError) {
+	ipv6SpecificOptions addrparam.IPv6AddressStringParams) (isSingle bool, err addrerr.AddressStringError) {
 	backIsIpv6 := totalDigits == ipv6SingleSegmentDigitCount || // 32 hex chars with or without 0x
 		(ipv6SpecificOptions.AllowsBinary() && totalDigits == ipv6BinarySingleSegmentDigitCount+2) || // 128 binary chars with 0b
 		(isRange && totalDigits == 0 && (frontTotalDigits == ipv6SingleSegmentDigitCount ||
@@ -101,7 +101,7 @@ func isSingleSegmentIPv4(
 	isRange bool,
 	frontNonZeroDigits,
 	frontTotalDigits int,
-	ipv4SpecificOptions addrparam.IPv4AddressStringParameters) (isSingle bool, err addrerr.AddressStringError) {
+	ipv4SpecificOptions addrparam.IPv4AddressStringParams) (isSingle bool, err addrerr.AddressStringError) {
 	backIsIpv4 := nonZeroDigits <= ipv4SingleSegmentOctalDigitCount ||
 		(ipv4SpecificOptions.AllowsBinary() && totalDigits == ipv4BinarySingleSegmentDigitCount+2) ||
 		(isRange && totalDigits == 0 && (frontTotalDigits <= ipv4SingleSegmentOctalDigitCount ||
@@ -156,7 +156,7 @@ func (strValidator) validateMACAddressStr(fromString *MACAddressString) (prov ma
 }
 
 func validateIPAddress(
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	str string,
 	strStartIndex, strEndIndex int,
 	parseData *ipAddressParseData,
@@ -165,7 +165,7 @@ func validateIPAddress(
 }
 
 func validateMACAddress(
-	validationOptions addrparam.MACAddressStringParameters,
+	validationOptions addrparam.MACAddressStringParams,
 	str string,
 	strStartIndex, strEndIndex int,
 	parseData *macAddressParseData) addrerr.AddressStringError {
@@ -188,8 +188,8 @@ func validateMACAddress(
 *
  */
 func validateAddress(
-	validationOptions addrparam.IPAddressStringParameters,
-	macOptions addrparam.MACAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
+	macOptions addrparam.MACAddressStringParams,
 	str string,
 	strStartIndex, strEndIndex int,
 	ipParseData *ipAddressParseData,
@@ -199,16 +199,16 @@ func validateAddress(
 	isMac := macParseData != nil
 
 	var parseData *addressParseData
-	var stringFormatParams addrparam.AddressStringFormatParameters
-	var ipv6SpecificOptions addrparam.IPv6AddressStringParameters
-	var ipv4SpecificOptions addrparam.IPv4AddressStringParameters
-	var macSpecificOptions addrparam.MACAddressStringFormatParameters
-	var baseOptions addrparam.AddressStringParameters
+	var stringFormatParams addrparam.AddressStringFormatParams
+	var ipv6SpecificOptions addrparam.IPv6AddressStringParams
+	var ipv4SpecificOptions addrparam.IPv4AddressStringParams
+	var macSpecificOptions addrparam.MACAddressStringFormatParams
+	var baseOptions addrparam.AddressStringParams
 	var macFormat macFormat
 	canBeBase85 := false
 	if isMac {
 		baseOptions = macOptions
-		macSpecificOptions = macOptions.GetFormatParameters()
+		macSpecificOptions = macOptions.GetFormatParams()
 		stringFormatParams = macSpecificOptions
 		macParseData.init(str)
 		parseData = macParseData.getAddressParseData()
@@ -217,9 +217,9 @@ func validateAddress(
 		// we set stringFormatParams when we know what ip version we have
 		ipParseData.init(str)
 		parseData = ipParseData.getAddressParseData()
-		ipv6SpecificOptions = validationOptions.GetIPv6Parameters()
+		ipv6SpecificOptions = validationOptions.GetIPv6Params()
 		canBeBase85 = ipv6SpecificOptions.AllowsBase85()
-		ipv4SpecificOptions = validationOptions.GetIPv4Parameters()
+		ipv4SpecificOptions = validationOptions.GetIPv4Params()
 	}
 
 	index := strStartIndex
@@ -532,7 +532,7 @@ func validateAddress(
 							parseData.incrementSegmentCount()
 						}
 					}
-					mixedOptions := ipv6SpecificOptions.GetMixedParameters()
+					mixedOptions := ipv6SpecificOptions.GetMixedParams()
 					pa := &parsedIPAddress{
 						ipAddressParseData: ipAddressParseData{addressParseData: addressParseData{str: str}},
 						options:            mixedOptions,
@@ -554,7 +554,7 @@ func validateAddress(
 				}
 			}
 			if wildcardCount > 0 {
-				if !stringFormatParams.GetRangeParameters().AllowsWildcard() {
+				if !stringFormatParams.GetRangeParams().AllowsWildcard() {
 					return &addressStringError{addressError{str: str, key: "ipaddress.error.no.wildcard"}}
 				}
 				//wildcards must appear alone
@@ -602,7 +602,7 @@ func validateAddress(
 				noValuesToSet := false
 				if digitCount == 0 {
 					// we allow an empty range boundary to denote the max value
-					if rangeWildcardIndex < 0 || hexDelimiterIndex >= 0 || !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
+					if rangeWildcardIndex < 0 || hexDelimiterIndex >= 0 || !stringFormatParams.GetRangeParams().AllowsInferredBoundary() {
 						// starts with '.', or has two consecutive '.'
 						return &addressStringIndexError{
 							addressStringError{addressError{str: str, key: "ipaddress.error.empty.segment.at.index"}},
@@ -799,7 +799,7 @@ func validateAddress(
 					frontStartIndex := rangeWildcardIndex - frontDigitCount
 					frontEndIndex := rangeWildcardIndex
 					frontLeadingZeroStartIndex := frontStartIndex - frontLeadingZeroCount
-					if !stringFormatParams.GetRangeParameters().AllowsRangeSeparator() {
+					if !stringFormatParams.GetRangeParams().AllowsRangeSeparator() {
 						return &addressStringError{addressError{str: str, key: "ipaddress.error.no.range"}}
 					} else if frontSingleWildcardCount > 0 || frontWildcardCount > 0 { //no wildcards in ranges
 						return &addressStringIndexError{
@@ -828,7 +828,7 @@ func validateAddress(
 									addressStringError{addressError{str: str, key: "ipaddress.error.segment.too.short.at.index"}},
 									frontLeadingZeroStartIndex}
 							} else if frontEmpty { //we allow the front of a range to be empty in which case it is 0
-								if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
+								if !stringFormatParams.GetRangeParams().AllowsInferredBoundary() {
 									return &addressStringIndexError{
 										addressStringError{addressError{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 										index}
@@ -909,7 +909,7 @@ func validateAddress(
 						if frontRadix == 0 {
 							frontRadix = 10
 							if frontEmpty { //we allow the front of a range to be empty in which case it is 0
-								if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
+								if !stringFormatParams.GetRangeParams().AllowsInferredBoundary() {
 									return &addressStringIndexError{
 										addressStringError{addressError{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 										index}
@@ -943,7 +943,7 @@ func validateAddress(
 					}
 					backEndIndex := index
 					if isReversed {
-						if !stringFormatParams.GetRangeParameters().AllowsReverseRange() {
+						if !stringFormatParams.GetRangeParams().AllowsReverseRange() {
 							return &addressStringError{addressError{str: str, key: "ipaddress.error.invalidRange"}}
 						}
 						// switcheroo
@@ -1031,7 +1031,7 @@ func validateAddress(
 								parseData.initSegmentData(ExtendedUniqueIdentifier64SegmentCount)
 								isSegmented = true
 								if frontWildcardCount > 0 {
-									if !stringFormatParams.GetRangeParameters().AllowsWildcard() {
+									if !stringFormatParams.GetRangeParams().AllowsWildcard() {
 										return &addressStringError{addressError{str: str, key: "ipaddress.error.no.wildcard"}}
 									} else if frontSingleWildcardCount > 0 || frontLeadingZeroCount > 0 || frontDigitCount > 0 || frontHexDelimiterIndex >= 0 { //wildcards must appear alone
 										return &addressStringIndexError{
@@ -1424,7 +1424,7 @@ func validateAddress(
 				assign3Attributes(index, index, parseData, segCount, index)
 				parseData.incrementSegmentCount()
 			} else if wildcardCount > 0 && !isSingleIPv6 {
-				if !stringFormatParams.GetRangeParameters().AllowsWildcard() {
+				if !stringFormatParams.GetRangeParams().AllowsWildcard() {
 					return &addressStringError{addressError{str: str, key: "ipaddress.error.no.wildcard"}}
 				}
 				totalDigits := index - segmentStartIndex
@@ -1481,7 +1481,7 @@ func validateAddress(
 					if digitCount == 0 {
 						// since we have already checked for an empty segment, this can only happen with a range, ie rangeWildcardIndex >= 0
 						// we allow an empty range boundary to denote the max value
-						if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
+						if !stringFormatParams.GetRangeParams().AllowsInferredBoundary() {
 							// starts with '.', or has two consecutive '.'
 							return &addressStringIndexError{
 								addressStringError{addressError{str: str, key: "ipaddress.error.empty.segment.at.index"}},
@@ -1648,7 +1648,7 @@ func validateAddress(
 					frontEndIndex := rangeWildcardIndex
 					frontLeadingZeroStartIndex := frontStartIndex - frontLeadingZeroCount
 					frontTotalDigitCount := frontDigitCount + frontLeadingZeroCount //the stuff that uses frontLeadingZeroCount needs to be sectioned off when singleIPv6
-					if !stringFormatParams.GetRangeParameters().AllowsRangeSeparator() {
+					if !stringFormatParams.GetRangeParams().AllowsRangeSeparator() {
 						return &addressStringError{addressError{str: str, key: "ipaddress.error.no.range"}}
 					} else if frontHexDelimiterIndex >= 0 && !isSingleSegment {
 						return &addressStringIndexError{
@@ -1669,7 +1669,7 @@ func validateAddress(
 					frontEmpty := frontStartIndex == frontEndIndex
 					isReversed := false
 					if frontEmpty {
-						if !stringFormatParams.GetRangeParameters().AllowsInferredBoundary() {
+						if !stringFormatParams.GetRangeParams().AllowsInferredBoundary() {
 							return &addressStringIndexError{
 								addressStringError{addressError{str: str, key: "ipaddress.error.empty.segment.at.index"}},
 								index}
@@ -1730,7 +1730,7 @@ func validateAddress(
 					}
 					backEndIndex := index
 					if isReversed {
-						if !stringFormatParams.GetRangeParameters().AllowsReverseRange() {
+						if !stringFormatParams.GetRangeParams().AllowsReverseRange() {
 							return &addressStringError{addressError{str: str, key: "ipaddress.error.invalidRange"}}
 						}
 						// switcheroo
@@ -1789,7 +1789,7 @@ func (strValidator) validatePrefixLenStr(fullAddr string, version IPVersion) (pr
 func parsePortOrService(
 	fullAddr string,
 	zone *Zone,
-	validationOptions addrparam.HostNameParameters,
+	validationOptions addrparam.HostNameParams,
 	res *parsedHostIdentifierStringQualifier,
 	index,
 	endIndex int) (err addrerr.AddressStringError) {
@@ -1909,7 +1909,7 @@ func parseValidatedPrefix(
 	result BitCount,
 	fullAddr string,
 	zone *Zone,
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	res *parsedHostIdentifierStringQualifier,
 	digitCount,
 	leadingZeros int,
@@ -1923,12 +1923,12 @@ func parseValidatedPrefix(
 	//asIPv4 := ipVersion.IsIndeterminate() && ipVersion.IsIPv4()
 	//tryCache := false
 	if asIPv4 {
-		if leadingZeros > 0 && !validationOptions.GetIPv4Parameters().AllowsPrefixLenLeadingZeros() {
+		if leadingZeros > 0 && !validationOptions.GetIPv4Params().AllowsPrefixLenLeadingZeros() {
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv4.prefix.leading.zeros"}}
 			return
 		}
 		if result > IPv4BitCount {
-			allowPrefixesBeyondAddressSize := validationOptions.GetIPv4Parameters().AllowsPrefixesBeyondAddressSize()
+			allowPrefixesBeyondAddressSize := validationOptions.GetIPv4Params().AllowsPrefixesBeyondAddressSize()
 			if !allowPrefixesBeyondAddressSize {
 				//if validationOptions.AllowsSingleSegment() {
 				//	return //treat it as a single segment ipv4 mask
@@ -1940,12 +1940,12 @@ func parseValidatedPrefix(
 		}
 		//tryCache = result < len(PREFIX_CACHE)
 	} else {
-		if leadingZeros > 0 && !validationOptions.GetIPv6Parameters().AllowsPrefixLenLeadingZeros() {
+		if leadingZeros > 0 && !validationOptions.GetIPv6Params().AllowsPrefixLenLeadingZeros() {
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv6.prefix.leading.zeros"}}
 			return
 		}
 		if result > IPv6BitCount {
-			allowPrefixesBeyondAddressSize := validationOptions.GetIPv6Parameters().AllowsPrefixesBeyondAddressSize()
+			allowPrefixesBeyondAddressSize := validationOptions.GetIPv6Params().AllowsPrefixesBeyondAddressSize()
 			if !allowPrefixesBeyondAddressSize {
 				err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.prefixSize"}}
 				return
@@ -1972,8 +1972,8 @@ func parseValidatedPrefix(
 func validatePrefix(
 	fullAddr string,
 	zone *Zone,
-	validationOptions addrparam.IPAddressStringParameters,
-	hostValidationOptions addrparam.HostNameParameters,
+	validationOptions addrparam.IPAddressStringParams,
+	hostValidationOptions addrparam.HostNameParams,
 	res *parsedHostIdentifierStringQualifier,
 	index,
 	endIndex int,
@@ -2040,8 +2040,8 @@ func validatePrefix(
 
 func parseAddressQualifier(
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
-	hostValidationOptions addrparam.HostNameParameters,
+	validationOptions addrparam.IPAddressStringParams,
+	hostValidationOptions addrparam.HostNameParams,
 	ipAddressParseData *ipAddressParseData,
 	endIndex int) (err addrerr.AddressStringError) {
 	qualifierIndex := ipAddressParseData.getQualifierIndex()
@@ -2070,8 +2070,8 @@ func parseAddressQualifier(
 
 func parseHostAddressQualifier(
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
-	hostValidationOptions addrparam.HostNameParameters,
+	validationOptions addrparam.IPAddressStringParams,
+	hostValidationOptions addrparam.HostNameParams,
 	isPrefixed,
 	hasPort bool,
 	ipAddressParseData *ipAddressParseData,
@@ -2099,8 +2099,8 @@ func parseHostAddressQualifier(
 func parsePrefix(
 	fullAddr string,
 	zone *Zone,
-	validationOptions addrparam.IPAddressStringParameters,
-	hostValidationOptions addrparam.HostNameParameters,
+	validationOptions addrparam.IPAddressStringParams,
+	hostValidationOptions addrparam.HostNameParams,
 	res *parsedHostIdentifierStringQualifier,
 	addressIsEmpty bool,
 	index,
@@ -2158,7 +2158,7 @@ func parsePrefix(
 		}
 		maskVersion := pa.getProviderIPVersion()
 		if maskVersion.IsIPv4() && maskParseData.getSegmentCount() == 1 && !maskParseData.hasWildcard() &&
-			!validationOptions.GetIPv4Parameters().Allows_inet_aton_single_segment_mask() { //1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
+			!validationOptions.GetIPv4Params().Allows_inet_aton_single_segment_mask() { //1.2.3.4/33 where 33 is an aton_inet single segment address and not a prefix length
 			err = &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.mask.single.segment"}}
 			return
 		} else if !ipVersion.IsIndeterminate() && (maskVersion.IsIPv4() != ipVersion.IsIPv4() || maskVersion.IsIPv6() != ipVersion.IsIPv6()) {
@@ -2179,8 +2179,8 @@ func parsePrefix(
 
 func parseHostNameQualifier(
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
-	hostValidationOptions addrparam.HostNameParameters,
+	validationOptions addrparam.IPAddressStringParams,
+	hostValidationOptions addrparam.HostNameParams,
 	res *parsedHostIdentifierStringQualifier,
 	isPrefixed,
 	isPort, // always false for address
@@ -2226,20 +2226,20 @@ func isReserved(c byte) bool {
 
 func parseZone(
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	res *parsedHostIdentifierStringQualifier,
 	addressIsEmpty bool,
 	index,
 	endIndex int,
 	ipVersion IPVersion) (err addrerr.AddressStringError) {
-	if index == endIndex && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
+	if index == endIndex && !validationOptions.GetIPv6Params().AllowsEmptyZone() {
 		err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 		return
 	}
 	for i := index; i < endIndex; i++ {
 		c := fullAddr[i]
 		if c == PrefixLenSeparator {
-			if i == index && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
+			if i == index && !validationOptions.GetIPv6Params().AllowsEmptyZone() {
 				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 				return
 			}
@@ -2259,13 +2259,13 @@ func parseZone(
 
 func parseEncodedZone(
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	res *parsedHostIdentifierStringQualifier,
 	addressIsEmpty bool,
 	index,
 	endIndex int,
 	ipVersion IPVersion) (err addrerr.AddressStringError) {
-	if index == endIndex && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
+	if index == endIndex && !validationOptions.GetIPv6Params().AllowsEmptyZone() {
 		err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 		return
 	}
@@ -2297,7 +2297,7 @@ func parseEncodedZone(
 			i++
 			c |= charArray[fullAddr[i]]
 		} else if c == PrefixLenSeparator {
-			if i == index && !validationOptions.GetIPv6Parameters().AllowsEmptyZone() {
+			if i == index && !validationOptions.GetIPv6Params().AllowsEmptyZone() {
 				err = &addressStringIndexError{addressStringError{addressError{str: fullAddr, key: "ipaddress.error.invalid.zone"}}, index}
 				return
 			}
@@ -2331,7 +2331,7 @@ func parseEncodedZone(
 }
 
 // whether no wildcards or range characters allowed
-func isNoRange(rp addrparam.RangeParameters) bool {
+func isNoRange(rp addrparam.RangeParams) bool {
 	return !rp.AllowsWildcard() && !rp.AllowsRangeSeparator() && !rp.AllowsSingleWildcard()
 }
 
@@ -2342,38 +2342,38 @@ func isNoRange(rp addrparam.RangeParameters) bool {
  * @param ipVersion
  * @return
  */
-func toMaskOptions(validationOptions addrparam.IPAddressStringParameters,
-	ipVersion IPVersion) (res addrparam.IPAddressStringParameters) {
+func toMaskOptions(validationOptions addrparam.IPAddressStringParams,
+	ipVersion IPVersion) (res addrparam.IPAddressStringParams) {
 	//We must provide options that do not allow a mask with wildcards or ranges
-	var builder *addrparam.IPAddressStringParametersBuilder
+	var builder *addrparam.IPAddressStringParamsBuilder
 	if ipVersion.IsIndeterminate() || ipVersion.IsIPv6() {
-		ipv6Options := validationOptions.GetIPv6Parameters()
-		if !isNoRange(ipv6Options.GetRangeParameters()) {
-			builder = new(addrparam.IPAddressStringParametersBuilder).Set(validationOptions)
+		ipv6Options := validationOptions.GetIPv6Params()
+		if !isNoRange(ipv6Options.GetRangeParams()) {
+			builder = new(addrparam.IPAddressStringParamsBuilder).Set(validationOptions)
 			//builder = ToIPAddressStringParamsBuilder(validationOptions)
-			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(addrparam.NoRange)
+			builder.GetIPv6AddressParamsBuilder().SetRangeParams(addrparam.NoRange)
 		}
-		if ipv6Options.AllowsMixed() && !isNoRange(ipv6Options.GetMixedParameters().GetIPv4Parameters().GetRangeParameters()) {
+		if ipv6Options.AllowsMixed() && !isNoRange(ipv6Options.GetMixedParams().GetIPv4Params().GetRangeParams()) {
 			if builder == nil {
-				builder = new(addrparam.IPAddressStringParametersBuilder).Set(validationOptions)
+				builder = new(addrparam.IPAddressStringParamsBuilder).Set(validationOptions)
 				//builder = ToIPAddressStringParamsBuilder(validationOptions)
 			}
-			builder.GetIPv6AddressParametersBuilder().SetRangeParameters(addrparam.NoRange)
+			builder.GetIPv6AddressParamsBuilder().SetRangeParams(addrparam.NoRange)
 		}
 	}
 	if ipVersion.IsIndeterminate() || ipVersion.IsIPv4() {
-		ipv4Options := validationOptions.GetIPv4Parameters()
-		if !isNoRange(ipv4Options.GetRangeParameters()) {
+		ipv4Options := validationOptions.GetIPv4Params()
+		if !isNoRange(ipv4Options.GetRangeParams()) {
 			if builder == nil {
-				builder = new(addrparam.IPAddressStringParametersBuilder).Set(validationOptions)
+				builder = new(addrparam.IPAddressStringParamsBuilder).Set(validationOptions)
 				//builder = ToIPAddressStringParamsBuilder(validationOptions)
 			}
-			builder.GetIPv4AddressParametersBuilder().SetRangeParameters(addrparam.NoRange)
+			builder.GetIPv4AddressParamsBuilder().SetRangeParams(addrparam.NoRange)
 		}
 	}
 	if validationOptions.AllowsAll() {
 		if builder == nil {
-			builder = new(addrparam.IPAddressStringParametersBuilder).Set(validationOptions)
+			builder = new(addrparam.IPAddressStringParamsBuilder).Set(validationOptions)
 			//builder = ToIPAddressStringParamsBuilder(validationOptions)
 		}
 		builder.AllowAll(false)
@@ -2521,7 +2521,7 @@ func isHexDelimiter(c byte) bool {
 }
 
 func parseBase85(
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	str string,
 	strStartIndex,
 	strEndIndex int,
@@ -2559,7 +2559,7 @@ func parseBase85(
 	//		if(!validationOptions.allowIPv6) {
 	//			throw new addrerr.AddressStringError(str, "ipaddress.error.ipv6");
 	//		}
-	//		IPv6AddressStringParameters ipv6SpecificOptions = validationOptions.getIPv6Parameters();
+	//		IPv6AddressStringParams ipv6SpecificOptions = validationOptions.getIPv6Parameters();
 	//		if(!ipv6SpecificOptions.rangeOptions.allowsRangeSeparator()) {
 	//			throw new addrerr.AddressStringError(str, "ipaddress.error.no.range");
 	//		}
@@ -2644,7 +2644,7 @@ func parseBase85(
 }
 
 func chooseMACAddressProvider(fromString *MACAddressString,
-	validationOptions addrparam.MACAddressStringParameters, pa *ParsedMACAddress,
+	validationOptions addrparam.MACAddressStringParams, pa *ParsedMACAddress,
 	addressParseData *addressParseData) (res macAddressProvider, err addrerr.AddressStringError) {
 	if addressParseData.isProvidingEmpty() {
 		res = defaultMACAddressEmptyProvider
@@ -2671,7 +2671,7 @@ var loopbackCache = newLoopbackCreator(defaultIPAddrParameters, NoZone)
 func chooseIPAddressProvider(
 	originator HostIdentifierString,
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	parseData *parsedIPAddress) (res ipAddressProvider, err addrerr.AddressStringError) {
 	qualifier := parseData.getQualifier()
 	version := parseData.getProviderIPVersion()
@@ -2732,11 +2732,11 @@ func chooseIPAddressProvider(
 				validationOptions.AllStrParsedAs() == addrparam.AllPreferredIPVersion {
 				preferredVersion := IPVersion(validationOptions.GetPreferredVersion())
 				if !preferredVersion.IsIndeterminate() {
-					var formatParams addrparam.IPAddressStringFormatParameters
+					var formatParams addrparam.IPAddressStringFormatParams
 					if preferredVersion.IsIPv6() {
-						formatParams = validationOptions.GetIPv6Parameters()
+						formatParams = validationOptions.GetIPv6Params()
 					} else {
-						formatParams = validationOptions.GetIPv4Parameters()
+						formatParams = validationOptions.GetIPv4Params()
 					}
 					if formatParams.AllowsWildcardedSeparator() {
 						version = preferredVersion
@@ -2757,7 +2757,7 @@ func chooseIPAddressProvider(
 	return
 }
 
-func inferVersion(params addrparam.IPAddressStringParameters) IPVersion {
+func inferVersion(params addrparam.IPAddressStringParams) IPVersion {
 	if params.AllowsIPv6() {
 		if !params.AllowsIPv4() {
 			return IPv6
@@ -2768,9 +2768,9 @@ func inferVersion(params addrparam.IPAddressStringParameters) IPVersion {
 	return IndeterminateIPVersion
 }
 
-func getLoopbackCreator(validationOptions addrparam.IPAddressStringParameters, qualifier *parsedHostIdentifierStringQualifier) (res ipAddressProvider) {
+func getLoopbackCreator(validationOptions addrparam.IPAddressStringParams, qualifier *parsedHostIdentifierStringQualifier) (res ipAddressProvider) {
 	zone := qualifier.getZone()
-	var defaultParams addrparam.IPAddressStringParameters = defaultIPAddrParameters
+	var defaultParams addrparam.IPAddressStringParams = defaultIPAddrParameters
 	if validationOptions == defaultParams && zone == NoZone {
 		res = loopbackCache
 		return
@@ -2783,7 +2783,7 @@ func checkSegmentMaxValues(
 	fullAddr string,
 	parseData *addressParseData,
 	segmentIndex int,
-	params addrparam.AddressStringFormatParameters,
+	params addrparam.AddressStringFormatParams,
 	maxValue uint64,
 	maxDigitCount,
 	maxUpperDigitCount int) addrerr.AddressStringError {
@@ -2826,13 +2826,13 @@ func checkSegmentMaxValues(
 
 func checkMACSegments(
 	fullAddr string,
-	validationOptions addrparam.MACAddressStringParameters,
+	validationOptions addrparam.MACAddressStringParams,
 	parseData *ParsedMACAddress) addrerr.AddressStringError {
 	var err addrerr.AddressStringError
 	format := parseData.getFormat()
 	if format != unknownFormat {
 		addressParseData := parseData.getAddressParseData()
-		hasWildcardSeparator := addressParseData.hasWildcard() && validationOptions.GetFormatParameters().AllowsWildcardedSeparator()
+		hasWildcardSeparator := addressParseData.hasWildcard() && validationOptions.GetFormatParams().AllowsWildcardedSeparator()
 		//note that too many segments is checked inside the general parsing method
 		segCount := addressParseData.getSegmentCount()
 		if format == dotted {
@@ -2863,7 +2863,7 @@ func checkMACSegments(
 						fullAddr,
 						addressParseData,
 						i,
-						validationOptions.GetFormatParameters(),
+						validationOptions.GetFormatParams(),
 						MACMaxValuePerSegment,
 						MACSegmentMaxChars,
 						MACSegmentMaxChars)
@@ -2880,7 +2880,7 @@ func checkMACSegments(
 				//for addresses starting with a|b- or a-b| we have not,
 				//but rather than figure out which are checked and which are not it's just as quick to check them all here
 				if parseData.isDoubleSegment() {
-					params := validationOptions.GetFormatParameters()
+					params := validationOptions.GetFormatParams()
 					err = checkSegmentMaxValues(fullAddr, addressParseData, 0, params, macMaxTriple, macDoubleSegmentDigitCount, macDoubleSegmentDigitCount)
 					if err != nil {
 						return err
@@ -2907,14 +2907,14 @@ func checkMACSegments(
 
 func checkSegments(
 	fullAddr string,
-	validationOptions addrparam.IPAddressStringParameters,
+	validationOptions addrparam.IPAddressStringParams,
 	parseData *ipAddressParseData) addrerr.AddressStringError {
 	addressParseData := parseData.getAddressParseData()
 	segCount := addressParseData.getSegmentCount()
 	version := parseData.getProviderIPVersion()
 	if version.IsIPv4() {
 		missingCount := IPv4SegmentCount - segCount
-		ipv4Options := validationOptions.GetIPv4Parameters()
+		ipv4Options := validationOptions.GetIPv4Params()
 		hasWildcardSeparator := addressParseData.hasWildcard() && ipv4Options.AllowsWildcardedSeparator()
 
 		//single segments are handled in the parsing code with the allowSingleSegment setting
@@ -2983,7 +2983,7 @@ func checkSegments(
 		if parseData.isProvidingMixedIPv6() {
 			totalSegmentCount += IPv6MixedReplacedSegmentCount
 		}
-		hasWildcardSeparator := addressParseData.hasWildcard() && validationOptions.GetIPv6Parameters().AllowsWildcardedSeparator()
+		hasWildcardSeparator := addressParseData.hasWildcard() && validationOptions.GetIPv6Params().AllowsWildcardedSeparator()
 		if !hasWildcardSeparator && totalSegmentCount != 1 && totalSegmentCount < IPv6SegmentCount && !parseData.isCompressed() {
 			return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 		}
@@ -2991,9 +2991,9 @@ func checkSegments(
 	return nil
 }
 
-func checkSingleWildcard(str string, start, end, digitsEnd int, options addrparam.AddressStringFormatParameters) addrerr.AddressStringError {
+func checkSingleWildcard(str string, start, end, digitsEnd int, options addrparam.AddressStringFormatParams) addrerr.AddressStringError {
 	_ = start
-	if !options.GetRangeParameters().AllowsSingleWildcard() {
+	if !options.GetRangeParams().AllowsSingleWildcard() {
 		return &addressStringError{addressError{str: str, key: "ipaddress.error.no.single.wildcard"}}
 	}
 	for k := digitsEnd; k < end; k++ {
@@ -3004,7 +3004,7 @@ func checkSingleWildcard(str string, start, end, digitsEnd int, options addrpara
 	return nil
 }
 
-func switchSingleWildcard10(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParameters) (err addrerr.AddressStringError) {
+func switchSingleWildcard10(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParams) (err addrerr.AddressStringError) {
 	digitsEnd := end - numSingleWildcards
 	err = checkSingleWildcard(s, start, end, digitsEnd, options)
 	if err != nil {
@@ -3040,7 +3040,7 @@ func switchSingleWildcard10(currentValueHex uint64, s string, start, end, numSin
 	return
 }
 
-func switchSingleWildcard2(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParameters) (err addrerr.AddressStringError) {
+func switchSingleWildcard2(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParams) (err addrerr.AddressStringError) {
 	digitsEnd := end - numSingleWildcards
 	err = checkSingleWildcard(s, start, end, digitsEnd, options)
 	if err != nil {
@@ -3098,7 +3098,7 @@ func switchSingleWildcard2(currentValueHex uint64, s string, start, end, numSing
 	return
 }
 
-func switchSingleWildcard8(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParameters) (err addrerr.AddressStringError) {
+func switchSingleWildcard8(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParams) (err addrerr.AddressStringError) {
 	digitsEnd := end - numSingleWildcards
 	err = checkSingleWildcard(s, start, end, digitsEnd, options)
 	if err != nil {
@@ -3132,7 +3132,7 @@ func switchSingleWildcard8(currentValueHex uint64, s string, start, end, numSing
 	return
 }
 
-func assignSingleWildcard16(lower uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParameters) (err addrerr.AddressStringError) {
+func assignSingleWildcard16(lower uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParams) (err addrerr.AddressStringError) {
 	digitsEnd := end - numSingleWildcards
 	err = checkSingleWildcard(s, start, end, digitsEnd, options)
 	if err != nil {
@@ -3146,7 +3146,7 @@ func assignSingleWildcard16(lower uint64, s string, start, end, numSingleWildcar
 	return
 }
 
-func parseSingleSegmentSingleWildcard16(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParameters) (err addrerr.AddressStringError) {
+func parseSingleSegmentSingleWildcard16(currentValueHex uint64, s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParams) (err addrerr.AddressStringError) {
 	digitsEnd := end - numSingleWildcards
 	err = checkSingleWildcard(s, start, end, digitsEnd, options)
 	if err != nil {
@@ -3179,7 +3179,7 @@ func parseSingleSegmentSingleWildcard16(currentValueHex uint64, s string, start,
 	return
 }
 
-func parseSingleSegmentSingleWildcard2(s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParameters) (err addrerr.AddressStringError) {
+func parseSingleSegmentSingleWildcard2(s string, start, end, numSingleWildcards int, parseData *addressParseData, parsedSegIndex, leadingZeroStartIndex int, options addrparam.AddressStringFormatParams) (err addrerr.AddressStringError) {
 	digitsEnd := end - numSingleWildcards
 	err = checkSingleWildcard(s, start, end, digitsEnd, options)
 	if err != nil {
@@ -3471,8 +3471,8 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 				isPossiblyIPv4 &&
 					(labelCount+1 == IPv4SegmentCount) ||
 					(labelCount+1 < IPv4SegmentCount && isSpecialOnlyIndex >= 0) ||
-					(labelCount+1 < IPv4SegmentCount && validationOptions.GetIPAddressParameters().GetIPv4Parameters().Allows_inet_aton_joinedSegments()) ||
-					labelCount == 0 && validationOptions.GetIPAddressParameters().AllowsSingleSegment()
+					(labelCount+1 < IPv4SegmentCount && validationOptions.GetIPAddressParams().GetIPv4Params().Allows_inet_aton_joinedSegments()) ||
+					labelCount == 0 && validationOptions.GetIPAddressParams().AllowsSingleSegment()
 			if isAllDigits {
 				if isPossiblyIPv4 && segmentCountMatchesIPv4 {
 					tryIPv4 = true
@@ -3499,9 +3499,9 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		if currentChar >= 'a' && currentChar <= 'z' {
 			if currentChar > 'f' {
 				isPossiblyIPv6 = false
-				isPossiblyIPv4 = isPossiblyIPv4 && (currentChar == 'x' && validationOptions.GetIPAddressParameters().GetIPv4Parameters().Allows_inet_aton_hex())
+				isPossiblyIPv4 = isPossiblyIPv4 && (currentChar == 'x' && validationOptions.GetIPAddressParams().GetIPv4Params().Allows_inet_aton_hex())
 			} else if currentChar == 'b' {
-				isPossiblyIPv4 = isPossiblyIPv4 && validationOptions.GetIPAddressParameters().GetIPv4Parameters().AllowsBinary()
+				isPossiblyIPv4 = isPossiblyIPv4 && validationOptions.GetIPAddressParams().GetIPv4Params().AllowsBinary()
 			}
 			isAllDigits = false
 		} else if currentChar >= '0' && currentChar <= '9' {
@@ -3510,9 +3510,9 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		} else if currentChar >= 'A' && currentChar <= 'Z' {
 			if currentChar > 'F' {
 				isPossiblyIPv6 = false
-				isPossiblyIPv4 = isPossiblyIPv4 && (currentChar == 'X' && validationOptions.GetIPAddressParameters().GetIPv4Parameters().Allows_inet_aton_hex())
+				isPossiblyIPv4 = isPossiblyIPv4 && (currentChar == 'X' && validationOptions.GetIPAddressParams().GetIPv4Params().Allows_inet_aton_hex())
 			} else if currentChar == 'B' {
-				isPossiblyIPv4 = isPossiblyIPv4 && validationOptions.GetIPAddressParameters().GetIPv4Parameters().AllowsBinary()
+				isPossiblyIPv4 = isPossiblyIPv4 && validationOptions.GetIPAddressParams().GetIPv4Params().AllowsBinary()
 			}
 			segmentUppercase = true
 			isAllDigits = false
@@ -3605,8 +3605,8 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 			a := currentChar == SegmentWildcard
 			if a || currentChar == SegmentSqlSingleWildcard {
 				b := !a
-				addressOptions := validationOptions.GetIPAddressParameters()
-				if b && addressOptions.GetIPv6Parameters().AllowsZone() { //if we allow zones, we treat '%' as a zone and not as a wildcard
+				addressOptions := validationOptions.GetIPAddressParams()
+				if b && addressOptions.GetIPv6Params().AllowsZone() { //if we allow zones, we treat '%' as a zone and not as a wildcard
 					if isPossiblyIPv6 && labelCount < IPv6SegmentCount {
 						tryIPv6 = true
 						isPossiblyIPv4 = false
@@ -3615,14 +3615,14 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 					err = &hostNameIndexError{hostNameError{addressError{str: str, key: "ipaddress.host.error.invalid.character.at.index"}}, index}
 					return
 				} else {
-					if isPossiblyIPv4 && addressOptions.GetIPv4Parameters().GetRangeParameters().AllowsWildcard() {
+					if isPossiblyIPv4 && addressOptions.GetIPv4Params().GetRangeParams().AllowsWildcard() {
 						if isSpecialOnlyIndex < 0 {
 							isSpecialOnlyIndex = index
 						}
 					} else {
 						isPossiblyIPv4 = false
 					}
-					if isPossiblyIPv6 && addressOptions.GetIPv6Parameters().GetRangeParameters().AllowsWildcard() {
+					if isPossiblyIPv6 && addressOptions.GetIPv6Params().GetRangeParams().AllowsWildcard() {
 						if isSpecialOnlyIndex < 0 {
 							isSpecialOnlyIndex = index
 						}
@@ -3672,7 +3672,7 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 		  If it parses as an address, we do not treat as host.
 	*/
 	psdHost = &parsedHost{originalStr: str, parsedHostCache: &parsedHostCache{}}
-	addressOptions := validationOptions.GetIPAddressParameters()
+	addressOptions := validationOptions.GetIPAddressParams()
 	//		try {
 	isIPAddress := squareBracketed || tryIPv4 || tryIPv6
 	if !validationOptions.AllowsIPAddress() {
@@ -4101,7 +4101,7 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentif
 	//				}
 	//				emb = new embeddedAddress();
 	//				emb.isUNCIPv6Literal = true;
-	//				IPAddressStringParameters params = DEFAULT_UNC_OPTS;
+	//				IPAddressStringParams params = DEFAULT_UNC_OPTS;
 	//				parsedIPAddress pa = new parsedIPAddress(null, str, params);
 	//				validateIPAddress(params, builder, 0, builder.length(), pa, false);
 	//				parsedHostIdentifierStringQualifier qual;
@@ -4137,7 +4137,7 @@ func checkSpecialHosts(str string, addrLen int, hostQualifier *parsedHostIdentif
 	//					emb = new embeddedAddress();
 	//					emb.isReverseDNS = true;
 	//					CharSequence sequence;
-	//					IPAddressStringParameters params;
+	//					IPAddressStringParams params;
 	//					if(IsIPv4) {
 	//						sequence = convertReverseDNSIPv4(str, suffixStartIndex);
 	//						params = REVERSE_DNS_IPV4_OPTS;

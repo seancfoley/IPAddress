@@ -836,7 +836,7 @@ func (t macAddressTester) testLongShort(longAddr, shortAddr string) {
 }
 
 func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeLong bool) {
-	params := new(addrparam.MACAddressStringParametersBuilder).SetAddressSize(addrparam.MACSize).ToParams()
+	params := new(addrparam.MACAddressStringParamsBuilder).SetAddressSize(addrparam.MACSize).ToParams()
 	longString := ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString := ipaddr.NewMACAddressStringParams(shortAddr, params)
 	if !shortString.IsValid() {
@@ -845,7 +845,7 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 	if longString.IsValid() {
 		t.addFailure(newMACFailure("long valid "+longString.String(), longString))
 	}
-	params = new(addrparam.MACAddressStringParametersBuilder).SetAddressSize(addrparam.EUI64Size).ToParams()
+	params = new(addrparam.MACAddressStringParamsBuilder).SetAddressSize(addrparam.EUI64Size).ToParams()
 	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
 	isValid := shortString.IsValid()
@@ -864,7 +864,7 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 	if shortCanBeLong && shortString.GetAddress().GetSegmentCount() != ipaddr.ExtendedUniqueIdentifier64SegmentCount {
 		t.addFailure(newMACFailure("also not enough segments "+shortString.String(), shortString))
 	}
-	params = new(addrparam.MACAddressStringParametersBuilder).SetAddressSize(addrparam.UnspecifiedMACSize).ToParams()
+	params = new(addrparam.MACAddressStringParamsBuilder).SetAddressSize(addrparam.UnspecifiedMACSize).ToParams()
 	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
 	if !shortString.IsValid() {
