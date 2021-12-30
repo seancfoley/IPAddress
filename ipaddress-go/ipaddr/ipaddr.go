@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"net"
 	"reflect"
@@ -1390,7 +1391,7 @@ func (addr *IPAddress) ToBinaryString(with0bPrefix bool) (string, addrerr.Incomp
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
-func (addr *IPAddress) ToCustomString(stringOptions IPStringOptions) string {
+func (addr *IPAddress) ToCustomString(stringOptions addrstr.IPStringOptions) string {
 	if addr == nil {
 		return nilString()
 	}

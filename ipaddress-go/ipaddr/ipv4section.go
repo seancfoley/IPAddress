@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -807,15 +808,15 @@ func (section *IPv4AddressSection) IsZeroGrouping() bool {
 }
 
 var (
-	ipv4CanonicalParams          = new(IPv4StringOptionsBuilder).ToOptions()
-	ipv4FullParams               = new(IPv4StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
-	ipv4NormalizedWildcardParams = new(IPv4StringOptionsBuilder).SetWildcardOptions(allWildcards).ToOptions()
-	ipv4SqlWildcardParams        = new(IPv4StringOptionsBuilder).SetWildcardOptions(allSQLWildcards).ToOptions()
+	ipv4CanonicalParams          = new(addrstr.IPv4StringOptionsBuilder).ToOptions()
+	ipv4FullParams               = new(addrstr.IPv4StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
+	ipv4NormalizedWildcardParams = new(addrstr.IPv4StringOptionsBuilder).SetWildcardOptions(allWildcards).ToOptions()
+	ipv4SqlWildcardParams        = new(addrstr.IPv4StringOptionsBuilder).SetWildcardOptions(allSQLWildcards).ToOptions()
 
-	inetAtonOctalParams       = new(IPv4StringOptionsBuilder).SetRadix(Inet_aton_radix_octal.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_octal.GetSegmentStrPrefix()).ToOptions()
-	inetAtonHexParams         = new(IPv4StringOptionsBuilder).SetRadix(Inet_aton_radix_hex.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_hex.GetSegmentStrPrefix()).ToOptions()
-	ipv4ReverseDNSParams      = new(IPv4StringOptionsBuilder).SetWildcardOptions(allWildcards).SetReverse(true).SetAddressSuffix(IPv4ReverseDnsSuffix).ToOptions()
-	ipv4SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv4SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).ToOptions()
+	inetAtonOctalParams       = new(addrstr.IPv4StringOptionsBuilder).SetRadix(Inet_aton_radix_octal.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_octal.GetSegmentStrPrefix()).ToOptions()
+	inetAtonHexParams         = new(addrstr.IPv4StringOptionsBuilder).SetRadix(Inet_aton_radix_hex.GetRadix()).SetSegmentStrPrefix(Inet_aton_radix_hex.GetSegmentStrPrefix()).ToOptions()
+	ipv4ReverseDNSParams      = new(addrstr.IPv4StringOptionsBuilder).SetWildcardOptions(allWildcards).SetReverse(true).SetAddressSuffix(IPv4ReverseDnsSuffix).ToOptions()
+	ipv4SegmentedBinaryParams = new(addrstr.IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv4SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).ToOptions()
 )
 
 func (section *IPv4AddressSection) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {
@@ -1006,7 +1007,7 @@ func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix,
 	if joinedCount <= 0 {
 		return section.ToInetAtonString(radix), nil
 	}
-	var stringParams IPStringOptions
+	var stringParams addrstr.IPStringOptions
 	if radix == Inet_aton_radix_octal {
 		stringParams = inetAtonOctalParams
 	} else if radix == Inet_aton_radix_hex {
@@ -1017,7 +1018,7 @@ func (section *IPv4AddressSection) ToInetAtonJoinedString(radix Inet_aton_radix,
 	return section.ToNormalizedJoinedString(stringParams, joinedCount)
 }
 
-func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams IPStringOptions, joinedCount int) (string, addrerr.IncompatibleAddressError) {
+func (section *IPv4AddressSection) ToNormalizedJoinedString(stringParams addrstr.IPStringOptions, joinedCount int) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
@@ -1089,7 +1090,7 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3), nil
 }
 
-func (section *IPv4AddressSection) toNormalizedString(stringOptions IPStringOptions) string {
+func (section *IPv4AddressSection) toNormalizedString(stringOptions addrstr.IPStringOptions) string {
 	return toNormalizedIPString(stringOptions, section)
 }
 

@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -192,9 +193,9 @@ type addressDivisionInternal struct {
 
 var (
 	// wildcards differ, here we use only range since div size not implicit
-	octalParamsDiv   = new(IPStringOptionsBuilder).SetRadix(8).SetSegmentStrPrefix(OctalPrefix).SetWildcards(rangeWildcard).ToOptions()
-	hexParamsDiv     = new(IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).SetWildcards(rangeWildcard).ToOptions()
-	decimalParamsDiv = new(IPStringOptionsBuilder).SetRadix(10).SetWildcards(rangeWildcard).ToOptions()
+	octalParamsDiv   = new(addrstr.IPStringOptionsBuilder).SetRadix(8).SetSegmentStrPrefix(OctalPrefix).SetWildcards(rangeWildcard).ToOptions()
+	hexParamsDiv     = new(addrstr.IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).SetWildcards(rangeWildcard).ToOptions()
+	decimalParamsDiv = new(addrstr.IPStringOptionsBuilder).SetRadix(10).SetWildcards(rangeWildcard).ToOptions()
 )
 
 func (div *addressDivisionInternal) String() string {
@@ -207,7 +208,7 @@ func (div *addressDivisionInternal) String() string {
 // GetString() is more appropriate in context with prefix lengths, it uses zeros instead of wildcards for prefix block ranges.
 func (div *addressDivisionInternal) toString() string { // this can be moved to addressDivisionBase when we have ContainsPrefixBlock and similar methods implemented for big.Int in the base
 	radix := div.getDefaultTextualRadix()
-	var opts IPStringOptions
+	var opts addrstr.IPStringOptions
 	switch radix {
 	case 16:
 		opts = hexParamsDiv
@@ -216,7 +217,7 @@ func (div *addressDivisionInternal) toString() string { // this can be moved to 
 	case 8:
 		opts = octalParamsDiv
 	default:
-		opts = new(IPStringOptionsBuilder).SetRadix(radix).SetWildcards(rangeWildcard).ToOptions()
+		opts = new(addrstr.IPStringOptionsBuilder).SetRadix(radix).SetWildcards(rangeWildcard).ToOptions()
 	}
 	return div.toStringOpts(opts)
 }
@@ -237,7 +238,7 @@ func (div addressDivisionInternal) Format(state fmt.State, verb rune) {
 	}
 }
 
-func (div *addressDivisionInternal) toStringOpts(opts StringOptions) string {
+func (div *addressDivisionInternal) toStringOpts(opts addrstr.StringOptions) string {
 	builder := strings.Builder{}
 	params := toParams(opts)
 	builder.Grow(params.getDivisionStringLength(div.toAddressDivision()))

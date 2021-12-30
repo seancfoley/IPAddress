@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"net"
 )
@@ -1479,7 +1480,7 @@ func (addr *IPv6Address) ToMixedString() (string, addrerr.IncompatibleAddressErr
 // Errors can result from split digits with ranged values, or mixed IPv4/v6 with ranged values, when a range cannot be split up.
 // Options without split digits or mixed addresses do not produce errors.
 // Single addresses do not produce errors.
-func (addr *IPv6Address) ToCustomString(stringOptions IPv6StringOptions) (string, addrerr.IncompatibleAddressError) {
+func (addr *IPv6Address) ToCustomString(stringOptions addrstr.IPv6StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if addr == nil {
 		return nilString(), nil
 	}

@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -1395,11 +1396,11 @@ func (section *ipAddressSectionInternal) toCompressedWildcardString() string {
 	return nilSection()
 }
 
-func (section *ipAddressSectionInternal) toCustomString(stringOptions IPStringOptions) string {
+func (section *ipAddressSectionInternal) toCustomString(stringOptions addrstr.IPStringOptions) string {
 	return toNormalizedIPZonedString(stringOptions, section.toIPAddressSection(), NoZone)
 }
 
-func (section *ipAddressSectionInternal) toCustomZonedString(stringOptions IPStringOptions, zone Zone) string {
+func (section *ipAddressSectionInternal) toCustomZonedString(stringOptions addrstr.IPStringOptions, zone Zone) string {
 	return toNormalizedIPZonedString(stringOptions, section.toIPAddressSection(), zone)
 }
 
@@ -2021,7 +2022,7 @@ func (section *IPAddressSection) ToCompressedWildcardString() string {
 	return section.toCompressedWildcardString()
 }
 
-func (section *IPAddressSection) ToCustomString(stringOptions IPStringOptions) string {
+func (section *IPAddressSection) ToCustomString(stringOptions addrstr.IPStringOptions) string {
 	if section == nil {
 		return nilString()
 	}
@@ -2036,11 +2037,11 @@ func (section *IPAddressSection) GetSegmentStrings() []string {
 }
 
 var (
-	rangeWildcard                 = new(WildcardsBuilder).ToWildcards()
-	allWildcards                  = new(WildcardOptionsBuilder).SetWildcardOptions(WildcardsAll).ToOptions()
-	wildcardsRangeOnlyNetworkOnly = new(WildcardOptionsBuilder).SetWildcards(rangeWildcard).ToOptions()
-	allSQLWildcards               = new(WildcardOptionsBuilder).SetWildcardOptions(WildcardsAll).SetWildcards(
-		new(WildcardsBuilder).SetWildcard(SegmentSqlWildcardStr).SetSingleWildcard(SegmentSqlSingleWildcardStr).ToWildcards()).ToOptions()
+	rangeWildcard                 = new(addrstr.WildcardsBuilder).ToWildcards()
+	allWildcards                  = new(addrstr.WildcardOptionsBuilder).SetWildcardOptions(addrstr.WildcardsAll).ToOptions()
+	wildcardsRangeOnlyNetworkOnly = new(addrstr.WildcardOptionsBuilder).SetWildcards(rangeWildcard).ToOptions()
+	allSQLWildcards               = new(addrstr.WildcardOptionsBuilder).SetWildcardOptions(addrstr.WildcardsAll).SetWildcards(
+		new(addrstr.WildcardsBuilder).SetWildcard(SegmentSqlWildcardStr).SetSingleWildcard(SegmentSqlSingleWildcardStr).ToWildcards()).ToOptions()
 )
 
 func BitsPerSegment(version IPVersion) BitCount {

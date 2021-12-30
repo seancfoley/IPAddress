@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -32,26 +33,26 @@ import (
 
 // Note: For IPv6, translation from options to params is more complicated and requires the section, so it's done in IPv6AddressSection methods
 
-func toNormalizedIPZonedString(opts IPStringOptions, section AddressDivisionSeries, zone Zone) string {
+func toNormalizedIPZonedString(opts addrstr.IPStringOptions, section AddressDivisionSeries, zone Zone) string {
 	return toZonedIPParams(opts).toZonedString(section, zone)
 }
 
-func toNormalizedIPString(opts IPStringOptions, section AddressDivisionSeries) string {
+func toNormalizedIPString(opts addrstr.IPStringOptions, section AddressDivisionSeries) string {
 	return toIPParams(opts).toString(section)
 }
 
-func toNormalizedZonedString(opts StringOptions, section AddressDivisionSeries, zone Zone) string {
+func toNormalizedZonedString(opts addrstr.StringOptions, section AddressDivisionSeries, zone Zone) string {
 	// the options don't provide a zone separator (only IPv6StringOptions do), so we must specify what it is
 	parms := toParams(opts)
 	parms.zoneSeparator = IPv6ZoneSeparator
 	return toZonedParams(opts).toZonedString(section, zone)
 }
 
-func toNormalizedString(opts StringOptions, section AddressDivisionSeries) string {
+func toNormalizedString(opts addrstr.StringOptions, section AddressDivisionSeries) string {
 	return toParams(opts).toString(section)
 }
 
-func toZonedIPParams(opts IPStringOptions) *ipAddressStringParams {
+func toZonedIPParams(opts addrstr.IPStringOptions) *ipAddressStringParams {
 	// the options don't provide a zone separator (only IPv6StringOptions do), so we must specify what it is
 	parms := toIPParams(opts)
 	parms.zoneSeparator = IPv6ZoneSeparator
@@ -59,12 +60,15 @@ func toZonedIPParams(opts IPStringOptions) *ipAddressStringParams {
 }
 
 //protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
-func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
+func toIPParams(opts addrstr.IPStringOptions) (res *ipAddressStringParams) {
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
-	options, hasCache := opts.(*ipStringOptions)
+	options, hasCache := opts.(ipCacheAccess)
+	//options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
-		res = options.cachedIPAddr
+		cacheStruct := options.GetIPStringOptionsCache()
+		res = (*ipAddressStringParams)(cacheStruct.CachedIPAddr)
+		//res = options.cachedIPAddr
 	}
 	if res == nil {
 		//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
@@ -86,26 +90,35 @@ func toIPParams(opts IPStringOptions) (res *ipAddressStringParams) {
 			addressSuffix:  opts.GetAddressSuffix(),
 		}
 		if hasCache {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedIPAddr))
+			cacheStruct := options.GetIPStringOptionsCache()
+			dataLoc := &cacheStruct.CachedIPAddr
+			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedIPAddr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
 	}
 	return
 }
 
-func toZonedParams(opts StringOptions) (res *addressStringParams) {
+type ipCacheAccess interface {
+	GetIPStringOptionsCache() *addrstr.IPStringOptionsCache
+}
+
+func toZonedParams(opts addrstr.StringOptions) (res *addressStringParams) {
 	// the options don't provide a zone separator (only IPv6StringOptions do), so we must specify what it is
 	parms := toParams(opts)
 	parms.zoneSeparator = IPv6ZoneSeparator
 	return parms
 }
 
-func toParams(opts StringOptions) (res *addressStringParams) {
+func toParams(opts addrstr.StringOptions) (res *addressStringParams) {
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
-	options, hasCache := opts.(*stringOptions)
+	options, hasCache := opts.(cacheAccess)
+	//options, hasCache := opts.(*stringOptions)
 	if hasCache {
-		res = options.cached
+		cacheStruct := options.GetStringOptionsCache()
+		res = (*addressStringParams)(cacheStruct.Cached)
+		//res = options.cached
 	}
 	if res == nil {
 		//radix, wildcards, separator, _ := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), 0)
@@ -122,19 +135,28 @@ func toParams(opts StringOptions) (res *addressStringParams) {
 			//splitDigits:      opts.isSplitDigits(),
 		}
 		if hasCache {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cached))
+			cacheStruct := options.GetStringOptionsCache()
+			dataLoc := &cacheStruct.Cached
+			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cached))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
 	}
 	return
 }
 
-func toParamsFromIPOptions(opts IPStringOptions) (res *addressStringParams) {
+type cacheAccess interface {
+	GetStringOptionsCache() *addrstr.StringOptionsCache
+}
+
+func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringParams) {
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
-	options, hasCache := opts.(*ipStringOptions)
+	options, hasCache := opts.(ipCacheAccess)
+	//options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
-		res = options.cachedAddr
+		cacheStruct := options.GetIPStringOptionsCache()
+		res = (*addressStringParams)(cacheStruct.CachedAddr)
+		//res = options.cachedAddr
 	}
 	if res == nil {
 		//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
@@ -152,14 +174,16 @@ func toParamsFromIPOptions(opts IPStringOptions) (res *addressStringParams) {
 			//zoneSeparator: opts.GetZoneSeparator(),
 		}
 		if hasCache {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedAddr))
+			cacheStruct := options.GetIPStringOptionsCache()
+			dataLoc := &cacheStruct.CachedAddr
+			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedAddr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
 	}
 	return
 }
 
-func from(opts IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringParams) {
+func from(opts addrstr.IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringParams) {
 	//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 	res = &ipv6StringParams{
 		ipAddressStringParams: ipAddressStringParams{
@@ -186,7 +210,7 @@ func from(opts IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringPara
 		if maxCount > 0 {
 			res.firstCompressedSegmentIndex = maxIndex
 			res.nextUncompressedIndex = maxIndex + maxCount
-			res.hostCompressed = compressOptions.GetCompressionChoiceOptions().compressHost() &&
+			res.hostCompressed = compressOptions.GetCompressionChoiceOptions().CompressHost() &&
 				addr.IsPrefixed() &&
 				(res.nextUncompressedIndex >
 					getHostSegmentIndex(addr.getNetworkPrefixLen().bitCount(), IPv6BytesPerSegment, IPv6BitsPerSegment))
@@ -263,7 +287,7 @@ type divStringProvider interface {
 
 // Each segment params has settings to write exactly one type of IP address part string segment.
 type addressSegmentParams interface {
-	getWildcards() Wildcards
+	getWildcards() addrstr.Wildcards
 
 	preferWildcards() bool
 
@@ -289,7 +313,7 @@ type addressSegmentParams interface {
 type addressStringParams struct {
 	//protected static class AddressStringParams<T extends AddressStringDivisionSeries> implements AddressDivisionWriter, AddressSegmentParams, Cloneable {
 
-	wildcards      Wildcards
+	wildcards      addrstr.Wildcards
 	expandSegments bool //whether to expand 1 to 001 for IPv4 or 0001 for IPv6
 
 	segmentStrPrefix string //eg for inet_aton style there is 0x for hex, 0 for octal
@@ -343,7 +367,7 @@ type addressStringParams struct {
 //	this.separator = separator;
 //}
 
-func (params *addressStringParams) getWildcards() Wildcards {
+func (params *addressStringParams) getWildcards() addrstr.Wildcards {
 	return params.wildcards
 }
 
@@ -823,7 +847,7 @@ type ipAddressStringParams struct {
 	//public static final WildcardOption DEFAULT_WILDCARD_OPTION = WildcardOption.NETWORK_ONLY;
 	//protected static final int EXTRA_SPACE = 16;
 
-	wildcardOption WildcardOption
+	wildcardOption addrstr.WildcardOption
 	expandSeg      []int //the same as expandSegments but for each segment
 	addressSuffix  string
 }
@@ -845,7 +869,7 @@ type ipAddressStringParams struct {
 //}
 
 func (params *ipAddressStringParams) preferWildcards() bool {
-	return params.wildcardOption == WildcardsAll
+	return params.wildcardOption == addrstr.WildcardsAll
 }
 
 //public void setWildcardOption(WildcardOption option) {

@@ -1,6 +1,9 @@
 package ipaddr
 
-import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+)
 
 // ExtendedIPSegmentSeries wraps either an IPAddress or IPAddressSection.
 // ExtendedIPSegmentSeries can be used to write code that works with both IP Addresses and IP Address Sections,
@@ -8,7 +11,7 @@ import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 type ExtendedIPSegmentSeries interface {
 	IPAddressSegmentSeries
 
-	ToCustomString(stringOptions IPStringOptions) string
+	ToCustomString(stringOptions addrstr.IPStringOptions) string
 
 	// Unwrap returns the wrapped *IPAddress or *IPAddressSection as an interface, IPAddressSegmentSeries
 	Unwrap() IPAddressSegmentSeries

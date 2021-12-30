@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"fmt"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
@@ -1245,7 +1246,7 @@ func (addr *Address) ToBinaryString(with0bPrefix bool) (string, addrerr.Incompat
 	return addr.init().toBinaryString(with0bPrefix)
 }
 
-func (addr *Address) ToCustomString(stringOptions StringOptions) string {
+func (addr *Address) ToCustomString(stringOptions addrstr.StringOptions) string {
 	if addr == nil {
 		return nilString()
 	}

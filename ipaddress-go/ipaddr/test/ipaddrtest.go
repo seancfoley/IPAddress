@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math"
 	"math/big"
 	//"math/bits"
@@ -3914,9 +3915,9 @@ func (t ipAddressTester) testNormalizedMC(original, expected string, keepMixed, 
 	//String normalized;
 	if w.IsIPv6() {
 		val := w.GetAddress().ToIPv6()
-		var paramsBuilder = new(ipaddr.IPv6StringOptionsBuilder)
+		var paramsBuilder = new(addrstr.IPv6StringOptionsBuilder)
 		if compress {
-			compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).ToOptions()
+			compressOpts := new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).ToOptions()
 			paramsBuilder = paramsBuilder.SetCompressOptions(compressOpts)
 		}
 		fromString := val.ToAddressString()
@@ -3985,9 +3986,9 @@ func (t ipAddressTester) testMixedNoComp(original, expected, expectedNoCompressi
 	if normalized != expected {
 		t.addFailure(newFailure("mixed was "+normalized+" expected was "+expected, w))
 	} else {
-		compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.NoMixedCompression).ToOptions()
+		compressOpts := new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).SetMixedOptions(addrstr.NoMixedCompression).ToOptions()
 		//CompressOptions opts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZerosOrHost, CompressOptions.MixedCompressionOptions.NO);
-		normalized, err := val.ToCustomString(new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions())
+		normalized, err := val.ToCustomString(new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions())
 		if err != nil {
 			t.addFailure(newIPAddrFailure("ToCustomString errored with error: "+err.Error(), val.ToIP()))
 		}
@@ -4002,7 +4003,7 @@ func (t ipAddressTester) testMixedNoComp(original, expected, expectedNoCompressi
 func (t ipAddressTester) testRadices(original, expected string, radix int) {
 	w := t.createAddress(original)
 	val := w.GetAddress()
-	options := new(ipaddr.IPv4StringOptionsBuilder).SetRadix(radix).ToOptions()
+	options := new(addrstr.IPv4StringOptionsBuilder).SetRadix(radix).ToOptions()
 	normalized := val.ToCustomString(options)
 	if normalized != expected {
 		t.addFailure(newFailure("string was "+normalized+" expected was "+expected, w))

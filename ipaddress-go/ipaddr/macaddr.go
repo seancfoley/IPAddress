@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"net"
 	"sync/atomic"
@@ -774,7 +775,7 @@ func (addr *MACAddress) ToColonDelimitedString() string {
 	return addr.init().GetSection().ToColonDelimitedString()
 }
 
-func (addr *MACAddress) ToCustomString(stringOptions StringOptions) string {
+func (addr *MACAddress) ToCustomString(stringOptions addrstr.StringOptions) string {
 	if addr == nil {
 		return nilString()
 	}

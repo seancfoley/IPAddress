@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"strconv"
 	"sync/atomic"
@@ -1794,15 +1795,15 @@ var (
 	otherHexPrefix   = "0X"
 
 	//decimalParams            = new(StringOptionsBuilder).SetRadix(10).SetExpandedSegments(true).ToOptions()
-	hexParams                  = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	hexUppercaseParams         = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetUppercase(true).ToOptions()
-	hexPrefixedParams          = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
-	hexPrefixedUppercaseParams = new(StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).SetUppercase(true).ToOptions()
-	octalParams                = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	octalPrefixedParams        = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
-	octal0oPrefixedParams      = new(StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(otherOctalPrefix).ToOptions()
-	binaryParams               = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
-	binaryPrefixedParams       = new(StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
+	hexParams                  = new(addrstr.StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	hexUppercaseParams         = new(addrstr.StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetUppercase(true).ToOptions()
+	hexPrefixedParams          = new(addrstr.StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
+	hexPrefixedUppercaseParams = new(addrstr.StringOptionsBuilder).SetRadix(16).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).SetUppercase(true).ToOptions()
+	octalParams                = new(addrstr.StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	octalPrefixedParams        = new(addrstr.StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(OctalPrefix).ToOptions()
+	octal0oPrefixedParams      = new(addrstr.StringOptionsBuilder).SetRadix(8).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(otherOctalPrefix).ToOptions()
+	binaryParams               = new(addrstr.StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
+	binaryPrefixedParams       = new(addrstr.StringOptionsBuilder).SetRadix(2).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(BinaryPrefix).ToOptions()
 )
 
 //func (section *addressSectionInternal) GetSegmentStrings() []string {
@@ -2145,7 +2146,7 @@ func (section *addressSectionInternal) toOctalString(with0Prefix bool) (string, 
 }
 
 func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone Zone) (string, addrerr.IncompatibleAddressError) {
-	var opts StringOptions
+	var opts addrstr.StringOptions
 	if with0Prefix {
 		opts = octalPrefixedParams
 	} else {
@@ -2154,7 +2155,7 @@ func (section *addressSectionInternal) toOctalStringZoned(with0Prefix bool, zone
 	return section.toLongOctalStringZoned(zone, opts)
 }
 
-func (section *addressSectionInternal) toLongOctalStringZoned(zone Zone, opts StringOptions) (string, addrerr.IncompatibleAddressError) {
+func (section *addressSectionInternal) toLongOctalStringZoned(zone Zone, opts addrstr.StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
 	} else if isDual {
@@ -2225,7 +2226,7 @@ func (section *addressSectionInternal) toBinaryStringZoned(with0bPrefix bool, zo
 	return section.toLongStringZoned(zone, binaryParams)
 }
 
-func (section *addressSectionInternal) toLongStringZoned(zone Zone, params StringOptions) (string, addrerr.IncompatibleAddressError) {
+func (section *addressSectionInternal) toLongStringZoned(zone Zone, params addrstr.StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if isDual, err := section.isDualString(); err != nil {
 		return "", err
 	} else if isDual {
@@ -2235,11 +2236,11 @@ func (section *addressSectionInternal) toLongStringZoned(zone Zone, params Strin
 	return section.toCustomStringZoned(params, zone), nil
 }
 
-func (section *addressSectionInternal) toCustomString(stringOptions StringOptions) string {
+func (section *addressSectionInternal) toCustomString(stringOptions addrstr.StringOptions) string {
 	return toNormalizedString(stringOptions, section.toAddressSection())
 }
 
-func (section *addressSectionInternal) toCustomStringZoned(stringOptions StringOptions, zone Zone) string {
+func (section *addressSectionInternal) toCustomStringZoned(stringOptions addrstr.StringOptions, zone Zone) string {
 	return toNormalizedZonedString(stringOptions, section.toAddressSection(), zone)
 }
 
@@ -2980,7 +2981,7 @@ func (section *AddressSection) ToBinaryString(with0bPrefix bool) (string, addrer
 	return section.toBinaryString(with0bPrefix)
 }
 
-func (section *AddressSection) ToCustomString(stringOptions StringOptions) string {
+func (section *AddressSection) ToCustomString(stringOptions addrstr.StringOptions) string {
 	if section == nil {
 		return nilString()
 	}

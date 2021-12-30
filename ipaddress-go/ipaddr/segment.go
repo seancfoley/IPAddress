@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"unsafe"
 )
@@ -268,8 +269,8 @@ func (seg *addressSegmentInternal) segmentIterator(segPrefLen PrefixLen, isPrefi
 
 var (
 	// wildcards differ, for divs we use only range since div size not implicit, here we use both range and *
-	hexParamsSeg     = new(IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).ToOptions()
-	decimalParamsSeg = new(IPStringOptionsBuilder).SetRadix(10).ToOptions()
+	hexParamsSeg     = new(addrstr.IPStringOptionsBuilder).SetRadix(16).SetSegmentStrPrefix(HexPrefix).ToOptions()
+	decimalParamsSeg = new(addrstr.IPStringOptionsBuilder).SetRadix(10).ToOptions()
 )
 
 // We do not need to "override" ToNormalizedString() and ToHexString(bool) because neither prints leading zeros according to bit count, so zero segments of type IPv4/IPv6/MAC are printed consistently

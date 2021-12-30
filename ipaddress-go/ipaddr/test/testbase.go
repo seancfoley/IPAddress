@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math"
 	"math/big"
 	"strconv"
@@ -954,16 +955,16 @@ func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.
 
 	m, _ := ipAddr.ToMixedString()
 
-	compressOpts := new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.MixedCompressionCoveredByHost)
-	mixedParams := new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
+	compressOpts := new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).SetMixedOptions(addrstr.MixedCompressionCoveredByHost)
+	mixedParams := new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedCompressCoveredHost, _ := ipAddr.ToCustomString(mixedParams)
 
-	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.MixedCompressionNoHost)
-	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
+	compressOpts = new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).SetMixedOptions(addrstr.MixedCompressionNoHost)
+	mixedParams = new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedNoCompressHost, _ := ipAddr.ToCustomString(mixedParams)
 
-	compressOpts = new(ipaddr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ipaddr.ZerosOrHost).SetMixedOptions(ipaddr.NoMixedCompression)
-	mixedParams = new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
+	compressOpts = new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).SetMixedOptions(addrstr.NoMixedCompression)
+	mixedParams = new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions()
 	mixedNoCompressMixed, _ := ipAddr.ToCustomString(mixedParams)
 
 	t.confirmAddrStrings(ipAddr.ToIP(), m, mixedCompressCoveredHost, mixedNoCompressHost, mixedNoCompressMixed, base85)

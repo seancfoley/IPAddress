@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 )
 
@@ -541,15 +542,15 @@ func (section *MACAddressSection) ReplaceLen(startIndex, endIndex int, replaceme
 }
 
 var (
-	canonicalWildcards = new(WildcardsBuilder).SetRangeSeparator(MacDashedSegmentRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()
+	canonicalWildcards = new(addrstr.WildcardsBuilder).SetRangeSeparator(MacDashedSegmentRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()
 
 	//macHexParams         = new(MACStringOptionsBuilder).SetHasSeparator(false).SetExpandedSegments(true).ToOptions()
 	//macHexPrefixedParams = new(MACStringOptionsBuilder).SetHasSeparator(false).SetExpandedSegments(true).SetAddressLabel(HexPrefix).ToOptions()
-	macNormalizedParams  = new(MACStringOptionsBuilder).SetExpandedSegments(true).ToOptions()
-	macCanonicalParams   = new(MACStringOptionsBuilder).SetSeparator(MACDashSegmentSeparator).SetExpandedSegments(true).SetWildcards(canonicalWildcards).ToOptions()
-	macCompressedParams  = new(MACStringOptionsBuilder).ToOptions()
-	dottedParams         = new(MACStringOptionsBuilder).SetSeparator(MacDottedSegmentSeparator).SetExpandedSegments(true).ToOptions()
-	spaceDelimitedParams = new(MACStringOptionsBuilder).SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
+	macNormalizedParams  = new(addrstr.MACStringOptionsBuilder).SetExpandedSegments(true).ToOptions()
+	macCanonicalParams   = new(addrstr.MACStringOptionsBuilder).SetSeparator(MACDashSegmentSeparator).SetExpandedSegments(true).SetWildcards(canonicalWildcards).ToOptions()
+	macCompressedParams  = new(addrstr.MACStringOptionsBuilder).ToOptions()
+	dottedParams         = new(addrstr.MACStringOptionsBuilder).SetSeparator(MacDottedSegmentSeparator).SetExpandedSegments(true).ToOptions()
+	spaceDelimitedParams = new(addrstr.MACStringOptionsBuilder).SetSeparator(MacSpaceSegmentSeparator).SetExpandedSegments(true).ToOptions()
 )
 
 func (section *MACAddressSection) ToHexString(with0xPrefix bool) (string, addrerr.IncompatibleAddressError) {

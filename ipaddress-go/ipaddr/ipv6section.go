@@ -2,6 +2,7 @@ package ipaddr
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"math/bits"
 	"sync/atomic"
@@ -739,20 +740,21 @@ func (section *IPv6AddressSection) calcZeroVals() *zeroRangeCache {
 
 // GetCompressIndexAndCount chooses a single segment to be compressed in an IPv6 string. If no segment could be chosen then count is 0.
 // If options is nil, no segment will be chosen.  If createMixed is true, will assume the address string will be mixed IPv6/v4.
-func (section *IPv6AddressSection) getCompressIndexAndCount(options CompressOptions, createMixed bool) (maxIndex, maxCount int) {
+func (section *IPv6AddressSection) getCompressIndexAndCount(options addrstr.CompressOptions, createMixed bool) (maxIndex, maxCount int) {
 	if options != nil {
 		rangeSelection := options.GetCompressionChoiceOptions()
 		var compressibleSegs RangeList
-		if rangeSelection.compressHost() {
+		if rangeSelection.CompressHost() {
 			compressibleSegs = section.GetZeroRangeSegments()
 		} else {
 			compressibleSegs = section.GetZeroSegments()
 		}
 		maxCount = 0
 		segmentCount := section.GetSegmentCount()
-		compressMixed := createMixed && options.GetMixedCompressionOptions().compressMixed(section)
-		preferHost := (rangeSelection == HostPreferred)
-		preferMixed := createMixed && (rangeSelection == MixedPreferred)
+		//compressMixed := createMixed && options.GetMixedCompressionOptions().compressMixed(section)
+		compressMixed := createMixed && compressMixedSect(options.GetMixedCompressionOptions(), section)
+		preferHost := (rangeSelection == addrstr.HostPreferred)
+		preferMixed := createMixed && (rangeSelection == addrstr.MixedPreferred)
 		for i := compressibleSegs.size() - 1; i >= 0; i-- {
 			rng := compressibleSegs.getRange(i)
 			index := rng.index
@@ -785,6 +787,28 @@ func (section *IPv6AddressSection) getCompressIndexAndCount(options CompressOpti
 		}
 	}
 	return
+}
+
+func compressMixedSect(m addrstr.MixedCompressionOptions, addressSection *IPv6AddressSection) bool {
+	switch m {
+	case addrstr.AllowMixedCompression:
+		return true
+	case addrstr.NoMixedCompression:
+		return false
+	case addrstr.MixedCompressionNoHost:
+		return !addressSection.IsPrefixed()
+	case addrstr.MixedCompressionCoveredByHost:
+		if addressSection.IsPrefixed() {
+			mixedDistance := IPv6MixedOriginalSegmentCount
+			mixedCount := addressSection.GetSegmentCount() - mixedDistance
+			if mixedCount > 0 {
+				return (BitCount(mixedDistance) * addressSection.GetBitsPerSegment()) >= addressSection.getNetworkPrefixLen().bitCount()
+			}
+		}
+		return true
+	default:
+		return true
+	}
 }
 
 func (section *IPv6AddressSection) getZeroSegments(includeRanges bool) RangeList {
@@ -1059,35 +1083,35 @@ func (section *IPv6AddressSection) IsZeroGrouping() bool {
 }
 
 var (
-	compressAll            = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZerosOrHost).ToOptions()
-	compressMixed          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(MixedPreferred).ToOptions()
-	compressAllNoSingles   = new(CompressOptionsBuilder).SetRangeSelection(ZerosOrHost).ToOptions()
-	compressHostPreferred  = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(HostPreferred).ToOptions()
-	compressZeros          = new(CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(ZerosCompression).ToOptions()
-	compressZerosNoSingles = new(CompressOptionsBuilder).SetRangeSelection(ZerosCompression).ToOptions()
+	compressAll            = new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).ToOptions()
+	compressMixed          = new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.MixedPreferred).ToOptions()
+	compressAllNoSingles   = new(addrstr.CompressOptionsBuilder).SetRangeSelection(addrstr.ZerosOrHost).ToOptions()
+	compressHostPreferred  = new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.HostPreferred).ToOptions()
+	compressZeros          = new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosCompression).ToOptions()
+	compressZerosNoSingles = new(addrstr.CompressOptionsBuilder).SetRangeSelection(addrstr.ZerosCompression).ToOptions()
 
-	uncWildcards = new(WildcardOptionsBuilder).SetWildcardOptions(WildcardsNetworkOnly).SetWildcards(
-		new(WildcardsBuilder).SetRangeSeparator(IPv6UncRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()).ToOptions()
-	base85Wildcards = new(WildcardsBuilder).SetRangeSeparator(AlternativeRangeSeparatorStr).ToWildcards()
+	uncWildcards = new(addrstr.WildcardOptionsBuilder).SetWildcardOptions(addrstr.WildcardsNetworkOnly).SetWildcards(
+		new(addrstr.WildcardsBuilder).SetRangeSeparator(IPv6UncRangeSeparatorStr).SetWildcard(SegmentWildcardStr).ToWildcards()).ToOptions()
+	base85Wildcards = new(addrstr.WildcardsBuilder).SetRangeSeparator(AlternativeRangeSeparatorStr).ToWildcards()
 
-	mixedParams         = new(IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressMixed).ToOptions()
-	ipv6FullParams      = new(IPv6StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
-	ipv6CanonicalParams = new(IPv6StringOptionsBuilder).SetCompressOptions(compressAllNoSingles).ToOptions()
-	uncParams           = new(IPv6StringOptionsBuilder).SetSeparator(IPv6UncSegmentSeparator).SetZoneSeparator(IPv6UncZoneSeparator).
+	mixedParams         = new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressMixed).ToOptions()
+	ipv6FullParams      = new(addrstr.IPv6StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
+	ipv6CanonicalParams = new(addrstr.IPv6StringOptionsBuilder).SetCompressOptions(compressAllNoSingles).ToOptions()
+	uncParams           = new(addrstr.IPv6StringOptionsBuilder).SetSeparator(IPv6UncSegmentSeparator).SetZoneSeparator(IPv6UncZoneSeparator).
 				SetAddressSuffix(IPv6UncSuffix).SetWildcardOptions(uncWildcards).ToOptions()
-	ipv6CompressedParams         = new(IPv6StringOptionsBuilder).SetCompressOptions(compressAll).ToOptions()
-	ipv6normalizedParams         = new(IPv6StringOptionsBuilder).ToOptions()
-	canonicalWildcardParams      = new(IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).SetCompressOptions(compressZerosNoSingles).ToOptions()
-	ipv6NormalizedWildcardParams = new(IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).ToOptions()    //no compression
-	ipv6SqlWildcardParams        = new(IPv6StringOptionsBuilder).SetWildcardOptions(allSQLWildcards).ToOptions() //no compression
-	wildcardCompressedParams     = new(IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).SetCompressOptions(compressZeros).ToOptions()
-	networkPrefixLengthParams    = new(IPv6StringOptionsBuilder).SetCompressOptions(compressHostPreferred).ToOptions()
+	ipv6CompressedParams         = new(addrstr.IPv6StringOptionsBuilder).SetCompressOptions(compressAll).ToOptions()
+	ipv6normalizedParams         = new(addrstr.IPv6StringOptionsBuilder).ToOptions()
+	canonicalWildcardParams      = new(addrstr.IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).SetCompressOptions(compressZerosNoSingles).ToOptions()
+	ipv6NormalizedWildcardParams = new(addrstr.IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).ToOptions()    //no compression
+	ipv6SqlWildcardParams        = new(addrstr.IPv6StringOptionsBuilder).SetWildcardOptions(allSQLWildcards).ToOptions() //no compression
+	wildcardCompressedParams     = new(addrstr.IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).SetCompressOptions(compressZeros).ToOptions()
+	networkPrefixLengthParams    = new(addrstr.IPv6StringOptionsBuilder).SetCompressOptions(compressHostPreferred).ToOptions()
 
-	ipv6ReverseDNSParams = new(IPv6StringOptionsBuilder).SetReverse(true).SetAddressSuffix(IPv6ReverseDnsSuffix).
+	ipv6ReverseDNSParams = new(addrstr.IPv6StringOptionsBuilder).SetReverse(true).SetAddressSuffix(IPv6ReverseDnsSuffix).
 				SetSplitDigits(true).SetExpandedSegments(true).SetSeparator('.').ToOptions()
-	base85Params = new(IPStringOptionsBuilder).SetRadix(85).SetExpandedSegments(true).
+	base85Params = new(addrstr.IPStringOptionsBuilder).SetRadix(85).SetExpandedSegments(true).
 			SetWildcards(base85Wildcards).SetZoneSeparator(IPv6AlternativeZoneSeparator).ToOptions()
-	ipv6SegmentedBinaryParams = new(IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv6SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).
+	ipv6SegmentedBinaryParams = new(addrstr.IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv6SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).
 					SetExpandedSegments(true).ToOptions()
 )
 
@@ -1349,14 +1373,14 @@ func (section *IPv6AddressSection) toCompressedWildcardStringZoned(zone Zone) st
 
 // ToCustomString produces a string given the string options.
 // Errors can result from split digits with ranged values, or mixed IPv4/v6 with ranged values, when the segment ranges are incompatible.
-func (section *IPv6AddressSection) ToCustomString(stringOptions IPv6StringOptions) (string, addrerr.IncompatibleAddressError) {
+func (section *IPv6AddressSection) ToCustomString(stringOptions addrstr.IPv6StringOptions) (string, addrerr.IncompatibleAddressError) {
 	if section == nil {
 		return nilString(), nil
 	}
 	return section.toCustomString(stringOptions, NoZone)
 }
 
-func (section *IPv6AddressSection) toCustomString(stringOptions IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
+func (section *IPv6AddressSection) toCustomString(stringOptions addrstr.IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	if stringOptions.IsMixed() {
 		return section.toNormalizedMixedZonedString(stringOptions, zone)
 	} else if stringOptions.IsSplitDigits() {
@@ -1365,17 +1389,41 @@ func (section *IPv6AddressSection) toCustomString(stringOptions IPv6StringOption
 	return section.toNormalizedZonedString(stringOptions, zone), nil
 }
 
-func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOptions, zone Zone) string {
+func (section *IPv6AddressSection) toNormalizedZonedString(options addrstr.IPv6StringOptions, zone Zone) string {
 	var stringParams *ipv6StringParams
 	if isCacheable(options) { // the isCacheable call is key and determines if the IPv6StringParams can be shared
-		opts, hasCache := options.(*ipv6StringOptions)
+		//xxxx
+		//this type check will not work anymore if we offload, unless we leave ipv6StringOptions over here
+		//which we cannot, it is generated from a builder I have moved over
+		//You also do not want to add to IPv6StringOptions
+		//Why does not the from call figure it out?
+		//Actually, the from call must remain down here
+		//
+		//I am not thinking of the answer
+		//
+		//What if, one of the objects we obtained from IPv6StringOptions, we could cast somehow?
+		//
+		//OK, it seems only in here can we solve this
+		//
+		//wait, a type cast could do it
+		//
+		//You define an interface F here, with method Foo(), you add Foo() to ipv6StringOptions
+		//but not to IPv6StringOptions, you typecast to F,
+		//and there is your backdoor
+		//
+		//xxxx
+		//opts, hasCache := options.(*ipv6StringOptions)
+		opts, hasCache := options.(ipv6CacheAccess)
 		if hasCache {
-			stringParams = opts.cachedIPv6Addr
+			cacheStruct := opts.GetIPv6StringOptionsCache()
+			stringParams = (*ipv6StringParams)(cacheStruct.CachedIPv6Addr)
 		}
 		if stringParams == nil {
 			stringParams = from(options, section)
 			if hasCache {
-				dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
+				cacheStruct := opts.GetIPv6StringOptionsCache()
+				//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cacheStruct.cachedIPv6Addr))
+				dataLoc := &cacheStruct.CachedIPv6Addr
 				atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
 			}
 		}
@@ -1385,30 +1433,42 @@ func (section *IPv6AddressSection) toNormalizedZonedString(options IPv6StringOpt
 	return stringParams.toZonedString(section, zone)
 }
 
-func (section *IPv6AddressSection) toNormalizedSplitZonedString(options IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
+type ipv6CacheAccess interface {
+	GetIPv6StringOptionsCache() *addrstr.IPv6StringOptionsCache
+}
+
+func (section *IPv6AddressSection) toNormalizedSplitZonedString(options addrstr.IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	var stringParams *ipv6StringParams
 	// all split strings are cacheable since no compression
-	opts, hasCache := options.(*ipv6StringOptions)
+	//opts, hasCache := options.(*ipv6StringOptions)
+	opts, hasCache := options.(ipv6CacheAccess)
 	if hasCache {
-		stringParams = opts.cachedIPv6Addr
+		cacheStruct := opts.GetIPv6StringOptionsCache()
+		stringParams = (*ipv6StringParams)(cacheStruct.CachedIPv6Addr)
+		//stringParams = opts.cachedIPv6Addr
 	}
 	if stringParams == nil {
 		stringParams = from(options, section)
 		if hasCache {
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
+			cacheStruct := opts.GetIPv6StringOptionsCache()
+			dataLoc := &cacheStruct.CachedIPv6Addr
+			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
 		}
 	}
 	return stringParams.toZonedSplitString(section, zone)
 }
 
-func (section *IPv6AddressSection) toNormalizedMixedZonedString(options IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
+func (section *IPv6AddressSection) toNormalizedMixedZonedString(options addrstr.IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	var stringParams *ipv6StringParams
 	if isCacheable(options) { // the isCacheable call is key and determines if the IPv6StringParams can be shared (right not it just means not compressed)
-		opts, hasCache := options.(*ipv6StringOptions)
+		//opts, hasCache := options.(*ipv6StringOptions)
+		opts, hasCache := options.(ipv6CacheAccess)
 		var mixedParams *ipv6v4MixedParams
 		if hasCache {
-			mixedParams = opts.cachedMixedIPv6Addr
+			cacheStruct := opts.GetIPv6StringOptionsCache()
+			mixedParams = (*ipv6v4MixedParams)(cacheStruct.CachedMixedIPv6Addr)
+			//mixedParams = opts.cachedMixedIPv6Addr
 		}
 		if mixedParams == nil {
 			stringParams = from(options, section)
@@ -1416,7 +1476,9 @@ func (section *IPv6AddressSection) toNormalizedMixedZonedString(options IPv6Stri
 				ipv6Params: stringParams,
 				ipv4Params: toIPParams(options.GetIPv4Opts()),
 			}
-			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedMixedIPv6Addr))
+			cacheStruct := opts.GetIPv6StringOptionsCache()
+			dataLoc := &cacheStruct.CachedMixedIPv6Addr
+			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedMixedIPv6Addr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(mixedParams))
 		}
 		return section.toNormalizedMixedString(mixedParams, zone)
@@ -1433,6 +1495,10 @@ func (section *IPv6AddressSection) toNormalizedMixedZonedString(options IPv6Stri
 	}
 	// the mixed section is compressed
 	return stringParams.toZonedString(section, zone), nil
+}
+
+func isCacheable(options addrstr.IPv6StringOptions) bool {
+	return options.GetCompressOptions() == nil
 }
 
 func (section *IPv6AddressSection) toNormalizedMixedString(mixedParams *ipv6v4MixedParams, zone Zone) (string, addrerr.IncompatibleAddressError) {

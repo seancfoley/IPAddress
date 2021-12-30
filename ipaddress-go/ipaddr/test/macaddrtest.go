@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math"
 	"math/big"
 	"net"
@@ -999,7 +1000,7 @@ func (t macAddressTester) testCanonical(original, expected string) {
 func (t macAddressTester) testRadices(original, expected string, radix int) {
 	w := t.createMACAddress(original)
 	val := w.GetAddress()
-	options := new(ipaddr.MACStringOptionsBuilder).SetRadix(radix).ToOptions()
+	options := new(addrstr.MACStringOptionsBuilder).SetRadix(radix).ToOptions()
 	normalized := val.ToCustomString(options)
 	if normalized != expected {
 		t.addFailure(newMACFailure("string was "+normalized+" expected was "+expected, w))

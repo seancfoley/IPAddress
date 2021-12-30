@@ -107,6 +107,9 @@ func CopyIPAddressStringParams(orig IPAddressStringParameters) IPAddressStringPa
 //	return &ipAddressStringParameters{}
 //}
 
+// IPAddressStringParameters can be used to control string parsing of IP address strings,
+// indicating what to allow, what to disallow, and other options.
+// You can use IPAddressStringParametersBuilder to construct an IPAddressStringParameters.
 type IPAddressStringParameters interface {
 	AddressStringParameters
 

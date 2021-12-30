@@ -1,6 +1,9 @@
 package ipaddr
 
-import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+import (
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+)
 
 // ExtendedSegmentSeries wraps either an Address or AddressSection.
 // ExtendedSegmentSeries can be used to write code that works with both Addresses and Address Sections,
@@ -8,7 +11,7 @@ import "github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 type ExtendedSegmentSeries interface {
 	AddressSegmentSeries
 
-	ToCustomString(stringOptions StringOptions) string
+	ToCustomString(stringOptions addrstr.StringOptions) string
 
 	// Unwrap returns the wrapped *Address or *AddressSection as an interface, AddressSegmentSeries
 	Unwrap() AddressSegmentSeries

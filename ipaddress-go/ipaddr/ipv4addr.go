@@ -3,6 +3,7 @@ package ipaddr
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"net"
 )
@@ -1057,7 +1058,7 @@ func (addr *IPv4Address) ToInetAtonJoinedString(radix Inet_aton_radix, joinedCou
 	return addr.GetSection().ToInetAtonJoinedString(radix, joinedCount)
 }
 
-func (addr *IPv4Address) ToCustomString(stringOptions IPStringOptions) string {
+func (addr *IPv4Address) ToCustomString(stringOptions addrstr.IPStringOptions) string {
 	if addr == nil {
 		return nilString()
 	}

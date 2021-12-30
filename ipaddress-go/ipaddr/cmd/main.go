@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"net"
 
 	//ip_addr_old "github.com/seancfoley/ipaddress/ipaddress-go/ipaddrold"
@@ -33,7 +34,7 @@ func main() {
 	grouping.GetSegmentCount()
 	//grouping.hasNoDivisions()
 
-	builder := ipaddr.IPAddressStringParametersBuilder{}
+	builder := addrparam.IPAddressStringParametersBuilder{}
 	params := builder.AllowAll(false).ToParams()
 	fmt.Printf("%+v\n", params)
 
@@ -419,22 +420,28 @@ func main() {
 		seg3.GetBlockMaskPrefixLen(false), // should be 8 - either 8 or nil
 	)
 
-	p1 := ipaddr.ToPrefixLen(1)
-	p2 := ipaddr.ToPrefixLen(2)
+	ToPrefixLen := func(i ipaddr.PrefixBitCount) ipaddr.PrefixLen {
+		return &i
+	}
+	p1 := ToPrefixLen(1)
+	p2 := ToPrefixLen(2)
 	fmt.Printf("%v %v\n", p1, p2)
 	*p1 = *p2
 	fmt.Printf("%v %v\n", p1, p2)
-	p1 = ipaddr.ToPrefixLen(1)
-	p2 = ipaddr.ToPrefixLen(2)
+	p1 = ToPrefixLen(1)
+	p2 = ToPrefixLen(2)
 	fmt.Printf("%v %v\n", p1, p2)
 
-	pr1 := ipaddr.ToPort(3)
-	pr2 := ipaddr.ToPort(4)
+	ToPort := func(i ipaddr.PortNum) ipaddr.Port {
+		return &i
+	}
+	pr1 := ToPort(3)
+	pr2 := ToPort(4)
 	fmt.Printf("%p %p %v %v\n", pr1, pr2, pr1, pr2)
 	*pr1 = *pr2
 	fmt.Printf("%p %p %v %v\n", pr1, pr2, pr1, pr2)
-	pr1 = ipaddr.ToPort(3)
-	pr2 = ipaddr.ToPort(4)
+	pr1 = ToPort(3)
+	pr2 = ToPort(4)
 	fmt.Printf("%v %v\n", pr1, pr2)
 
 	fmt.Printf("\n\n")
