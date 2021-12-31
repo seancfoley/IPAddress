@@ -9,7 +9,7 @@ package addrparam
 //	paramsBuilder := MACAddressStringParamsBuilder{}
 //	return paramsBuilder.
 //		// general settings
-//		SetAddressSize(orig.MACAddressSize()).
+//		SetPreferredLen(orig.MACAddressLen()).
 //		AllowDashed(orig.AllowsDashed()).
 //		AllowSingleDashed(orig.AllowsSingleDashed()).
 //		AllowColonDelimited(orig.AllowsColonDelimited()).
@@ -40,12 +40,12 @@ package addrparam
 //		ToParams().(*macAddressStringParameters)
 //}
 
-type MACAddressSize string
+type MACAddressLen string
 
 const (
-	MACSize            MACAddressSize = "MACSize"
-	EUI64Size          MACAddressSize = "EUI64Size"
-	UnspecifiedMACSize MACAddressSize = ""
+	MAC48Len          MACAddressLen = "MAC48"
+	EUI64Len          MACAddressLen = "EUI64"
+	UnspecifiedMACLen MACAddressLen = ""
 )
 
 func CopyMACAddressStringParams(orig MACAddressStringParams) MACAddressStringParams {
@@ -63,7 +63,7 @@ func CopyMACAddressStringParams(orig MACAddressStringParams) MACAddressStringPar
 type MACAddressStringParams interface {
 	AddressStringParams
 
-	AddressSize() MACAddressSize
+	GetPreferredLen() MACAddressLen
 	AllowsDashed() bool
 	AllowsSingleDashed() bool
 	AllowsColonDelimited() bool
@@ -93,11 +93,11 @@ type macAddressStringParameters struct {
 	noAllowColonDelimited,
 	noAllowDotted,
 	noAllowSpaceDelimited bool
-	allAddresses MACAddressSize
+	allAddresses MACAddressLen
 	//network      *MACAddressNetwork
 }
 
-func (params *macAddressStringParameters) AddressSize() MACAddressSize {
+func (params *macAddressStringParameters) GetPreferredLen() MACAddressLen {
 	return params.allAddresses
 }
 
@@ -161,7 +161,7 @@ func (builder *MACAddressStringParamsBuilder) Set(params MACAddressStringParams)
 			noAllowColonDelimited: !params.AllowsColonDelimited(),
 			noAllowDotted:         !params.AllowsDotted(),
 			noAllowSpaceDelimited: !params.AllowsSpaceDelimited(),
-			allAddresses:          params.AddressSize(),
+			allAddresses:          params.GetPreferredLen(),
 		}
 	}
 	//builder.AddressStringParamsBuilder = *ToAddressStringParamsBuilder(params)
@@ -186,8 +186,7 @@ func (builder *MACAddressStringParamsBuilder) AllowAll(allow bool) *MACAddressSt
 	return builder
 }
 
-//TODO this applies only to "all" addresses, ie "*", so you need to rename
-func (builder *MACAddressStringParamsBuilder) SetAddressSize(size MACAddressSize) *MACAddressStringParamsBuilder {
+func (builder *MACAddressStringParamsBuilder) SetPreferredLen(size MACAddressLen) *MACAddressStringParamsBuilder {
 	builder.params.allAddresses = size
 	return builder
 }

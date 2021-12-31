@@ -1,10 +1,11 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 type IPv4SegInt uint8
@@ -125,10 +126,6 @@ var zeroIPv4Seg = NewIPv4Segment(0)
 var zeroIPv4SegZeroPrefix = NewIPv4PrefixedSegment(0, cacheBitCount(0))
 var zeroIPv4SegPrefixBlock = NewIPv4RangePrefixedSegment(0, IPv4MaxValuePerSegment, cacheBitCount(0))
 
-//TODO seems you are missing GetSegmentValue and GetUpperSegmentValue from IPv4AddressSegment, IPv6AddressSegment, MACAddressSegment that convert to IPv4SegInt, IPV6SegInt, MACSegInt
-//But that was intentional since those methods in the div framework.  Do you want to provide GetIPv4SegmentValue and similar?  Maybe you should.
-// Or, why not simply create additional GetSegmentValue and GetUpperSegmentValue methods?  Seriously.  Oh, because of interface.
-
 type IPv4AddressSegment struct {
 	ipAddressSegmentInternal
 }
@@ -138,6 +135,16 @@ func (seg *IPv4AddressSegment) init() *IPv4AddressSegment {
 		return zeroIPv4Seg
 	}
 	return seg
+}
+
+// GetIPv4SegmentValue returns the lower value.  Same as GetSegmentValue but returned as a IPv4SegInt.
+func (seg *IPv4AddressSegment) GetIPv4SegmentValue() IPv4SegInt {
+	return IPv4SegInt(seg.GetSegmentValue())
+}
+
+// GetIPv4UpperSegmentValue returns the lower value.  Same as GetUpperSegmentValue but returned as a IPv4SegInt.
+func (seg *IPv4AddressSegment) GetIPv4UpperSegmentValue() IPv4SegInt {
+	return IPv4SegInt(seg.GetUpperSegmentValue())
 }
 
 func (seg *IPv4AddressSegment) Contains(other AddressSegmentType) bool {
@@ -497,7 +504,7 @@ func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
 func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 	if useIPv4SegmentCache {
 		result := &segmentCacheIPv4[value]
-		checkValuesIPv4(value, value, result)
+		//checkValuesIPv4(value, value, result)
 		return result
 	}
 	return &ipv4SegmentValues{
@@ -547,7 +554,7 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
 		}
 		result = &block.block[value]
-		checkValuesIPv4(value, value, result) //xxx getting wrong cached answer for value 0 and prefLen 8
+		//checkValuesIPv4(value, value, result) //xxx getting wrong cached answer for value 0 and prefLen 8
 		return result
 	}
 	var isSinglePrefBlock *bool
@@ -619,14 +626,14 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 					atomic.StorePointer(dataLoc, unsafe.Pointer(block))
 				}
 				result = &block.block[valueIndex]
-				checkValuesIPv4(value, upperValue, result)
+				//checkValuesIPv4(value, upperValue, result)
 				return result
 			}
 			if value == 0 {
 				// cache is 0-255 for any prefix length
 				if upperValue == IPv4MaxValuePerSegment {
 					result := &allPrefixedCacheIPv4[segmentPrefixLength]
-					checkValuesIPv4(value, upperValue, result)
+					//checkValuesIPv4(value, upperValue, result)
 					return result
 				}
 			}

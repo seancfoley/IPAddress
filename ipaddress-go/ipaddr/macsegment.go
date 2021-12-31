@@ -125,6 +125,16 @@ type MACAddressSegment struct {
 	addressSegmentInternal
 }
 
+// GetMACSegmentValue returns the lower value.  Same as GetSegmentValue but returned as a MACSegInt.
+func (seg *MACAddressSegment) GetMACSegmentValue() MACSegInt {
+	return MACSegInt(seg.GetSegmentValue())
+}
+
+// GetMACUpperSegmentValue returns the lower value.  Same as GetUpperSegmentValue but returned as a MACSegInt.
+func (seg *MACAddressSegment) GetMACUpperSegmentValue() MACSegInt {
+	return MACSegInt(seg.GetUpperSegmentValue())
+}
+
 func (seg *MACAddressSegment) init() *MACAddressSegment {
 	if seg.divisionValues == nil {
 		return zeroMACSeg
@@ -403,7 +413,7 @@ func makeSegmentCacheMAC() (segmentCacheMAC []macSegmentValues) {
 func newMACSegmentVal(value MACSegInt) *macSegmentValues {
 	if useMACSegmentCache {
 		result := &segmentCacheMAC[value]
-		checkValuesMAC(value, value, result)
+		//checkValuesMAC(value, value, result)
 		return result
 	}
 	return &macSegmentValues{value: value, upperValue: value}

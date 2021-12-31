@@ -136,6 +136,16 @@ func (seg *IPv6AddressSegment) init() *IPv6AddressSegment {
 	return seg
 }
 
+// GetIPv6SegmentValue returns the lower value.  Same as GetSegmentValue but returned as a IPv6SegInt.
+func (seg *IPv6AddressSegment) GetIPv6SegmentValue() IPv6SegInt {
+	return IPv6SegInt(seg.GetSegmentValue())
+}
+
+// GetIPv6UpperSegmentValue returns the lower value.  Same as GetUpperSegmentValue but returned as a IPv6SegInt.
+func (seg *IPv6AddressSegment) GetIPv6UpperSegmentValue() IPv6SegInt {
+	return IPv6SegInt(seg.GetUpperSegmentValue())
+}
+
 func (seg *IPv6AddressSegment) Contains(other AddressSegmentType) bool {
 	if seg == nil {
 		return other == nil || other.ToSegmentBase() == nil
@@ -717,7 +727,7 @@ func newIPv6SegmentVal(value IPv6SegInt) *ipv6SegmentValues {
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
 		}
 		result := &block.block[resultIndex]
-		checkValuesIPv6(value, value, result)
+		//checkValuesIPv6(value, value, result)
 		return result
 	}
 	return &ipv6SegmentValues{
@@ -775,7 +785,7 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 			atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
 		}
 		result := &blockCache.block[resultIndex]
-		checkValuesIPv6(value, value, result)
+		//checkValuesIPv6(value, value, result)
 		return result
 	}
 	var isSinglePrefBlock *bool
@@ -794,49 +804,49 @@ func newIPv6SegmentPrefixedVal(value IPv6SegInt, prefLen PrefixLen) (result *ipv
 	}
 }
 
-func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
-	if result.value != value || result.upperValue != upperValue {
-		panic("huh")
-	}
-}
-
-func checkValuesIPv6(value, upperValue IPv6SegInt, result *ipv6SegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
-	if result.value != value || result.upperValue != upperValue {
-		panic("huh")
-	}
-	if result.cache.isSinglePrefBlock != nil {
-		seg := newIPv6Segment(result)
-		var isSinglePBlock bool
-		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
-		}
-		if isSinglePBlock != *result.cache.isSinglePrefBlock {
-			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
-			}
-			panic("why")
-		}
-	}
-}
-
-func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) { //TODO remove eventually, this is just verifying that the code creating the values is good
-	if result.value != value || result.upperValue != upperValue {
-		panic("huh")
-	}
-	if result.cache.isSinglePrefBlock != nil {
-		seg := newIPv4Segment(result)
-		var isSinglePBlock bool
-		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
-		}
-		if isSinglePBlock != *result.cache.isSinglePrefBlock {
-			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
-				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
-			}
-			panic("why")
-		}
-	}
-}
+//func checkValuesMAC(value, upperValue MACSegInt, result *macSegmentValues) {
+//	if result.value != value || result.upperValue != upperValue {
+//		panic("huh")
+//	}
+//}
+//
+//func checkValuesIPv6(value, upperValue IPv6SegInt, result *ipv6SegmentValues) {
+//	if result.value != value || result.upperValue != upperValue {
+//		panic("huh")
+//	}
+//	if result.cache.isSinglePrefBlock != nil {
+//		seg := newIPv6Segment(result)
+//		var isSinglePBlock bool
+//		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
+//			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
+//		}
+//		if isSinglePBlock != *result.cache.isSinglePrefBlock {
+//			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
+//				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
+//			}
+//			panic("why")
+//		}
+//	}
+//}
+//
+//func checkValuesIPv4(value, upperValue IPv4SegInt, result *ipv4SegmentValues) {
+//	if result.value != value || result.upperValue != upperValue {
+//		panic("huh")
+//	}
+//	if result.cache.isSinglePrefBlock != nil {
+//		seg := newIPv4Segment(result)
+//		var isSinglePBlock bool
+//		if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
+//			isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
+//		}
+//		if isSinglePBlock != *result.cache.isSinglePrefBlock {
+//			if prefLen := seg.GetSegmentPrefixLen(); prefLen != nil {
+//				isSinglePBlock = seg.isSinglePrefixBlock(seg.getDivisionValue(), seg.getUpperDivisionValue(), prefLen.bitCount())
+//			}
+//			panic("why")
+//		}
+//	}
+//}
 
 func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLen) *ipv6SegmentValues {
 	var isSinglePrefBlock *bool
@@ -906,14 +916,14 @@ func newIPv6SegmentPrefixedValues(value, upperValue IPv6SegInt, prefLen PrefixLe
 					atomic.StorePointer(dataLoc, unsafe.Pointer(blockCache))
 				}
 				result := &blockCache.block[resultIndex]
-				checkValuesIPv6(value, upperValue, result)
+				//checkValuesIPv6(value, upperValue, result)
 				return result
 			}
 			if value == 0 {
 				// cache is 0-0xffff for any prefix length
 				if upperValue == IPv6MaxValuePerSegment {
 					result := &allPrefixedCacheIPv6[prefixIndex]
-					checkValuesIPv6(value, upperValue, result)
+					//checkValuesIPv6(value, upperValue, result)
 					return result
 				}
 			}

@@ -319,10 +319,10 @@ func validateAddress(
 						isDoubleSeg = isDoubleSeg || (frontWildcardCount > 0 && wildcardCount > 0)
 						if isDoubleSeg && !firstSegmentDashedRange { //checks for *-abcdef and abcdef-* and abcdef-abcdef and *-* two segment addresses
 							// firstSegmentDashedRange means that the range character is '|'
-							addressSize := macOptions.AddressSize()
-							if addressSize == addrparam.EUI64Size && totalDigits == macDoubleSegmentDigitCount {
+							addressSize := macOptions.GetPreferredLen()
+							if addressSize == addrparam.EUI64Len && totalDigits == macDoubleSegmentDigitCount {
 								return &addressStringError{addressError{str: str, key: "ipaddress.error.too.few.segments"}}
-							} else if addressSize == addrparam.MACSize && totalDigits == macExtendedDoubleSegmentDigitCount {
+							} else if addressSize == addrparam.MAC48Len && totalDigits == macExtendedDoubleSegmentDigitCount {
 								return &addressStringError{addressError{str: str, key: "ipaddress.error.too.many.segments"}}
 							}
 							// we have aaaaaa-bbbbbb
@@ -490,7 +490,7 @@ func validateAddress(
 							index}
 					}
 					var limit int
-					if macOptions.AddressSize() == addrparam.MACSize {
+					if macOptions.GetPreferredLen() == addrparam.MAC48Len {
 						limit = MediaAccessControlDottedSegmentCount
 					} else {
 						limit = MediaAccessControlDotted64SegmentCount
@@ -967,10 +967,10 @@ func validateAddress(
 			segmentStartIndex = index
 			// end of IPv4 segments and mac segments with '.' separators
 		} else {
-			//checking for all IPv6 and MACSize segments, as well as the front range of all segments IPv4, IPv6, and MACSize
-			//the range character '-' is the same as one of the separators '-' for MACSize,
-			//so further work is required to distinguish between the front of IPv6/IPv4/MACSize range and MACSize segment
-			//we also handle IPv6 segment and MACSize segment in the same place to avoid code duplication
+			//checking for all IPv6 and MAC48Len segments, as well as the front range of all segments IPv4, IPv6, and MAC48Len
+			//the range character '-' is the same as one of the separators '-' for MAC48Len,
+			//so further work is required to distinguish between the front of IPv6/IPv4/MAC48Len range and MAC48Len segment
+			//we also handle IPv6 segment and MAC48Len segment in the same place to avoid code duplication
 			var isSpace, isDashedRangeChar, isRangeChar bool
 			if currentChar == IPv6SegmentSeparator {
 				isRangeChar = false
@@ -983,16 +983,16 @@ func validateAddress(
 
 					/*
 					 There are 3 cases here, A, B and C.
-					 A - we have two MACSize segments a-b-
-					 B - we have the front of a range segment, either a-b which is MACSize or ipv6AddrType,  or a|b or a<space>b which is MACSize
-					 C - we have a single segment, either a MACSize segment a- or an IPv6 or MACSize segment a:
+					 A - we have two MAC48Len segments a-b-
+					 B - we have the front of a range segment, either a-b which is MAC48Len or ipv6AddrType,  or a|b or a<space>b which is MAC48Len
+					 C - we have a single segment, either a MAC48Len segment a- or an IPv6 or MAC48Len segment a:
 					*/
 
 					/*
 					 Here we have either a '-' or '|' character or a space ' '
 
 					 If we have a '-' character:
-					 For MACSize address, the cases are:
+					 For MAC48Len address, the cases are:
 					 1. we did not previously set macFormat and we did not previously encounter '|'
 					 		-if rangeWildcardIndex >= 0 we have dashed a-b- we treat as two segments, case A (we cannot have a|b because that would have set macFormat previously)
 					 		-if rangeWildcardIndex < 0, we treat as front of range, case B, later we will know for sure if really front of range
@@ -1003,7 +1003,7 @@ func validateAddress(
 
 					 For IPv6, this is always front of range, case B
 
-					 If we have a '|' character, we have front of range MACSize, case B
+					 If we have a '|' character, we have front of range MAC48Len, case B
 					*/
 					// we know either isRangeChar or isDashedRangeChar is true at this point
 					endOfHexSegment := false
@@ -1354,7 +1354,7 @@ func validateAddress(
 							index}
 					}
 					var segLimit int
-					if macOptions.AddressSize() == addrparam.MACSize {
+					if macOptions.GetPreferredLen() == addrparam.MAC48Len {
 						segLimit = MediaAccessControlSegmentCount
 					} else {
 						segLimit = ExtendedUniqueIdentifier64SegmentCount
@@ -1768,7 +1768,7 @@ func validateAddress(
 			index++
 			segmentValueStartIndex = index
 			segmentStartIndex = segmentValueStartIndex
-			// end of IPv6 and MACSize segments
+			// end of IPv6 and MAC48Len segments
 		} // end of all cases
 	} // end of character loop
 	return nil
@@ -2836,7 +2836,7 @@ func checkMACSegments(
 		//note that too many segments is checked inside the general parsing method
 		segCount := addressParseData.getSegmentCount()
 		if format == dotted {
-			if segCount <= MediaAccessControlDottedSegmentCount && validationOptions.AddressSize() != addrparam.EUI64Size {
+			if segCount <= MediaAccessControlDottedSegmentCount && validationOptions.GetPreferredLen() != addrparam.EUI64Len {
 				if !hasWildcardSeparator && segCount != MediaAccessControlDottedSegmentCount {
 					return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 				}
@@ -2846,7 +2846,7 @@ func checkMACSegments(
 				parseData.setExtended(true)
 			}
 		} else if segCount > 2 {
-			if segCount <= MediaAccessControlSegmentCount && validationOptions.AddressSize() != addrparam.EUI64Size {
+			if segCount <= MediaAccessControlSegmentCount && validationOptions.GetPreferredLen() != addrparam.EUI64Len {
 				if !hasWildcardSeparator && segCount != MediaAccessControlSegmentCount {
 					return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 				}
@@ -2897,7 +2897,7 @@ func checkMACSegments(
 			} else if !hasWildcardSeparator {
 				return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.too.few.segments"}}
 			}
-			if validationOptions.AddressSize() == addrparam.EUI64Size {
+			if validationOptions.GetPreferredLen() == addrparam.EUI64Len {
 				parseData.setExtended(true)
 			}
 		}

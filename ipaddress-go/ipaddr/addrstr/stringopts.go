@@ -118,7 +118,6 @@ type StringOptions interface {
 }
 
 type stringOptionsCache struct {
-	//cached *addressStringParams
 	cached unsafe.Pointer
 }
 
@@ -142,7 +141,7 @@ type stringOptions struct {
 	stringOptionsCache
 }
 
-func (w *stringOptions) GetStringOptionsCache() *unsafe.Pointer { //TODO next make this (and its associated interface) return the unsafe.Pointer so you can avoid the public StringOptionsCache
+func (w *stringOptions) GetStringOptionsCache() *unsafe.Pointer {
 	return &w.stringOptionsCache.cached
 }
 
@@ -426,8 +425,6 @@ type IPStringOptions interface {
 }
 
 type ipStringOptionsCache struct {
-	//cachedIPAddr *ipAddressStringParams
-	//cachedAddr   *addressStringParams
 	cachedIPAddr,
 	cachedAddr unsafe.Pointer
 }
@@ -692,8 +689,8 @@ type IPv6StringOptions interface {
 type ipv6StringOptionsCache struct {
 	//	cachedIPv6Addr      *ipv6StringParams
 	//	cachedMixedIPv6Addr *ipv6v4MixedParams
-	CachedIPv6Addr,
-	CachedMixedIPv6Addr unsafe.Pointer
+	cachedIPv6Addr,
+	cachedMixedIPv6Addr unsafe.Pointer
 }
 
 // Provides a clear way to create a specific type of IPv6 address string.
@@ -710,11 +707,11 @@ type ipv6StringOptions struct {
 }
 
 func (opts *ipv6StringOptions) GetIPv6StringOptionsCache() *unsafe.Pointer {
-	return &opts.ipv6StringOptionsCache.CachedIPv6Addr
+	return &opts.ipv6StringOptionsCache.cachedIPv6Addr
 }
 
 func (opts *ipv6StringOptions) GetIPv6StringOptionsMixedCache() *unsafe.Pointer {
-	return &opts.ipv6StringOptionsCache.CachedMixedIPv6Addr
+	return &opts.ipv6StringOptionsCache.cachedMixedIPv6Addr
 }
 
 //func (opts *ipv6StringOptions) isCacheable() bool {

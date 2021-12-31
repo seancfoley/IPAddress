@@ -33,10 +33,10 @@ func (provider *macAddressAllProvider) getAddress() (*MACAddress, addrerr.Incomp
 		if addr == nil {
 			validationOptions := provider.validationOptions
 			//creator := provider.validationOptions.GetNetwork().GetMACAddressCreator() xxxx ipaddress we used addrType to get network to get creator
-			size := validationOptions.AddressSize()
+			size := validationOptions.GetPreferredLen()
 			creator := macType.getNetwork().getAddressCreator()
 			var segCount int
-			if size == addrparam.EUI64Size {
+			if size == addrparam.EUI64Len {
 				segCount = ExtendedUniqueIdentifier64SegmentCount
 			} else {
 				segCount = MediaAccessControlSegmentCount
