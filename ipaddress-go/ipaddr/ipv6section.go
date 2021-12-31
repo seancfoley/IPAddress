@@ -1078,7 +1078,7 @@ func (section *IPv6AddressSection) ReplaceLen(startIndex, endIndex int, replacem
 	return section.replaceLen(startIndex, endIndex, replacement.ToIP(), replacementStartIndex, replacementEndIndex, ipv6BitsToSegmentBitshift).ToIPv6()
 }
 
-func (section *IPv6AddressSection) IsZeroGrouping() bool {
+func (section *IPv6AddressSection) IsAdaptiveZero() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 
@@ -1762,7 +1762,7 @@ func (grouping *IPv6v4MixedAddressGrouping) IsPrefixed() bool {
 	return grouping != nil && grouping.isPrefixed()
 }
 
-func (grouping *IPv6v4MixedAddressGrouping) IsZeroGrouping() bool {
+func (grouping *IPv6v4MixedAddressGrouping) IsAdaptiveZero() bool {
 	return grouping != nil && grouping.matchesZeroGrouping()
 }
 

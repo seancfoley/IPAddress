@@ -96,9 +96,10 @@ type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and abo
 type StandardDivGroupingType interface {
 	AddressDivisionSeries
 
-	// IsZeroGrouping returns true if the division grouping was originally created as a zero-valued section or grouping (eg IPv4AddressSection{})
-	// Such a grouping has no divisions or segments, and is convertible to any type or version, whether IPv6, IPv4, MAC, etc
-	IsZeroGrouping() bool
+	// IsZeroGrouping returns true if the division grouping was originally created as a zero-valued section or grouping (eg IPv4AddressSection{}),
+	// meaning it was not constructed using a constructor function.
+	// Such a grouping, which has no divisions or segments, is convertible to a zero-valued grouping of any type or version, whether IPv6, IPv4, MAC, etc
+	IsAdaptiveZero() bool
 
 	CompareSize(StandardDivGroupingType) int
 

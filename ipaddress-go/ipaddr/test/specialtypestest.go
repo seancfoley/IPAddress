@@ -1032,7 +1032,7 @@ func (t specialTypesTester) testNils() {
 	for _, item := range ipSectionsIPv6 {
 		// items in ipv6 list that are not specifically ipv6 are not necessarily bigger than similar items in ipv4 list
 
-		if item.IsIPv6() && !item.IsZeroGrouping() {
+		if item.IsIPv6() && !item.IsAdaptiveZero() {
 			ipv6SectionItems = append(ipv6SectionItems, item)
 		}
 	}

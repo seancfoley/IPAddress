@@ -803,7 +803,7 @@ func (section *IPv4AddressSection) ReplaceLen(startIndex, endIndex int, replacem
 	return section.replaceLen(startIndex, endIndex, replacement.ToIP(), replacementStartIndex, replacementEndIndex, ipv4BitsToSegmentBitshift).ToIPv4()
 }
 
-func (section *IPv4AddressSection) IsZeroGrouping() bool {
+func (section *IPv4AddressSection) IsAdaptiveZero() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 

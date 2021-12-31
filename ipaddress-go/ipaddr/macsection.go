@@ -418,7 +418,7 @@ func (section *MACAddressSection) IncrementBoundary(increment int64) *MACAddress
 	return section.incrementBoundary(increment).ToMAC()
 }
 
-func (section *MACAddressSection) IsZeroGrouping() bool {
+func (section *MACAddressSection) IsAdaptiveZero() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 

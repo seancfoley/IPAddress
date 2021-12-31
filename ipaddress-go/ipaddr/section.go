@@ -2822,7 +2822,7 @@ func (section *AddressSection) ToBlock(segmentIndex int, lower, upper SegInt) *A
 	return section.toBlock(segmentIndex, lower, upper)
 }
 
-func (section *AddressSection) IsZeroGrouping() bool {
+func (section *AddressSection) IsAdaptiveZero() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 

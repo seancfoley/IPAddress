@@ -1663,7 +1663,7 @@ func (section *IPAddressSection) GetBlockCount(segmentCount int) *big.Int {
 	return section.addressDivisionGroupingBase.GetBlockCount(segmentCount)
 }
 
-func (section *IPAddressSection) IsZeroGrouping() bool {
+func (section *IPAddressSection) IsAdaptiveZero() bool {
 	return section != nil && section.matchesZeroGrouping()
 }
 

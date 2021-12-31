@@ -77,7 +77,7 @@ func mapDivision(genericDiv DivisionType) int {
 
 func mapGrouping(grouping StandardDivGroupingType) int {
 	group := grouping.ToDivGrouping()
-	if group.IsZeroGrouping() {
+	if group.IsAdaptiveZero() {
 		// The zero grouping can represent a zero-length section of any address type.
 		// This is necessary because sections and groupings have no init() method to ensure zero-sections are always assigned an address type.
 		// We need the zero grouping to be less than everything else or more than everything else for comparison consistency.
