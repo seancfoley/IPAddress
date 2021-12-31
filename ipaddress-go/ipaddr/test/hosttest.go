@@ -912,7 +912,7 @@ func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(
 		t.addFailure(newHostFailure("socket address mismatch, expected: "+expected.String()+" result: "+socketAddr.String(), h))
 	}
 	if socketAddr != nil && h.GetService() == "" {
-		h2 := ipaddr.NewHostNameFromNetTCPAddr(socketAddr)
+		h2, _ := ipaddr.NewHostNameFromNetTCPAddr(socketAddr)
 		if !h.Equal(h2) {
 			t.addFailure(newHostFailure("socket address mismatch, expected: "+h.String()+" result: "+h2.String(), h))
 		}
@@ -1000,12 +1000,12 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 				}
 			} else if expectedZone == "" {
 				if prefixLengthExpected == nil {
-					h2 := ipaddr.NewHostNameFromNetIP(addrHost.GetNetIP())
+					h2, _ := ipaddr.NewHostNameFromNetIP(addrHost.GetNetIP())
 					if !h2.Equal(hostName) {
 						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 					}
 				} else {
-					h2 := ipaddr.NewHostNameFromPrefixedNetIP(addrHost.GetNetIP(), prefixLengthExpected)
+					h2, _ := ipaddr.NewHostNameFromPrefixedNetIP(addrHost.GetNetIP(), prefixLengthExpected)
 					if !h2.Equal(hostName) {
 						t.addFailure(newHostFailure("failed: host is "+h2.String(), hostName))
 					}

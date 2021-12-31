@@ -300,7 +300,7 @@ func (t *addresses) createAddressFromIP(ip net.IP) (res *ipaddr.IPAddress) {
 			if res != nil {
 				return
 			}
-			res = ipaddr.NewIPAddressFromNetIP(ip)
+			res, _ = ipaddr.NewIPAddressFromNetIP(ip)
 			t.netIPv4AddressCache[key] = res
 		} else if len(ip) == 16 {
 			t.netIPv6AddressCacheLock.Lock()
@@ -311,14 +311,15 @@ func (t *addresses) createAddressFromIP(ip net.IP) (res *ipaddr.IPAddress) {
 			if res != nil {
 				return
 			}
-			res = ipaddr.NewIPAddressFromNetIP(ip)
+			res, _ = ipaddr.NewIPAddressFromNetIP(ip)
 			t.netIPv6AddressCache[key] = res
 		} else {
-			res = ipaddr.NewIPAddressFromNetIP(ip)
+			res, _ = ipaddr.NewIPAddressFromNetIP(ip)
 		}
 		return
 	}
-	return ipaddr.NewIPAddressFromNetIP(ip)
+	res, _ = ipaddr.NewIPAddressFromNetIP(ip)
+	return
 }
 
 func (t *addresses) createIPv4Address(val uint32) (res *ipaddr.IPv4Address) {

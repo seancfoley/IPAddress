@@ -3275,9 +3275,9 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		// if address.IsIPv4() {
 		//ipaddr.IPv4Network.
 		if network {
-			another = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, cacheTestBits(prefixBits))
+			another, _ = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, cacheTestBits(prefixBits))
 		} else {
-			another = ipaddr.NewIPAddressFromNetIP(bytes)
+			another, _ = ipaddr.NewIPAddressFromNetIP(bytes)
 			if another.IsIPv4() && prefixBits > ipaddr.IPv4BitCount {
 				// ::ffff:ffff:ffff is interpreted as IPv4-mapped and gives the IPv4 address 255.255.255.255, so we flip it back to IPv6
 				another = ipaddr.DefaultAddressConverter{}.ToIPv6(another).ToIP()
@@ -4764,8 +4764,10 @@ func reconstitute(version ipaddr.IPVersion, bytes []byte, segmentByteSize int) [
 
 		for i, ind := 0, 0; i < len(set); i++ {
 			setBytes := set[i]
-			segs := creator.NewIPSectionFromBytes(setBytes).GetSegments()
-			segs2 := creator.NewIPSectionFromBytes(bytes[ind : ind+len(setBytes)]).GetSegments()
+			sec1, _ := creator.NewIPSectionFromBytes(setBytes)
+			sec2, _ := creator.NewIPSectionFromBytes(bytes[ind : ind+len(setBytes)])
+			segs := sec1.GetSegments()
+			segs2 := sec2.GetSegments()
 
 			if i%2 == 1 {
 				segs, segs2 = segs2, segs
@@ -5388,7 +5390,7 @@ func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 				j += bytesPerSegment
 			}
 			//directAddress = creator.NewIPAddressFromPrefixedIP(bytes, pref)
-			directAddress = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, pref)
+			directAddress, _ = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, pref)
 		} else {
 			//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 			origSeg := segs[prefSeg]

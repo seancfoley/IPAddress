@@ -82,7 +82,7 @@ func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *Host
 	ipAddr, err = NewIPAddressFromNetIPAddr(&net.IPAddr{IP: ip, Zone: zone})
 	if err != nil {
 		return
-	} else if ipAddr != nil {
+	} else if ipAddr == nil {
 		err = &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 		return
 	}

@@ -364,22 +364,8 @@ const maxPortNumInternal, minPortNumInternal = math.MaxUint16, 0
 type Port = *PortNum
 
 type PortInt = int // using signed integers allows for easier arithmetic
-//type portNum = uint16
-
-/*
-// the same as for prefixLen
-p1 := ipaddr.ToPrefixLen(1)
-p2 := ipaddr.ToPrefixLen(2)
-*p1 = *p2
-
-Do the same as what we do above
-*/
 
 type PortNum uint16
-
-//type PortNum struct {
-//	port portNum
-//}
 
 func (p *PortNum) portNum() PortInt {
 	//return PortInt(p.port)
