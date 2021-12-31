@@ -29,14 +29,6 @@ type ExtendedSegmentSeries interface {
 	// GetSubSection returns a subsection of the full address section
 	GetSubSection(index, endIndex int) *AddressSection
 
-	//GetNetworkSection() *AddressSection
-	//GetHostSection() *AddressSection
-	//GetNetworkSectionLen(BitCount) *AddressSection
-	//GetHostSectionLen(BitCount) *AddressSection
-
-	//GetNetworkMask() ExtendedSegmentSeries
-	//GetHostMask() ExtendedSegmentSeries
-
 	GetSegment(index int) *AddressSegment
 	GetSegments() []*AddressSegment
 	CopySegments(segs []*AddressSegment) (count int)
@@ -56,14 +48,7 @@ type ExtendedSegmentSeries interface {
 	// and changing the following segments to be full-range
 	ToBlock(segmentIndex int, lower, upper SegInt) ExtendedSegmentSeries
 
-	//ToPrefixBlockLen(BitCount) ExtendedSegmentSeries
 	ToPrefixBlock() ExtendedSegmentSeries
-
-	//ToZeroHostLen(BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
-	//ToZeroHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
-	//ToMaxHostLen(BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
-	//ToMaxHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError)
-	//ToZeroNetwork() ExtendedSegmentSeries
 
 	Increment(int64) ExtendedSegmentSeries
 	IncrementBoundary(int64) ExtendedSegmentSeries
@@ -74,16 +59,9 @@ type ExtendedSegmentSeries interface {
 	AssignPrefixForSingleBlock() ExtendedSegmentSeries
 	AssignMinPrefixForBlock() ExtendedSegmentSeries
 
-	//SequentialBlockIterator() ExtendedSegmentSeriesIterator
-	//BlockIterator(segmentCount int) ExtendedSegmentSeriesIterator
 	Iterator() ExtendedSegmentSeriesIterator
-	//PrefixIterator() ExtendedSegmentSeriesIterator
+	PrefixIterator() ExtendedSegmentSeriesIterator
 	PrefixBlockIterator() ExtendedSegmentSeriesIterator
-
-	//SpanWithPrefixBlocks() []ExtendedSegmentSeries
-	//SpanWithSequentialBlocks() []ExtendedSegmentSeries
-
-	//CoverWithPrefixBlock() ExtendedSegmentSeries
 
 	AdjustPrefixLen(BitCount) ExtendedSegmentSeries
 	AdjustPrefixLenZeroed(BitCount) (ExtendedSegmentSeries, addrerr.IncompatibleAddressError)
@@ -145,9 +123,9 @@ func (addr WrappedAddress) Iterator() ExtendedSegmentSeriesIterator {
 	return addressSeriesIterator{addr.Address.Iterator()}
 }
 
-//func (w WrappedAddress) PrefixIterator() ExtendedSegmentSeriesIterator {
-//	return ipaddressSeriesIterator{w.Address.PrefixIterator()}
-//}
+func (addr WrappedAddress) PrefixIterator() ExtendedSegmentSeriesIterator {
+	return addressSeriesIterator{addr.Address.PrefixIterator()}
+}
 
 func (addr WrappedAddress) PrefixBlockIterator() ExtendedSegmentSeriesIterator {
 	return addressSeriesIterator{addr.Address.PrefixBlockIterator()}
@@ -328,9 +306,9 @@ func (section WrappedAddressSection) Iterator() ExtendedSegmentSeriesIterator {
 	return sectionSeriesIterator{section.AddressSection.Iterator()}
 }
 
-//func (w WrappedAddressSection) PrefixIterator() ExtendedSegmentSeriesIterator {
-//	return ipsectionSeriesIterator{w.AddressSection.PrefixIterator()}
-//}
+func (section WrappedAddressSection) PrefixIterator() ExtendedSegmentSeriesIterator {
+	return sectionSeriesIterator{section.AddressSection.PrefixIterator()}
+}
 
 func (section WrappedAddressSection) PrefixBlockIterator() ExtendedSegmentSeriesIterator {
 	return sectionSeriesIterator{section.AddressSection.PrefixBlockIterator()}

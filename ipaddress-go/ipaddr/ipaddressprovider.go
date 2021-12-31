@@ -874,10 +874,10 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 
 // TODO NEXT progress
 //
-// - check notes.txt in Java for functionality table
 // - go over the java to-dos as some might make sense in golang too
 // - go over the goland warnings, they do help a bit to find issues
 // - license at top of every source file
+// - clean up
 
 // Look into splitting this up.  Can we move the framework into new package? iterators?
 // How do you group the constructors with their associated types?
@@ -973,6 +973,8 @@ Pros separate
 - versioning becomes more complicated with same repo.
 - no downloading extra code
 - shorter import path
+- can see different stats and traffic for each
+- another popular URL for google
 
 The original plan was to use same repo, in part for more stars
 */

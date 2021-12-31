@@ -1585,40 +1585,37 @@ func (creator IPAddressCreator) CreatePrefixSegment(value SegInt, segmentPrefixL
 	return nil
 }
 
-//TODO let's return an error
-func (creator IPAddressCreator) NewIPSectionFromBytes(bytes []byte) *IPAddressSection {
+func (creator IPAddressCreator) NewIPSectionFromBytes(bytes []byte) (*IPAddressSection, addrerr.AddressValueError) {
 	if creator.IsIPv4() {
-		addr, _ := NewIPv4SectionFromBytes(bytes)
-		return addr.ToIP()
+		addr, err := NewIPv4SectionFromBytes(bytes)
+		return addr.ToIP(), err
 	} else if creator.IsIPv6() {
-		addr, _ := NewIPv6SectionFromBytes(bytes)
-		return addr.ToIP()
+		addr, err := NewIPv6SectionFromBytes(bytes)
+		return addr.ToIP(), err
 	}
-	return nil
+	return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.ipVersionIndeterminate"}}
 }
 
-//TODO let's return an error
-func (creator IPAddressCreator) NewIPSectionFromSegmentBytes(bytes []byte, segmentCount int) *IPAddressSection {
+func (creator IPAddressCreator) NewIPSectionFromSegmentBytes(bytes []byte, segmentCount int) (*IPAddressSection, addrerr.AddressValueError) {
 	if creator.IsIPv4() {
-		addr, _ := NewIPv4SectionFromSegmentedBytes(bytes, segmentCount)
-		return addr.ToIP()
+		addr, err := NewIPv4SectionFromSegmentedBytes(bytes, segmentCount)
+		return addr.ToIP(), err
 	} else if creator.IsIPv6() {
-		addr, _ := NewIPv4SectionFromSegmentedBytes(bytes, segmentCount)
-		return addr.ToIP()
+		addr, err := NewIPv4SectionFromSegmentedBytes(bytes, segmentCount)
+		return addr.ToIP(), err
 	}
-	return nil
+	return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.ipVersionIndeterminate"}}
 }
 
-//TODO let's return an error
-func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segmentCount int, prefLen PrefixLen) *IPAddressSection {
+func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segmentCount int, prefLen PrefixLen) (*IPAddressSection, addrerr.AddressValueError) {
 	if creator.IsIPv4() {
-		addr, _ := NewIPv4SectionFromPrefixedBytes(bytes, segmentCount, prefLen)
-		return addr.ToIP()
+		addr, err := NewIPv4SectionFromPrefixedBytes(bytes, segmentCount, prefLen)
+		return addr.ToIP(), err
 	} else if creator.IsIPv6() {
-		addr, _ := NewIPv4SectionFromPrefixedBytes(bytes, segmentCount, prefLen)
-		return addr.ToIP()
+		addr, err := NewIPv4SectionFromPrefixedBytes(bytes, segmentCount, prefLen)
+		return addr.ToIP(), err
 	}
-	return nil
+	return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.ipVersionIndeterminate"}}
 }
 
 // the reason this was not here before was that with the creator, the version field determines the version
@@ -1658,57 +1655,50 @@ func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProv
 	return NewIPAddressFromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
 }
 
-//TODO let's return an error
-func NewIPAddressFromNetIPMask(ip net.IPMask) *IPAddress {
-	addr, _ := addrFromBytes(ip)
-	return addr
+func NewIPAddressFromNetIPMask(ip net.IPMask) (*IPAddress, addrerr.AddressValueError) {
+	return addrFromBytes(ip)
 }
 
-//TODO let's return an error
-func NewIPAddressFromNetIP(ip net.IP) *IPAddress {
-	addr, _ := addrFromIP(ip)
-	return addr
+func NewIPAddressFromNetIP(ip net.IP) (*IPAddress, addrerr.AddressValueError) {
+	return addrFromIP(ip)
 }
 
-//TODO let's return an error
-func NewIPAddressFromPrefixedNetIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
-	addr, _ := addrFromPrefixedIP(ip, prefixLength)
-	return addr
+func NewIPAddressFromPrefixedNetIP(ip net.IP, prefixLength PrefixLen) (*IPAddress, addrerr.AddressValueError) {
+	return addrFromPrefixedIP(ip, prefixLength)
 }
 
-//TODO let's return an error
-func NewIPAddressFromNetIPAddr(addr *net.IPAddr) *IPAddress {
+func NewIPAddressFromNetIPAddr(addr *net.IPAddr) (*IPAddress, addrerr.AddressValueError) {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
 	}
 	if len(ip) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromBytes(ip)
-		return res.ToIP()
+		res, err := NewIPv4AddressFromBytes(ip)
+		return res.ToIP(), err
 	} else if len(ip) <= IPv6ByteCount {
-		res, _ := NewIPv6AddressFromZonedBytes(ip, addr.Zone)
-		return res.ToIP()
+		res, err := NewIPv6AddressFromZonedBytes(ip, addr.Zone)
+		return res.ToIP(), err
 	}
-	return nil
+	return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 }
 
-//TODO let's return an error
-func NewIPAddressFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
+func NewIPAddressFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLength PrefixLen) (*IPAddress, addrerr.AddressValueError) {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
 	}
 	if len(ip) <= IPv4ByteCount {
-		res, _ := NewIPv4AddressFromPrefixedBytes(ip, prefixLength)
-		return res.ToIP()
+		res, err := NewIPv4AddressFromPrefixedBytes(ip, prefixLength)
+		return res.ToIP(), err
 	} else if len(ip) <= IPv6ByteCount {
-		res, _ := NewIPv6AddressFromPrefixedZonedBytes(ip, prefixLength, addr.Zone)
-		return res.ToIP()
+		res, err := NewIPv6AddressFromPrefixedZonedBytes(ip, prefixLength, addr.Zone)
+		return res.ToIP(), err
 	}
-	return nil
+	return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 }
 
-func NewIPAddressFromNetIPNet(ipnet net.IPNet) (*IPAddress, addrerr.IncompatibleAddressError) {
+// The error can be either addrerr.AddressValueError or addrerr.IncompatibleAddressError
+func NewIPAddressFromNetIPNet(ipnet net.IPNet) (*IPAddress, addrerr.AddressError) {
 	ip := ipnet.IP
 	maskIp := ipnet.Mask
 	if ipv4 := ip.To4(); ipv4 != nil {
@@ -1717,13 +1707,17 @@ func NewIPAddressFromNetIPNet(ipnet net.IPNet) (*IPAddress, addrerr.Incompatible
 			maskIp = maskIp[IPv6MixedOriginalByteCount:]
 		}
 	}
-	addr, _ := addrFromBytes(ip)
-	if addr == nil {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.exceeds.size"}}
+	addr, err := addrFromBytes(ip)
+	if err != nil {
+		return nil, err
+	} else if addr == nil {
+		return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 	}
-	mask := NewIPAddressFromNetIPMask(maskIp)
-	if mask == nil {
-		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.exceeds.size"}}
+	mask, err := NewIPAddressFromNetIPMask(maskIp)
+	if err != nil {
+		return nil, err
+	} else if mask == nil {
+		return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
 	} else if !addr.GetIPVersion().Equal(mask.GetIPVersion()) {
 		return nil, &incompatibleAddressError{addressError{key: "ipaddress.error.ipMismatch"}}
 	}
