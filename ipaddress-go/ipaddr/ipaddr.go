@@ -1585,6 +1585,7 @@ func (creator IPAddressCreator) CreatePrefixSegment(value SegInt, segmentPrefixL
 	return nil
 }
 
+//TODO let's return an error
 func (creator IPAddressCreator) NewIPSectionFromBytes(bytes []byte) *IPAddressSection {
 	if creator.IsIPv4() {
 		addr, _ := NewIPv4SectionFromBytes(bytes)
@@ -1596,6 +1597,7 @@ func (creator IPAddressCreator) NewIPSectionFromBytes(bytes []byte) *IPAddressSe
 	return nil
 }
 
+//TODO let's return an error
 func (creator IPAddressCreator) NewIPSectionFromSegmentBytes(bytes []byte, segmentCount int) *IPAddressSection {
 	if creator.IsIPv4() {
 		addr, _ := NewIPv4SectionFromSegmentedBytes(bytes, segmentCount)
@@ -1607,6 +1609,7 @@ func (creator IPAddressCreator) NewIPSectionFromSegmentBytes(bytes []byte, segme
 	return nil
 }
 
+//TODO let's return an error
 func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segmentCount int, prefLen PrefixLen) *IPAddressSection {
 	if creator.IsIPv4() {
 		addr, _ := NewIPv4SectionFromPrefixedBytes(bytes, segmentCount, prefLen)
@@ -1619,7 +1622,8 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 }
 
 // the reason this was not here before was that with the creator, the version field determines the version
-// so, the creator is not needed for these two, you can just call the public functions
+// so, the creator is not needed for these two because the byte length determines the version,
+// so for these you can just call the public functions
 //func (creator IPAddressCreator) NewIPAddressFromIP(bytes net.IP) *IPAddress {
 //	if creator.IsIPv4() {
 //		addr, _ := NewIPv4AddressFromBytes(bytes)
@@ -1654,21 +1658,25 @@ func (creator IPAddressCreator) NewIPAddressFromPrefixedZonedVals(lowerValueProv
 	return NewIPAddressFromPrefixedZonedVals(creator.IPVersion, lowerValueProvider, upperValueProvider, prefixLength, zone)
 }
 
+//TODO let's return an error
 func NewIPAddressFromNetIPMask(ip net.IPMask) *IPAddress {
 	addr, _ := addrFromBytes(ip)
 	return addr
 }
 
+//TODO let's return an error
 func NewIPAddressFromNetIP(ip net.IP) *IPAddress {
 	addr, _ := addrFromIP(ip)
 	return addr
 }
 
+//TODO let's return an error
 func NewIPAddressFromPrefixedNetIP(ip net.IP, prefixLength PrefixLen) *IPAddress {
 	addr, _ := addrFromPrefixedIP(ip, prefixLength)
 	return addr
 }
 
+//TODO let's return an error
 func NewIPAddressFromNetIPAddr(addr *net.IPAddr) *IPAddress {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {
@@ -1684,6 +1692,7 @@ func NewIPAddressFromNetIPAddr(addr *net.IPAddr) *IPAddress {
 	return nil
 }
 
+//TODO let's return an error
 func NewIPAddressFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLength PrefixLen) *IPAddress {
 	ip := addr.IP
 	if ipv4 := ip.To4(); ipv4 != nil {

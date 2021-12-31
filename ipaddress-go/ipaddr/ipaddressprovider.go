@@ -904,7 +904,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // so that leaves the string params and builders.
 // There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
 //
-// TODO replace "Parameters" with "Params" everywhere in public types and methods, also a bunch of types in there do not use same name for receiver, some use w
 // TODO package names addrstr and addrparam, I think I want to keep them separate, but, hard time picking package names
 // addrstr would apply to both, addrinstr and addroutstr?  nah  strparams?  nah
 //
@@ -930,3 +929,49 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //  it seems the godoc doesn't list GetPrefixCount for IPv4Address, but it does for MACAddress.  Huh?
 // Is this because it only goes down one level?  Do I need to accomodate this (ie add to ipaddressInternal stuff from addressInternal?)
 // Yes.
+
+// TODO figure out whether you go for a separate repo or not
+// Basically I discovered that version names seem to map directly to tags
+// discussion here on multiple modules per repo: https://research.swtch.com/vgo-module#multiple-module_repositories
+/*
+It seems that go mandates the same format for tags.
+Because it must follow semantic versioning. Been unable to see how tag could differ from version, but even if it did, conflicting with existing tags may be lame.
+
+So, you'd have to reuse your existing ones to start from version 1. You could also start using new tags with "java' for future java releases, and start golang at version 6.
+https://go.dev/ref/mod
+https://go.dev/blog/using-go-modules
+
+https://github.com/golang/go/issues/47757
+
+Options
+You could rename all your java tags. Unfortunately, this would likely require you to redo all your github releases.check github for an easier option.
+Actually, maybe not.  Create the dup tag first, edit the release to the new tag, and you are good. So there ya go, you could do it that way.
+
+https://huongdanjava.com/rename-tag-git.html
+
+https://gist.github.com/da-n/9998623
+
+https://stackoverflow.com/questions/1028649/how-do-you-rename-a-git-tag
+
+this link is just interesting:
+https://donatstudios.com/Go-v2-Modules
+
+Or you use a separate project. Which still allows you to leverage google, you other link.. use the same docs and wiki.
+
+
+Same repo:
+Pros Shared
+- higher stars
+- google ranking
+- shared wiki, shared web pages
+- already we support multi languages
+- emphasis on similarity
+
+Pros separate
+- a little unusual, no need to keep them same repo
+- versioning / tags / branching
+- you can still make use of one of the google rankings by sharing the docs
+- versioning becomes very complicated (not sure it can be done)
+
+The original plan was to use same repo, in part for more stars
+*/

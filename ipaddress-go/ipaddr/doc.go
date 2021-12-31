@@ -33,6 +33,16 @@ Benefits of this Library
 
 • Making address manipulations easy, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
 
+This library is similar in design to the Java IPAddress library,
+mirroring the same functionality with a similar API,
+despite the differences between the Java and Go languages,
+such as the differences in error handling, the lack of inheritance in Go.
+
+This library allows you to scale down from more specific types to more generic types,
+and then to scale back up again.  You can only scale up to a specific version or address type if the lower level instance was originally derived from an instance of the more-specific type.
+So, for instance, an IPv6Address can be converted to an IPAddress using ToIP(), or to an Address using ToAddressBase(), which can then be converted back to IPAddress or an IPv6Address using ToIPv6().
+But if you wish to covert that IPv6Address to IPv4, you would need to use an implementation of IPv4AddressConverter.
+
 Code Examples
 
 For common use-cases, you may wish to go straight to the wiki code examples which cover a wide breadth of common use-cases: https://github.com/seancfoley/IPAddress/wiki/Code-Examples

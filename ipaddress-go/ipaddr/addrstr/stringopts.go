@@ -143,7 +143,7 @@ type stringOptions struct {
 	StringOptionsCache
 }
 
-func (w *stringOptions) GetStringOptionsCache() *StringOptionsCache {
+func (w *stringOptions) GetStringOptionsCache() *StringOptionsCache { //TODO make this (and its associated interface) return the unsafe.Pointer so you can avoid the public StringOptionsCache
 	return &w.StringOptionsCache
 }
 
@@ -443,7 +443,7 @@ type ipStringOptions struct {
 	IPStringOptionsCache
 }
 
-func (w *ipStringOptions) GetIPStringOptionsCache() *IPStringOptionsCache {
+func (w *ipStringOptions) GetIPStringOptionsCache() *IPStringOptionsCache { //TODO make this (and its associated interface) return the unsafe.Pointer so you can avoid the public IPStringOptionsCache
 	return &w.IPStringOptionsCache
 }
 
@@ -706,7 +706,7 @@ type ipv6StringOptions struct {
 	splitDigits bool
 }
 
-func (opts *ipv6StringOptions) GetIPv6StringOptionsCache() *IPv6StringOptionsCache {
+func (opts *ipv6StringOptions) GetIPv6StringOptionsCache() *IPv6StringOptionsCache { //TODO make this (and its associated interface) return the unsafe.Pointer so you can avoid the public IPv6StringOptionsCache
 	return &opts.IPv6StringOptionsCache
 }
 

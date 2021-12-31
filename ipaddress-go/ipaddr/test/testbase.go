@@ -9,16 +9,126 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
-func Test() {
+func Test(isLimited bool) {
 	var acc testAccumulator
 	var addresses addresses
 	//fullTest := true
 	fullTest := false
 	fmt.Println("Starting TestRunner")
 	startTime := time.Now()
+
+	// TODO when not limited, set caching and run 10 goroutines xxxxx
+	// do not share the testResults, see testAll in TestRunner.java line 583
+
+	if isLimited {
+		acc = testAll(addresses, fullTest)
+	} else {
+		// warm up
+		acc = testAll(addresses, fullTest)
+		addresses.useCache(true)
+		routineCount := 10
+		var wg sync.WaitGroup
+		wg.Add(10)
+		for i := 0; i < routineCount; i++ {
+			go func() {
+				defer wg.Done()
+				newAcc := testAll(addresses, fullTest)
+				acc.add(newAcc)
+			}()
+		}
+		wg.Wait()
+
+		/*
+			//now set the caching and do it again
+						CACHING = true;
+						failures.add(testAll());
+						failures.add(testAll());
+
+						//now multi-threaded with the caching
+						Thread threads[] = runInThreads(10, new Runnable() {xxx
+							@Override
+							public void run() {
+								failures.add(testAll());
+							}
+						});
+
+						try {
+							for(Thread thread : threads) {
+								thread.join();
+							}
+
+							//now use caching but start with a fresh cache, to test synchronization better
+							cache.clear();
+
+							threads = runInThreads(10, new Runnable() {
+								@Override
+								public void run() {
+									failures.add(testAll());
+								}
+							});
+							Thread threads2[] = runInThreads(5, new Runnable() {
+								@Override
+								public void run() {
+									failures.add(testAll());
+								}
+							});
+							for(Thread thread : threads) {
+								thread.join();
+							}
+							for(Thread thread : threads2) {
+								thread.join();
+							}
+						} catch(InterruptedException e) {
+							e.printStackTrace();
+						}
+		*/
+	}
+	//tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	//tester.run()
+	//
+	//hTester := hostTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	//hTester.run()
+	//
+	//macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
+	//macTester.run()
+	//
+	//rangedAddresses := rangedAddresses{addresses}
+	//rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
+	//rangeTester.run()
+	//
+	//hostRTester := hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
+	//hostRTester.run()
+	//
+	//macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
+	//macRangeTester.run()
+	//
+	//allAddresses := allAddresses{rangedAddresses}
+	//allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses, fullTest: fullTest}}}}
+	//allTester.run()
+	//
+	//hostATester := hostAllTester{hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}}
+	//hostATester.run()
+	//
+	//sTypesTester := specialTypesTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	//sTypesTester.run()
+	//
+	//addressOrderTester := addressOrderTest{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
+	//addressOrderTester.run()
+
+	endTime := time.Now().Sub(startTime)
+	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
+	if len(acc.failures) > 0 {
+		fmt.Printf("%v\n", acc.failures)
+	}
+	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
+}
+
+func testAll(addresses addresses, fullTest bool) testAccumulator {
+	var acc testAccumulator
 
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	tester.run()
@@ -52,12 +162,7 @@ func Test() {
 	addressOrderTester := addressOrderTest{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	addressOrderTester.run()
 
-	endTime := time.Now().Sub(startTime)
-	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
-	if len(acc.failures) > 0 {
-		fmt.Printf("%v\n", acc.failures)
-	}
-	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
+	return acc
 }
 
 type testResults interface {
@@ -72,6 +177,15 @@ type testResults interface {
 type testAccumulator struct {
 	counter  int64
 	failures []failure
+	lock     sync.Mutex
+}
+
+func (t *testAccumulator) add(other testAccumulator) {
+	t.lock.Lock()
+	t.failures = append(t.failures, other.failures...)
+	t.counter += other.counter
+	//fmt.Printf("added %d to get %d in counter\n", other.counter, t.counter)
+	t.lock.Unlock()
 }
 
 func (t *testAccumulator) addFailure(f failure) {
