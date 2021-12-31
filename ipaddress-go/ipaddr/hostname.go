@@ -69,90 +69,90 @@ func newHostNameFromAddr(hostStr string, addr *IPAddress) *HostName { // same as
 	}
 }
 
-func NewHostNameFromNetTCPAddr(addr *net.TCPAddr) *HostName {
+func NewHostNameFromNetTCPAddr(addr *net.TCPAddr) (*HostName, addrerr.AddressValueError) {
 	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
 }
 
-func NewHostNameFromNetUDPAddr(addr *net.UDPAddr) *HostName {
+func NewHostNameFromNetUDPAddr(addr *net.UDPAddr) (*HostName, addrerr.AddressValueError) {
 	return newHostNameFromSocketAddr(addr.IP, addr.Port, addr.Zone)
 }
 
-func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName) {
-	ipAddr := NewIPAddressFromNetIPAddr(&net.IPAddr{IP: ip, Zone: zone})
-	//var ipAddr *IPAddress
-	//if zone == NoZone {
-	//	ipAddr = NewIPAddressFromIP(ip)
-	//} else {
-	//	var addr6 *IPv6Address
-	//	addr6, _ = NewIPv6AddressFromIPAddr(&net.IPAddr{IP: ip, Zone: zone})
-	//	ipAddr = addr6.ToIP()
-	//}
-	if ipAddr != nil {
-		portVal := PortInt(port)
-		hostStr := toNormalizedAddrPortString(ipAddr, portVal)
-		parsedHost := parsedHost{
-			originalStr:     hostStr,
-			embeddedAddress: embeddedAddress{addressProvider: ipAddr.getProvider()},
-			labelsQualifier: parsedHostIdentifierStringQualifier{port: cachePorts(portVal)},
-		}
-		hostName = &HostName{
-			str:       hostStr,
-			params:    defaultHostParameters,
-			hostCache: &hostCache{normalizedString: &hostStr, hostData: &hostData{parsedHost: &parsedHost}},
-		}
+func newHostNameFromSocketAddr(ip net.IP, port int, zone string) (hostName *HostName, err addrerr.AddressValueError) {
+	var ipAddr *IPAddress
+	ipAddr, err = NewIPAddressFromNetIPAddr(&net.IPAddr{IP: ip, Zone: zone})
+	if err != nil {
+		return
+	} else if ipAddr != nil {
+		err = &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+		return
+	}
+	portVal := PortInt(port)
+	hostStr := toNormalizedAddrPortString(ipAddr, portVal)
+	parsedHost := parsedHost{
+		originalStr:     hostStr,
+		embeddedAddress: embeddedAddress{addressProvider: ipAddr.getProvider()},
+		labelsQualifier: parsedHostIdentifierStringQualifier{port: cachePorts(portVal)},
+	}
+	hostName = &HostName{
+		str:       hostStr,
+		params:    defaultHostParameters,
+		hostCache: &hostCache{normalizedString: &hostStr, hostData: &hostData{parsedHost: &parsedHost}},
 	}
 	return
 }
 
-func NewHostNameFromNetIP(bytes net.IP) (hostName *HostName) {
-	addr := NewIPAddressFromNetIP(bytes)
-	if addr != nil {
-		hostName = NewHostNameFromAddr(addr)
+func NewHostNameFromNetIP(bytes net.IP) (hostName *HostName, err addrerr.AddressValueError) {
+	var addr *IPAddress
+	addr, err = NewIPAddressFromNetIP(bytes)
+	if err != nil {
+		return
+	} else if addr == nil {
+		err = &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+		return
 	}
+	hostName = NewHostNameFromAddr(addr)
 	return
 }
 
-func NewHostNameFromPrefixedNetIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName) {
-	addr := NewIPAddressFromPrefixedNetIP(bytes, prefixLen)
-	if addr != nil {
-		hostName = NewHostNameFromAddr(addr)
+func NewHostNameFromPrefixedNetIP(bytes net.IP, prefixLen PrefixLen) (hostName *HostName, err addrerr.AddressValueError) {
+	var addr *IPAddress
+	addr, err = NewIPAddressFromPrefixedNetIP(bytes, prefixLen)
+	if err != nil {
+		return
+	} else if addr == nil {
+		err = &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+		return
 	}
+
+	hostName = NewHostNameFromAddr(addr)
 	return
 }
 
-func NewHostNameFromNetIPAddr(addr *net.IPAddr) (hostName *HostName) {
-	ipAddr := NewIPAddressFromNetIPAddr(addr)
-	if ipAddr != nil {
-		hostName = NewHostNameFromAddr(ipAddr)
+func NewHostNameFromNetIPAddr(addr *net.IPAddr) (hostName *HostName, err addrerr.AddressValueError) {
+	var ipAddr *IPAddress
+	ipAddr, err = NewIPAddressFromNetIPAddr(addr)
+	if err != nil {
+		return
+	} else if ipAddr == nil {
+		err = &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+		return
 	}
-	//if addr.Zone == NoZone {
-	//	return NewHostNameFromIP(addr.IP)
-	//}
-	//addr6, err := NewIPv6AddressFromIPAddr(addr)
-	//if err == nil {
-	//	hostName = NewHostNameFromAddr(addr6.ToIP())
-	//}
+	hostName = NewHostNameFromAddr(ipAddr)
 	return
 }
 
-func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName) {
-	ipAddr := NewIPAddressFromPrefixedNetIPAddr(addr, prefixLen)
-	if ipAddr != nil {
-		hostName = NewHostNameFromAddr(ipAddr)
+func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (hostName *HostName, err addrerr.AddressValueError) {
+	var ipAddr *IPAddress
+	ipAddr, err = NewIPAddressFromPrefixedNetIPAddr(addr, prefixLen)
+	if err != nil {
+		return
+	} else if ipAddr == nil {
+		err = &addressValueError{addressError: addressError{key: "ipaddress.error.exceeds.size"}}
+		return
 	}
-	//xxxx just use NewIPAddressFromIPAddr xxxx
-	//
-	//if addr.Zone == NoZone {
-	//	return NewHostNameFromPrefixedIP(addr.IP, prefixLen)
-	//}
-	//addr6, err := NewIPv6AddressFromPrefixedIPAddr(addr, prefixLen)
-	//if err == nil {
-	//	hostName = NewHostNameFromAddr(addr6.ToIP())
-	//}
+	hostName = NewHostNameFromAddr(ipAddr)
 	return
 }
-
-//var defaultHostParameters = addrformat.DefaultHostNameParams()
 
 var defaultHostParameters = new(addrparam.HostNameParamsBuilder).ToParams()
 
