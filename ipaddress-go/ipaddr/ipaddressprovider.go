@@ -956,8 +956,7 @@ https://stackoverflow.com/questions/1028649/how-do-you-rename-a-git-tag
 this link is just interesting:
 https://donatstudios.com/Go-v2-Modules
 
-Or you use a separate project. Which still allows you to leverage google, you other link.. use the same docs and wiki.
-
+Or you use a separate project. Which still allows you to leverage google, using your other link... use the same docs and wiki.
 
 Same repo:
 Pros Shared
@@ -966,12 +965,15 @@ Pros Shared
 - shared wiki, shared web pages
 - already we support multi languages
 - emphasis on similarity
+- same repo name, ie "IPAddress", although even then, you include the extra "ipaddress-go" in the path
 
 Pros separate
 - a little unusual, no need to keep them same repo
 - versioning / tags / branching
 - you can still make use of one of the google rankings by sharing the docs
-- versioning becomes very complicated (not sure it can be done)
+- versioning becomes more complicated with same repo.
+- no downloading extra code
+- shorter import path
 
 The original plan was to use same repo, in part for more stars
 */

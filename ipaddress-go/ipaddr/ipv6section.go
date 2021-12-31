@@ -1415,15 +1415,15 @@ func (section *IPv6AddressSection) toNormalizedZonedString(options addrstr.IPv6S
 		//opts, hasCache := options.(*ipv6StringOptions)
 		opts, hasCache := options.(ipv6CacheAccess)
 		if hasCache {
-			cacheStruct := opts.GetIPv6StringOptionsCache()
-			stringParams = (*ipv6StringParams)(cacheStruct.CachedIPv6Addr)
+			cached := opts.GetIPv6StringOptionsCache()
+			stringParams = (*ipv6StringParams)(*cached)
 		}
 		if stringParams == nil {
 			stringParams = from(options, section)
 			if hasCache {
-				cacheStruct := opts.GetIPv6StringOptionsCache()
+				dataLoc := opts.GetIPv6StringOptionsCache()
 				//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cacheStruct.cachedIPv6Addr))
-				dataLoc := &cacheStruct.CachedIPv6Addr
+				//dataLoc := &cacheStruct.CachedIPv6Addr
 				atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
 			}
 		}
@@ -1434,7 +1434,9 @@ func (section *IPv6AddressSection) toNormalizedZonedString(options addrstr.IPv6S
 }
 
 type ipv6CacheAccess interface {
-	GetIPv6StringOptionsCache() *addrstr.IPv6StringOptionsCache
+	GetIPv6StringOptionsCache() *unsafe.Pointer
+
+	GetIPv6StringOptionsMixedCache() *unsafe.Pointer
 }
 
 func (section *IPv6AddressSection) toNormalizedSplitZonedString(options addrstr.IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
@@ -1443,15 +1445,15 @@ func (section *IPv6AddressSection) toNormalizedSplitZonedString(options addrstr.
 	//opts, hasCache := options.(*ipv6StringOptions)
 	opts, hasCache := options.(ipv6CacheAccess)
 	if hasCache {
-		cacheStruct := opts.GetIPv6StringOptionsCache()
-		stringParams = (*ipv6StringParams)(cacheStruct.CachedIPv6Addr)
+		cached := opts.GetIPv6StringOptionsCache()
+		stringParams = (*ipv6StringParams)(*cached)
 		//stringParams = opts.cachedIPv6Addr
 	}
 	if stringParams == nil {
 		stringParams = from(options, section)
 		if hasCache {
-			cacheStruct := opts.GetIPv6StringOptionsCache()
-			dataLoc := &cacheStruct.CachedIPv6Addr
+			dataLoc := opts.GetIPv6StringOptionsCache()
+			//dataLoc := &cacheStruct.CachedIPv6Addr
 			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
 		}
@@ -1466,8 +1468,8 @@ func (section *IPv6AddressSection) toNormalizedMixedZonedString(options addrstr.
 		opts, hasCache := options.(ipv6CacheAccess)
 		var mixedParams *ipv6v4MixedParams
 		if hasCache {
-			cacheStruct := opts.GetIPv6StringOptionsCache()
-			mixedParams = (*ipv6v4MixedParams)(cacheStruct.CachedMixedIPv6Addr)
+			cached := opts.GetIPv6StringOptionsMixedCache()
+			mixedParams = (*ipv6v4MixedParams)(*cached)
 			//mixedParams = opts.cachedMixedIPv6Addr
 		}
 		if mixedParams == nil {
@@ -1476,8 +1478,8 @@ func (section *IPv6AddressSection) toNormalizedMixedZonedString(options addrstr.
 				ipv6Params: stringParams,
 				ipv4Params: toIPParams(options.GetIPv4Opts()),
 			}
-			cacheStruct := opts.GetIPv6StringOptionsCache()
-			dataLoc := &cacheStruct.CachedMixedIPv6Addr
+			dataLoc := opts.GetIPv6StringOptionsMixedCache()
+			//dataLoc := &cacheStruct.CachedMixedIPv6Addr
 			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedMixedIPv6Addr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(mixedParams))
 		}

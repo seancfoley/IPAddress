@@ -66,8 +66,8 @@ func toIPParams(opts addrstr.IPStringOptions) (res *ipAddressStringParams) {
 	options, hasCache := opts.(ipCacheAccess)
 	//options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
-		cacheStruct := options.GetIPStringOptionsCache()
-		res = (*ipAddressStringParams)(cacheStruct.CachedIPAddr)
+		cached := options.GetIPStringOptionsIPCache()
+		res = (*ipAddressStringParams)(*cached)
 		//res = options.cachedIPAddr
 	}
 	if res == nil {
@@ -90,8 +90,8 @@ func toIPParams(opts addrstr.IPStringOptions) (res *ipAddressStringParams) {
 			addressSuffix:  opts.GetAddressSuffix(),
 		}
 		if hasCache {
-			cacheStruct := options.GetIPStringOptionsCache()
-			dataLoc := &cacheStruct.CachedIPAddr
+			dataLoc := options.GetIPStringOptionsIPCache()
+			//dataLoc := &cacheStruct.CachedIPAddr
 			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedIPAddr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
@@ -100,7 +100,9 @@ func toIPParams(opts addrstr.IPStringOptions) (res *ipAddressStringParams) {
 }
 
 type ipCacheAccess interface {
-	GetIPStringOptionsCache() *addrstr.IPStringOptionsCache
+	GetIPStringOptionsCache() *unsafe.Pointer
+
+	GetIPStringOptionsIPCache() *unsafe.Pointer
 }
 
 func toZonedParams(opts addrstr.StringOptions) (res *addressStringParams) {
@@ -116,8 +118,8 @@ func toParams(opts addrstr.StringOptions) (res *addressStringParams) {
 	options, hasCache := opts.(cacheAccess)
 	//options, hasCache := opts.(*stringOptions)
 	if hasCache {
-		cacheStruct := options.GetStringOptionsCache()
-		res = (*addressStringParams)(cacheStruct.Cached)
+		cached := options.GetStringOptionsCache()
+		res = (*addressStringParams)(*cached)
 		//res = options.cached
 	}
 	if res == nil {
@@ -135,8 +137,9 @@ func toParams(opts addrstr.StringOptions) (res *addressStringParams) {
 			//splitDigits:      opts.isSplitDigits(),
 		}
 		if hasCache {
-			cacheStruct := options.GetStringOptionsCache()
-			dataLoc := &cacheStruct.Cached
+			dataLoc := options.GetStringOptionsCache()
+			//dataLoc := cached
+			//dataLoc := &cacheStruct.Cached
 			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cached))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
@@ -145,7 +148,7 @@ func toParams(opts addrstr.StringOptions) (res *addressStringParams) {
 }
 
 type cacheAccess interface {
-	GetStringOptionsCache() *addrstr.StringOptionsCache
+	GetStringOptionsCache() *unsafe.Pointer
 }
 
 func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringParams) {
@@ -154,8 +157,8 @@ func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringPara
 	options, hasCache := opts.(ipCacheAccess)
 	//options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
-		cacheStruct := options.GetIPStringOptionsCache()
-		res = (*addressStringParams)(cacheStruct.CachedAddr)
+		cached := options.GetIPStringOptionsCache()
+		res = (*addressStringParams)(*cached)
 		//res = options.cachedAddr
 	}
 	if res == nil {
@@ -174,8 +177,8 @@ func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringPara
 			//zoneSeparator: opts.GetZoneSeparator(),
 		}
 		if hasCache {
-			cacheStruct := options.GetIPStringOptionsCache()
-			dataLoc := &cacheStruct.CachedAddr
+			dataLoc := options.GetIPStringOptionsCache()
+			//dataLoc := &cacheStruct.CachedAddr
 			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedAddr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}

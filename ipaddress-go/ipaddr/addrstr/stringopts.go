@@ -67,7 +67,6 @@ func (wildcards *WildcardsBuilder) GetSingleWildcard(str string) *WildcardsBuild
 	return wildcards
 }
 
-//TODO  we can avoid duplication here by having main package use these to create the same constants
 const (
 	ipv6SegmentSeparator     = ':'
 	ipv6ZoneSeparator        = '%'
@@ -118,9 +117,9 @@ type StringOptions interface {
 	GetSegmentStrPrefix() string
 }
 
-type StringOptionsCache struct {
+type stringOptionsCache struct {
 	//cached *addressStringParams
-	Cached unsafe.Pointer
+	cached unsafe.Pointer
 }
 
 type stringOptions struct {
@@ -140,11 +139,11 @@ type stringOptions struct {
 
 	hasSeparator *bool // default is false, no separator
 
-	StringOptionsCache
+	stringOptionsCache
 }
 
-func (w *stringOptions) GetStringOptionsCache() *StringOptionsCache { //TODO make this (and its associated interface) return the unsafe.Pointer so you can avoid the public StringOptionsCache
-	return &w.StringOptionsCache
+func (w *stringOptions) GetStringOptionsCache() *unsafe.Pointer { //TODO next make this (and its associated interface) return the unsafe.Pointer so you can avoid the public StringOptionsCache
+	return &w.stringOptionsCache.cached
 }
 
 func (w *stringOptions) GetWildcards() Wildcards {
@@ -426,11 +425,11 @@ type IPStringOptions interface {
 	//GetZoneSeparator() byte
 }
 
-type IPStringOptionsCache struct {
+type ipStringOptionsCache struct {
 	//cachedIPAddr *ipAddressStringParams
 	//cachedAddr   *addressStringParams
-	CachedIPAddr,
-	CachedAddr unsafe.Pointer
+	cachedIPAddr,
+	cachedAddr unsafe.Pointer
 }
 
 type ipStringOptions struct {
@@ -440,11 +439,15 @@ type ipStringOptions struct {
 	wildcardOption WildcardOption // default is WildcardsNetworkOnly
 	zoneSeparator  byte           // default is IPv6ZoneSeparator
 
-	IPStringOptionsCache
+	ipStringOptionsCache
 }
 
-func (w *ipStringOptions) GetIPStringOptionsCache() *IPStringOptionsCache { //TODO make this (and its associated interface) return the unsafe.Pointer so you can avoid the public IPStringOptionsCache
-	return &w.IPStringOptionsCache
+func (w *ipStringOptions) GetIPStringOptionsIPCache() *unsafe.Pointer {
+	return &w.ipStringOptionsCache.cachedIPAddr
+}
+
+func (w *ipStringOptions) GetIPStringOptionsCache() *unsafe.Pointer {
+	return &w.ipStringOptionsCache.cachedAddr
 }
 
 // .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
@@ -686,7 +689,7 @@ type IPv6StringOptions interface {
 	GetZoneSeparator() byte
 }
 
-type IPv6StringOptionsCache struct {
+type ipv6StringOptionsCache struct {
 	//	cachedIPv6Addr      *ipv6StringParams
 	//	cachedMixedIPv6Addr *ipv6v4MixedParams
 	CachedIPv6Addr,
@@ -701,13 +704,17 @@ type ipv6StringOptions struct {
 	//can be nil, which means no compression
 	compressOptions CompressOptions
 
-	IPv6StringOptionsCache
+	ipv6StringOptionsCache
 
 	splitDigits bool
 }
 
-func (opts *ipv6StringOptions) GetIPv6StringOptionsCache() *IPv6StringOptionsCache { //TODO make this (and its associated interface) return the unsafe.Pointer so you can avoid the public IPv6StringOptionsCache
-	return &opts.IPv6StringOptionsCache
+func (opts *ipv6StringOptions) GetIPv6StringOptionsCache() *unsafe.Pointer {
+	return &opts.ipv6StringOptionsCache.CachedIPv6Addr
+}
+
+func (opts *ipv6StringOptions) GetIPv6StringOptionsMixedCache() *unsafe.Pointer {
+	return &opts.ipv6StringOptionsCache.CachedMixedIPv6Addr
 }
 
 //func (opts *ipv6StringOptions) isCacheable() bool {
