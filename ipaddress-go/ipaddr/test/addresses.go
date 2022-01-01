@@ -543,7 +543,7 @@ var (
 	wildcardAndRangeMACAddressOptions = new(addrparam.MACAddressStringParamsBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParamsBuilder().SetRangeParams(addrparam.WildcardAndRange).GetParentBuilder().ToParams()
 	wildcardOnlyMACAddressOptions     = new(addrparam.MACAddressStringParamsBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParamsBuilder().SetRangeParams(addrparam.WildcardOnly).GetParentBuilder().ToParams()
 	noRangeMACAddressOptions          = new(addrparam.MACAddressStringParamsBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParamsBuilder().SetRangeParams(addrparam.NoRange).GetParentBuilder().ToParams()
-
+	//TODO check why the abvoe two unused, seems weird
 	hostInetAtonwildcardAndRangeOptions = new(addrparam.HostNameParamsBuilder).
 						AllowEmpty(false).
 		//ParseEmptyStrAs(ipaddr.NoAddressOption).
@@ -598,11 +598,6 @@ func (t *rangedAddresses) createInetAtonHost(str string) *ipaddr.HostName {
 func (t *rangedAddresses) allowsRange() bool {
 	return true
 }
-
-//
-//func (t *rangedAddresses) createHost(str string) *ipaddr.HostName {
-//	return ipaddr.NewHostNameParams(str, xxhostOptionsxx)
-//}
 
 var (
 	defaultOptions     = new(addrparam.IPAddressStringParamsBuilder).ToParams()

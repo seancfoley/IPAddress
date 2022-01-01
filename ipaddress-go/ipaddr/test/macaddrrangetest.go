@@ -650,6 +650,7 @@ func (t macAddressRangeTester) testToOUIPrefixed(addrString string) {
 	suffixed, err := ipaddr.NewMACAddress(suffix)
 	if err != nil {
 		t.addFailure(newMACFailure(err.Error(), w))
+		return
 	}
 	prefixed := v.ToOUIPrefixBlock()
 	if !prefixed.Equal(suffixed) {

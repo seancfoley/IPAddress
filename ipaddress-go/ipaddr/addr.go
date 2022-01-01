@@ -27,19 +27,19 @@ import (
 )
 
 const (
-	HexPrefix                       = "0x"
-	OctalPrefix                     = "0"
-	BinaryPrefix                    = "0b"
-	RangeSeparator                  = '-'
-	RangeSeparatorStr               = "-"
-	AlternativeRangeSeparator       = '\u00bb'
-	AlternativeRangeSeparatorStr    = "\u00bb"
-	ExtendedDigitsRangeSeparator    = '\u00bb'
+	HexPrefix                    = "0x"
+	OctalPrefix                  = "0"
+	BinaryPrefix                 = "0b"
+	RangeSeparator               = '-'
+	RangeSeparatorStr            = "-"
+	AlternativeRangeSeparator    = '\u00bb'
+	AlternativeRangeSeparatorStr = "\u00bb"
+	//ExtendedDigitsRangeSeparator    = '\u00bb'
 	ExtendedDigitsRangeSeparatorStr = "\u00bb"
 
-	SegmentWildcard             = '*'
-	SegmentWildcardStr          = "*"
-	AlternativeSegmentWildcard  = '¿'
+	SegmentWildcard    = '*'
+	SegmentWildcardStr = "*"
+	//AlternativeSegmentWildcard  = '¿'
 	SegmentSqlWildcard          = '%'
 	SegmentSqlWildcardStr       = "%"
 	SegmentSqlSingleWildcard    = '_'

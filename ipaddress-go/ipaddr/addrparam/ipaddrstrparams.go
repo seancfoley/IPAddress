@@ -568,7 +568,7 @@ func (params *ipv6AddressStringParameters) AllowsBase85() bool {
 }
 
 func (params *ipv6AddressStringParameters) GetMixedParams() IPAddressStringParams {
-	var result *ipAddressStringParameters = params.embeddedParams
+	result := params.embeddedParams
 	if result == nil {
 		result = defaultEmbeddedParams
 	}
@@ -801,13 +801,13 @@ func (builder *IPv4AddressStringParamsBuilder) ToParams() IPv4AddressStringParam
 
 // If this builder was obtained by a call to getEmbeddedIPv4ParamsBuilder() from IPv6AddressStringParamsBuilder,
 // returns that IPv6AddressStringParamsBuilder
-func (params *IPv4AddressStringParamsBuilder) GetEmbeddedIPv4AddressParentBuilder() *IPv6AddressStringParamsBuilder {
-	return params.mixedParent
+func (builder *IPv4AddressStringParamsBuilder) GetEmbeddedIPv4AddressParentBuilder() *IPv6AddressStringParamsBuilder {
+	return builder.mixedParent
 }
 
-func (params *IPv4AddressStringParamsBuilder) GetRangeParamsBuilder() *RangeParamsBuilder {
-	result := &params.rangeParamsBuilder
-	result.parent = params
+func (builder *IPv4AddressStringParamsBuilder) GetRangeParamsBuilder() *RangeParamsBuilder {
+	result := &builder.rangeParamsBuilder
+	result.parent = builder
 	return result
 }
 

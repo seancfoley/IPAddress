@@ -1883,11 +1883,8 @@ func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength Pre
 				}
 			}
 			sect := createIPSectionFromSegs(true, segs, prefixLength)
-			//sect := sectionCreator(true, segs)
 			addr, addrErr := NewIPv4Address(sect.ToIPv4())
-			//if err == nil {
 			res, err = addr.ToIP(), addrErr
-			//}
 		} else if segs[0].IsIPv6() {
 			for _, seg := range segs[1:] {
 				if !seg.IsIPv6() {
@@ -1895,20 +1892,11 @@ func NewIPAddressFromPrefixedSegments(segs []*IPAddressSegment, prefixLength Pre
 				}
 			}
 			sect := createIPSectionFromSegs(false, segs, prefixLength)
-			//sect := sectionCreator(false, segs)
 			addr, addrErr := NewIPv6Address(sect.ToIPv6())
-			//if err == nil {
-			//res = addr.ToIP()
-			//}
 			res, err = addr.ToIP(), addrErr
 		}
 	}
 	return
-
-	//return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*IPAddressSegment) *IPAddressSection {
-	//	return createIPSectionFromSegs(isIPv4, segments, prefixLength)
-	//
-	//})
 }
 
 func NewIPAddressFromValueProvider(valueProvider IPAddressValueProvider) *IPAddress {

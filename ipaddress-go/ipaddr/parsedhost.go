@@ -37,7 +37,7 @@ type embeddedAddress struct {
 var (
 	// used by hosts
 	//NO_EMBEDDED_ADDRESS *embeddedAddress                     = &embeddedAddress{}
-	noQualifier *parsedHostIdentifierStringQualifier = &parsedHostIdentifierStringQualifier{}
+	noQualifier = &parsedHostIdentifierStringQualifier{}
 )
 
 type hostStrings struct {

@@ -32,7 +32,7 @@ func main() {
 		log.Fatal(err)
 	}
 	source := writeSourceFile(mappings)
-	ioutil.WriteFile(path+"ipaddressresources.go", source, 0644)
+	_ = ioutil.WriteFile(path+"ipaddressresources.go", source, 0644)
 }
 
 func writeSourceFile(mappings map[string]string) []byte {
@@ -116,7 +116,7 @@ func readPropertiesFile(filename string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()

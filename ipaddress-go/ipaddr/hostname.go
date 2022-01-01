@@ -943,7 +943,7 @@ func translateReserved(addr *IPv6Address, str string, builder *strings.Builder) 
 		return
 	}
 	index := strings.IndexByte(str, IPv6ZoneSeparator)
-	var translated *strings.Builder = builder
+	var translated = builder
 	translated.WriteString(str[0:index])
 	translated.WriteString("%25")
 	for i := index + 1; i < len(str); i++ {

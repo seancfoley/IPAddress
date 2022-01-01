@@ -466,7 +466,7 @@ func (rng *ipAddressSeqRangeInternal) toString(lowerStringer func(*IPAddress) st
 
 func (rng *ipAddressSeqRangeInternal) format(state fmt.State, verb rune) {
 	rng.lower.Format(state, verb)
-	state.Write([]byte(DefaultSeqRangeSeparator))
+	_, _ = state.Write([]byte(DefaultSeqRangeSeparator))
 	rng.upper.Format(state, verb)
 }
 

@@ -1922,7 +1922,7 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 		}
 	default:
 		// format not supported
-		fmt.Fprintf(state, "%%!%c(address=%s)", verb, section.toString())
+		_, _ = fmt.Fprintf(state, "%%!%c(address=%s)", verb, section.toString())
 		return
 	}
 	if err != nil { // could not produce an octal, binary, hex or decimal string, so use string format instead
@@ -1934,7 +1934,7 @@ func (section *addressSectionInternal) format(state fmt.State, verb rune, zone Z
 		}
 	}
 	if useDefaultStr {
-		state.Write([]byte(str))
+		_, _ = state.Write([]byte(str))
 	} else if isStringFormat {
 		section.writeStrFmt(state, verb, str, zone)
 	} else {
@@ -1968,7 +1968,7 @@ func (section addressSectionInternal) writeStrFmt(state fmt.State, verb rune, st
 	}
 	// left padding/str/right padding
 	writeBytes(state, ' ', leftPaddingCount)
-	state.Write([]byte(str))
+	_, _ = state.Write([]byte(str))
 	writeBytes(state, ' ', rightPaddingCount)
 }
 
@@ -2051,10 +2051,10 @@ func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune,
 		writeBytes(state, ' ', leftPaddingCount)
 		writeStr(state, prefix, 1)
 		writeBytes(state, '0', zeroCount)
-		state.Write([]byte(addrStr))
+		_, _ = state.Write([]byte(addrStr))
 		if zoneRequired {
-			state.Write([]byte{IPv6ZoneSeparator})
-			state.Write([]byte(zone))
+			_, _ = state.Write([]byte{IPv6ZoneSeparator})
+			_, _ = state.Write([]byte(zone))
 		}
 		writeBytes(state, ' ', rightPaddingCount)
 
@@ -2063,7 +2063,7 @@ func (section addressSectionInternal) writeNumberFmt(state fmt.State, verb rune,
 		}
 		addrStr = secondStr
 		isMulti = false
-		state.Write([]byte{separator})
+		_, _ = state.Write([]byte{separator})
 	}
 }
 
@@ -2071,7 +2071,7 @@ func writeStr(state fmt.State, str string, count int) {
 	if count > 0 && len(str) > 0 {
 		bytes := []byte(str)
 		for ; count > 0; count-- {
-			state.Write(bytes)
+			_, _ = state.Write(bytes)
 		}
 	}
 }
@@ -2082,7 +2082,7 @@ func writeBytes(state fmt.State, b byte, count int) {
 		for i := range bytes {
 			bytes[i] = b
 		}
-		state.Write(bytes)
+		_, _ = state.Write(bytes)
 	}
 }
 

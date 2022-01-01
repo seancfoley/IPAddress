@@ -525,7 +525,7 @@ func splitIntoPrefixBlocks(
 			//all bits match, it's just a single address
 			blocks = append(blocks, lower.ToPrefixBlockLen(lower.GetBitCount()))
 		} else {
-			differingIsLowestBit := (differing == 1)
+			differingIsLowestBit := differing == 1
 			if differingIsLowestBit && currentSegment+1 == segCount {
 				//only the very last bit differs, so we have a prefix block right there
 				//fmt.Printf("pref block a %v\n", lower)

@@ -530,7 +530,7 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 }
 
 func emptyAddressCreator(emptyStrOption addrparam.EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
-	var preferIPv6 bool = version.IsIPv6()
+	preferIPv6 := version.IsIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
@@ -918,8 +918,11 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // so that leaves the string params and builders.
 // There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
 //
+//xxx TODO change addrparam to addrstrparam - maybe other can be addrstrgen xxx maybe addrstringparam addrstringgen
+// maybe addrstring and addrstringparam - this pair in the lead I think
 // TODO package names addrstr and addrparam, I think I want to keep them separate, but, hard time picking package names
 // addrstr would apply to both, addrinstr and addroutstr?  nah  strparams?  nah
+
 //
 //  rename addrFormat addrParams, then recreate addrFormat
 //  it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
@@ -938,7 +941,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // Nor do I think that base types like BitCount belong in addrformat
 //  it does like look perhaps you can split off StringOptions, StringOptionsBuilder - which would split off about 17 types, not bad
 //
-// TODO figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
+//  figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
 // It may simply be because in local mode it skips the license check
 //  it seems the godoc doesn't list GetPrefixCount for IPv4Address, but it does for MACAddress.  Huh?
 // Is this because it only goes down one level?  Do I need to accomodate this (ie add to ipaddressInternal stuff from addressInternal?)

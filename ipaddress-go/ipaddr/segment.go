@@ -482,7 +482,7 @@ func (seg *addressSegmentInternal) isReversibleRange(perByte bool) (isReversible
 		upperVal := seg.GetUpperSegmentValue()
 		for i := 1; i <= byteCount; i++ {
 			bitShift := i << 3
-			shift := (bitCount - BitCount(bitShift))
+			shift := bitCount - BitCount(bitShift)
 			byteVal := val >> uint(shift)
 			upperByteVal := upperVal >> uint(shift)
 			if byteVal != upperByteVal {

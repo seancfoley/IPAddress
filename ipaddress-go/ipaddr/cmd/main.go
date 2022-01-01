@@ -63,7 +63,7 @@ func main() {
 	////fmt.Printf("%+v\n", params)
 
 	i := -1
-	var b byte = byte(i)
+	b := byte(i)
 	fmt.Printf("byte is %+v\n", b)
 
 	var slc []int
@@ -79,8 +79,8 @@ func main() {
 	fmt.Printf("zero addr is %+v\n", addr4)
 	addr2 := addr4.ToIP()
 	fmt.Printf("zero addr is %+v\n", addr2)
-	addr2.String()
-	addr2.GetSection()
+	_ = addr2.String()
+	_ = addr2.GetSection()
 	fmt.Printf("zero addr is %+v\n", addr2.String())
 	//fmt.Printf("%+v\n", &addr2)
 

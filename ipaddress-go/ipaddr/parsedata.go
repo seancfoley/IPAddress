@@ -197,7 +197,7 @@ func (parseData *addressParseData) getBitLength(segmentIndex int) BitCount {
 
 func (parseData *addressParseData) setBitLength(segmentIndex int, length BitCount) {
 	segmentData := parseData.getSegmentData()
-	segmentData[(segmentIndex<<segmentIndexShift)|keyBitSizeIndex] |= ((uint32(length) << bitSizeShift) & keyBitSize)
+	segmentData[(segmentIndex<<segmentIndexShift)|keyBitSizeIndex] |= (uint32(length) << bitSizeShift) & keyBitSize
 }
 
 func (parseData *addressParseData) setIndex(segmentIndex,

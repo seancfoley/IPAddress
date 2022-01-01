@@ -109,7 +109,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, addrerr.
 		initialSegmentCount = finalSegmentCount
 	}
 	missingCount := initialSegmentCount - actualInitialSegmentCount
-	expandedSegments := (missingCount <= 0)
+	expandedSegments := missingCount <= 0
 	segments := make([]*AddressDivision, finalSegmentCount)
 	for i, normalizedSegmentIndex := 0, 0; i < actualInitialSegmentCount; i++ {
 		lower := addressParseData.getValue(i, keyLower)

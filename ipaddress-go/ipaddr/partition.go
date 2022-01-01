@@ -168,8 +168,9 @@ func (p *Partition) Iterator() IPAddressIterator {
 	if p.iterator == nil {
 		item := p.single
 		if item != nil {
-			return &ipAddrIterator{&singleAddrIterator{item.ToAddressBase()}}
+			res := &ipAddrIterator{&singleAddrIterator{item.ToAddressBase()}}
 			item = nil
+			return res
 		}
 		return nil
 	}

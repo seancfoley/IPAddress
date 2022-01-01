@@ -1201,7 +1201,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 		return
 	}
 	expandedSegments := missingCount <= 0
-	var expandedStart, expandedEnd int = -1, -1
+	expandedStart, expandedEnd := -1, -1
 	addressString := parseData.str
 	maskedIsDifferent := false
 	for i, normalizedSegmentIndex := 0, 0; i < segmentCount; i++ {
@@ -1241,7 +1241,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 					}
 					masker := parseData.maskers[i]
 					if masker == nil {
-						var maxValue uint64 = ^(^uint64(0) << uint(bits))
+						maxValue := ^(^uint64(0) << uint(bits))
 						masker = MaskRange(lower, upper, divMask, maxValue)
 						if !masker.IsSequential() {
 							if sections.maskError == nil {
@@ -1354,7 +1354,7 @@ func (parseData *parsedIPAddress) createIPv4Sections(doSections, doRangeBoundari
 				continue
 			} //end handle inet_aton joined segments
 		}
-		var hostLower, hostUpper uint64 = lower, upper
+		hostLower, hostUpper := lower, upper
 		var masker Masker
 		unmasked := true
 		if hasMask {
@@ -1558,7 +1558,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 	missingSegmentCount -= segmentCount
 
 	expandedSegments := missingSegmentCount <= 0
-	var expandedStart, expandedEnd int = -1, -1
+	expandedStart, expandedEnd := -1, -1
 	addressString := parseData.str
 	maskedIsDifferent := false
 
@@ -1607,7 +1607,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 							hostIsRange = (lower != upper) || (lowerHighBytes != upperHighBytes)
 						} else {
 							//lowerHighBytes = upperHighBytes = 0;
-							hostIsRange = (lower != upper)
+							hostIsRange = lower != upper
 						}
 						expandedStart = i
 						expandedEnd = i + missingSegmentCount
@@ -1820,7 +1820,7 @@ func (parseData *parsedIPAddress) createIPv6Sections(doSections, doRangeBoundari
 			} //end handle joined segments
 		}
 
-		var hostLower, hostUpper uint64 = lower, upper
+		hostLower, hostUpper := lower, upper
 		var masker Masker
 		unmasked := true
 		if hasMask {
@@ -2256,7 +2256,7 @@ func createFullRangeSegment(
 	mask *SegInt,
 	creator parsedAddressCreator) (result, hostResult, lower, upper *AddressDivision, err addrerr.IncompatibleAddressError) {
 	var maskedLower, maskedUpper SegInt
-	hasMask := (mask != nil)
+	hasMask := mask != nil
 	maskedIsDifferent := false
 	if hasMask {
 		maskInt := DivInt(*mask)

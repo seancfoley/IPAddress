@@ -1482,8 +1482,8 @@ func (t ipAddressTester) run() {
 	t.testSubnet("1.2.128.0/17", "0.0.255.255", 17, "0.0.128.0/17", "0.0.128-255.*", "1.2.128.0/17")
 	t.testSubnet("1.2.0.0/17", "0.0.255.255", 15, "0.0.0-127.*/15", "0.0.0-127.*", "1.2.0-127.*/15")       //
 	t.testSubnet("1.3.128.0/17", "0.0.255.255", 15, "0.1.128-255.*/15", "0.0.128-255.*", "1.2.0-127.*/15") //
-	t.testSubnet("1.3.128.0/17", "255.255.255.255", 15, ("1.3.128-255.*/15"), "1.3.128-255.*", "1.2.0-127.*/15")
-	t.testSubnet("1.3.0.0/16", "255.255.255.255", 8, ("1.3.*.*/8"), "1.3.*.*", "1.0.*.*/8")
+	t.testSubnet("1.3.128.0/17", "255.255.255.255", 15, "1.3.128-255.*/15", "1.3.128-255.*", "1.2.0-127.*/15")
+	t.testSubnet("1.3.0.0/16", "255.255.255.255", 8, "1.3.*.*/8", "1.3.*.*", "1.0.*.*/8")
 	t.testSubnet("1.0.0.0/16", "255.255.255.255", 8, "1.0.*.*/8", "1.0.*.*", "1.0.*.*/8")
 	t.testSubnet("1.0.0.0/18", "255.255.255.255", 16, "1.0.0-63.*/16", "1.0.0-63.*", "1.0.0-63.*/16")
 
@@ -2640,12 +2640,12 @@ func (t ipAddressTester) testPrefixBitwiseOr(orig string, prefix ipaddr.BitCount
 }
 
 func (t ipAddressTester) testDelimitedCount(str string, expectedCount int) {
-	strings := ipaddr.ParseDelimitedSegments(str)
+	strs := ipaddr.ParseDelimitedSegments(str)
 	var set []*ipaddr.IPAddress
 	count := 0
 	//try {
-	for strings.HasNext() {
-		set = append(set, t.createAddress(strings.Next()).GetAddress())
+	for strs.HasNext() {
+		set = append(set, t.createAddress(strs.Next()).GetAddress())
 		count++
 	}
 	if count != expectedCount || len(set) != count || count != ipaddr.CountDelimitedAddresses(str) {
@@ -3080,8 +3080,11 @@ func (t ipAddressTester) testCIDRSubnets(cidr1, normalizedString string) {
 	first := w.Equal(w2)
 	v, err := w.ToAddress()
 	v2, err2 := w2.ToAddress()
-	if err != nil || err2 != nil {
-		t.addFailure(newFailure("testCIDRSubnets addresses "+w.String()+", "+w2.String()+": "+err.Error()+", "+err2.Error(), w2))
+	if err != nil {
+		t.addFailure(newFailure("testCIDRSubnets addresses "+w.String()+", "+w2.String()+": "+err.Error(), w2))
+	}
+	if err2 != nil {
+		t.addFailure(newFailure("testCIDRSubnets addresses "+w.String()+", "+w2.String()+": "+err2.Error(), w2))
 	}
 	second := v.Equal(v2)
 	if !first || !second {
@@ -3286,14 +3289,14 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 	t.incrementTestCount()
 	if !secondTry {
 		//secondTry = true
-		bytes := address.Bytes()
+		thebytes := address.Bytes()
 		var another *ipaddr.IPAddress
 		// if address.IsIPv4() {
 		//ipaddr.IPv4Network.
 		if network {
-			another, _ = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, cacheTestBits(prefixBits))
+			another, _ = ipaddr.NewIPAddressFromPrefixedNetIP(thebytes, cacheTestBits(prefixBits))
 		} else {
-			another, _ = ipaddr.NewIPAddressFromNetIP(bytes)
+			another, _ = ipaddr.NewIPAddressFromNetIP(thebytes)
 			if another.IsIPv4() && prefixBits > ipaddr.IPv4BitCount {
 				// ::ffff:ffff:ffff is interpreted as IPv4-mapped and gives the IPv4 address 255.255.255.255, so we flip it back to IPv6
 				another = ipaddr.DefaultAddressConverter{}.ToIPv6(another).ToIP()
@@ -3700,7 +3703,7 @@ func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress
 		//try {
 		_, err := ipv6Addr.ToAddress()
 		if err == nil {
-			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv6Addr.String()+": "+err.Error(), ipv4Addr))
+			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv6Addr.String(), ipv4Addr))
 		}
 		//addFailure(new Failure("succeeded with invalid prefix", ipv6Addr));
 		//} catch(AddressStringException e) {
@@ -3830,6 +3833,7 @@ func (t ipAddressTester) testReverseHostAddress(str string) {
 		newAddr, err := ipaddr.NewIPv6Address(addr.ToIPv6().GetSection())
 		if err != nil {
 			t.addFailure(newIPAddrFailure("error creating address from "+addr.String()+": "+err.Error(), addr))
+			return
 		}
 		newAddrString := newAddr.ToAddressString()
 		hostAddr2 = newAddrString.GetHostAddress()
@@ -3837,6 +3841,7 @@ func (t ipAddressTester) testReverseHostAddress(str string) {
 		newAddr, err := ipaddr.NewIPv4Address(addr.ToIPv4().GetSection())
 		if err != nil {
 			t.addFailure(newIPAddrFailure("error creating address from "+addr.String()+": "+err.Error(), addr))
+			return
 		}
 		newAddrString := newAddr.ToAddressString()
 		hostAddr2 = newAddrString.GetHostAddress()
@@ -4057,9 +4062,9 @@ func (t ipAddressTester) testReplace(front, back string) {
 
 func (t ipAddressTester) testInvalidIpv4Values() {
 	//try {
-	bytes := []byte{1, 0, 0, 0, 0}
-	bytes[0] = 1
-	addr, err := ipaddr.NewIPv4AddressFromBytes(bytes)
+	thebytes := []byte{1, 0, 0, 0, 0}
+	thebytes[0] = 1
+	addr, err := ipaddr.NewIPv4AddressFromBytes(thebytes)
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIP()))
 	}
@@ -4300,9 +4305,9 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 }
 
 func (t ipAddressTester) testInvalidIpv6Values() {
-	bytes := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	bytes[0] = 1
-	addr, err := ipaddr.NewIPv6AddressFromBytes(bytes)
+	thebytes := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	thebytes[0] = 1
+	addr, err := ipaddr.NewIPv6AddressFromBytes(thebytes)
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIP()))
 	}
@@ -4345,9 +4350,9 @@ func (t ipAddressTester) testInvalidIpv6Values() {
 	}
 
 	//try {
-	//	byte bytes[] = new byte[17];
-	//	bytes[0] = 1;
-	//	IPv6Address addr = new IPv6Address(bytes);
+	//	byte thebytes[] = new byte[17];
+	//	thebytes[0] = 1;
+	//	IPv6Address addr = new IPv6Address(thebytes);
 	//	addFailure(new Failure("failed expected exception for " + addr, addr));
 	//} catch(AddressValueException e) {}
 	//try {
@@ -4394,7 +4399,7 @@ func (t ipAddressTester) testInvalidIpv6Values() {
 		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).SetUint64(0x1ffffffff).String(), addr.ToIP()))
 	}
 	//try {
-	//	new IPv6Address(BigInteger.valueOf(-1));//-1 becomes [ff] which is sign extended to 16 bytes like [ff][ff]...[ff]
+	//	new IPv6Address(BigInteger.valueOf(-1));//-1 becomes [ff] which is sign extended to 16 thebytes like [ff][ff]...[ff]
 	//} catch(AddressValueException e) {
 	//	addFailure(new Failure("unexpected exception " + e));
 	//}
@@ -4446,9 +4451,9 @@ func (t ipAddressTester) testInvalidIpv6Values() {
 }
 
 func (t ipAddressTester) testSub(one, two string, resultStrings []string) {
-	string := t.createAddress(one)
+	str := t.createAddress(one)
 	sub := t.createAddress(two)
-	addr := string.GetAddress()
+	addr := str.GetAddress()
 	subAddr := sub.GetAddress()
 	//try {
 	res := addr.Subtract(subAddr)
@@ -4532,6 +4537,7 @@ func (t ipAddressTester) testZeroHost(addrString, zeroHostString string) {
 	transformedHost, err := addr.ToZeroHost()
 	if err != nil {
 		t.addFailure(newIPAddrFailure("unexpected error max host: "+err.Error(), addr))
+		return
 	}
 
 	hostSection := transformedHost.GetHostSection()
@@ -4609,6 +4615,7 @@ func (t ipAddressTester) testMaxHost(addrString, maxHostString string) {
 	transformedHost, err := addr.ToMaxHost()
 	if err != nil {
 		t.addFailure(newIPAddrFailure("unexpected error max host: "+err.Error(), addr))
+		return
 	}
 	if !specialHost.Equal(transformedHost) {
 		t.addFailure(newIPAddrFailure("mismatch "+specialHost.String()+" with host "+transformedHost.String(), addr))
@@ -4624,16 +4631,16 @@ func (t ipAddressTester) testSplitBytes(addressStr string) {
 }
 
 func (t ipAddressTester) testSplitBytesAddr(addr *ipaddr.IPAddress) {
-	bytes := addr.Bytes()
-	addresses := reconstitute(addr.GetIPVersion(), bytes, addr.GetBytesPerSegment())
+	thebytes := addr.Bytes()
+	addresses := reconstitute(addr.GetIPVersion(), thebytes, addr.GetBytesPerSegment())
 	if addr.IsMultiple() {
 		for _, addrNext := range addresses {
 			if !addr.GetLower().Equal(addrNext) {
 				t.addFailure(newIPAddrFailure("lower reconstitute failure: "+addrNext.String(), addr))
 			}
 		}
-		bytes = addr.UpperBytes()
-		addresses = reconstitute(addr.GetIPVersion(), bytes, addr.GetBytesPerSegment())
+		thebytes = addr.UpperBytes()
+		addresses = reconstitute(addr.GetIPVersion(), thebytes, addr.GetBytesPerSegment())
 		for _, addrNext := range addresses {
 			if !addr.GetUpper().Equal(addrNext) {
 				t.addFailure(newIPAddrFailure("upper reconstitute failure: "+addrNext.String(), addr))
@@ -4658,6 +4665,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 			ipv4Addr, err := ipaddr.NewIPv4AddressFromBytes(byteRepresentation)
 			if err != nil {
 				t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+				return
 			}
 			all = append(all, ipv4Addr.ToIP())
 
@@ -4687,6 +4695,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				ipv4Addr, err := ipaddr.NewIPv4AddressFromBytes(byts)
 				if err != nil {
 					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+					return
 				}
 				all = append(all, ipv4Addr.ToIP())
 				ipv4Addr = ipaddr.NewIPv4AddressFromUint32(uint32(new(big.Int).SetBytes(byts).Uint64()))
@@ -4700,6 +4709,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 			ipv6Addr, err := ipaddr.NewIPv6AddressFromBytes(byteRepresentation)
 			if err != nil {
 				t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+				return
 			}
 			all = append(all, ipv6Addr.ToIP())
 
@@ -4724,6 +4734,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				ipv6Addr, err := ipaddr.NewIPv6AddressFromBytes(byts)
 				if err != nil {
 					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+					return
 				}
 				all = append(all, ipv6Addr.ToIP())
 
@@ -4735,6 +4746,7 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				ipv6Addr, err = ipaddr.NewIPv6AddressFromBytes(bs)
 				if err != nil {
 					t.addFailure(newFailure("unexpected error: "+err.Error(), addrStr))
+					return
 				}
 				all = append(all, ipv6Addr.ToIP())
 
@@ -4896,6 +4908,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 	addr, err := str.ToAddress()
 	if err != nil {
 		t.addFailure(newFailure("unexpected error "+err.Error(), str))
+		return
 	}
 	value := addr.GetValue()
 
@@ -4934,6 +4947,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		addr, err = str.ToAddress()
 		if err != nil {
 			t.addFailure(newFailure("inet aton octal should be decimal, unexpected error: "+err.Error(), str))
+			return
 		}
 		value2 := addr.GetValue()
 		octalDiffers := false
@@ -4960,6 +4974,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		addr, err = str.ToAddress()
 		if err != nil {
 			t.addFailure(newFailure("inet aton should have no effect, unexpected error: "+err.Error(), str))
+			return
 		}
 		value2 := addr.GetValue()
 		if value.Cmp(value2) != 0 {
@@ -5235,6 +5250,7 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 		addrRange, err := addrStr.ToSequentialRange()
 		if err != nil {
 			t.addFailure(newFailure("unexpected error getting range from "+addrStr.String(), addrStr))
+			return
 		}
 		if !range1.Equal(addrRange) || !addrRange.Equal(range1) {
 			t.addFailure(newFailure("address range from "+addrStr.String()+" ("+addrRange.GetLower().String()+","+addrRange.GetUpper().String()+")"+
@@ -5399,14 +5415,14 @@ func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 			for ps := prefSeg + 1; ps < len(segs); ps++ {
 				segs[ps] = creator.CreatePrefixSegment(0, cacheTestBits(0))
 			}
-			bytes := make([]byte, directAddress.GetByteCount())
+			thebytes := make([]byte, directAddress.GetByteCount())
 			bytesPerSegment := directAddress.GetBytesPerSegment()
 			for i, j := 0, 0; i < len(segs); i++ {
-				segs[i].CopyBytes(bytes[j:])
+				segs[i].CopyBytes(thebytes[j:])
 				j += bytesPerSegment
 			}
-			//directAddress = creator.NewIPAddressFromPrefixedIP(bytes, pref)
-			directAddress, _ = ipaddr.NewIPAddressFromPrefixedNetIP(bytes, pref)
+			//directAddress = creator.NewIPAddressFromPrefixedIP(thebytes, pref)
+			directAddress, _ = ipaddr.NewIPAddressFromPrefixedNetIP(thebytes, pref)
 		} else {
 			//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 			origSeg := segs[prefSeg]

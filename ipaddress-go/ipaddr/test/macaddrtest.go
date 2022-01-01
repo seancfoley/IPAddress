@@ -649,24 +649,24 @@ func (t macAddressTester) testMACValuesBig(segs []int, decimal, negativeDecimal 
 
 func (t macAddressTester) testInvalidMACValues() {
 	/*
-		bytes := []byte{1, 0, 0, 0, 0}
-			bytes[0] = 1
-			addr, err := ipaddr.NewIPv4AddressFromBytes(bytes)
+		thebytes := []byte{1, 0, 0, 0, 0}
+			thebytes[0] = 1
+			addr, err := ipaddr.NewIPv4AddressFromBytes(thebytes)
 			if err == nil {
 				t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIP()))
 			}
 	*/
 	//try {
-	bytes := [9]byte{}
-	bytes[0] = 1
-	addr, err := ipaddr.NewMACAddressFromBytes(bytes[:])
+	thebytes := [9]byte{}
+	thebytes[0] = 1
+	addr, err := ipaddr.NewMACAddressFromBytes(thebytes[:])
 	if err == nil {
 		t.addFailure(newSegmentSeriesFailure("failed expected error for "+addr.String(), addr))
 	}
 	//} catch(AddressValueException e) {}
 	//try {
-	bytes = [9]byte{}
-	addr, err = ipaddr.NewMACAddressFromBytes(bytes[:])
+	thebytes = [9]byte{}
+	addr, err = ipaddr.NewMACAddressFromBytes(thebytes[:])
 	if err != nil {
 		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
 	}
@@ -934,14 +934,18 @@ func (t macAddressTester) testNotContains(cidr1, cidr2 string) {
 }
 
 func (t macAddressTester) testDelimitedCount(str string, expectedCount int) {
-	strings := ipaddr.ParseDelimitedSegments(str)
+	strs := ipaddr.ParseDelimitedSegments(str)
 	var set []*ipaddr.MACAddress
 	count := 0
 	//try {
-	for strings.HasNext() {
-		addr, err := t.createMACAddress(strings.Next()).ToAddress()
-		if addr == nil || err != nil {
+	for strs.HasNext() {
+		addr, err := t.createMACAddress(strs.Next()).ToAddress()
+		if err != nil {
 			t.addFailure(newFailure("unexpected error "+err.Error(), nil))
+			return
+		}
+		if addr == nil {
+			t.addFailure(newFailure("unexpected nil address", nil))
 			return
 		}
 		set = append(set, addr)
@@ -1229,6 +1233,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 		linkLocal, err := macAddr.ToLinkLocalIPv6()
 		if err != nil {
 			t.addFailure(newSegmentSeriesFailure("unexpected error for link local "+err.Error(), macAddr))
+			return
 		}
 		if !linkLocal.IsLinkLocal() {
 			t.addFailure(newSegmentSeriesFailure("eui 64 conv link local "+macAddr.String(), linkLocal))
@@ -1239,6 +1244,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 				macAddr64, err := macAddr.ToEUI64(false)
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
+					return
 				}
 
 				if macAddr.IsEUI64(true) || macAddr.IsEUI64(false) || !macAddr64.IsEUI64(false) {
@@ -1251,6 +1257,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 					backFromMac64Addr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr64)
 					if err != nil {
 						t.addFailure(newSegmentSeriesFailure("unexpected error for mac address 64 to EUI64 "+err.Error(), macAddr))
+						return
 					}
 					backFromMac64 := backFromMac64Addr.GetHostSectionLen(64)
 					if !backFromMac64.Equal(back) {
@@ -1259,6 +1266,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 						backFromMacAddr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr)
 						if err != nil {
 							t.addFailure(newSegmentSeriesFailure("unexpected error for mac address to EUI64 "+err.Error(), macAddr))
+							return
 						}
 						backFromMac := backFromMacAddr.GetHostSectionLen(64)
 						if !backFromMac.Equal(back) {

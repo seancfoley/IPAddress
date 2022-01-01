@@ -360,7 +360,7 @@ func (grouping *addressDivisionGroupingInternal) matchesIPAddressType() bool {
 	return grouping.matchesIPSectionType() // no need to check segment count because addresses cannot be constructed with incorrect segment count (note the zero IPAddress has zero segments)
 }
 
-func (grouping *addressSectionInternal) matchesMACAddressType() bool {
+func (grouping *addressDivisionGroupingInternal) matchesMACAddressType() bool {
 	return grouping.getAddrType().isMAC()
 }
 
@@ -426,7 +426,7 @@ func (grouping addressDivisionGroupingInternal) Format(state fmt.State, verb run
 
 func (grouping addressDivisionGroupingInternal) defaultFormat(state fmt.State, verb rune) {
 	s := flagsFromState(state, verb)
-	state.Write([]byte(fmt.Sprintf(s, grouping.initDivs().divisions.(standardDivArray).divisions)))
+	_, _ = state.Write([]byte(fmt.Sprintf(s, grouping.initDivs().divisions.(standardDivArray).divisions)))
 }
 
 func (grouping *addressDivisionGroupingInternal) toString() string {

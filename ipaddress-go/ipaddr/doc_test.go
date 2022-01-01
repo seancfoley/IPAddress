@@ -42,7 +42,7 @@ func Example_host() {
 
 	host := ipaddr.NewHostName(hostPortStr)
 	socketAddress := host.ToNetTCPAddr()
-	fmt.Println("using %v from %v", socketAddress, host)
+	fmt.Printf("using %v from %v\n", socketAddress, host)
 	// use socket address
 
 	host = ipaddr.NewHostName(hostServiceStr)
@@ -54,18 +54,18 @@ func Example_host() {
 		}
 		return nil
 	})
-	fmt.Println("using %v from %v", socketAddress, host)
+	fmt.Printf("using %v from %v\n", socketAddress, host)
 	// use socket address
 
 	host = ipaddr.NewHostName(hostAddressStr)
 	address := host.AsAddress() // does not resolve
-	fmt.Println("using %v from %v", address, host)
+	fmt.Printf("using %v from %v\n", address, host)
 	// use address
 
 	host = ipaddr.NewHostName(dnsStr)
 	address, err := host.ToAddress() // resolves if necessary
 	if err == nil {
-		fmt.Println("using %v from %v", address, host)
+		fmt.Printf("using %v from %v\n", address, host)
 		// use address
 	}
 }

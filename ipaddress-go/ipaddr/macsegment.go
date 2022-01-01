@@ -67,7 +67,7 @@ func (seg *macSegmentValues) isMultiple() bool {
 }
 
 func (seg *macSegmentValues) getCount() *big.Int {
-	return big.NewInt(int64((seg.upperValue - seg.value)) + 1)
+	return big.NewInt(int64(seg.upperValue-seg.value) + 1)
 }
 
 func (seg *macSegmentValues) getBitCount() BitCount {

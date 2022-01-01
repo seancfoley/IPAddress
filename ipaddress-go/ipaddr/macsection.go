@@ -392,7 +392,7 @@ func (section *MACAddressSection) getLongValue(lower bool) (result uint64) {
 	}
 	bitsPerSegment := section.GetBitsPerSegment()
 	for i := 1; i < segCount; i++ {
-		result = (result << uint(bitsPerSegment))
+		result = result << uint(bitsPerSegment)
 		seg = section.GetSegment(i)
 		if lower {
 			result |= uint64(seg.GetSegmentValue())

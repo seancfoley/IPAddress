@@ -185,13 +185,13 @@ type sizeMismatchError struct {
 //	IncompatibleAddressError
 //}
 
-type positionMismatchError struct {
-	section1, section2 *IPAddressSection
-
-	addressSegmentIndex1, addressSegmentIndex2 int8
-
-	incompatibleAddressError
-}
+//type positionMismatchError struct {
+//	section1, section2 *IPAddressSection
+//
+//	addressSegmentIndex1, addressSegmentIndex2 int8
+//
+//	incompatibleAddressError
+//}
 
 //type addrerr.AddressValueError interface {
 //	AddressError
@@ -204,13 +204,13 @@ type addressValueError struct {
 	val int
 }
 
-type addressPositionError struct {
-	addressValueError
-}
-
-type inconsistentPrefixError struct {
-	addressValueError
-}
+//type addressPositionError struct {
+//	addressValueError
+//}
+//
+//type inconsistentPrefixError struct {
+//	addressValueError
+//}
 
 ///////////////////////////////////////////////
 

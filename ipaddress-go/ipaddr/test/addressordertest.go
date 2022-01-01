@@ -1056,7 +1056,7 @@ func (t addressOrderTest) checkOrdering(ordering []*Ordering, orderCount int, co
 		order := orderingItem.order
 		if order < lastOrder {
 			failedOrdering = true
-			failureStr := fmt.Sprintf("item %v: %v is in wrong place in ordering ( order number: %v, previous order number: %v)", (i + 1), orderingItem.nestedType, order, lastOrder)
+			failureStr := fmt.Sprintf("item %v: %v is in wrong place in ordering ( order number: %v, previous order number: %v)", i+1, orderingItem.nestedType, order, lastOrder)
 			t.addFailure(newFailure(failureStr, nil))
 		}
 		lastOrder = order

@@ -183,7 +183,7 @@ func incrementBig( // used by MACSize and IPv6
 func incrementRange(
 	section *AddressSection,
 	increment int64,
-	creator addressSegmentCreator,
+	creator addressSegmentCreator, //TODO remove this arg
 	lowerProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
 	if increment == 0 {

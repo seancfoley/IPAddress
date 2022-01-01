@@ -923,7 +923,7 @@ func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(
 
 	if socketAddr == nil && expected == nil {
 	} else if socketAddr == nil || expected == nil {
-		t.addFailure(newHostFailure(fmt.Sprintf("socket address mismatch, expected: %v  result: ", expected, socketAddr), h))
+		t.addFailure(newHostFailure(fmt.Sprintf("socket address mismatch, expected: %v  result: %v", expected, socketAddr), h))
 	} else if socketAddr.Port != expected.Port || socketAddr.Zone != expected.Zone || !socketAddr.IP.Equal(expected.IP) {
 		t.addFailure(newHostFailure("socket address mismatch, expected: "+expected.String()+" result: "+socketAddr.String(), h))
 	}

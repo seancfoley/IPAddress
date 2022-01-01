@@ -159,10 +159,10 @@ func (t ipAddressRangeTester) run() {
 	t.testPrefixBitwiseOr("1.3.0.0/15", 24, "0.0.255.1", "1.3.255.0", "1.3.255.1/15")
 	t.testPrefixBitwiseOr("1.3.0.1/15", 24, "0.0.255.1", "1.3.255.1/24", "1.3.255.1/15")
 	t.testPrefixBitwiseOr("1.3.0.1/15", 24, "0.0.255.0", "1.3.255.1/24", "1.3.255.1/15")
-	t.testPrefixBitwiseOr("1.2.0.0/22", 24, "0.0.3.248", "1.2.3.0/24", ("1.2.3.248-255/22"))
-	t.testPrefixBitwiseOr("1.2.0.0/24", 24, "0.0.3.248", "1.2.3.0/24", ("1.2.3.248-255/24"))
+	t.testPrefixBitwiseOr("1.2.0.0/22", 24, "0.0.3.248", "1.2.3.0/24", "1.2.3.248-255/22")
+	t.testPrefixBitwiseOr("1.2.0.0/24", 24, "0.0.3.248", "1.2.3.0/24", "1.2.3.248-255/24")
 	t.testPrefixBitwiseOr("1.2.0.0/22", 23, "0.0.3.0", "1.2.2.0/23", "1.2.3.0-255/22")
-	t.testPrefixBitwiseOr("1.2.0.0/24", 23, "0.0.3.0", "1.2.2.*", ("1.2.3.0-255/24"))
+	t.testPrefixBitwiseOr("1.2.0.0/24", 23, "0.0.3.0", "1.2.2.*", "1.2.3.0-255/24")
 	t.testPrefixBitwiseOr("1:2::/46", 47, "0:0:3::", "1:2:2::/47", "1:2:3:*:*:*:*:*/46")
 
 	t.testPrefixBitwiseOr("0.0.0.0/16", 18, "0.0.2.8", "0.0.0-192.0/18", "")
@@ -1593,7 +1593,7 @@ func (t ipAddressRangeTester) run() {
 	t.testPrefixBlocks("1.2.128-255.*", 24, true, false)
 	t.testPrefixBlocks("*.*/0", 24, true, false)
 	t.testPrefixBlocks("1.2.*.*/16", 24, true, false)
-	t.testPrefixBlocks("1.2.3.*/16", 24, true, !false)
+	t.testPrefixBlocks("1.2.3.*/16", 24, true, true)
 	t.testPrefixBlocks("1.*.*.*/16", 24, true, false)
 	t.testPrefixBlocks("1.2-3.*.*/16", 24, true, false)
 	t.testPrefixBlocks("1.2.128-255.*/16", 24, true, false)
@@ -1630,8 +1630,8 @@ func (t ipAddressRangeTester) run() {
 	t.testPrefixBlocks("a:b:c:*/64", 65, true, false)
 	t.testPrefixBlocks("a:b:c:d-e:*/64", 65, true, false)
 	t.testPrefixBlocks("a:b:c:d:e:*/64", 65, false, false)
-	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 65, true, !true)
-	t.testPrefixBlocks("a:b:c:d:8000-ffff:*/64", 65, true, !false)
+	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 65, true, false)
+	t.testPrefixBlocks("a:b:c:d:8000-ffff:*/64", 65, true, true)
 	t.testPrefixBlocks("a:b:c:d:0-ffff:*/64", 65, true, false)
 
 	t.testPrefixBlocks("a:b:c:d:*/64", 128, true, false)
@@ -2403,39 +2403,39 @@ func (t ipAddressRangeTester) testWildcarded(original string, bits ipaddr.BitCou
 			addr = addr.ToPrefixBlock()
 		}
 	}
-	string := addr.ToCompressedWildcardString()
-	if string != (expectedCompressed) {
-		t.addFailure(newFailure("failed expected: "+expectedCompressed+" actual: "+string, w))
+	str := addr.ToCompressedWildcardString()
+	if str != (expectedCompressed) {
+		t.addFailure(newFailure("failed expected: "+expectedCompressed+" actual: "+str, w))
 	} else {
 		w2 := t.createAddress(original + "/" + strconv.Itoa(int(bits)))
 		addr2 := w2.GetAddress()
-		string = addr2.ToCompressedWildcardString()
-		if string != expectedCompressed {
-			t.addFailure(newFailure("failed expected: "+expectedCompressed+" actual: "+string, w))
+		str = addr2.ToCompressedWildcardString()
+		if str != expectedCompressed {
+			t.addFailure(newFailure("failed expected: "+expectedCompressed+" actual: "+str, w))
 		} else {
-			string = addr.ToNormalizedWildcardString()
-			if string != (expectedNormalized) {
-				t.addFailure(newFailure("failed expected: "+expectedNormalized+" actual: "+string, w))
+			str = addr.ToNormalizedWildcardString()
+			if str != (expectedNormalized) {
+				t.addFailure(newFailure("failed expected: "+expectedNormalized+" actual: "+str, w))
 			} else {
-				string = addr2.ToNormalizedWildcardString()
-				if string != (expectedNormalized) {
-					t.addFailure(newFailure("failed expected: "+expectedNormalized+" actual: "+string, w))
+				str = addr2.ToNormalizedWildcardString()
+				if str != (expectedNormalized) {
+					t.addFailure(newFailure("failed expected: "+expectedNormalized+" actual: "+str, w))
 				} else {
-					string = addr.ToCanonicalWildcardString()
-					if string != (expectedCanonical) {
-						t.addFailure(newFailure("failed expected: "+expectedCanonical+" actual: "+string, w))
+					str = addr.ToCanonicalWildcardString()
+					if str != (expectedCanonical) {
+						t.addFailure(newFailure("failed expected: "+expectedCanonical+" actual: "+str, w))
 					} else {
-						string = addr.ToSubnetString()
-						if string != (expectedSubnet) {
-							t.addFailure(newFailure("failed expected: "+expectedSubnet+" actual: "+string, w))
+						str = addr.ToSubnetString()
+						if str != (expectedSubnet) {
+							t.addFailure(newFailure("failed expected: "+expectedSubnet+" actual: "+str, w))
 						} else {
-							string = addr2.ToSubnetString()
-							if string != (expectedSubnet) {
-								t.addFailure(newFailure("failed expected: "+expectedSubnet+" actual: "+string, w))
+							str = addr2.ToSubnetString()
+							if str != (expectedSubnet) {
+								t.addFailure(newFailure("failed expected: "+expectedSubnet+" actual: "+str, w))
 							} else {
-								string = addr2.ToSQLWildcardString()
-								if string != (expectedSQL) {
-									t.addFailure(newFailure("failed expected: "+expectedSQL+" actual: "+string, w))
+								str = addr2.ToSQLWildcardString()
+								if str != (expectedSQL) {
+									t.addFailure(newFailure("failed expected: "+expectedSQL+" actual: "+str, w))
 								}
 							}
 						}
@@ -4850,7 +4850,7 @@ func (t ipAddressRangeTester) testFmtStringsIP(
 	var slice4 []*ipaddr.Address
 	var slice5 []interface{}
 
-	var expectedDefaults string = "["
+	expectedDefaults := "["
 	for i := 0; i < 14; i++ {
 		ipaddrs1 = append(ipaddrs1, ipAddress)
 		ipaddrs2 = append(ipaddrs2, *ipAddress)

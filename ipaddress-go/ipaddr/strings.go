@@ -276,7 +276,7 @@ const maxUint = ^uint(0)
 func toUnsignedStringLengthSlow(value uint64, radix int) int {
 	count := 1
 	useInts := value <= uint64(maxUint)
-	var value2 uint = uint(radix)
+	value2 := uint(radix)
 	if useInts {
 		value2 = uint(value)
 	}
@@ -833,7 +833,7 @@ func appendDigits(
 	appendable *strings.Builder) {
 
 	useInts := value <= uint64(maxUint)
-	var value2 uint = uint(radix)
+	value2 := uint(radix)
 	if useInts {
 		value2 = uint(value)
 	}
@@ -899,7 +899,7 @@ func appendRangeDigits(
 	}
 	previousWasFullRange := true
 	useInts := upper <= uint64(maxUint)
-	var lowerInt uint = uint(radix)
+	lowerInt := uint(radix)
 	upperInt := lowerInt
 	if useInts {
 		upperInt = uint(upper)

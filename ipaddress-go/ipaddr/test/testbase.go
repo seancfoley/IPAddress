@@ -30,7 +30,7 @@ import (
 )
 
 func Test(isLimited bool) {
-	var acc testAccumulator
+	acc := testAccumulator{lock: &sync.Mutex{}}
 	var addresses addresses
 	//fullTest := true
 	fullTest := false
@@ -144,7 +144,7 @@ func Test(isLimited bool) {
 }
 
 func testAll(addresses addresses, fullTest bool) testAccumulator {
-	var acc testAccumulator
+	acc := testAccumulator{lock: &sync.Mutex{}}
 
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
 	tester.run()
@@ -193,7 +193,7 @@ type testResults interface {
 type testAccumulator struct {
 	counter  int64
 	failures []failure
-	lock     sync.Mutex
+	lock     *sync.Mutex
 }
 
 func (t *testAccumulator) add(other testAccumulator) {
@@ -212,9 +212,9 @@ func (t *testAccumulator) incrementTestCount() {
 	t.counter++
 }
 
-type tester interface {
-	run()
-}
+//type tester interface {
+//	run()
+//}
 
 type testBase struct {
 	fullTest bool
@@ -506,7 +506,7 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.String() + " expected: " + adjusted.String() + " increment: " + adjustment.String())
 		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.ToNormalizedWildcardString() + " expected: " + adjusted.ToNormalizedWildcardString() + " increment: " + adjustment.String())
 		t.addFailure(newSegmentSeriesFailure("prefix adjusted: "+adjustedSeries.String(), adjusted))
-		original.AdjustPrefixLenZeroed(adjustment)
+		_, _ = original.AdjustPrefixLenZeroed(adjustment)
 		//a, berr := original.AdjustPrefixLenZeroed(adjustment)
 		//_ = berr
 		//a.String()
@@ -1296,7 +1296,7 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 					//try {
 					dotted, err = ipAddr.ToDottedString()
 					if err != nil {
-						sMatch = (dottedString == "")
+						sMatch = dottedString == ""
 					} else {
 						t.confirmMACAddrStrings(ipAddr, dotted)
 						sMatch = dotted == (dottedString)

@@ -769,7 +769,7 @@ func (section *IPv6AddressSection) getCompressIndexAndCount(options addrstr.Comp
 		segmentCount := section.GetSegmentCount()
 		//compressMixed := createMixed && options.GetMixedCompressionOptions().compressMixed(section)
 		compressMixed := createMixed && compressMixedSect(options.GetMixedCompressionOptions(), section)
-		preferHost := (rangeSelection == addrstr.HostPreferred)
+		preferHost := rangeSelection == addrstr.HostPreferred
 		preferMixed := createMixed && (rangeSelection == addrstr.MixedPreferred)
 		for i := compressibleSegs.size() - 1; i >= 0; i-- {
 			rng := compressibleSegs.getRange(i)
@@ -1113,8 +1113,8 @@ var (
 	mixedParams         = new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressMixed).ToOptions()
 	ipv6FullParams      = new(addrstr.IPv6StringOptionsBuilder).SetExpandedSegments(true).SetWildcardOptions(wildcardsRangeOnlyNetworkOnly).ToOptions()
 	ipv6CanonicalParams = new(addrstr.IPv6StringOptionsBuilder).SetCompressOptions(compressAllNoSingles).ToOptions()
-	uncParams           = new(addrstr.IPv6StringOptionsBuilder).SetSeparator(IPv6UncSegmentSeparator).SetZoneSeparator(IPv6UncZoneSeparator).
-				SetAddressSuffix(IPv6UncSuffix).SetWildcardOptions(uncWildcards).ToOptions()
+	//uncParams           = new(addrstr.IPv6StringOptionsBuilder).SetSeparator(IPv6UncSegmentSeparator).SetZoneSeparator(IPv6UncZoneSeparator).
+	//			SetAddressSuffix(IPv6UncSuffix).SetWildcardOptions(uncWildcards).ToOptions()
 	ipv6CompressedParams         = new(addrstr.IPv6StringOptionsBuilder).SetCompressOptions(compressAll).ToOptions()
 	ipv6normalizedParams         = new(addrstr.IPv6StringOptionsBuilder).ToOptions()
 	canonicalWildcardParams      = new(addrstr.IPv6StringOptionsBuilder).SetWildcardOptions(allWildcards).SetCompressOptions(compressZerosNoSingles).ToOptions()
@@ -1125,8 +1125,8 @@ var (
 
 	ipv6ReverseDNSParams = new(addrstr.IPv6StringOptionsBuilder).SetReverse(true).SetAddressSuffix(IPv6ReverseDnsSuffix).
 				SetSplitDigits(true).SetExpandedSegments(true).SetSeparator('.').ToOptions()
-	base85Params = new(addrstr.IPStringOptionsBuilder).SetRadix(85).SetExpandedSegments(true).
-			SetWildcards(base85Wildcards).SetZoneSeparator(IPv6AlternativeZoneSeparator).ToOptions()
+	//base85Params = new(addrstr.IPStringOptionsBuilder).SetRadix(85).SetExpandedSegments(true).
+	//		SetWildcards(base85Wildcards).SetZoneSeparator(IPv6AlternativeZoneSeparator).ToOptions()
 	ipv6SegmentedBinaryParams = new(addrstr.IPStringOptionsBuilder).SetRadix(2).SetSeparator(IPv6SegmentSeparator).SetSegmentStrPrefix(BinaryPrefix).
 					SetExpandedSegments(true).ToOptions()
 )

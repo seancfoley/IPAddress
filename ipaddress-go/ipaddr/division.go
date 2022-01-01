@@ -281,8 +281,8 @@ func (div *addressDivisionInternal) isPrefixBlockVals(divisionValue, upperValue 
 		return true
 	}
 	var ones = ^DivInt(0)
-	var divisionBitMask DivInt = ^(ones << uint(bitCount))
-	var divisionPrefixMask DivInt = ones << uint(bitCount-divisionPrefixLen)
+	divisionBitMask := ^(ones << uint(bitCount))
+	divisionPrefixMask := ones << uint(bitCount-divisionPrefixLen)
 	var divisionNonPrefixMask = ^divisionPrefixMask
 	return testRange(divisionValue,
 		upperValue,

@@ -77,7 +77,7 @@ const (
 var (
 	macMaxTriple uint64 = (MACMaxValuePerSegment << uint64(MACBitsPerSegment*2)) |
 		(MACMaxValuePerSegment << uint64(MACBitsPerSegment)) | MACMaxValuePerSegment
-	macMaxQuintuple uint64 = (macMaxTriple << uint64(MACBitsPerSegment*2)) | uint64(macMaxTriple>>uint64(MACBitsPerSegment))
+	macMaxQuintuple = (macMaxTriple << uint64(MACBitsPerSegment*2)) | uint64(macMaxTriple>>uint64(MACBitsPerSegment))
 )
 
 func isSingleSegmentIPv6(
@@ -246,7 +246,7 @@ func validateAddress(
 
 	var extendedCharacterIndex, extendedRangeWildcardIndex, rangeWildcardIndex,
 		hexDelimiterIndex, frontHexDelimiterIndex, segmentStartIndex,
-		segmentValueStartIndex int = -1, -1, -1, -1, -1, index, index
+		segmentValueStartIndex = -1, -1, -1, -1, -1, index, index
 
 	var isSegmented, leadingWithZero, hasDigits, frontIsStandardRangeChar, atEnd,
 		firstSegmentDashedRange, frontUppercase, uppercase,
@@ -264,7 +264,7 @@ func validateAddress(
 	var currentChar byte
 	for {
 		if index >= strEndIndex {
-			atEnd = (index == strEndIndex)
+			atEnd = index == strEndIndex
 			if atEnd {
 				parseData.setAddressEndIndex(index)
 				if isSegmented {
@@ -1210,7 +1210,7 @@ func validateAddress(
 								!isMac &&
 								ipv6SpecificOptions.AllowsZone()
 							if canBeZone {
-								isIPv6 := (parseData.getSegmentCount() > 0 && (isEmbeddedIPv4 || ipParseData.getProviderIPVersion() == IPv6) /* at end of IPv6 regular or mixed */)
+								isIPv6 := parseData.getSegmentCount() > 0 && (isEmbeddedIPv4 || ipParseData.getProviderIPVersion() == IPv6) /* at end of IPv6 regular or mixed */
 								if !isIPv6 {
 									isIPv6, _ = isSingleSegmentIPv6(str, index-segmentValueStartIndex, rangeWildcardIndex >= 0, frontLeadingZeroCount+frontDigitCount, ipv6SpecificOptions)
 									if !isIPv6 {
@@ -2786,7 +2786,7 @@ func inferVersion(params addrparam.IPAddressStringParams) IPVersion {
 
 func getLoopbackCreator(validationOptions addrparam.IPAddressStringParams, qualifier *parsedHostIdentifierStringQualifier) (res ipAddressProvider) {
 	zone := qualifier.getZone()
-	var defaultParams addrparam.IPAddressStringParams = defaultIPAddrParameters
+	defaultParams := defaultIPAddrParameters
 	if validationOptions == defaultParams && zone == NoZone {
 		res = loopbackCache
 		return
@@ -2957,7 +2957,7 @@ func checkSegments(
 				max = IPv4MaxValuePerSegment
 			}
 			if parseData.getFlag(i, keySingleWildcard) {
-				var value uint64 = parseData.getValue(i, keyLower)
+				value := parseData.getValue(i, keyLower)
 				if value > max {
 					return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}}
 				}
@@ -2972,7 +2972,7 @@ func checkSegments(
 					}
 				}
 			} else {
-				var value uint64 = parseData.getValue(i, keyUpper)
+				value := parseData.getValue(i, keyUpper)
 				if value > max {
 					return &addressStringError{addressError{str: fullAddr, key: "ipaddress.error.ipv4.segment.too.large"}}
 				}
@@ -3246,7 +3246,7 @@ func getStringPrefixCharCount(radix uint32) int {
 	return 1
 }
 
-var maxIPv4StringLen [9][]int = [9][]int{ //indices are [radix / 2][additionalSegments], and we handle radices 8, 10, 16
+var maxIPv4StringLen = [9][]int{ //indices are [radix / 2][additionalSegments], and we handle radices 8, 10, 16
 	{3, 6, 8, 11},   //no radix supplied we treat as octal, the longest
 	{8, 16, 24, 32}, // binary
 	{}, {},
@@ -3464,8 +3464,8 @@ func (strValidator) validateHostName(fromHost *HostName) (psdHost *parsedHost, e
 	var segmentUppercase, isNotNormalized, squareBracketed,
 		tryIPv6, tryIPv4,
 		isPrefixed, hasPortOrService, hostIsEmpty bool
-	var isAllDigits, isPossiblyIPv6, isPossiblyIPv4 bool = true, true, true
-	var isSpecialOnlyIndex, qualifierIndex, index, lastSeparatorIndex int = -1, -1, -1, -1
+	isAllDigits, isPossiblyIPv6, isPossiblyIPv4 := true, true, true
+	isSpecialOnlyIndex, qualifierIndex, index, lastSeparatorIndex := -1, -1, -1, -1
 	labelCount := 0
 	maxLocalLabels := 6 //should be at least 4 to avoid the array for ipv4 addresses
 	var separatorIndices []int

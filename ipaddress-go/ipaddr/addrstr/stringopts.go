@@ -325,6 +325,7 @@ type MACStringOptionsBuilder struct {
 	StringOptionsBuilder
 }
 
+//TODO xxx use "builder" as receiver xxx
 func (w *MACStringOptionsBuilder) SetWildcards(wildcards Wildcards) *MACStringOptionsBuilder {
 	w.StringOptionsBuilder.SetWildcards(wildcards)
 	return w

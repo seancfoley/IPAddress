@@ -399,7 +399,7 @@ func (params *addressStringParams) preferWildcards() bool {
 }
 
 //returns -1 to expand
-func (params *addressStringParams) getLeadingZeros(segmentIndex int) int {
+func (params *addressStringParams) getLeadingZeros(segmentIndex int) int { //TODO why segmentIndex unused?
 	if params.expandSegments {
 		return -1
 	}
@@ -739,7 +739,7 @@ func (params *addressStringParams) appendSingleDivision(seg DivisionType, builde
 		return result + params.getAddressLabelLength()
 	}
 	params.appendLabel(builder)
-	writer.getStandardString(0, params, builder)
+	_, _ = writer.getStandardString(0, params, builder)
 	return 0
 }
 
@@ -1142,7 +1142,7 @@ func (params *ipv6StringParams) endIsCompressed(addr IPAddressSegmentSeries) boo
 	return params.nextUncompressedIndex >= addr.GetDivisionCount()
 }
 
-func (params *ipv6StringParams) isCompressed(addr IPAddressSegmentSeries) bool {
+func (params *ipv6StringParams) isCompressed(_ IPAddressSegmentSeries) bool {
 	return params.firstCompressedSegmentIndex >= 0
 }
 
@@ -1387,7 +1387,7 @@ func (params *ipv6v4MixedParams) append(builder *strings.Builder, addr *IPv6v4Mi
 	if addr.GetDivisionCount() > 0 {
 		ipv6Params := params.ipv6Params
 		ipv6Params.appendLabel(builder)
-		ipv6Params.appendSegments(builder, addr.GetIPv6AddressSection())
+		_ = ipv6Params.appendSegments(builder, addr.GetIPv6AddressSection())
 		if ipv6Params.nextUncompressedIndex < addr.GetIPv6AddressSection().GetSegmentCount() {
 			builder.WriteByte(ipv6Params.getTrailingSegmentSeparator())
 		}
@@ -1909,7 +1909,7 @@ func (writer stringWriter) adjustRangeDigits(rangeDigits int) int {
 }
 
 func (writer stringWriter) getRangeStringWithCounts(
-	segmentIndex int,
+	segmentIndex int, //TODO remove this arg
 	params addressSegmentParams,
 	lowerLeadingZerosCount int,
 	upperLeadingZerosCount int,
@@ -1957,7 +1957,7 @@ func (writer stringWriter) writeSplitRangeString(
 			appendable.WriteByte(splitDigitSeparator)
 			hasLeadingZeros = false
 		}
-		writer.getSplitRangeString(
+		_ = writer.getSplitRangeString( //TODO should we be returning error here?
 			rangeSeparator,
 			wildcards.GetWildcard(),
 			radix,

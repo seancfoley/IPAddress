@@ -331,7 +331,7 @@ func maskExtendedRange(
 	extendedDifferingMasked := extendedMaskValue & (^uint64(0) >> uint(highestDifferingBitInRange))
 	var highestDifferingBitMasked int
 	if extendedDifferingMasked != 0 {
-		differingIsLowestBit := (extendedDifferingMasked == 1)
+		differingIsLowestBit := extendedDifferingMasked == 1
 		highestDifferingBitMasked = bits.LeadingZeros64(extendedDifferingMasked)
 		var maskedIsSequential bool
 		hostMask := ^uint64(0) >> uint(highestDifferingBitMasked+1)
@@ -425,7 +425,7 @@ func maskExtendedRange(
 			lowerToBeMaskedBig.Or(&lowerBig, &bigHostMask)
 			maskBig.SetUint64(extendedMaskValue).Lsh(&maskBig, 64).Or(&maskBig, val.SetUint64(maskValue))
 
-			for nextBit := (128 - (highestDifferingBitMasked + 1) - 1); nextBit >= 0; nextBit-- {
+			for nextBit := 128 - (highestDifferingBitMasked + 1) - 1; nextBit >= 0; nextBit-- {
 				// check if the bit in the mask is 1
 				if maskBig.Bit(nextBit) != 0 {
 					val.Set(&upperToBeMaskedBig).SetBit(&val, nextBit, 1)
@@ -571,7 +571,7 @@ func MaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 		highestDifferingBitInRange := bits.LeadingZeros64(differing)
 		maskMask := ^uint64(0) >> uint(highestDifferingBitInRange)
 		differingMasked := maskValue & maskMask
-		foundDiffering := (differingMasked != 0)
+		foundDiffering := differingMasked != 0
 		if foundDiffering {
 			// Anything below highestDifferingBitMasked in the mask must be ones.
 			// Also, if we have masked out any 1 bit in the original, then anything that we do not mask out that follows must be all 1s
@@ -683,7 +683,7 @@ func bitwiseOrRange(value, upperValue, maskValue, maxValue uint64) BitwiseOrer {
 		highestDifferingBitInRange := bits.LeadingZeros64(differing)
 		maskMask := ^uint64(0) >> uint(highestDifferingBitInRange)
 		differingMasked := maskValue & maskMask
-		foundDiffering := (differingMasked != maskMask) // mask not all ones
+		foundDiffering := differingMasked != maskMask // mask not all ones
 		if foundDiffering {
 			highestDifferingBitMasked := bits.LeadingZeros64(^differingMasked & maskMask) // first 0 bit in the part of the mask covering the range
 			var hostMask uint64

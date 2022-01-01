@@ -43,14 +43,14 @@ const (
 	IPv6ReverseDnsSuffix            = ".ip6.arpa"
 	IPv6ReverseDnsSuffixDeprecated  = ".ip6.int"
 
-	IPv6UncSegmentSeparator  = '-'
-	IPv6UncZoneSeparator     = 's'
-	IPv6UncRangeSeparator    = AlternativeRangeSeparator
+	IPv6UncSegmentSeparator = '-'
+	IPv6UncZoneSeparator    = 's'
+	//IPv6UncRangeSeparator    = AlternativeRangeSeparator
 	IPv6UncRangeSeparatorStr = AlternativeRangeSeparatorStr
 	IPv6UncSuffix            = ".ipv6-literal.net"
 
-	IPv6SegmentMaxChars    = 4
-	IPv6SegmentBitsPerChar = 4
+	IPv6SegmentMaxChars = 4
+	//IPv6SegmentBitsPerChar = 4
 
 	ipv6BitsToSegmentBitshift = 4
 

@@ -117,7 +117,7 @@ func mapGrouping(grouping StandardDivGroupingType) int {
 	//} //} else if(series instanceof IPAddressLargeDivisionGrouping) {
 	//	return -2;
 	//}
-	return 0
+	//return 0
 }
 
 func mapRange(rng *IPAddressSeqRange) int {
