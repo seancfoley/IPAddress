@@ -1,3 +1,19 @@
+//
+// Copyright 2020-2021 Sean C Foley
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package ipaddr
 
 import "math/big"
@@ -34,7 +50,7 @@ const (
 	ipv6v4groupingtype   = 2
 	largegroupingtype    = -2
 	standardgroupingtype = -3
-	zerogroupingtype     = -4
+	adaptivezerotype     = -4
 )
 
 const (
@@ -83,7 +99,7 @@ func mapGrouping(grouping StandardDivGroupingType) int {
 		// We need the zero grouping to be less than everything else or more than everything else for comparison consistency.
 		// Empty sections org groupings that have an address type are not considered equal.  They can represent only one address type.
 		// This is similar to the fact that a MAC section and an IPv4 section can be structurally identical but not equal due to the type.
-		return zerogroupingtype
+		return adaptivezerotype
 	} else if group.IsIPv6() {
 		return ipv6sectype
 	} else if group.IsMixedIPv6v4() {
