@@ -1458,19 +1458,15 @@ type ipv6CacheAccess interface {
 func (section *IPv6AddressSection) toNormalizedSplitZonedString(options addrstr.IPv6StringOptions, zone Zone) (string, addrerr.IncompatibleAddressError) {
 	var stringParams *ipv6StringParams
 	// all split strings are cacheable since no compression
-	//opts, hasCache := options.(*ipv6StringOptions)
 	opts, hasCache := options.(ipv6CacheAccess)
 	if hasCache {
 		cached := opts.GetIPv6StringOptionsCache()
 		stringParams = (*ipv6StringParams)(*cached)
-		//stringParams = opts.cachedIPv6Addr
 	}
 	if stringParams == nil {
 		stringParams = from(options, section)
 		if hasCache {
 			dataLoc := opts.GetIPv6StringOptionsCache()
-			//dataLoc := &cacheStruct.CachedIPv6Addr
-			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&opts.cachedIPv6Addr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(stringParams))
 		}
 	}

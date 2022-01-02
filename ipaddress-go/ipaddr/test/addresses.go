@@ -533,6 +533,37 @@ func (t *addresses) allowsRange() bool {
 
 type rangedAddresses struct {
 	addresses
+
+	rstrIPAddressStrCache     map[string]*ipaddr.IPAddressString
+	rstrIPAddressStrCacheLock *sync.Mutex
+
+	rstrMACAddressStrCache     map[string]*ipaddr.MACAddressString
+	rstrMACAddressStrCacheLock *sync.Mutex
+
+	rstrHostStrCache     map[string]*ipaddr.HostName
+	rstrHostStrCacheLock *sync.Mutex
+
+	rinetAtonStrHostStrCache      map[string]*ipaddr.HostName
+	rinetAtonStrIHostStrCacheLock *sync.Mutex
+}
+
+func (t *rangedAddresses) useCache(use bool) {
+	if use {
+		t.rstrIPAddressStrCache = make(map[string]*ipaddr.IPAddressString)
+		t.rstrIPAddressStrCacheLock = &sync.Mutex{}
+
+		t.rstrMACAddressStrCache = make(map[string]*ipaddr.MACAddressString)
+		t.rstrMACAddressStrCacheLock = &sync.Mutex{}
+
+		t.rstrHostStrCache = make(map[string]*ipaddr.HostName)
+		t.rstrHostStrCacheLock = &sync.Mutex{}
+
+		t.rinetAtonStrHostStrCache = make(map[string]*ipaddr.HostName)
+		t.rinetAtonStrIHostStrCacheLock = &sync.Mutex{}
+	} else {
+		*t = rangedAddresses{}
+	}
+	t.addresses.useCache(use)
 }
 
 var (
@@ -541,9 +572,9 @@ var (
 	noRangeAddressOptions          = new(addrparam.IPAddressStringParamsBuilder).Set(wildcardAndRangeAddressOptions).SetRangeParams(addrparam.NoRange).ToParams()
 
 	wildcardAndRangeMACAddressOptions = new(addrparam.MACAddressStringParamsBuilder).Set(macAddressOptions).AllowAll(true).GetFormatParamsBuilder().SetRangeParams(addrparam.WildcardAndRange).GetParentBuilder().ToParams()
-	wildcardOnlyMACAddressOptions     = new(addrparam.MACAddressStringParamsBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParamsBuilder().SetRangeParams(addrparam.WildcardOnly).GetParentBuilder().ToParams()
-	noRangeMACAddressOptions          = new(addrparam.MACAddressStringParamsBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParamsBuilder().SetRangeParams(addrparam.NoRange).GetParentBuilder().ToParams()
-	//TODO check why the abvoe two unused, seems weird
+	//wildcardOnlyMACAddressOptions     = new(addrparam.MACAddressStringParamsBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParamsBuilder().SetRangeParams(addrparam.WildcardOnly).GetParentBuilder().ToParams()
+	//noRangeMACAddressOptions          = new(addrparam.MACAddressStringParamsBuilder).Set(wildcardAndRangeMACAddressOptions).GetFormatParamsBuilder().SetRangeParams(addrparam.NoRange).GetParentBuilder().ToParams()
+
 	hostInetAtonwildcardAndRangeOptions = new(addrparam.HostNameParamsBuilder).
 						AllowEmpty(false).
 		//ParseEmptyStrAs(ipaddr.NoAddressOption).
@@ -579,20 +610,68 @@ var (
 	//addressWildcardOptions = wildcardAndRangeAddressOptions
 )
 
-func (t *rangedAddresses) createAddress(str string) *ipaddr.IPAddressString {
-	return ipaddr.NewIPAddressStringParams(str, wildcardAndRangeAddressOptions)
+func (t *rangedAddresses) createAddress(str string) (res *ipaddr.IPAddressString) {
+	if t.caching {
+		t.rstrIPAddressStrCacheLock.Lock()
+		defer t.rstrIPAddressStrCacheLock.Unlock()
+		res = t.rstrIPAddressStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewIPAddressStringParams(str, wildcardAndRangeAddressOptions)
+	if t.caching {
+		t.rstrIPAddressStrCache[str] = res
+	}
+	return
 }
 
-func (t *rangedAddresses) createMACAddress(str string) *ipaddr.MACAddressString {
-	return ipaddr.NewMACAddressStringParams(str, wildcardAndRangeMACAddressOptions)
+func (t *rangedAddresses) createMACAddress(str string) (res *ipaddr.MACAddressString) {
+	if t.caching {
+		t.rstrMACAddressStrCacheLock.Lock()
+		defer t.rstrMACAddressStrCacheLock.Unlock()
+		res = t.rstrMACAddressStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewMACAddressStringParams(str, wildcardAndRangeMACAddressOptions)
+	if t.caching {
+		t.rstrMACAddressStrCache[str] = res
+	}
+	return
 }
 
-func (t *rangedAddresses) createHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, hostWildcardOptions)
+func (t *rangedAddresses) createHost(str string) (res *ipaddr.HostName) {
+	if t.caching {
+		t.rstrHostStrCacheLock.Lock()
+		defer t.rstrHostStrCacheLock.Unlock()
+		res = t.rstrHostStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewHostNameParams(str, hostWildcardOptions)
+	if t.caching {
+		t.rstrHostStrCache[str] = res
+	}
+	return
 }
 
-func (t *rangedAddresses) createInetAtonHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, hostInetAtonwildcardAndRangeOptions)
+func (t *rangedAddresses) createInetAtonHost(str string) (res *ipaddr.HostName) {
+	if t.caching {
+		t.rinetAtonStrIHostStrCacheLock.Lock()
+		defer t.rinetAtonStrIHostStrCacheLock.Unlock()
+		res = t.rinetAtonStrHostStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewHostNameParams(str, hostInetAtonwildcardAndRangeOptions)
+	if t.caching {
+		t.rinetAtonStrHostStrCache[str] = res
+	}
+	return
 }
 
 func (t *rangedAddresses) allowsRange() bool {
@@ -606,22 +685,94 @@ var (
 
 type allAddresses struct {
 	rangedAddresses
+
+	astrIPAddressStrCache     map[string]*ipaddr.IPAddressString
+	astrIPAddressStrCacheLock *sync.Mutex
+
+	//ainetAtonStrIPAddressStrCache     map[string]*ipaddr.IPAddressString
+	//ainetAtonStrIPAddressStrCacheLock *sync.Mutex
+
+	astrHostStrCache     map[string]*ipaddr.HostName
+	astrHostStrCacheLock *sync.Mutex
+
+	ainetAtonStrHostStrCache      map[string]*ipaddr.HostName
+	ainetAtonStrIHostStrCacheLock *sync.Mutex
 }
 
-func (t *allAddresses) createAddress(str string) *ipaddr.IPAddressString {
-	return ipaddr.NewIPAddressStringParams(str, defaultOptions)
+func (t *allAddresses) useCache(use bool) {
+	if use {
+		t.astrIPAddressStrCache = make(map[string]*ipaddr.IPAddressString)
+		t.astrIPAddressStrCacheLock = &sync.Mutex{}
+
+		//t.ainetAtonStrIPAddressStrCache = make(map[string]*ipaddr.IPAddressString)
+		//t.ainetAtonStrIPAddressStrCacheLock = &sync.Mutex{}
+
+		t.astrHostStrCache = make(map[string]*ipaddr.HostName)
+		t.astrHostStrCacheLock = &sync.Mutex{}
+
+		t.ainetAtonStrHostStrCache = make(map[string]*ipaddr.HostName)
+		t.ainetAtonStrIHostStrCacheLock = &sync.Mutex{}
+	} else {
+		*t = allAddresses{}
+	}
+	t.rangedAddresses.useCache(use)
+}
+
+//TODO this one is uncovering a bug
+
+func (t *allAddresses) createAddress(str string) (res *ipaddr.IPAddressString) {
+	if t.caching {
+		t.astrIPAddressStrCacheLock.Lock()
+		defer t.astrIPAddressStrCacheLock.Unlock()
+		res = t.astrIPAddressStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewIPAddressStringParams(str, defaultOptions)
+	if t.caching {
+		t.astrIPAddressStrCache[str] = res
+	}
+	return
+	//return ipaddr.NewIPAddressStringParams(str, defaultOptions)
 }
 
 func (t *allAddresses) createInetAtonAddress(str string) *ipaddr.IPAddressString {
 	return t.createAddress(str)
 }
 
-func (t *allAddresses) createHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, defaultHostOptions)
+func (t *allAddresses) createHost(str string) (res *ipaddr.HostName) {
+	if t.caching {
+		t.astrHostStrCacheLock.Lock()
+		defer t.astrHostStrCacheLock.Unlock()
+		res = t.astrHostStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewHostNameParams(str, defaultHostOptions)
+	if t.caching {
+		t.astrHostStrCache[str] = res
+	}
+	return
+	//return ipaddr.NewHostNameParams(str, defaultHostOptions)
 }
 
-func (t *allAddresses) createInetAtonHost(str string) *ipaddr.HostName {
-	return ipaddr.NewHostNameParams(str, defaultHostOptions)
+func (t *allAddresses) createInetAtonHost(str string) (res *ipaddr.HostName) {
+	if t.caching {
+		t.ainetAtonStrIHostStrCacheLock.Lock()
+		defer t.ainetAtonStrIHostStrCacheLock.Unlock()
+		res = t.ainetAtonStrHostStrCache[str]
+		if res != nil {
+			return
+		}
+	}
+	res = ipaddr.NewHostNameParams(str, defaultHostOptions)
+	if t.caching {
+		t.ainetAtonStrHostStrCache[str] = res
+	}
+	return
+	//return ipaddr.NewHostNameParams(str, defaultHostOptions)
 }
 
 func (t *allAddresses) isLenient() bool {

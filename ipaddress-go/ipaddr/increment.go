@@ -91,7 +91,7 @@ func fastIncrement( // used by IPv6
 				if longCount == uincrement+1 {
 					return upperProducer()
 				}
-				return incrementRange(section, inc, creator, lowerProducer, prefixLength)
+				return incrementRange(section, inc, lowerProducer, prefixLength)
 			}
 			upperValue := section.GetUpperValue()
 			if upperValue.CmpAbs(&maxUint64) <= 0 {
@@ -143,7 +143,7 @@ func increment( // used by IPv4 and MACSize
 		if countMinus1 == uIncrement {
 			return upperProducer()
 		}
-		return incrementRange(section, increment, creator, lowerProducer, prefixLength)
+		return incrementRange(section, increment, lowerProducer, prefixLength)
 	}
 	if uIncrement <= math.MaxUint64-upperValue {
 		return add(upperProducer(), upperValue, int64(uIncrement-countMinus1), creator, prefixLength)
@@ -176,14 +176,13 @@ func incrementBig( // used by MACSize and IPv6
 		}
 		return addBig(upperProducer(), incrementPlus1.Sub(incrementPlus1, count), creator, prefixLength)
 	}
-	return incrementRange(section, increment, creator, lowerProducer, prefixLength)
+	return incrementRange(section, increment, lowerProducer, prefixLength)
 }
 
 // rangeIncrement the positive value of the number of increments through the range (0 means take lower or upper value in range)
 func incrementRange(
 	section *AddressSection,
 	increment int64,
-	creator addressSegmentCreator, //TODO remove this arg
 	lowerProducer func() *AddressSection,
 	prefixLength PrefixLen) *AddressSection {
 	if increment == 0 {

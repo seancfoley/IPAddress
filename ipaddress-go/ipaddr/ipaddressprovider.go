@@ -920,6 +920,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //
 //xxx TODO change addrparam to addrstrparam - maybe other can be addrstrgen xxx maybe addrstringparam addrstringgen
 // maybe addrstring and addrstringparam - this pair in the lead I think
+// or addrstr and addrstrparam YEAH
 // TODO package names addrstr and addrparam, I think I want to keep them separate, but, hard time picking package names
 // addrstr would apply to both, addrinstr and addroutstr?  nah  strparams?  nah
 

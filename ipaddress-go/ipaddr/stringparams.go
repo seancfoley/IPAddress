@@ -399,7 +399,7 @@ func (params *addressStringParams) preferWildcards() bool {
 }
 
 //returns -1 to expand
-func (params *addressStringParams) getLeadingZeros(segmentIndex int) int { //TODO why segmentIndex unused?
+func (params *addressStringParams) getLeadingZeros(segmentIndex int) int {
 	if params.expandSegments {
 		return -1
 	}
@@ -1909,13 +1909,13 @@ func (writer stringWriter) adjustRangeDigits(rangeDigits int) int {
 }
 
 func (writer stringWriter) getRangeStringWithCounts(
-	segmentIndex int, //TODO remove this arg
+	segmentIndex int,
 	params addressSegmentParams,
 	lowerLeadingZerosCount int,
 	upperLeadingZerosCount int,
 	maskUpper bool,
 	appendable *strings.Builder) int {
-
+	_ = segmentIndex
 	stringPrefix := params.getSegmentStrPrefix()
 	radix := params.getRadix()
 	rangeSeparator := params.getWildcards().GetRangeSeparator()
@@ -1957,7 +1957,7 @@ func (writer stringWriter) writeSplitRangeString(
 			appendable.WriteByte(splitDigitSeparator)
 			hasLeadingZeros = false
 		}
-		_ = writer.getSplitRangeString( //TODO should we be returning error here?
+		if err := writer.getSplitRangeString(
 			rangeSeparator,
 			wildcards.GetWildcard(),
 			radix,
@@ -1965,7 +1965,9 @@ func (writer stringWriter) writeSplitRangeString(
 			splitDigitSeparator,
 			reverseSplitDigits,
 			stringPrefix,
-			appendable)
+			appendable); err != nil {
+			return 0, err
+		}
 		if hasLeadingZeros {
 			appendable.WriteByte(splitDigitSeparator)
 			getSplitLeadingZeros(leadingZeroCount, splitDigitSeparator, stringPrefix, appendable)

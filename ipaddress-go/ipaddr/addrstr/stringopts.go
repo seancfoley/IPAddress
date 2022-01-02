@@ -157,52 +157,52 @@ type stringOptions struct {
 	stringOptionsCache
 }
 
-func (w *stringOptions) GetStringOptionsCache() *unsafe.Pointer {
-	return &w.stringOptionsCache.cached
+func (opts *stringOptions) GetStringOptionsCache() *unsafe.Pointer {
+	return &opts.stringOptionsCache.cached
 }
 
-func (w *stringOptions) GetWildcards() Wildcards {
-	return w.wildcards
+func (opts *stringOptions) GetWildcards() Wildcards {
+	return opts.wildcards
 }
 
-func (w *stringOptions) IsReverse() bool {
-	return w.reverse
+func (opts *stringOptions) IsReverse() bool {
+	return opts.reverse
 }
 
-func (w *stringOptions) IsUppercase() bool {
-	return w.uppercase
+func (opts *stringOptions) IsUppercase() bool {
+	return opts.uppercase
 }
 
 //func (w *stringOptions) isSplitDigits() bool {
 //	return w.splitDigits
 //}
 
-func (w *stringOptions) IsExpandedSegments() bool {
-	return w.expandSegments
+func (opts *stringOptions) IsExpandedSegments() bool {
+	return opts.expandSegments
 }
 
-func (w *stringOptions) GetRadix() int {
-	return w.base
+func (opts *stringOptions) GetRadix() int {
+	return opts.base
 }
 
 // separates the divisions of the address, typically ':' or '.', but also can be null for no separator
-func (w *stringOptions) GetSeparator() byte {
-	return w.separator
+func (opts *stringOptions) GetSeparator() byte {
+	return opts.separator
 }
 
-func (w *stringOptions) HasSeparator() bool {
-	if w.hasSeparator == nil {
+func (opts *stringOptions) HasSeparator() bool {
+	if opts.hasSeparator == nil {
 		return false
 	}
-	return *w.hasSeparator
+	return *opts.hasSeparator
 }
 
-func (w *stringOptions) GetAddressLabel() string {
-	return w.addrLabel
+func (opts *stringOptions) GetAddressLabel() string {
+	return opts.addrLabel
 }
 
-func (w *stringOptions) GetSegmentStrPrefix() string {
-	return w.segmentStrPrefix
+func (opts *stringOptions) GetSegmentStrPrefix() string {
+	return opts.segmentStrPrefix
 }
 
 var _ StringOptions = &stringOptions{}
@@ -264,59 +264,59 @@ type StringOptionsBuilder struct {
 	stringOptions
 }
 
-func (w *StringOptionsBuilder) SetWildcards(wildcards Wildcards) *StringOptionsBuilder {
-	w.wildcards = wildcards
-	return w
+func (builder *StringOptionsBuilder) SetWildcards(wildcards Wildcards) *StringOptionsBuilder {
+	builder.wildcards = wildcards
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetReverse(reverse bool) *StringOptionsBuilder {
-	w.reverse = reverse
-	return w
+func (builder *StringOptionsBuilder) SetReverse(reverse bool) *StringOptionsBuilder {
+	builder.reverse = reverse
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetUppercase(uppercase bool) *StringOptionsBuilder {
-	w.uppercase = uppercase
-	return w
+func (builder *StringOptionsBuilder) SetUppercase(uppercase bool) *StringOptionsBuilder {
+	builder.uppercase = uppercase
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *StringOptionsBuilder {
-	w.expandSegments = expandSegments
-	return w
+func (builder *StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *StringOptionsBuilder {
+	builder.expandSegments = expandSegments
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetRadix(base int) *StringOptionsBuilder {
-	w.base = base
-	return w
+func (builder *StringOptionsBuilder) SetRadix(base int) *StringOptionsBuilder {
+	builder.base = base
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetHasSeparator(has bool) *StringOptionsBuilder {
+func (builder *StringOptionsBuilder) SetHasSeparator(has bool) *StringOptionsBuilder {
 	if has {
-		w.hasSeparator = &trueVal
+		builder.hasSeparator = &trueVal
 	} else {
-		w.hasSeparator = &falseVal
+		builder.hasSeparator = &falseVal
 	}
-	return w
+	return builder
 }
 
 // separates the divisions of the address, typically ':' or '.'
-func (w *StringOptionsBuilder) SetSeparator(separator byte) *StringOptionsBuilder {
-	w.separator = separator
-	w.SetHasSeparator(true)
-	return w
+func (builder *StringOptionsBuilder) SetSeparator(separator byte) *StringOptionsBuilder {
+	builder.separator = separator
+	builder.SetHasSeparator(true)
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetAddressLabel(label string) *StringOptionsBuilder {
-	w.addrLabel = label
-	return w
+func (builder *StringOptionsBuilder) SetAddressLabel(label string) *StringOptionsBuilder {
+	builder.addrLabel = label
+	return builder
 }
 
-func (w *StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *StringOptionsBuilder {
-	w.segmentStrPrefix = prefix
-	return w
+func (builder *StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *StringOptionsBuilder {
+	builder.segmentStrPrefix = prefix
+	return builder
 }
 
-func (w *StringOptionsBuilder) ToOptions() StringOptions {
-	res := w.stringOptions
+func (builder *StringOptionsBuilder) ToOptions() StringOptions {
+	res := builder.stringOptions
 	res.base, res.wildcards, res.separator = getDefaults(res.base, res.wildcards, res.separator)
 	return &res
 }
@@ -325,51 +325,50 @@ type MACStringOptionsBuilder struct {
 	StringOptionsBuilder
 }
 
-//TODO xxx use "builder" as receiver xxx
-func (w *MACStringOptionsBuilder) SetWildcards(wildcards Wildcards) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetWildcards(wildcards)
-	return w
+func (builder *MACStringOptionsBuilder) SetWildcards(wildcards Wildcards) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetWildcards(wildcards)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetReverse(reverse bool) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetReverse(reverse)
-	return w
+func (builder *MACStringOptionsBuilder) SetReverse(reverse bool) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetReverse(reverse)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetUppercase(uppercase bool) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetUppercase(uppercase)
-	return w
+func (builder *MACStringOptionsBuilder) SetUppercase(uppercase bool) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetUppercase(uppercase)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetExpandedSegments(expandSegments)
-	return w
+func (builder *MACStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetExpandedSegments(expandSegments)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetRadix(base int) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetRadix(base)
-	return w
+func (builder *MACStringOptionsBuilder) SetRadix(base int) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetRadix(base)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetHasSeparator(has bool) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetHasSeparator(has)
-	return w
+func (builder *MACStringOptionsBuilder) SetHasSeparator(has bool) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetHasSeparator(has)
+	return builder
 }
 
 // separates the divisions of the address, typically ':' or '.'
-func (w *MACStringOptionsBuilder) SetSeparator(separator byte) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetSeparator(separator)
-	return w
+func (builder *MACStringOptionsBuilder) SetSeparator(separator byte) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetSeparator(separator)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetAddressLabel(label string) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetAddressLabel(label)
-	return w
+func (builder *MACStringOptionsBuilder) SetAddressLabel(label string) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetAddressLabel(label)
+	return builder
 }
 
-func (w *MACStringOptionsBuilder) SetSegmentStrPrefix(prefix string) *MACStringOptionsBuilder {
-	w.StringOptionsBuilder.SetSegmentStrPrefix(prefix)
-	return w
+func (builder *MACStringOptionsBuilder) SetSegmentStrPrefix(prefix string) *MACStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetSegmentStrPrefix(prefix)
+	return builder
 }
 
 func (builder *MACStringOptionsBuilder) ToOptions() StringOptions {
@@ -399,12 +398,12 @@ type wildcardOptions struct {
 	wildcards      Wildcards
 }
 
-func (w *wildcardOptions) GetWildcardOption() WildcardOption {
-	return w.wildcardOption
+func (opts *wildcardOptions) GetWildcardOption() WildcardOption {
+	return opts.wildcardOption
 }
 
-func (w *wildcardOptions) GetWildcards() Wildcards {
-	return w.wildcards
+func (opts *wildcardOptions) GetWildcards() Wildcards {
+	return opts.wildcards
 }
 
 var _ WildcardOptions = &wildcardOptions{}
@@ -413,20 +412,20 @@ type WildcardOptionsBuilder struct {
 	wildcardOptions
 }
 
-func (w *WildcardOptionsBuilder) SetWildcardOptions(wildcardOption WildcardOption) *WildcardOptionsBuilder {
-	w.wildcardOption = wildcardOption
-	return w
+func (builder *WildcardOptionsBuilder) SetWildcardOptions(wildcardOption WildcardOption) *WildcardOptionsBuilder {
+	builder.wildcardOption = wildcardOption
+	return builder
 }
 
-func (w *WildcardOptionsBuilder) SetWildcards(wildcards Wildcards) *WildcardOptionsBuilder {
-	w.wildcards = wildcards
-	return w
+func (builder *WildcardOptionsBuilder) SetWildcards(wildcards Wildcards) *WildcardOptionsBuilder {
+	builder.wildcards = wildcards
+	return builder
 }
 
-func (w *WildcardOptionsBuilder) ToOptions() WildcardOptions {
-	cpy := w.wildcardOptions
-	if w.wildcards == nil {
-		w.wildcards = DefaultWildcards
+func (builder *WildcardOptionsBuilder) ToOptions() WildcardOptions {
+	cpy := builder.wildcardOptions
+	if builder.wildcards == nil {
+		builder.wildcards = DefaultWildcards
 	}
 	return &cpy
 }
@@ -456,34 +455,34 @@ type ipStringOptions struct {
 	ipStringOptionsCache
 }
 
-func (w *ipStringOptions) GetIPStringOptionsIPCache() *unsafe.Pointer {
-	return &w.ipStringOptionsCache.cachedIPAddr
+func (opts *ipStringOptions) GetIPStringOptionsIPCache() *unsafe.Pointer {
+	return &opts.ipStringOptionsCache.cachedIPAddr
 }
 
-func (w *ipStringOptions) GetIPStringOptionsCache() *unsafe.Pointer {
-	return &w.ipStringOptionsCache.cachedAddr
+func (opts *ipStringOptions) GetIPStringOptionsCache() *unsafe.Pointer {
+	return &opts.ipStringOptionsCache.cachedAddr
 }
 
 // .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
-func (w *ipStringOptions) GetAddressSuffix() string {
-	return w.addrSuffix
+func (opts *ipStringOptions) GetAddressSuffix() string {
+	return opts.addrSuffix
 }
 
-func (w *ipStringOptions) GetWildcardOptions() WildcardOptions {
-	opts := &wildcardOptions{
-		w.wildcardOption,
-		w.GetWildcards(),
+func (opts *ipStringOptions) GetWildcardOptions() WildcardOptions {
+	options := &wildcardOptions{
+		opts.wildcardOption,
+		opts.GetWildcards(),
 	}
-	return opts
+	return options
 }
 
-func (w *ipStringOptions) GetWildcardOption() WildcardOption {
-	return w.wildcardOption
+func (opts *ipStringOptions) GetWildcardOption() WildcardOption {
+	return opts.wildcardOption
 
 }
 
-func (w *ipStringOptions) GetZoneSeparator() byte {
-	return w.zoneSeparator
+func (opts *ipStringOptions) GetZoneSeparator() byte {
+	return opts.zoneSeparator
 }
 
 var _ IPStringOptions = &ipStringOptions{}
@@ -494,42 +493,42 @@ type IPStringOptionsBuilder struct {
 }
 
 // .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
-func (w *IPStringOptionsBuilder) SetAddressSuffix(suffix string) *IPStringOptionsBuilder {
-	w.ipStringOptions.addrSuffix = suffix
-	return w
+func (builder *IPStringOptionsBuilder) SetAddressSuffix(suffix string) *IPStringOptionsBuilder {
+	builder.ipStringOptions.addrSuffix = suffix
+	return builder
 }
 
 // SetWildcardOptions is a convenience method for setting both the WildcardOption and the Wildcards at the same time
 // It overrides previous calls to SetWildcardOption and SetWildcards,
 // and is overridden by subsequent calls to those methods.
-func (w *IPStringOptionsBuilder) SetWildcardOptions(wildcardOptions WildcardOptions) *IPStringOptionsBuilder {
-	w.SetWildcards(wildcardOptions.GetWildcards())
-	return w.SetWildcardOption(wildcardOptions.GetWildcardOption())
+func (builder *IPStringOptionsBuilder) SetWildcardOptions(wildcardOptions WildcardOptions) *IPStringOptionsBuilder {
+	builder.SetWildcards(wildcardOptions.GetWildcards())
+	return builder.SetWildcardOption(wildcardOptions.GetWildcardOption())
 }
 
-func (w *IPStringOptionsBuilder) SetWildcardOption(wildcardOption WildcardOption) *IPStringOptionsBuilder {
-	w.ipStringOptions.wildcardOption = wildcardOption
-	return w
+func (builder *IPStringOptionsBuilder) SetWildcardOption(wildcardOption WildcardOption) *IPStringOptionsBuilder {
+	builder.ipStringOptions.wildcardOption = wildcardOption
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetWildcards(wildcards)
-	return w
+func (builder *IPStringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetWildcards(wildcards)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetZoneSeparator(separator byte) *IPStringOptionsBuilder {
-	w.ipStringOptions.zoneSeparator = separator
-	return w
+func (builder *IPStringOptionsBuilder) SetZoneSeparator(separator byte) *IPStringOptionsBuilder {
+	builder.ipStringOptions.zoneSeparator = separator
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetReverse(reverse bool) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetReverse(reverse)
-	return w
+func (builder *IPStringOptionsBuilder) SetReverse(reverse bool) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetReverse(reverse)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetUppercase(uppercase bool) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetUppercase(uppercase)
-	return w
+func (builder *IPStringOptionsBuilder) SetUppercase(uppercase bool) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetUppercase(uppercase)
+	return builder
 }
 
 //func (w *IPStringOptionsBuilder) setSplitDigits(splitDigits bool) *IPStringOptionsBuilder {
@@ -537,41 +536,41 @@ func (w *IPStringOptionsBuilder) SetUppercase(uppercase bool) *IPStringOptionsBu
 //	return w
 //}
 
-func (w *IPStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetExpandedSegments(expandSegments)
-	return w
+func (builder *IPStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetExpandedSegments(expandSegments)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetRadix(base int) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetRadix(base)
-	return w
+func (builder *IPStringOptionsBuilder) SetRadix(base int) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetRadix(base)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetHasSeparator(has bool) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetHasSeparator(has)
-	return w
+func (builder *IPStringOptionsBuilder) SetHasSeparator(has bool) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetHasSeparator(has)
+	return builder
 }
 
 // separates the divisions of the address, typically ':' or '.', but also can be null for no separator
-func (w *IPStringOptionsBuilder) SetSeparator(separator byte) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetSeparator(separator)
-	return w
+func (builder *IPStringOptionsBuilder) SetSeparator(separator byte) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetSeparator(separator)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetAddressLabel(label string) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetAddressLabel(label)
-	return w
+func (builder *IPStringOptionsBuilder) SetAddressLabel(label string) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetAddressLabel(label)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) SetSegmentStrPrefix(prefix string) *IPStringOptionsBuilder {
-	w.StringOptionsBuilder.SetSegmentStrPrefix(prefix)
-	return w
+func (builder *IPStringOptionsBuilder) SetSegmentStrPrefix(prefix string) *IPStringOptionsBuilder {
+	builder.StringOptionsBuilder.SetSegmentStrPrefix(prefix)
+	return builder
 }
 
-func (w *IPStringOptionsBuilder) ToOptions() IPStringOptions {
-	w.ipStringOptions.zoneSeparator = getIPDefaults(w.ipStringOptions.zoneSeparator)
-	res := w.ipStringOptions
-	res.stringOptions = *w.StringOptionsBuilder.ToOptions().(*stringOptions)
+func (builder *IPStringOptionsBuilder) ToOptions() IPStringOptions {
+	builder.ipStringOptions.zoneSeparator = getIPDefaults(builder.ipStringOptions.zoneSeparator)
+	res := builder.ipStringOptions
+	res.stringOptions = *builder.StringOptionsBuilder.ToOptions().(*stringOptions)
 	return &res
 }
 
@@ -580,73 +579,73 @@ type IPv4StringOptionsBuilder struct {
 }
 
 // .in-addr.arpa, .ip6.arpa, .ipv6-literal.net are examples of suffixes tacked onto the end of address strings
-func (w *IPv4StringOptionsBuilder) SetAddressSuffix(suffix string) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetAddressSuffix(suffix)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetAddressSuffix(suffix string) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetAddressSuffix(suffix)
+	return builder
 }
 
 // SetWildcardOptions is a convenience method for setting both the WildcardOption and the Wildcards at the same time
 // It overrides previous calls to SetWildcardOption and SetWildcards,
 // and is overridden by subsequent calls to those methods.
-func (w *IPv4StringOptionsBuilder) SetWildcardOptions(wildcardOptions WildcardOptions) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetWildcardOptions(wildcardOptions)
-	return w.SetWildcardOption(wildcardOptions.GetWildcardOption())
+func (builder *IPv4StringOptionsBuilder) SetWildcardOptions(wildcardOptions WildcardOptions) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetWildcardOptions(wildcardOptions)
+	return builder.SetWildcardOption(wildcardOptions.GetWildcardOption())
 }
 
-func (w *IPv4StringOptionsBuilder) SetWildcardOption(wildcardOption WildcardOption) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetWildcardOption(wildcardOption)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetWildcardOption(wildcardOption WildcardOption) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetWildcardOption(wildcardOption)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetWildcards(wildcards)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetWildcards(wildcards Wildcards) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetWildcards(wildcards)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetZoneSeparator(separator byte) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetZoneSeparator(separator)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetZoneSeparator(separator byte) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetZoneSeparator(separator)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetReverse(reverse bool) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetReverse(reverse)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetReverse(reverse bool) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetReverse(reverse)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetUppercase(uppercase bool) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetUppercase(uppercase)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetUppercase(uppercase bool) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetUppercase(uppercase)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetExpandedSegments(expandSegments)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetExpandedSegments(expandSegments)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetRadix(base int) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetRadix(base)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetRadix(base int) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetRadix(base)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetHasSeparator(has bool) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetHasSeparator(has)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetHasSeparator(has bool) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetHasSeparator(has)
+	return builder
 }
 
 // separates the divisions of the address, typically ':' or '.', but also can be null for no separator
-func (w *IPv4StringOptionsBuilder) SetSeparator(separator byte) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetSeparator(separator)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetSeparator(separator byte) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetSeparator(separator)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetAddressLabel(label string) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetAddressLabel(label)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetAddressLabel(label string) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetAddressLabel(label)
+	return builder
 }
 
-func (w *IPv4StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *IPv4StringOptionsBuilder {
-	w.IPStringOptionsBuilder.SetSegmentStrPrefix(prefix)
-	return w
+func (builder *IPv4StringOptionsBuilder) SetSegmentStrPrefix(prefix string) *IPv4StringOptionsBuilder {
+	builder.IPStringOptionsBuilder.SetSegmentStrPrefix(prefix)
+	return builder
 }
 
 func (builder *IPv4StringOptionsBuilder) ToOptions() IPStringOptions {
@@ -874,8 +873,8 @@ const (
 	ZerosCompression CompressionChoiceOptions = "zeros"           //compress the largest range of zero segments
 )
 
-func (c CompressionChoiceOptions) CompressHost() bool {
-	return c != ZerosCompression
+func (choice CompressionChoiceOptions) CompressHost() bool {
+	return choice != ZerosCompression
 }
 
 type MixedCompressionOptions string
@@ -886,28 +885,6 @@ const (
 	MixedCompressionCoveredByHost MixedCompressionOptions = "covered by host"
 	AllowMixedCompression         MixedCompressionOptions = "" //allow compression of a mixed section
 )
-
-//func (m MixedCompressionOptions) compressMixed(addressSection *IPv6AddressSection) bool {
-//	switch m {
-//	case AllowMixedCompression:
-//		return true
-//	case NoMixedCompression:
-//		return false
-//	case MixedCompressionNoHost:
-//		return !addressSection.IsPrefixed()
-//	case MixedCompressionCoveredByHost:
-//		if addressSection.IsPrefixed() {
-//			mixedDistance := IPv6MixedOriginalSegmentCount
-//			mixedCount := addressSection.GetSegmentCount() - mixedDistance
-//			if mixedCount > 0 {
-//				return (BitCount(mixedDistance) * addressSection.GetBitsPerSegment()) >= addressSection.getNetworkPrefixLen().bitCount()
-//			}
-//		}
-//		return true
-//	default:
-//		return true
-//	}
-//}
 
 type CompressOptions interface {
 	GetCompressionChoiceOptions() CompressionChoiceOptions
@@ -926,16 +903,16 @@ type compressOptions struct {
 	compressMixedOptions MixedCompressionOptions
 }
 
-func (c *compressOptions) GetCompressionChoiceOptions() CompressionChoiceOptions {
-	return c.rangeSelection
+func (opts *compressOptions) GetCompressionChoiceOptions() CompressionChoiceOptions {
+	return opts.rangeSelection
 }
 
-func (c *compressOptions) GetMixedCompressionOptions() MixedCompressionOptions {
-	return c.compressMixedOptions
+func (opts *compressOptions) GetMixedCompressionOptions() MixedCompressionOptions {
+	return opts.compressMixedOptions
 }
 
-func (c *compressOptions) CompressSingle() bool {
-	return c.compressSingle
+func (opts *compressOptions) CompressSingle() bool {
+	return opts.compressSingle
 }
 
 var _ CompressOptions = &compressOptions{}

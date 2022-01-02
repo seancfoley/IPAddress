@@ -37,22 +37,23 @@ func Test(isLimited bool) {
 	fmt.Println("Starting TestRunner")
 	startTime := time.Now()
 
-	// TODO when not limited, set caching and run 10 goroutines xxxxx
-	// do not share the testResults, see testAll in TestRunner.java line 583
+	rangedAddresses := rangedAddresses{addresses: addresses}
+
+	allAddresses := allAddresses{rangedAddresses: rangedAddresses}
 
 	if isLimited {
-		acc = testAll(addresses, fullTest)
+		acc = testAll(addresses, rangedAddresses, allAddresses, fullTest)
 	} else {
 		// warm up
-		acc = testAll(addresses, fullTest)
-		addresses.useCache(true)
+		acc = testAll(addresses, rangedAddresses, allAddresses, fullTest)
+		allAddresses.useCache(true)
 		routineCount := 10
 		var wg sync.WaitGroup
 		wg.Add(10)
 		for i := 0; i < routineCount; i++ {
 			go func() {
 				defer wg.Done()
-				newAcc := testAll(addresses, fullTest)
+				newAcc := testAll(addresses, rangedAddresses, allAddresses, fullTest)
 				acc.add(newAcc)
 			}()
 		}
@@ -143,7 +144,7 @@ func Test(isLimited bool) {
 	fmt.Printf("Done: TestRunner\nDone in %v\n", endTime)
 }
 
-func testAll(addresses addresses, fullTest bool) testAccumulator {
+func testAll(addresses addresses, rangedAddresses rangedAddresses, allAddresses allAddresses, fullTest bool) testAccumulator {
 	acc := testAccumulator{lock: &sync.Mutex{}}
 
 	tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
@@ -155,7 +156,6 @@ func testAll(addresses addresses, fullTest bool) testAccumulator {
 	macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
 	macTester.run()
 
-	rangedAddresses := rangedAddresses{addresses}
 	rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
 	rangeTester.run()
 
@@ -165,7 +165,6 @@ func testAll(addresses addresses, fullTest bool) testAccumulator {
 	macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
 	macRangeTester.run()
 
-	allAddresses := allAddresses{rangedAddresses}
 	allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses, fullTest: fullTest}}}}
 	allTester.run()
 

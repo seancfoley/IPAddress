@@ -542,7 +542,9 @@ func (grouping *addressDivisionGroupingInternal) IsSinglePrefixBlock() bool { //
 			// we can also set related cache fields
 			pref := grouping.getPrefixLen()
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache.equivalentPrefix))
-			atomic.StorePointer(dataLoc, unsafe.Pointer(pref))
+			//atomic.StorePointer(dataLoc, unsafe.Pointer(pref))
+			equivPref := cachePrefix(pref.bitCount())
+			atomic.StorePointer(dataLoc, unsafe.Pointer(equivPref))
 
 			dataLoc = (*unsafe.Pointer)(unsafe.Pointer(&cache.minPrefix))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(pref))
