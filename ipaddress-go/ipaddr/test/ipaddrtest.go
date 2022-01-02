@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 type ipAddressTester struct {

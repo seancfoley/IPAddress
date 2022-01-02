@@ -125,7 +125,7 @@ type StandardDivGroupingType interface {
 var _, _ StandardDivGroupingType = &AddressDivisionGrouping{},
 	&IPv6v4MixedAddressGrouping{}
 
-// AddressDivisionSeries serves as a common interface to all division groupings (including large) and addresses
+// AddressDivisionSeries serves as a common interface to all division groupings and addresses
 type AddressDivisionSeries interface {
 	AddressItem
 

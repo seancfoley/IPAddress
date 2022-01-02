@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"net"
 
 	//ip_addr_old "github.com/seancfoley/ipaddress/ipaddress-go/ipaddrold"

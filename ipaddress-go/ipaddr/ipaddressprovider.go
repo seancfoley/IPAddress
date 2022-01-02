@@ -21,7 +21,7 @@ import (
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 // All IP address strings corresponds to exactly one of these types.
@@ -891,7 +891,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO NEXT progress
 //
 // - go over the java to-dos as some might make sense in golang too
-// - go over the goland warnings, they do help a bit to find issues
 // - clean up
 
 // Look into splitting this up.  Can we move the framework into new package? iterators?
@@ -918,12 +917,6 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // so that leaves the string params and builders.
 // There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
 //
-//xxx TODO change addrparam to addrstrparam - maybe other can be addrstrgen xxx maybe addrstringparam addrstringgen
-// maybe addrstring and addrstringparam - this pair in the lead I think
-// or addrstr and addrstrparam YEAH
-// TODO package names addrstr and addrparam, I think I want to keep them separate, but, hard time picking package names
-// addrstr would apply to both, addrinstr and addroutstr?  nah  strparams?  nah
-
 //
 //  rename addrFormat addrParams, then recreate addrFormat
 //  it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there

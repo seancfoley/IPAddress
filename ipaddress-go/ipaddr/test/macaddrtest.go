@@ -19,8 +19,8 @@ package test
 import (
 	"bytes"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"math"
 	"math/big"
 	"net"

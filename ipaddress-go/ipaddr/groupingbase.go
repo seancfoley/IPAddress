@@ -447,7 +447,7 @@ type valueCache struct {
 
 	minPrefix PrefixLen
 
-	equivalentPrefix *PrefixLen //TODO something wrong with this one
+	equivalentPrefix *PrefixLen
 
 	isSinglePrefixBlock *bool
 }

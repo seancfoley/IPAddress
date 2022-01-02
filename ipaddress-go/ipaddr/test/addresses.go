@@ -18,7 +18,7 @@ package test
 
 import (
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrparam"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"net"
 	"sync"
 )
@@ -717,8 +717,6 @@ func (t *allAddresses) useCache(use bool) {
 	}
 	t.rangedAddresses.useCache(use)
 }
-
-//TODO this one is uncovering a bug
 
 func (t *allAddresses) createAddress(str string) (res *ipaddr.IPAddressString) {
 	if t.caching {
