@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,19 +18,20 @@ package test
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"math/rand"
 	"sort"
 	"time"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 type OrderingSupplier func(string, int) *Ordering
 type OrderingComparator func(one, two *Ordering) int
 
 var (
-	orderingOpts    = new(addrparam.IPAddressStringParamsBuilder).AllowAll(true).SetRangeParams(addrparam.WildcardAndRange).ParseEmptyStrAs(addrparam.NoAddressOption).GetIPv6AddressParamsBuilder().AllowZone(false).GetParentBuilder().ToParams()
-	macOrderingOpts = new(addrparam.MACAddressStringParamsBuilder).AllowAll(true).AllowEmpty(true).SetRangeParams(addrparam.WildcardAndRange).ToParams()
+	orderingOpts    = new(addrstrparam.IPAddressStringParamsBuilder).AllowAll(true).SetRangeParams(addrstrparam.WildcardAndRange).ParseEmptyStrAs(addrstrparam.NoAddressOption).GetIPv6AddressParamsBuilder().AllowZone(false).GetParentBuilder().ToParams()
+	macOrderingOpts = new(addrstrparam.MACAddressStringParamsBuilder).AllowAll(true).AllowEmpty(true).SetRangeParams(addrstrparam.WildcardAndRange).ToParams()
 )
 
 type addressOrderTest struct {
@@ -83,10 +84,6 @@ func (t addressOrderTest) testOrder() {
 	lowValComparator := ipaddr.LowValueComparator
 	ipAddressLowValComparator := func(one, two *Ordering) int {
 		result := lowValComparator.Compare(one.nestedType, two.nestedType)
-		//expected := one.order - two.order
-		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-		//	lowValComparator.Compare(one.nestedType, two.nestedType)
-		//}
 		return result
 	}
 	ipAddressStringLowValComparator := func(one, two *Ordering) int {
@@ -98,15 +95,6 @@ func (t addressOrderTest) testOrder() {
 		} else {
 			result = one.nestedIPAddrString.Compare(two.nestedIPAddrString)
 		}
-		//expected := one.order - two.order
-		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-		//	if oneAddr != nil && twoAddr != nil {
-		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
-		//		lowValComparator.Compare(oneAddr, twoAddr)
-		//	} else {
-		//		one.nestedIPAddrString.Compare(two.nestedIPAddrString)
-		//	}
-		//}
 		return result
 	}
 	macAddressStringLowValComparator := func(one, two *Ordering) int {
@@ -118,14 +106,6 @@ func (t addressOrderTest) testOrder() {
 		} else {
 			result = one.nestedMACAddrString.Compare(two.nestedMACAddrString)
 		}
-		//expected := one.order - two.order
-		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-		//	if oneAddr != nil && twoAddr != nil {
-		//		lowValComparator.Compare(oneAddr, twoAddr)
-		//	} else {
-		//		one.nestedMACAddrString.Compare(two.nestedMACAddrString)
-		//	}
-		//}
 		return result
 	}
 
@@ -137,10 +117,6 @@ func (t addressOrderTest) testOrder() {
 
 	ipAddressHighValComparator := func(one, two *Ordering) int {
 		result := highValComparator.Compare(one.nestedType, two.nestedType)
-		//expected := one.order - two.order
-		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-		//	lowValComparator.Compare(one.nestedType, two.nestedType)
-		//}
 		return result
 	}
 	ipAddressStringHighValComparator := func(one, two *Ordering) int {
@@ -152,15 +128,6 @@ func (t addressOrderTest) testOrder() {
 		} else {
 			result = one.nestedIPAddrString.Compare(two.nestedIPAddrString)
 		}
-		//expected := one.order - two.order
-		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-		//	if oneAddr != nil && twoAddr != nil {
-		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
-		//		highValComparator.Compare(oneAddr, twoAddr)
-		//	} else {
-		//		one.nestedIPAddrString.Compare(two.nestedIPAddrString)
-		//	}
-		//}
 		return result
 	}
 	macAddressStringHighValComparator := func(one, two *Ordering) int {
@@ -172,15 +139,6 @@ func (t addressOrderTest) testOrder() {
 		} else {
 			result = one.nestedMACAddrString.Compare(two.nestedMACAddrString)
 		}
-		//expected := one.order - two.order
-		//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-		//	if oneAddr != nil && twoAddr != nil {
-		//		fmt.Printf("oops comparing %v and %v\n", oneAddr, twoAddr)
-		//		highValComparator.Compare(oneAddr, twoAddr)
-		//	} else {
-		//		one.nestedMACAddrString.Compare(two.nestedMACAddrString)
-		//	}
-		//}
 		return result
 	}
 	t.testHighValueOrder(ipAddressStringHighValComparator, ipaddressStringOrderingSupplier, nilOrderingSupplier)
@@ -218,19 +176,6 @@ func (o *Ordering) CompareTo(other *Ordering) int {
 	} else {
 		result = o.nestedType.Compare(other.nestedType)
 	}
-	//expected := o.order - other.order
-	//if (result < 0 && expected >= 0) || (result > 0 && expected <= 0) || (result == 0 && expected != 0) {
-	//	if o.nestedIPAddrString != nil {
-	//		fmt.Printf("oops comparing %v and %v\n", o.nestedIPAddrString, other.nestedIPAddrString)
-	//		o.nestedIPAddrString.Compare(other.nestedIPAddrString)
-	//	} else if o.nestedMACAddrString != nil {
-	//		fmt.Printf("oops comparing %v and %v\n", o.nestedMACAddrString, other.nestedMACAddrString)
-	//		o.nestedMACAddrString.Compare(other.nestedMACAddrString)
-	//	} else {
-	//		fmt.Printf("oops comparing %v and %v\n", o.nestedType, other.nestedType)
-	//		o.nestedType.Compare(other.nestedType)
-	//	}
-	//}
 	return result
 }
 
@@ -248,7 +193,7 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 		"xxx",
 	}
 
-	//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
+	//order is INVALID, EMPTY, IPV4, IPV6, ALL
 	orderNumber := 0
 
 	for _, s := range strs {
@@ -390,7 +335,7 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	ordering = append(ordering, ipAddressSupplier("*.*.%*.*", orderNumber))
 	orderNumber++
 
-	//xx ipv6 x;
+	// ipv6
 
 	ordering = append(ordering, ipAddressSupplier("1::", orderNumber))
 
@@ -411,9 +356,6 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	ordering = append(ordering, ipAddressSupplier("ffff::ffff:ffff:ffff", orderNumber))
 	orderNumber++
 
-	//ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
-	//orderNumber++
-
 	ordering = append(ordering, ipAddressSupplier("1::2:3:*/127", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("1::2:3:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("1::2:3:*/111", orderNumber))
@@ -421,15 +363,9 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	ordering = append(ordering, ipAddressSupplier("1::2:1-3:4:*", orderNumber))
 	orderNumber++
 
-	//ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6
-	//orderNumber++
-
 	ordering = append(ordering, ipAddressSupplier("*::*:*:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*::*:%*:*", orderNumber))
 	orderNumber++
-
-	//ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6
-	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("1:0:*/31", orderNumber))
 	orderNumber++
@@ -459,13 +395,6 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*", orderNumber))
 	orderNumber++
 
-	//ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
-	//orderNumber++
-	//ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
-	//orderNumber++
-	//ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
-	//orderNumber++
-
 	ordering = append(ordering, ipAddressSupplier("*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("**", orderNumber))
 	ordering = append(ordering, ipAddressSupplier(" *", orderNumber))
@@ -475,15 +404,11 @@ func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier
 	t.checkOrdering(ordering, orderNumber, nil)
 }
 
-//type AddrComparator func (one, two ipaddr.AddressType) int
-//func (t addressOrderTest) testDefaultOrder(ipAddressSupplier, macAddressSupplier func(string, int) *Ordering) {
-//func (comp AddressComparator) CompareAddresses(one, two AddressType) int {
-
 func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAddressSupplier, macAddressSupplier OrderingSupplier) {
 
 	var ordering []*Ordering
 
-	//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
+	//order is INVALID, EMPTY, IPV4, IPV6, ALL
 	orderNumber := 0
 
 	//invalid
@@ -582,13 +507,14 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	orderNumber++
 
 	//empty
+
 	ordering = append(ordering, ipAddressSupplier("", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("  ", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("     ", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("", orderNumber))
 	orderNumber++
 
-	//a bunch of address and prefixes
+	//a bunch of address
 
 	ordering = append(ordering, ipAddressSupplier("1.0.0.0", orderNumber))
 	orderNumber++
@@ -637,7 +563,7 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	ordering = append(ordering, ipAddressSupplier("255.255.255.255", orderNumber))
 	orderNumber++
 
-	//ipv6
+	// IPv6
 
 	ordering = append(ordering, ipAddressSupplier("1::", orderNumber))
 
@@ -718,22 +644,6 @@ func (t addressOrderTest) testHighValueOrder(comparator OrderingComparator, ipAd
 	ordering = append(ordering, ipAddressSupplier("*:*:*:*:*:*:*:*", orderNumber))
 	orderNumber++
 
-	//ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6
-	//orderNumber++
-	//
-	//ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6
-	//orderNumber++
-	//
-	//ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
-	//orderNumber++
-	//
-	//ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
-	//orderNumber++
-	//ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
-	//orderNumber++
-	//ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
-	//orderNumber++
-
 	ordering = append(ordering, ipAddressSupplier("*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("**", orderNumber))
 	ordering = append(ordering, ipAddressSupplier(" *", orderNumber))
@@ -747,7 +657,7 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 
 	var ordering []*Ordering
 
-	//order is INVALID, EMPTY, IPV4, IPV6, PREFIX_ONLY, ALL
+	//order is INVALID, EMPTY, IPV4, IPV6, ALL
 	orderNumber := 0
 
 	//invalid
@@ -853,7 +763,7 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 	ordering = append(ordering, ipAddressSupplier("", orderNumber))
 	orderNumber++
 
-	//a bunch of address and prefixes
+	//a bunch of address
 
 	ordering = append(ordering, ipAddressSupplier("*.*.*.*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*.*.%*.*", orderNumber))
@@ -898,7 +808,7 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 	ordering = append(ordering, ipAddressSupplier("255.255.255.255", orderNumber))
 	orderNumber++
 
-	//ipv6
+	// IPv6
 
 	ordering = append(ordering, ipAddressSupplier("*::*:*:*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("*::*:%*:*", orderNumber))
@@ -985,27 +895,11 @@ func (t addressOrderTest) testLowValueOrder(comparator OrderingComparator, ipAdd
 	ordering = append(ordering, ipAddressSupplier("ffff::ffff:ffff:ffff", orderNumber))
 	orderNumber++
 
-	//ordering = append(ordering, ipAddressSupplier("/33", orderNumber)) //interpreted as ipv6, ffff:ffff:8000::/33
-	//orderNumber++
-
 	ordering = append(ordering, ipAddressSupplier("ffff:ffff:ffff::", orderNumber))
 	orderNumber++
 
-	//ordering = append(ordering, ipAddressSupplier("/64", orderNumber)) //interpreted as ipv6 ffff:ffff:ffff:ffff::
-	//orderNumber++
-
 	ordering = append(ordering, ipAddressSupplier("ffff:ffff:ffff:ffff::1", orderNumber))
 	orderNumber++
-
-	//ordering = append(ordering, ipAddressSupplier("/128", orderNumber)) //interpreted as ipv6
-	//orderNumber++
-	//
-	//ordering = append(ordering, ipAddressSupplier("/32", orderNumber))
-	//orderNumber++
-	//ordering = append(ordering, ipAddressSupplier("/24", orderNumber))
-	//orderNumber++
-	//ordering = append(ordering, ipAddressSupplier("/0", orderNumber))
-	//orderNumber++
 
 	ordering = append(ordering, ipAddressSupplier("*", orderNumber))
 	ordering = append(ordering, ipAddressSupplier("**", orderNumber))
@@ -1041,12 +935,10 @@ func (t addressOrderTest) checkOrdering(ordering []*Ordering, orderCount int, co
 		sort.Slice(ordering, func(i, j int) bool {
 			return comparator(ordering[i], ordering[j]) < 0
 		})
-		//Collections.sort(ordering, comparator);
 	} else {
 		sort.Slice(ordering, func(i, j int) bool {
 			return ordering[i].CompareTo(ordering[j]) < 0
 		})
-		//Collections.sort(ordering);
 	}
 
 	failedOrdering := false
@@ -1064,7 +956,6 @@ func (t addressOrderTest) checkOrdering(ordering []*Ordering, orderCount int, co
 
 	if failedOrdering {
 		sorted := make([]string, 0, len(ordering))
-		//ArrayList<String> sorted = new ArrayList<String>(ordering.size());
 		previousOrder, lastIndex := -1, -1
 		for i := 0; i < len(ordering); i++ {
 			o := ordering[i]

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package addrparam
+package addrstrparam
 
 type AddressStringFormatParams interface {
 	AllowsWildcardedSeparator() bool
@@ -52,10 +52,6 @@ type RangeParams interface {
 	AllowsInferredBoundary() bool
 }
 
-//func AllowsNoRange(p RangeParams) bool {
-//	return !(p.AllowsWildcard() || p.AllowsRangeSeparator() || p.AllowsSingleWildcard())
-//}
-
 var _ AddressStringFormatParams = &addressStringFormatParameters{}
 var _ AddressStringParams = &addressStringParameters{}
 var _ RangeParams = &rangeParameters{}
@@ -77,10 +73,9 @@ var (
 	WildcardOnly RangeParams = &rangeParameters{
 		noValueRange:   true,
 		noReverseRange: true,
-		//noSingleWildcard: true,
 	}
 
-	// use this to support addresses supported by DEFAULT_WILDCARD_OPTIONS and also addresses like 1.2-3.3.4 or 1:0-ff::
+	// use this to support addresses supported by the default wildcard options and also addresses like 1.2-3.3.4 or 1:0-ff::
 	WildcardAndRange RangeParams = &rangeParameters{}
 )
 
@@ -121,7 +116,6 @@ func (builder *RangeParamsBuilder) ToParams() RangeParams {
 func (builder *RangeParamsBuilder) Set(rangeParams RangeParams) *RangeParamsBuilder {
 	if rp, ok := rangeParams.(*rangeParameters); ok {
 		builder.rangeParameters = *rp
-		//return &RangeParamsBuilder{rangeParameters: *rp}
 	} else {
 		builder.rangeParameters = rangeParameters{
 			noWildcard:         !rangeParams.AllowsWildcard(),
@@ -130,31 +124,9 @@ func (builder *RangeParamsBuilder) Set(rangeParams RangeParams) *RangeParamsBuil
 			noSingleWildcard:   !rangeParams.AllowsSingleWildcard(),
 			noInferredBoundary: !rangeParams.AllowsInferredBoundary(),
 		}
-		//return &RangeParamsBuilder{rangeParameters: rangeParameters{
-		//	noWildcard:         !rangeParams.AllowsWildcard(),
-		//	noValueRange:       !rangeParams.AllowsRangeSeparator(),
-		//	noReverseRange:     !rangeParams.AllowsReverseRange(),
-		//	noSingleWildcard:   !rangeParams.AllowsSingleWildcard(),
-		//	noInferredBoundary: !rangeParams.AllowsInferredBoundary(),
-		//}}
 	}
 	return builder
 }
-
-//func ToRangeParamsBuilder(rangeParams RangeParams) *RangeParamsBuilder {
-//	xxx
-//	if rp, ok := rangeParams.(*rangeParameters); ok {
-//		return &RangeParamsBuilder{rangeParameters: *rp}
-//	} else {
-//		return &RangeParamsBuilder{rangeParameters: rangeParameters{
-//			noWildcard:         !rangeParams.AllowsWildcard(),
-//			noValueRange:       !rangeParams.AllowsRangeSeparator(),
-//			noReverseRange:     !rangeParams.AllowsReverseRange(),
-//			noSingleWildcard:   !rangeParams.AllowsSingleWildcard(),
-//			noInferredBoundary: !rangeParams.AllowsInferredBoundary(),
-//		}}
-//	}
-//}
 
 // If this builder was obtained by a call to IPv4AddressStringParamsBuilder.GetRangeParamsBuilder(), returns the IPv4AddressStringParamsBuilder
 func (builder *RangeParamsBuilder) GetIPv4ParentBuilder() *IPv4AddressStringParamsBuilder {
@@ -234,23 +206,7 @@ type AddressStringParamsBuilder struct {
 	addressStringParameters
 }
 
-//func ToAddressStringParamsBuilder(params AddressStringParams) *AddressStringParamsBuilder {
-//	xxx
-//	var result AddressStringParamsBuilder
-//	if p, ok := params.(*addressStringParameters); ok {
-//		result.addressStringParameters = *p
-//	} else {
-//		result.addressStringParameters = addressStringParameters{
-//			noEmpty:         !params.AllowsEmpty(),
-//			noAll:           !params.AllowsAll(),
-//			noSingleSegment: !params.AllowsSingleSegment(),
-//		}
-//	}
-//	return &result
-//}
-
 func (builder *AddressStringParamsBuilder) set(params AddressStringParams) {
-	//var result AddressStringParamsBuilder
 	if p, ok := params.(*addressStringParameters); ok {
 		builder.addressStringParameters = *p
 	} else {
@@ -260,7 +216,6 @@ func (builder *AddressStringParamsBuilder) set(params AddressStringParams) {
 			noSingleSegment: !params.AllowsSingleSegment(),
 		}
 	}
-	//return &result
 }
 
 func (builder *AddressStringParamsBuilder) ToParams() AddressStringParams {
@@ -313,22 +268,6 @@ type AddressStringFormatParamsBuilder struct {
 	rangeParamsBuilder RangeParamsBuilder
 }
 
-//func ToAddressStringFormatParamsBuilder(params AddressStringFormatParams) *AddressStringFormatParamsBuilder {
-//	xx
-//	var result AddressStringFormatParamsBuilder
-//	if p, ok := params.(*addressStringFormatParameters); ok {
-//		result.addressStringFormatParameters = *p
-//	} else {
-//		result.addressStringFormatParameters = addressStringFormatParameters{
-//			noWildcardedSeparator:   !params.AllowsWildcardedSeparator(),
-//			noLeadingZeros:          !params.AllowsLeadingZeros(),
-//			noUnlimitedLeadingZeros: !params.AllowsUnlimitedLeadingZeros(),
-//		}
-//	}
-//	result.rangeParamsBuilder = *ToRangeParamsBuilder(params.GetRangeParams())
-//	return &result
-//}
-
 func (builder *AddressStringFormatParamsBuilder) ToParams() AddressStringFormatParams {
 	result := &builder.addressStringFormatParameters
 	result.rangeParams = *builder.rangeParamsBuilder.ToParams().(*rangeParameters)
@@ -336,7 +275,6 @@ func (builder *AddressStringFormatParamsBuilder) ToParams() AddressStringFormatP
 }
 
 func (builder *AddressStringFormatParamsBuilder) set(parms AddressStringFormatParams) {
-	//var result AddressStringFormatParamsBuilder
 	if p, ok := parms.(*addressStringFormatParameters); ok {
 		builder.addressStringFormatParameters = *p
 	} else {
@@ -346,13 +284,10 @@ func (builder *AddressStringFormatParamsBuilder) set(parms AddressStringFormatPa
 			noUnlimitedLeadingZeros: !parms.AllowsUnlimitedLeadingZeros(),
 		}
 	}
-	//params.rangeParamsBuilder = *ToRangeParamsBuilder(parms.GetRangeParams())
 	builder.rangeParamsBuilder.Set(parms.GetRangeParams())
-	//return &result
 }
 
 func (builder *AddressStringFormatParamsBuilder) setRangeParameters(rangeParams RangeParams) {
-	//params.rangeParamsBuilder = *ToRangeParamsBuilder(rangeParams)
 	builder.rangeParamsBuilder.Set(rangeParams)
 }
 

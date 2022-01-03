@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,47 +14,7 @@
 // limitations under the License.
 //
 
-package addrparam
-
-//func convertMACParams(orig MACAddressStringParams) *macAddressStringParameters {
-//	if params, ok := orig.(*macAddressStringParameters); ok {
-//		return params
-//	}
-//	origFormat := orig.GetFormatParams()
-//	formatRange := origFormat.GetRangeParams()
-//	paramsBuilder := MACAddressStringParamsBuilder{}
-//	return paramsBuilder.
-//		// general settings
-//		SetPreferredLen(orig.MACAddressLen()).
-//		AllowDashed(orig.AllowsDashed()).
-//		AllowSingleDashed(orig.AllowsSingleDashed()).
-//		AllowColonDelimited(orig.AllowsColonDelimited()).
-//		AllowDotted(orig.AllowsDotted()).
-//		AllowSpaceDelimited(orig.AllowsSpaceDelimited()).
-//		SetNetwork(orig.GetNetwork()).
-//		AllowEmpty(orig.AllowsEmpty()).
-//		AllowSingleSegment(orig.AllowsSingleSegment()).
-//		AllowAll(orig.AllowsAll()).
-//		//
-//		// format parameters
-//		GetFormatParamsBuilder().
-//		AllowShortSegments(origFormat.AllowsShortSegments()).
-//		AllowWildcardedSeparator(origFormat.AllowsWildcardedSeparator()).
-//		AllowLeadingZeros(origFormat.AllowsLeadingZeros()).
-//		AllowUnlimitedLeadingZeros(origFormat.AllowsUnlimitedLeadingZeros()).
-//		//
-//		// ranges
-//		GetRangeParamsBuilder().
-//		AllowWildcard(formatRange.AllowsWildcard()).
-//		AllowRangeSeparator(formatRange.AllowsRangeSeparator()).
-//		AllowReverseRange(formatRange.AllowsReverseRange()).
-//		AllowInferredBoundary(formatRange.AllowsInferredBoundary()).
-//		AllowSingleWildcard(formatRange.AllowsSingleWildcard()).
-//		GetMACParentBuilder().
-//		GetParentBuilder().
-//		//
-//		ToParams().(*macAddressStringParameters)
-//}
+package addrstrparam
 
 type MACAddressLen string
 
@@ -64,6 +24,7 @@ const (
 	UnspecifiedMACLen MACAddressLen = ""
 )
 
+// CopyMACAddressStringParams produces an immutable copy of the original MACAddressStringParams.
 func CopyMACAddressStringParams(orig MACAddressStringParams) MACAddressStringParams {
 	if p, ok := orig.(*macAddressStringParameters); ok {
 		return p
@@ -71,11 +32,7 @@ func CopyMACAddressStringParams(orig MACAddressStringParams) MACAddressStringPar
 	return new(MACAddressStringParamsBuilder).Set(orig).ToParams()
 }
 
-//func DefaultMACAddressStringParams() MACAddressStringParams {
-//	xxx use builder instead xxx
-//	return &macAddressStringParameters{}
-//}
-
+// MACAddressStringParams provides parameters for parsing MAC address strings
 type MACAddressStringParams interface {
 	AddressStringParams
 
@@ -96,9 +53,9 @@ type MACAddressStringFormatParams interface {
 	AllowsShortSegments() bool
 }
 
-//var _ MACAddressStringFormatParams = &macAddressStringFormatParameters{}
+var _ MACAddressStringFormatParams = &macAddressStringFormatParameters{}
 
-// ipAddressStringParameters has parameters for parsing IP address strings
+// macAddressStringParameters has parameters for parsing MAC address strings
 // They are immutable and must be constructed using an IPAddressStringParamsBuilder
 type macAddressStringParameters struct {
 	addressStringParameters
@@ -110,7 +67,6 @@ type macAddressStringParameters struct {
 	noAllowDotted,
 	noAllowSpaceDelimited bool
 	allAddresses MACAddressLen
-	//network      *MACAddressNetwork
 }
 
 func (params *macAddressStringParameters) GetPreferredLen() MACAddressLen {
@@ -166,8 +122,6 @@ func (builder *MACAddressStringParamsBuilder) GetFormatParamsBuilder() (result *
 }
 
 func (builder *MACAddressStringParamsBuilder) Set(params MACAddressStringParams) *MACAddressStringParamsBuilder {
-	//xxx
-	//var result MACAddressStringParamsBuilder
 	if p, ok := params.(*macAddressStringParameters); ok {
 		builder.params = *p
 	} else {
@@ -180,8 +134,6 @@ func (builder *MACAddressStringParamsBuilder) Set(params MACAddressStringParams)
 			allAddresses:          params.GetPreferredLen(),
 		}
 	}
-	//builder.AddressStringParamsBuilder = *ToAddressStringParamsBuilder(params)
-	//builder.formatBuilder = *ToMACAddressStringFormatParamsBuilder(params.GetFormatParams())
 	builder.AddressStringParamsBuilder.set(params)
 	builder.formatBuilder.Set(params.GetFormatParams())
 	return builder
@@ -206,11 +158,6 @@ func (builder *MACAddressStringParamsBuilder) SetPreferredLen(size MACAddressLen
 	builder.params.allAddresses = size
 	return builder
 }
-
-//func (builder *MACAddressStringParamsBuilder) SetNetwork(network *MACAddressNetwork) *MACAddressStringParamsBuilder {
-//	builder.params.network = network
-//	return builder
-//}
 
 func (builder *MACAddressStringParamsBuilder) AllowDashed(allow bool) *MACAddressStringParamsBuilder {
 	builder.params.noAllowDashed = !allow

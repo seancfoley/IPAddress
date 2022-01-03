@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,11 +18,12 @@ package test
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 var runDNS = false
@@ -443,7 +444,6 @@ func (t hostTester) run() {
 	portNum1 := ipaddr.PortInt(1)
 	portNum3 := ipaddr.PortInt(3)
 	portNum33 := ipaddr.PortInt(33)
-	//portNum35 := ipaddr.PortInt(35)
 	portNum45 := ipaddr.PortInt(45)
 	portNum80 := ipaddr.PortInt(80)
 	portNum123 := ipaddr.PortInt(123)
@@ -456,15 +456,6 @@ func (t hostTester) run() {
 	port80 := ToPort(portNum80)
 	port123 := ToPort(portNum123)
 	port48888 := ToPort(portNum48888)
-
-	//port1 := &portNum1
-	//port3 := &portNum3
-	//port33 := &portNum33
-	////port35 := &portNum35
-	//port45 := &portNum45
-	//port80 := &portNum80
-	//port123 := &portNum123
-	//port48888 := &portNum48888
 
 	//TODO LATER ipv6 literal addresses from hosts
 	//t.testHostAddressPortZone("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", nil, "")
@@ -494,10 +485,6 @@ func (t hostTester) run() {
 	t.testHostAddressPortZone("f::33", "f::33", nil, "")
 	t.testHostAddressPortZone("::1", "::1", nil, "")
 	t.testHostAddressPortZone("[::1]", "::1", nil, "")
-	// no longer supporting prefix-only addresses?
-	//t.testHostAddressPortZonePref("/16", "/16", nil, "", p16)
-	//t.testHostAddressPortZonePref("/32", "/32", nil, "", p32)
-	//t.testHostAddressPref("/64", "ffff:ffff:ffff:ffff:*:*:*:*", "ffff:ffff:ffff:ffff::/64", nil, "", p64)
 
 	t.testHostAddressWithService("1.2.3.4:nfs", "1.2.3.4", "nfs", "")
 	t.testHostPortServZonePref("[::1%eth0]:nfs", "::1", "::1%eth0", nil, "nfs", "eth0", nil)
@@ -527,7 +514,7 @@ func (t hostTester) run() {
 	t.testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:a-b-c", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "a-b-c", "")
 	t.testHostWithService("123-123456789-123456789-123456789-123456789-123456789-123456789.com:12345x789012345", "123-123456789-123456789-123456789-123456789-123456789-123456789.com", "12345x789012345", "")
 
-	expectPortParams := new(addrparam.HostNameParamsBuilder).Set(hostOptions).ExpectPort(true).ToParams()
+	expectPortParams := new(addrstrparam.HostNameParamsBuilder).Set(hostOptions).ExpectPort(true).ToParams()
 	t.testHostAddressWithService("fe80::6a05:caff:fe3:nfs", "fe80::6a05:caff:fe3", "nfs", "")
 	t.testHostAddressPortZone("fe80::6a05:caff:fe3:123", "fe80::6a05:caff:fe3:123", nil, "")
 	hostName := t.createParamsHost("fe80::6a05:caff:fe3:123", expectPortParams)
@@ -618,7 +605,6 @@ func (t hostTester) run() {
 		if s == "http" {
 			port80 := ipaddr.PortInt(80)
 			return ToPort(port80)
-			//return &port80
 		}
 		return nil
 	}, "1.2.3.4", 80)
@@ -626,7 +612,6 @@ func (t hostTester) run() {
 		if s == "htt" {
 			port80 := ipaddr.PortInt(80)
 			return ToPort(port80)
-			//return &port80
 		}
 		return nil
 	}, nil)
@@ -666,7 +651,7 @@ func (t hostTester) testMatches(matches bool, host1, host2 string) {
 	t.testMatchesParams(matches, host1, host2, hostOptions)
 }
 
-func (t hostTester) testMatchesParams(matches bool, host1, host2 string, options addrparam.HostNameParams) {
+func (t hostTester) testMatchesParams(matches bool, host1, host2 string, options addrstrparam.HostNameParams) {
 	h1 := t.createParamsHost(host1, options)
 	h2 := t.createParamsHost(host2, options)
 	if matches != h1.Equal(h2) && matches != hostConversionMatches(h1, h2) {
@@ -675,12 +660,8 @@ func (t hostTester) testMatchesParams(matches bool, host1, host2 string, options
 		if matches != h2.Equal(h1) && matches != hostConversionMatches(h2, h1) {
 			t.addFailure(newHostFailure("failed: match with "+host1, h2))
 		} else {
-			//if(matches != h1.Equal(h2) && matches != hostConversionMatches(h1, h2)) {
-			//	addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h1, h2));
-			//} else {
 			t.testNormalizedMatches(h1)
 			t.testNormalizedMatches(h2)
-			//}
 		}
 	}
 	t.incrementTestCount()
@@ -749,7 +730,6 @@ func (t hostTester) testResolved(original, expectedResolved string) {
 }
 
 func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, expectedResolved string) {
-	//try {
 	resolvedAddress := original.GetAddress()
 	var result bool
 	if resolvedAddress == nil && original.IsAllAddresses() && expectedResolved != "" {
@@ -776,14 +756,8 @@ func (t hostTester) testResolvedHost(original *ipaddr.HostName, originalStr, exp
 		if !original.Equal(host) && !original.IsSelf() && !host.IsSelf() {
 			t.addFailure(newHostFailure("reverse was "+host.String()+" original was "+original.String(), original))
 		} else if !original.IsAddress() {
-			//System.out.println("" + resolvedAddress.toCanonicalHostName());
 		}
 	}
-	//} catch(IncompatibleAddressException e) {
-	//	addFailure(new Failure(e.toString(), original));
-	//} catch(RuntimeException e) {
-	//	addFailure(new Failure(e.toString(), original));
-	//}
 	t.incrementTestCount()
 }
 
@@ -807,15 +781,10 @@ func (t hostTester) testCanonical(original, expected string) {
 
 func (t hostTester) testURL(url string) {
 	w := t.createHost(url)
-	//try {
 	err := w.Validate()
 	if err == nil {
 		t.addFailure(newHostFailure("failed: "+"URL "+url, w))
 	}
-	//} catch(HostNameException e) {
-	////pass
-	//e.getMessage();
-	//}
 	t.incrementTestCount()
 }
 
@@ -836,7 +805,6 @@ func (t hostTester) hostTestDouble(pass bool, addr *ipaddr.HostName, doubleTest 
 	//do it a second time to test the caching
 	t.hostNameTest(pass, addr)
 	if pass && doubleTest {
-		//try {
 		//here we call getHost twice, once after calling getNormalizedLabels and once without calling getNormalizedLabels,
 		//this is because getHost will use the labels but only if they exist already
 		two := t.createParamsHost(addr.String(), addr.GetValidationOptions())
@@ -854,9 +822,6 @@ func (t hostTester) hostTestDouble(pass bool, addr *ipaddr.HostName, doubleTest 
 		if oneString != twoString {
 			t.addFailure(newHostFailure(oneString+" "+twoString, addr))
 		}
-		//} catch(RuntimeException e) {
-		//	addFailure(new Failure(e.getMessage(), addr));
-		//}
 		t.incrementTestCount()
 	}
 }
@@ -872,20 +837,15 @@ func (t hostTester) hostNameTest(pass bool, addr *ipaddr.HostName) {
 }
 
 func (t hostTester) isNotExpected(expectedPass bool, addr *ipaddr.HostName) bool {
-	//try {
 	err := addr.Validate()
 	if err != nil {
 		return expectedPass
 	}
 	return !expectedPass
-	//} catch(HostNameException e) {
-	//return expectedPass;
-	//}
 }
 
 func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortInt) *net.TCPAddr {
 	h := t.createHost(expected)
-	//if(h.IsAddress()) {
 	addr := h.GetAddress()
 	var zone ipaddr.Zone
 	if addr.IsIPv6() {
@@ -895,13 +855,7 @@ func (t hostTester) toExpected(expected string, expectedPort ipaddr.PortInt) *ne
 		IP:   addr.GetNetIP(),
 		Port: int(expectedPort),
 		Zone: string(zone),
-	} //new InetSocketAddress(h.asInetAddress(), expectedPort);
-	//}
-	//return  &net.TCPAddr{
-	//	IP:   addr.GetIP(),
-	//	Port: expectedPort,
-	//}
-	//new InetSocketAddress(h.getHost(), expectedPort);
+	}
 }
 
 func (t hostTester) testNotHostInetSocketAddress(host string) {
@@ -919,7 +873,6 @@ func (t hostTester) testHostInetSocketAddressService(host string, serviceMapper 
 func (t hostTester) testHostInetSocketAddressSA(host string, serviceMapper func(string) ipaddr.Port, expected *net.TCPAddr) {
 	h := t.createHost(host)
 	socketAddr := h.ToNetTCPAddrService(serviceMapper)
-	//InetSocketAddress socketAddr = h.asInetSocketAddress(serviceMapper);
 
 	if socketAddr == nil && expected == nil {
 	} else if socketAddr == nil || expected == nil {
@@ -978,7 +931,6 @@ func addressesEqual(one, two *ipaddr.IPAddress) bool {
 }
 
 func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExpected string, portExpected ipaddr.Port, serviceExpected string, expectedZone ipaddr.Zone, prefixLengthExpected ipaddr.PrefixLen) {
-	//try {
 	h := hostName.GetHost()
 	var addressExpected *ipaddr.IPAddress
 	if addrExpected != "" {
@@ -987,7 +939,6 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 	addrHost := hostName.AsAddress()
 	port := hostName.GetPort()
 	var zone ipaddr.Zone
-	//String zone = null;
 	if addrHost != nil && addrHost.IsIPv6() {
 		zone = addrHost.ToIPv6().GetZone()
 	}
@@ -1029,9 +980,6 @@ func (t hostTester) testHostAll(hostName *ipaddr.HostName, hostExpected, addrExp
 			}
 		}
 	}
-	//} catch(RuntimeException e) {
-	//	addFailure(new Failure(e.getMessage(), hostName));
-	//}
 	t.incrementTestCount()
 }
 

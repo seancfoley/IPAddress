@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,14 +18,15 @@ package test
 
 import (
 	"bytes"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"math"
 	"math/big"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 type macAddressTester struct {
@@ -648,34 +649,17 @@ func (t macAddressTester) testMACValuesBig(segs []int, decimal, negativeDecimal 
 }
 
 func (t macAddressTester) testInvalidMACValues() {
-	/*
-		thebytes := []byte{1, 0, 0, 0, 0}
-			thebytes[0] = 1
-			addr, err := ipaddr.NewIPv4AddressFromBytes(thebytes)
-			if err == nil {
-				t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIP()))
-			}
-	*/
-	//try {
 	thebytes := [9]byte{}
 	thebytes[0] = 1
 	addr, err := ipaddr.NewMACAddressFromBytes(thebytes[:])
 	if err == nil {
 		t.addFailure(newSegmentSeriesFailure("failed expected error for "+addr.String(), addr))
 	}
-	//} catch(AddressValueException e) {}
-	//try {
 	thebytes = [9]byte{}
 	addr, err = ipaddr.NewMACAddressFromBytes(thebytes[:])
 	if err != nil {
 		t.addFailure(newSegmentSeriesFailure("failed unexpected error for "+addr.String(), addr))
 	}
-	//new MACAddress(new byte[9]);
-	//addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-
 	bytes2 := [8]byte{}
 	addr, err = ipaddr.NewMACAddressFromBytes(bytes2[:])
 	if err != nil {
@@ -704,8 +688,6 @@ func (t macAddressTester) testInvalidMACValues() {
 	if !addr.IsZero() {
 		t.addFailure(newSegmentSeriesFailure("failed expected exception for "+addr.String(), addr))
 	}
-	//} catch(AddressValueException e) {}
-	//try {
 	addr = ipaddr.NewMACAddressFromVals(func(segmentIndex int) ipaddr.MACSegInt {
 		var val = -1 // will be truncated to 0
 		return ipaddr.MACSegInt(val)
@@ -713,8 +695,6 @@ func (t macAddressTester) testInvalidMACValues() {
 	if !addr.IsMax() {
 		t.addFailure(newSegmentSeriesFailure("failed expected exception for "+addr.String(), addr))
 	}
-	//} catch(AddressValueException e) {}
-	//try {
 	addr = ipaddr.NewMACAddressFromVals(func(segmentIndex int) ipaddr.MACSegInt {
 		var val = 255 // will be truncated to 0
 		return ipaddr.MACSegInt(val)
@@ -722,35 +702,6 @@ func (t macAddressTester) testInvalidMACValues() {
 	if !addr.IsMax() {
 		t.addFailure(newSegmentSeriesFailure("failed expected exception for "+addr.String(), addr))
 	}
-
-	//try {
-	//	MACAddress addr = new MACAddress(new SegmentValueProvider() {
-	//		@Override
-	//		public int getValue(int segmentIndex) {
-	//			return 256;
-	//		}
-	//	});
-	//	addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {}
-	//try {
-	//	MACAddress addr = new MACAddress(new SegmentValueProvider() {
-	//		@Override
-	//		public int getValue(int segmentIndex) {
-	//			return -1;
-	//		}
-	//	});
-	//	addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {}
-	//try {
-	//	new MACAddress(new SegmentValueProvider() {
-	//		@Override
-	//		public int getValue(int segmentIndex) {
-	//			return 255;
-	//		}
-	//	});
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
 }
 
 func (t macAddressTester) testInsertAndAppend(front, back string, expectedPref []ipaddr.BitCount) {
@@ -852,7 +803,7 @@ func (t macAddressTester) testLongShort(longAddr, shortAddr string) {
 }
 
 func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeLong bool) {
-	params := new(addrparam.MACAddressStringParamsBuilder).SetPreferredLen(addrparam.MAC48Len).ToParams()
+	params := new(addrstrparam.MACAddressStringParamsBuilder).SetPreferredLen(addrstrparam.MAC48Len).ToParams()
 	longString := ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString := ipaddr.NewMACAddressStringParams(shortAddr, params)
 	if !shortString.IsValid() {
@@ -861,7 +812,7 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 	if longString.IsValid() {
 		t.addFailure(newMACFailure("long valid "+longString.String(), longString))
 	}
-	params = new(addrparam.MACAddressStringParamsBuilder).SetPreferredLen(addrparam.EUI64Len).ToParams()
+	params = new(addrstrparam.MACAddressStringParamsBuilder).SetPreferredLen(addrstrparam.EUI64Len).ToParams()
 	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
 	isValid := shortString.IsValid()
@@ -880,7 +831,7 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 	if shortCanBeLong && shortString.GetAddress().GetSegmentCount() != ipaddr.ExtendedUniqueIdentifier64SegmentCount {
 		t.addFailure(newMACFailure("also not enough segments "+shortString.String(), shortString))
 	}
-	params = new(addrparam.MACAddressStringParamsBuilder).SetPreferredLen(addrparam.UnspecifiedMACLen).ToParams()
+	params = new(addrstrparam.MACAddressStringParamsBuilder).SetPreferredLen(addrstrparam.UnspecifiedMACLen).ToParams()
 	longString = ipaddr.NewMACAddressStringParams(longAddr, params)
 	shortString = ipaddr.NewMACAddressStringParams(shortAddr, params)
 	if !shortString.IsValid() {
@@ -893,7 +844,6 @@ func (t macAddressTester) testLongShort2(longAddr, shortAddr string, shortCanBeL
 }
 
 func (t macAddressTester) testContains(addr1, addr2 string, equal bool) {
-	//try {
 	w := t.createMACAddress(addr1).GetAddress()
 	w2 := t.createMACAddress(addr2).GetAddress()
 	if !w.Contains(w2) {
@@ -905,21 +855,12 @@ func (t macAddressTester) testContains(addr1, addr2 string, equal bool) {
 		}
 		if otherContains {
 			t.addFailure(newSegmentSeriesFailure("failed "+w.String(), w2))
-			//					if(equal) {
-			//						System.out.println("containment: " + !w2.contains(w));
-			//					} else {
-			//						System.out.println("containment: " + w2.contains(w));
-			//					}
 		}
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure("failed " + e));
-	//}
 	t.incrementTestCount()
 }
 
 func (t macAddressTester) testNotContains(cidr1, cidr2 string) {
-	//try {
 	w := t.createMACAddress(cidr1).GetAddress()
 	w2 := t.createMACAddress(cidr2).GetAddress()
 	if w.Contains(w2) {
@@ -927,9 +868,6 @@ func (t macAddressTester) testNotContains(cidr1, cidr2 string) {
 	} else if w2.Contains(w) {
 		t.addFailure(newSegmentSeriesFailure("failed "+w.String(), w2))
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure("failed " + e, new MACAddressString(cidr1)));
-	//}
 	t.incrementTestCount()
 }
 
@@ -937,7 +875,6 @@ func (t macAddressTester) testDelimitedCount(str string, expectedCount int) {
 	strs := ipaddr.ParseDelimitedSegments(str)
 	var set []*ipaddr.MACAddress
 	count := 0
-	//try {
 	for strs.HasNext() {
 		addr, err := t.createMACAddress(strs.Next()).ToAddress()
 		if err != nil {
@@ -954,9 +891,6 @@ func (t macAddressTester) testDelimitedCount(str string, expectedCount int) {
 	if count != expectedCount || len(set) != count || count != ipaddr.CountDelimitedAddresses(str) {
 		t.addFailure(newFailure("count mismatch, count: "+strconv.Itoa(count)+" set count: "+strconv.Itoa(len(set))+" calculated count: "+strconv.Itoa(ipaddr.CountDelimitedAddresses(str))+" expected: "+strconv.Itoa(expectedCount), nil))
 	}
-	//} catch (AddressStringException | IncompatibleAddressException e) {
-	//	addFailure(new Failure("threw unexpectedly " + str));
-	//}
 	t.incrementTestCount()
 }
 
@@ -1030,11 +964,7 @@ func (t macAddressTester) testRadices(original, expected string, radix int) {
 
 func (t macAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
 	str := t.createMACAddress(addressStr)
-	//try {
 	t.testBase.testReverse(str.GetAddress().ToAddressBase().Wrap(), bitsReversedIsSame, bitsReversedPerByteIsSame)
-	//} catch(RuntimeException e) {
-	//addFailure(new Failure("reversal: " + addressStr));
-	//}
 	t.incrementTestCount()
 }
 
@@ -1095,7 +1025,6 @@ func (t macAddressTester) mactestZero(pass bool, x string, isZero bool) {
 
 func (t macAddressTester) mactestImpl(pass bool, addr *ipaddr.MACAddressString, isZero bool) {
 	//notBoth means we validate as IPv4 or as IPv6, we don't validate as either one
-	//try {
 	if t.isNotExpected(pass, addr) {
 		t.addFailure(newMACFailure("parse failure: "+addr.String(), addr))
 	} else {
@@ -1103,7 +1032,7 @@ func (t macAddressTester) mactestImpl(pass bool, addr *ipaddr.MACAddressString, 
 		if t.isNotExpectedNonZero(zeroPass, addr) {
 			t.addFailure(newMACFailure("zero parse failure: "+addr.String(), addr))
 		} else {
-			//test the bytess
+			//test the bytes
 			if pass && len(addr.String()) > 0 && addr.GetAddress() != nil {
 				taddr := addr.GetAddress()
 				if t.allowsRange() && taddr.IsMultiple() {
@@ -1114,32 +1043,9 @@ func (t macAddressTester) mactestImpl(pass bool, addr *ipaddr.MACAddressString, 
 			}
 		}
 	}
-	//} catch(IncompatibleAddressException e) {
-	//	failed = true;
-	//	addFailure(new Failure(e.toString(), addr));
-	//} catch(RuntimeException e) {
-	//	failed = true;
-	//	addFailure(new Failure(e.toString(), addr));
-	//}
 	t.incrementTestCount()
 }
 
-/*
-@Override
-	boolean testBytes(MACAddress origAddr) {
-		boolean failed = false;
-		if(origAddr.isMultiple()) {
-			try {
-				origAddr.getBytes();
-			} catch(IncompatibleAddressException e) {
-				failed = true;
-			}
-		} else {
-			failed = !super.testBytes(origAddr);
-		}
-		return !failed;
-	}
-*/
 func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
 	failed := false
 	macAddrbytes := addr.Bytes()
@@ -1152,7 +1058,6 @@ func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
 	if addr.GetSegmentCount() < 8 {
 		builder.WriteString("::")
 	}
-	//try {
 	ipstr := builder.String()
 	inetAddress := net.ParseIP(ipstr)
 	ipv6Bytes := inetAddress
@@ -1164,10 +1069,6 @@ func (t macAddressTester) testBytes(addr *ipaddr.MACAddress) bool {
 		failed = true
 		t.addFailure(newSegmentSeriesFailure("bytes on addr "+inetAddress.String(), addr))
 	}
-	//} catch(UnknownHostException e) {
-	//	failed = true;
-	//	addFailure(new Failure("bytes on addr " + e, addr));
-	//}
 	return !failed
 }
 
@@ -1193,15 +1094,11 @@ func (t macAddressTester) testFromBytes(bytes []byte, expected string) {
 }
 
 func (t macAddressTester) isNotExpected(expectedPass bool, addr *ipaddr.MACAddressString) bool {
-	//try {
 	err := addr.Validate()
 	if err != nil {
 		return expectedPass
 	}
 	return !expectedPass
-	//} catch(AddressStringException e) {
-	//	return expectedPass;
-	//}
 }
 
 func (t macAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.MACAddressString) bool {
@@ -1248,10 +1145,6 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 				}
 
 				if macAddr.IsEUI64(true) || macAddr.IsEUI64(false) || !macAddr64.IsEUI64(false) {
-					//fmt.Printf("%v %v %v\n", macAddr.IsEUI64(true), macAddr.IsEUI64(false), !macAddr64.IsEUI64(false))
-					//macAddr.IsEUI64(true)
-					//macAddr.IsEUI64(false)
-					//macAddr64.IsEUI64(false)
 					t.addFailure(newSegmentSeriesFailure("mac eui test "+macAddr64.String(), macAddr))
 				} else {
 					backFromMac64Addr, err := ipaddr.NewIPv6AddressFromMAC(addr, macAddr64)
@@ -1290,8 +1183,6 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 									backLinkLocal = backLinkLocal.WithoutPrefixLen()
 									backIpv6 = backIpv6.WithoutPrefixLen()
 								}
-								//IPv6Address splitJoined1 = new IPv6Address(frontIpv6, backIpv6.ToEUI(true));
-								//IPv6Address splitJoined2 = new IPv6Address(frontIpv6, backIpv6.ToEUI(false));
 								backIPv6_1, err := addr.ToEUI(true)
 								if err != nil {
 									t.addFailure(newSegmentSeriesFailure("unexpected error 1 for address to EUI64 "+err.Error(), addr))
@@ -1328,149 +1219,18 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 								if err != nil {
 									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), macAddr))
 								}
-								//MACAddressSection other = new MACAddressSection(new MACAddressSegment(0xee));
-								//									for(int j = 0; j < 2; j++) {
-								//										MACAddress m;
-								//										if(j == 0) {
-								//											m = macAddr64;
-								//										} else {
-								//											m = macAddr;
-								//										}
-								//										for(int i = 0; i <= m.getSegmentCount(); i++) {
-								//											MACAddressSection backSec = m.getSection(i, m.getSegmentCount());
-								//											MACAddressSection frontSec = m.getSection(0, i);
-								//
-								//											if(j == 1) {
-								//												if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
-								//													addFailure(new Failure("eui 64 test " + backSec, frontSec));
-								//												}
-								//												if(i >= 3) {
-								//													MACAddressSection frontSec2 = frontSec.toEUI64(false);
-								//													if(!frontSec2.isEUI64(false)) {
-								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
-								//													}
-								//												}
-								//												if(i <= 3) {
-								//													MACAddressSection backSec2 = backSec.toEUI64(false);
-								//													if(!backSec2.isEUI64(false)) {
-								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
-								//													}
-								//												}
-								//
-								//											} else {
-								//												if(i < 4) {
-								//													if(backSec.isEUI64(true) || !backSec.isEUI64(false) || frontSec.isEUI64(true) || frontSec.isEUI64(false)) {
-								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
-								//													} else {
-								//														MACAddressSection backSec2 = backSec.replace(3 - i, other);
-								//														if(backSec2.isEUI64(false)) {
-								//															addFailure(new Failure("eui 64 test " + backSec2, backSec2));
-								//														}
-								//													}
-								//												} else if(i == 4) {
-								//													if(backSec.isEUI64(true) ||
-								//															backSec.isEUI64(false) || !backSec.isEUI64(false, true) ||
-								//															frontSec.isEUI64(true) ||
-								//															frontSec.isEUI64(false) || !frontSec.isEUI64(false, true)) {
-								//														addFailure(new Failure("eui 64 test " + backSec, frontSec));
-								//													} else {
-								//														backSec = backSec.toEUI64(false);
-								//														frontSec = frontSec.toEUI64(false);
-								//														if(!backSec.isEUI64(false, true) || backSec.isEUI64(false) || !frontSec.isEUI64(false, true) || frontSec.isEUI64(false)) {
-								//															addFailure(new Failure("eui 64 test " + backSec, frontSec));
-								//														} else {
-								//															MACAddressSection frontSec2 = frontSec.replace(3, other);//take backSec and frontSec, stick something else in the middle other than fffe
-								//															MACAddressSection backSec2 = backSec.replace(4 - i, other);
-								//															if(backSec2.isEUI64(false, true) || frontSec2.isEUI64(false, true)) {
-								//																addFailure(new Failure("eui 64 test " + backSec2, frontSec2));
-								//															}
-								//														}
-								//													}
-								//												} else {
-								//													if(backSec.isEUI64(true) || backSec.isEUI64(false) || frontSec.isEUI64(true) || !frontSec.isEUI64(false)) {
-								//														addFailure(new Failure("eui 64 test " + backSec, backSec));
-								//													} else {
-								//														MACAddressSection frontSec2 = frontSec.replace(4, other);
-								//														if(frontSec2.isEUI64(false)) {
-								//															addFailure(new Failure("eui 64 test " + frontSec2, frontSec2));
-								//														}
-								//													}
-								//												}
-								//											}
-
-								//											IPv6AddressSection backIpv6Sec = new IPv6AddressSection(backSec);
-								//											IPv6AddressSection frontIpv6Sec = new IPv6AddressSection(frontSec);
-								//											IPv6AddressSection both1, both2;
-								//
-								//											//For the blocks below...
-								//											//i is the index where we split the mac address
-								//											//j==1 means mac address is 48 bits, i == 3 is the middle index
-								//											//
-								//											//Start with MAC ff:ff:fa:bf:ff:ff
-								//											//Split at even index like 2: ff:ff  fa:bf:ff:ff
-								//											//Convert each to IPv6: ffff faff:febf:ffff
-								//											//Then we can just append to get the ipv6 segs: ffff:faff:febf:ffff
-								//											//
-								//											//Split at odd index like 1: ff  ff:fa:bf:ff:ff
-								//											//Convert each to IPv6: ff00 00ff:faff:febf:ffff
-								//											//We cannot just append.
-								//											//Instead we must merge with bitwiseOr the segments where we split: ff00 00ff into ffff
-								//											//Then we can append ffff with faff:febf:ffff to get: ffff:faff:febf:ffff
-								//											//
-								//											//Also, if we split at index 3 we get ff:ff:fa  bf:ff:ff
-								//											//Convert each to IPv6: ffff:faff  febf:ffff
-								//											//In this case there are no extra segments and we can just append: ffff:faff:febf:ffff
-								//											if((i % 2 == 0) || ((j == 1) && (i == 3))) {
-								//												//no merging of segments required, see comment below
-								//												//either the MAC segments are split at an even index so the ipv6 conversion segment count is just right,
-								//												//or we split the mac address at i == 3 and the resultant IPv6 will have the ff:ff or ff:fe stuck in there and we will not have extra bits to be merged
-								//												both1 = frontIpv6Sec.append(backIpv6Sec);
-								//												both2 = frontIpv6Sec.append(backIpv6Sec);
-								//											} else {
-								//												//When we are splitting up our MAC address at an odd index,
-								//												//and then we convert each side to IPv6, then we will have 0 bits at the back of the front IPv6 section,
-								//												//and we will have 0 bits at the front of the back IPv6 section,
-								//												//so we can just merge the two segments with a bitWise or back to a single segment (merged)
-								//												int frontCount = frontIpv6Sec.getSegmentCount();
-								//												IPv6AddressSection lastFront = frontIpv6Sec.getSection(frontCount - 1, frontCount);
-								//												IPv6AddressSection frontBack = backIpv6Sec.getSection(0, 1);
-								//												if(frontBack.isMultiple()) {
-								//													//the technique of bitwiseOr won't work when dealing with multiple
-								//													continue;
-								//												}
-								//												if(i == 1 && frontSec.getSegment(0).matchesWithMask(0x2, 0x2)) {
-								//													//the back section will have flipped on the toggle bit since it has the first segment but not the first half of the segment
-								//													//so it will be flipped on when it should remain off
-								//													frontBack = frontBack.mask(new IPv6AddressSection(new IPv6AddressSegment(0xfdff)));
-								//												}
-								//												IPv6AddressSection merged = lastFront.bitwiseOr(frontBack);//frontback has bit flipped on here and it should not
-								//												IPv6AddressSection mergedAll = frontIpv6Sec.replace(frontCount - 1, merged);
-								//												IPv6AddressSection backRes = backIpv6Sec.getSection(1, backIpv6Sec.getSegmentCount());
-								//												both1 = mergedAll.append(backRes);
-								//												both2 = mergedAll.append(backRes);
-								//											}
 								both3 := backFromMac
-								//IPv6Address all[] = new IPv6Address[14];
 								var all []*ipaddr.IPv6Address
-								//											all[0] = new IPv6Address(addr.getSection().replace(4, both1));
-								//											all[1] = new IPv6Address(addr.getSection().replace(4, both2));
-
-								//all[2] = new IPv6Address(addr.getSection().replace(4, both3));
 								ipa, err := ipaddr.NewIPv6Address(addr.GetSection().Replace(4, both3))
 								if err != nil {
 									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
 								}
 								all = append(all, ipa)
-
-								//											all[3] = new IPv6Address(frontIpv6.append(both1));
-								//											all[4] = new IPv6Address(frontIpv6.append(both2));
 								ipa, err = ipaddr.NewIPv6Address(frontIpv6.Append(both3))
 								if err != nil {
 									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
 								}
 								all = append(all, ipa)
-								//											all[6] = new IPv6Address(frontIpv6.append(both1));
-								//											all[7] = new IPv6Address(frontIpv6.append(both2));
 								ipa, err = ipaddr.NewIPv6Address(frontIpv6.Append(both3))
 								if err != nil {
 									t.addFailure(newSegmentSeriesFailure("unexpected error for ipv6 construction "+err.Error(), addr))
@@ -1482,9 +1242,6 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 								all = append(all, splitJoined3)
 								all = append(all, splitJoined4)
 								all = append(all, splitJoined5)
-								//all[9] = splitJoined1;
-								//all[10] = splitJoined2;
-								//all[11] = splitJoined3;
 
 								ipa, err = ipaddr.NewIPv6Address(addr.GetSection().Replace(4, backLinkLocal))
 								if err != nil {
@@ -1498,11 +1255,7 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 								}
 								all = append(all, ipa)
 
-								//all[12] = new IPv6Address(addr.getSection().replace(4, backLinkLocal));
-								//all[13] = new IPv6Address(frontIpv6.append(backLinkLocal));
-
 								//All of these should be equal!
-								//HashSet<IPv6Address> set = new HashSet<IPv6Address>();
 								for i := range all {
 									for j := range all {
 										if !all[i].Equal(all[j]) {
@@ -1513,31 +1266,9 @@ func (t macAddressTester) testMACIPv6(ipv6, mac string) {
 										}
 									}
 								}
-								//Integer prefix = all[0].getNetworkPrefixLength();
-								//for(IPv6Address one : all) {
-								//	if(!Objects.equals(prefix, one.getNetworkPrefixLength())) {
-								//		addFailure(new Failure("eui 64 conv set prefix is " + one.getNetworkPrefixLength() + " previous was " + prefix, one));
-								//	}
-								//	set.add(one);
-								//}
-								//if(set.size() != 1) {
-								//	addFailure(new Failure("eui 64 conv set " + set.size() + ' ' + set.toString()));
-								//}
-								//TreeSet<IPv6Address> treeSet = new TreeSet<IPv6Address>();
-								//for(IPv6Address one : all) {
-								//	treeSet.add(one);
-								//}
-								//if(treeSet.size() != 1) {
-								//	addFailure(new Failure("eui 64 conv set " + treeSet.size() + ' ' + treeSet.toString()));
-								//}
-								//										}
-								//									}
 								if withPrefix {
 									break
 								}
-								//if(withPrefix || addr.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
-								//	break;
-								//}
 								withPrefix = true
 							}
 						}

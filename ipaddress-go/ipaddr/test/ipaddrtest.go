@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -280,12 +280,7 @@ func (t ipAddressTester) run() {
 	t.testMatchesInetAton(true, "11.11.11.11", "11.0xb.013.0xB", true)
 	t.testMatchesInetAton(true, "11.11.0.11", "11.0xb.0xB", true)
 	t.testMatchesInetAton(true, "11.11.0.11", "11.0x00000000000000000b.0000000000000000000013", true)
-	//if(false) {
-	//	t.testMatches(true, "11.11.0.11/16", "11.720896/16", true);
-	//	t.testMatches(true, "11.0.0.11/16", "184549376/16", true);
-	//	t.testMatches(true, "11.0.0.11/16", "0xb000000/16", true);
-	//	t.testMatches(true, "11.0.0.11/16", "01300000000/16", true);
-	//}
+
 	t.testMatchesInetAton(true, "11.11.0.11/16", "11.720907/16", true)
 	t.testMatchesInetAton(true, "11.0.0.11/16", "184549387/16", true)
 	t.testMatchesInetAton(true, "11.0.0.11/16", "0xb00000b/16", true)
@@ -306,24 +301,16 @@ func (t ipAddressTester) run() {
 
 	t.testMatches(true, "1:2::/32", "1:2::/ffff:ffff::")
 	t.testMatches(true, "1:2::/1", "1:2::/8000::")
-	//if(false) {
-	//	t.testMatches(true, "1:2::", "1:2::/ffff:ffff::1");
-	//} else {
+
 	t.testMatches(true, "1:2::/1", "1:2::/ffff:ffff::1")
-	//}
 
 	t.testMatches(true, "1:2::/31", "1:2::/ffff:fffe::")
 
 	t.testMatches(true, "0.2.3.0", "1.2.3.4/0.255.255.0")
-	//if(false) {
-	//	t.testMatches(true, "1.2.3.4/16", "1.2.3.4/255.255.0.0");
-	//	t.testMatches(true, "1.2.3.4/15", "1.2.3.4/255.254.0.0");
-	//	t.testMatches(true, "1.2.3.4/17", "1.2.3.4/255.255.128.0");
-	//} else {
+
 	t.testMatches(true, "1.2.128.0/16", "1.2.128.4/255.255.254.1")
 	t.testMatches(true, "1.2.2.0/15", "1.2.3.4/255.254.2.3")
 	t.testMatches(true, "1.2.0.4/17", "1.2.3.4/255.255.128.5")
-	//}
 
 	t.testMatches(false, "1.2.0.0/16", "1.2.3.4/255.255.0.0")
 	t.testMatches(false, "1.2.0.0/15", "1.2.3.4/255.254.0.0")
@@ -354,25 +341,10 @@ func (t ipAddressTester) run() {
 	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4%", "1:2:3:4:5:6:102:304%")
 	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4%-a-", "1:2:3:4:5:6:102:304%-a-") //we don't validate the zone itself, so the % reappearing as the zone itself is ok
 
-	//if(isNoAutoSubnets) {
-	//	t.testMatches(true, "1::%-.1/16", "1::%-.1");//first one is prefixed and zone, second one just zone
-	//	t.testMatches(false, "1::/16", "1::%-.1");//first one has no zone, second one has zone
-	//	t.testMatches(true, "1::%-1/16", "1::%-1");//first one is prefixed and zone, second one just zone
-	//	t.testMatches(false, "1::/16", "1::%-1");//first one has no zone, second one has zone
-	//}
 	t.testMatches(true, "1::0.0.0.0%-1", "1::%-1")
 	t.testMatches(false, "1::0.0.0.0", "1::%-1") //zones do not match
 	t.testMatches(false, "1::0.0.0.0%-1", "1::") //zones do not match
 
-	//if(false) {
-	//	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4/64", "1:2:3:4::/64");
-	//
-	//	//more stuff with prefix in mixed part 1:2:3:4:5:6:1.2.3.4/128
-	//	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4/96", "1:2:3:4:5:6::/96");
-	//	t.testMatches(true, "1:2:3:4:5:6:255.2.3.4/97", "1:2:3:4:5:6:8000::/97");
-	//	t.testMatches(true, "1:2:3:4:5:6:1.2.3.4/112", "1:2:3:4:5:6:102::/112");
-	//	t.testMatches(true, "1:2:3:4:5:6:1.2.255.4/115", "1:2:3:4:5:6:102:e000/115");
-	//}
 	t.testMatches(true, "1:2:3:4::0.0.0.0/64", "1:2:3:4::/64")
 
 	//more stuff with prefix in mixed part 1:2:3:4:5:6:1.2.3.4/128
@@ -600,12 +572,6 @@ func (t ipAddressTester) run() {
 	t.ipv4test(false, "0.0..0")
 	t.ipv4test(false, "0.0.0.")
 
-	//t.ipv4test(true, "/0")
-	//t.ipv4test(true, "/1")
-	//t.ipv4test(true, "/31")
-	//t.ipv4test(true, "/32")
-	//t.ipv4test2(false, "/33", false, true)
-
 	t.ipv4test(false, "/0")
 	t.ipv4test(false, "/1")
 	t.ipv4test(false, "/31")
@@ -687,10 +653,6 @@ func (t ipAddressTester) run() {
 	// in this test, the validation will fail unless validation options have allowEmpty
 	t.ipv6zerotest(t.isLenient(), "") // empty string //this needs special validation options to be valid
 
-	//t.ipv6test(true, "/0")
-	//t.ipv6test(true, "/1")
-	//t.ipv6test(true, "/127")
-	//t.ipv6test(true, "/128")
 	t.ipv6test(false, "/0")
 	t.ipv6test(false, "/1")
 	t.ipv6test(false, "/127")
@@ -1830,8 +1792,6 @@ func (t ipAddressTester) run() {
 	t.testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8")
 	t.testReplace("1.2.3.4", "5.6.7.8")
 
-	//testSQLMatching();
-
 	t.testInvalidIpv4Values()
 
 	t.testInvalidIpv6Values()
@@ -2338,13 +2298,6 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 				if h1.IsPrefixed() && h1.IsPrefixBlock() {
 					directAddress = makePrefixSubnet(directAddress)
 				}
-				//if equiv == nil {
-				//	if prefixed != nil {
-				//		t.addFailure(newIPAddrFailure("failed: prefix expected: "+direct.String(), minPrefixed))
-				//	}
-				//} else if !directAddress.Equal(minPrefixed) {
-				//	t.addFailure(newIPAddrFailure("failed: prefix expected: "+direct.String(), minPrefixed))
-				//}
 				if !directAddress.Equal(minPrefixed) {
 					// orig "1:2:*::/64" failed: expected match between: 1:2:*::*:*:*/64 and 1:2:*::/64
 					t.addFailure(newIPAddrFailure("failed: expected match between: "+directAddress.String()+" and "+minPrefixed.String(), minPrefixed))
@@ -2355,23 +2308,17 @@ func (t ipAddressTester) testEquivalentMinPrefix(host string, equivPrefix ipaddr
 	t.incrementTestCount()
 }
 
-//var counter int
-
 func (t ipAddressTester) testSubnet(addressStr, maskStr string, prefix ipaddr.BitCount,
 	normalizedPrefixSubnetString,
 	normalizedSubnetString,
 	normalizedPrefixString string) {
-	//counter++
-	//fmt.Printf("test %v\n", counter)
+
 	t.testHostAddress(addressStr)
-	//isValidWithPrefix := normalizedPrefixSubnetString != ""
 	isValidMask := normalizedSubnetString != ""
 	str := t.createAddress(addressStr)
 	maskString := t.createAddress(maskStr)
-	//try {
 	value := str.GetAddress()
 	originalPrefix := value.GetNetworkPrefixLen()
-	//try {
 	mask := maskString.GetAddress()
 	var subnet3 *ipaddr.IPAddress
 	if originalPrefix == nil || originalPrefix.Len() > prefix {
@@ -2387,22 +2334,6 @@ func (t ipAddressTester) testSubnet(addressStr, maskStr string, prefix ipaddr.Bi
 	if string3 != normalizedPrefixString {
 		t.addFailure(newIPAddrFailure("testSubnet failed normalizedPrefixString: "+string3+" expected: "+normalizedPrefixString, subnet3))
 	} else {
-		//try {
-		//IPAddress subnet = value.maskNetwork(mask, prefix);
-		//if(!isValidWithPrefix) {
-		//	addFailure(new Failure("testSubnet failed to throw with mask " + mask + " and prefix " + prefix, value));
-		//} else {
-		//	 string := subnet.toNormalizedString();
-		//	if(!string.equals(normalizedPrefixSubnetString)) {
-		//		addFailure(new Failure("testSubnet failed: " + string + " expected: " + normalizedPrefixSubnetString, subnet));
-		//		//0.0.0.0/16 is normalizedPrefixSubnetString and 0.0.0-127.*/16 is string
-		//		//1.2.0.0/17 becomes 1.2.0.0/16 after we apply prefix length.
-		//		//Then 1.2.0.0/17 is network-masked with 0.0.255.255 and prefix 16.
-		//		// So that becomes 0.0.0-127.*/16.
-		//		// That used to be 0.0.0.0/16
-		//	} else {
-		//try {
-		//fmt.Printf("masking %v with %v\n", value, mask) // masking ::/8 with ffff::
 		subnet2, err := value.Mask(mask) //here?
 		if isValidMask && err != nil {
 			t.addFailure(newIPAddrFailure("testSubnet errored with mask "+mask.String(), value))
@@ -2441,41 +2372,7 @@ func (t ipAddressTester) testSubnet(addressStr, maskStr string, prefix ipaddr.Bi
 				}
 			}
 		}
-		//} catch(IncompatibleAddressException e) {
-		//	if(isValidMask) {
-		//		addFailure(new Failure("testSubnet failed with mask " + mask + " " + e, value));
-		//	}
-		//}
-		//}
-		//}
-		//} catch(IncompatibleAddressException e) {
-		//if(isValidWithPrefix) {
-		//	addFailure(new Failure("testSubnet failed with mask " + mask + " and prefix " + prefix + ": " + e, value));
-		//} else {
-		//	try {
-		//		IPAddress subnet2 = value.mask(mask);
-		//		if(!isValidMask) {
-		//			addFailure(new Failure("testSubnet failed to throw with mask " + mask, value));
-		//		} else {
-		//			String string2 = subnet2.toNormalizedString();
-		//			if(!string2.equals(normalizedSubnetString)) {
-		//				addFailure(new Failure("testSubnet failed: " + normalizedSubnetString + " expected: " + string2, subnet2));
-		//			}
-		//		}
-		//	} catch(IncompatibleAddressException e2) {
-		//		if(isValidMask) {
-		//			addFailure(new Failure("testSubnet failed with mask " + mask + " " + e2, value));
-		//		}
-		//	}
-		//	}
-		//}
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure("t.testSubnet failed " + e, maskString));
-	//}
-	//} catch(AddressStringException | IncompatibleAddressException e) {
-	//	addFailure(new Failure("t.testSubnet failed " + e, str));
-	//}
 	t.incrementTestCount()
 }
 
@@ -2485,7 +2382,6 @@ func (t ipAddressTester) testHostAddress(addressStr string) {
 	if address != nil {
 		hostAddress := str.GetHostAddress()
 		prefixIndex := strings.Index(addressStr, ipaddr.PrefixLenSeparatorStr)
-		//int prefixIndex = addressStr.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
 		if prefixIndex < 0 {
 			if !address.Equal(hostAddress) || !address.Contains(hostAddress) {
 				t.addFailure(newFailure("failed host address with no prefix: "+hostAddress.String()+" expected: "+address.String(), str))
@@ -2504,11 +2400,7 @@ func (t ipAddressTester) testHostAddress(addressStr string) {
 func (t ipAddressTester) testReverse(addressStr string, bitsReversedIsSame, bitsReversedPerByteIsSame bool) {
 	str := t.createAddress(addressStr)
 	addr := str.GetAddress()
-	//try {
 	t.testBase.testReverse(addr.ToAddressBase().Wrap(), bitsReversedIsSame, bitsReversedPerByteIsSame)
-	//} catch(RuntimeException e) {
-	//	addFailure(new Failure("reversal: " + addressStr));
-	//}
 	t.incrementTestCount()
 }
 
@@ -2530,8 +2422,7 @@ func (t ipAddressTester) testPrefixes(
 			}
 		}
 	}
-	t.testBase.testPrefixes(original.Wrap(), // OK make it return WrappedAddress
-		//t.testBase.testPrefixes(ipaddr.WrappedAddress{original.ToAddressBase()},
+	t.testBase.testPrefixes(original.Wrap(),
 		prefix, adjustment,
 		t.createAddress(next).GetAddress().Wrap(),
 		t.createAddress(previous).GetAddress().Wrap(),
@@ -2552,7 +2443,6 @@ func (t ipAddressTester) testBitwiseOr(orig string, prefixAdjustment *ipaddr.Bit
 			return
 		}
 	}
-	//try {
 	result, err := original.BitwiseOr(orAddr)
 	if err != nil {
 		if expectedResult != "" {
@@ -2560,7 +2450,6 @@ func (t ipAddressTester) testBitwiseOr(orig string, prefixAdjustment *ipaddr.Bit
 		}
 	} else {
 		if expectedResult == "" {
-			//original.BitwiseOr(orAddr)
 			t.addFailure(newIPAddrFailure("ored expected error, "+original.String()+" orAddr: "+orAddr.String()+" result: "+result.String(), original))
 		} else {
 			expectedResultAddr := t.createAddress(expectedResult).GetAddress()
@@ -2572,48 +2461,12 @@ func (t ipAddressTester) testBitwiseOr(orig string, prefixAdjustment *ipaddr.Bit
 			}
 		}
 	}
-	//} catch(IncompatibleAddressException e) {
-	//	if(expectedResult != null) {
-	//		addFailure(new Failure("ored threw unexpectedly " + original + " orAddr: " + orAddr, original));
-	//	}
-	//}
 	t.incrementTestCount()
 }
 
-//
-//	void testPrefixBitwiseOr(String orig, Integer prefix, String or, String expectedNetworkResult) {
-//		testPrefixBitwiseOr(orig, prefix, or, expectedNetworkResult, null);
-//	}
-//
 func (t ipAddressTester) testPrefixBitwiseOr(orig string, prefix ipaddr.BitCount, or, expectedNetworkResult, expectedFullResult string) {
 	original := t.createAddress(orig).GetAddress()
 	orAddr := t.createAddress(or).GetAddress()
-	////try {
-	//	 result := original.BitwiseOrNetwork(orAddr, prefix);
-	//	if(expectedNetworkResult == null) {
-	//		t.addFailure(newFailure("ored network expected throw " + original + " orAddr: " + orAddr + " result: " + result, original));
-	//	} else {
-	//		IPAddressString expected = createAddress(expectedNetworkResult);
-	//		IPAddress expectedResultAddr = expected.getAddress();
-	//		if(!expectedResultAddr.isPrefixed() || expectedResultAddr.getPrefixLength() != prefix) {
-	//			expectedResultAddr = expectedResultAddr.setPrefixLength(prefix, false, false);
-	//		}
-	//		if(!expectedResultAddr.equals(result)) {
-	//			result = original.bitwiseOrNetwork(orAddr, prefix); // 3rd seg not pref block in result, which is right because 3rd seg in original was not
-	//			//but 4th seg in result is pref block, which is also right, while not the base with the expected
-	//			t.addFailure(newFailure("ored network expected: " + expectedResultAddr + " actual: " + result, original));
-	//		}
-	//		if(!Objects.equals(expectedResultAddr.getPrefixLength(), result.getPrefixLength())) {
-	//			//result = original.bitwiseOrNetwork(orAddr, prefix);
-	//			t.addFailure(newFailure("ored network expected pl: " + expectedResultAddr.getPrefixLength() + " actual: " + result.getPrefixLength(), original));
-	//		}
-	//	}
-	////} catch(IncompatibleAddressException e) {
-	////	if(expectedNetworkResult != null) {
-	////		addFailure(new Failure("ored threw unexpectedly " + original + " orAddr: " + orAddr, original));
-	////	}
-	////}
-	//try {
 	result, err := original.BitwiseOr(orAddr)
 	if err != nil {
 		if expectedFullResult != "" {
@@ -2630,11 +2483,6 @@ func (t ipAddressTester) testPrefixBitwiseOr(orig string, prefix ipaddr.BitCount
 				t.addFailure(newIPAddrFailure("ored expected: "+expectedResultAddr.String()+" actual: "+result.String(), original))
 			}
 		}
-		//} catch(IncompatibleAddressException e) {
-		//	if(expectedFullResult != null) {
-		//		addFailure(new Failure("ored threw unexpectedly " + original + " orAddr: " + orAddr, original));
-		//	}
-		//}
 	}
 	t.incrementTestCount()
 }
@@ -2643,7 +2491,6 @@ func (t ipAddressTester) testDelimitedCount(str string, expectedCount int) {
 	strs := ipaddr.ParseDelimitedSegments(str)
 	var set []*ipaddr.IPAddress
 	count := 0
-	//try {
 	for strs.HasNext() {
 		set = append(set, t.createAddress(strs.Next()).GetAddress())
 		count++
@@ -2651,9 +2498,6 @@ func (t ipAddressTester) testDelimitedCount(str string, expectedCount int) {
 	if count != expectedCount || len(set) != count || count != ipaddr.CountDelimitedAddresses(str) {
 		t.addFailure(newFailure("count mismatch, count: "+strconv.Itoa(count)+" set count: "+strconv.Itoa(len(set))+" calculated count: "+strconv.Itoa(ipaddr.CountDelimitedAddresses(str))+" expected: "+strconv.Itoa(expectedCount), nil))
 	}
-	//} catch (AddressStringException | IncompatibleAddressException e) {
-	//addFailure(new Failure("threw unexpectedly " + str));
-	//}
 	t.incrementTestCount()
 }
 
@@ -2673,9 +2517,6 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 
 	straightMatch := h1.Equal(h2)
 	if matches != straightMatch && matches != conversionMatches(h1, h2) {
-		//h1.equals(h2);
-		//System.out.println(h1 + ": " + h1.getAddress());
-		//System.out.println(h2 + ": " + h2.getAddress());
 		t.addFailure(newFailure("failed: matching "+h1.String()+" with "+h2.String(), h1))
 	} else {
 		if matches != h2.Equal(h1) && matches != conversionMatches(h2, h1) {
@@ -2688,7 +2529,6 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 				failed = h1.Compare(h2) == 0
 			}
 			if failed {
-				//if(matches ? (h1.Compare(h2) != 0 && conversionCompare(h1, h2) != 0) : (h1.Compare(h2) == 0)) {
 				t.addFailure(newFailure("failed: matching "+h1.String()+" with "+h2.String(), h2))
 			} else {
 				if matches {
@@ -2697,37 +2537,9 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 					failed = h2.Compare(h1) == 0
 				}
 				if failed {
-					//if(matches ? (h2.Compare(h1) != 0 && conversionCompare(h2, h1) != 0) : (h2.Compare(h1) == 0)) {
 					t.addFailure(newFailure("failed: match with "+h2.String(), h1))
 				} else if straightMatch {
 					if h1.GetNetworkPrefixLen() != nil {
-						//if(h1.isPrefixOnly() && h1.getNetworkPrefixLength() <= IPv4Address.BIT_COUNT) {
-						//	if(h1.prefixEquals(h2)) {
-						//		addFailure(new Failure("failed: prefix only match fail with " + h1, h2));
-						//	} else {
-						//		//this three step test is done so we try it before validation, and then try again before address creation, due to optimizations in IPAddressString
-						//		if inet_aton {
-						//			h1 = t.createInetAtonAddress(host1Str)
-						//			h2 = t.createInetAtonAddress(host2Str)
-						//		} else {
-						//			h1 = t.createAddress(host1Str)
-						//			h2 = t.createAddress(host2Str)
-						//		}
-						//		if(h1.prefixEquals(h2)) {
-						//			addFailure(new Failure("failed: prefix only match fail with " + h1, h2));
-						//		}
-						//		h1.isValid();
-						//		h2.isValid();
-						//		if(h1.prefixEquals(h2)) {
-						//			addFailure(new Failure("failed: 2 prefix only match fail with " + h1, h2));
-						//		}
-						//		h1.getAddress();
-						//		h2.getAddress();
-						//		if(h1.prefixEquals(h2)) {
-						//			addFailure(new Failure("failed: 3 prefix only match fail with " + h1, h2));
-						//		}
-						//	}
-						//} else {
 						if !h1.PrefixEqual(h2) {
 							t.addFailure(newFailure("failed: prefix match fail with "+h1.String(), h2))
 						} else {
@@ -2739,8 +2551,6 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 								h1 = t.createAddress(host1Str)
 								h2 = t.createAddress(host2Str)
 							}
-							//h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
-							//h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
 							if !h1.PrefixEqual(h2) {
 								t.addFailure(newFailure("failed: prefix match fail with "+h1.String(), h2))
 							}
@@ -2755,25 +2565,8 @@ func (t ipAddressTester) testMatchesInetAton(matches bool, host1Str, host2Str st
 								t.addFailure(newFailure("failed: 3 prefix match fail with "+h1.String(), h2))
 							}
 						}
-						//}
 					}
 				}
-				//else {
-				//	boolean false = prefixConfiguration.allPrefixedAddressesAreSubnets();
-				//	//if two are not equal, they can still have equal prefix.  Only if host the same can we conclude otherwise.
-				//	//So here we first check that host is the same (ie full range host)
-				//	if(false && h2.getNetworkPrefixLength() != null && h1.getNetworkPrefixLength() != null && h1.getNetworkPrefixLength() >= h2.getNetworkPrefixLength()) {
-				//		if(h1.prefixEquals(h2)) {
-				//			addFailure(new Failure("failed: prefix match succeeds with " + h1, h2));
-				//		} else {
-				//			h1 = inet_aton ? createInetAtonAddress(host1Str) : createAddress(host1Str);
-				//			h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
-				//			if(h1.prefixEquals(h2)) {
-				//				addFailure(new Failure("failed: prefix match succeeds with " + h1, h2));
-				//			}
-				//		}
-				//	}
-				//}
 			}
 		}
 	}
@@ -2835,7 +2628,6 @@ func (t ipAddressTester) iptest(pass bool, addr *ipaddr.IPAddressString, isZero,
 	}
 
 	//notBoth means we validate as IPv4 or as IPv6, we don't validate as either one
-	//try {
 	if t.isNotExpected(pass, addr, ipv4Test, !ipv4Test) || t.isNotExpected(pass2, addr, false, false) {
 		failed = true
 		if addr.GetAddress() != nil {
@@ -2873,23 +2665,11 @@ func (t ipAddressTester) iptest(pass bool, addr *ipaddr.IPAddressString, isZero,
 			}
 		}
 	}
-	//} catch(IncompatibleAddressException e) {
-	//	failed = true;
-	//	addFailure(new Failure(e.toString(), addr));
-	//} catch(RuntimeException e) {
-	//	failed = true;
-	//	addFailure(new Failure(e.toString(), addr));
-	//}
 	t.incrementTestCount()
 	return !failed
 }
 
-//boolean isNotExpected(boolean expectedPass, IPAddressString addr) {
-//	return isNotExpected(expectedPass, addr, false, false);
-//}
-
 func (t ipAddressTester) isNotExpected(expectedPass bool, addr *ipaddr.IPAddressString, isIPv4, isIPv6 bool) bool {
-	//try {
 	var err error
 	if isIPv4 {
 		err = addr.ValidateIPv4()
@@ -2908,9 +2688,6 @@ func (t ipAddressTester) isNotExpected(expectedPass bool, addr *ipaddr.IPAddress
 		return expectedPass
 	}
 	return !expectedPass
-	//} catch(AddressStringException e) {
-	//	return expectedPass;
-	//}
 }
 
 func (t ipAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.IPAddressString) bool {
@@ -2928,7 +2705,6 @@ func (t ipAddressTester) isNotExpectedNonZero(expectedPass bool, addr *ipaddr.IP
 
 func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	failed := false
-	//try {
 	if t.allowsRange() && addr.IsMultiple() {
 		b := addr.Bytes()
 		b2 := addr.GetLower().Bytes()
@@ -2946,7 +2722,6 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	}
 	addrString := addr.String()
 	index := strings.Index(addrString, "/")
-	//int index = addrString.indexOf('/');
 	if index >= 0 {
 		addrString = addrString[:index]
 		//addrString = addrString.substring(0, index);
@@ -2955,35 +2730,10 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	if addr.IsIPv4() {
 		inetAddress = inetAddress.To4()
 	}
-	//InetAddress inetAddress = InetAddress.getByName(addrString);
-	//byte[] b = inetAddress.getAddress();
 	b2 := addr.Bytes()
 	if !bytes.Equal(inetAddress, b2) {
 		t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
 	}
-	//	//if(!Arrays.equals(b, b2)) {
-	//	var b3 []byte
-	//	if addr.IsIPv4() {
-	//		b3 = addr.GetSection().Bytes()
-	//		//inetAddress = inetAddress.To4()
-	//	} else {
-	//		addr, err := addr.ToIPv6().GetEmbeddedIPv4Address()
-	//		if err != nil {
-	//			//failed = true;
-	//			t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr.ToIP()))
-	//			return false
-	//		}
-	//		b3 = addr.Bytes()
-	//	}
-	//	//byte[] b3 = addr.isIPv4() ? addr.getSection().getBytes() : addr.toIPv6().toMappedIPv4Segments().getBytes();
-	//	if !bytes.Equal(inetAddress, b3) {
-	//		//if(!Arrays.equals(b, b3)) {
-	//		failed = true
-	//		t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
-	//	}
-	//} else {
-	//	t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
-	//}
 
 	bytesToUse := make([]byte, ipaddr.IPv6ByteCount)
 	b4 := addr.CopyBytes(bytesToUse)
@@ -2996,70 +2746,25 @@ func (t ipAddressTester) testBytes(addr *ipaddr.IPAddress) bool {
 	if !bytes.Equal(inetAddress, b4) {
 		t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
 	}
-	//	//if(!Arrays.equals(b, b2)) {
-	//	bytesToUse = make([]byte, ipaddr.IPv6ByteCount)
-	//	b6 := addr.CopyIP(bytesToUse)
-	//	if !bytes.Equal(inetAddress, b6) {
-	//		//if(!Arrays.equals(b, b3)) {
-	//		failed = true
-	//		t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
-	//	} else {
-	//		var b5 []byte
-	//		bytesToUse = make([]byte, ipaddr.IPv6ByteCount)
-	//		if addr.IsIPv4() {
-	//			b5 = addr.GetSection().CopyBytes(bytesToUse)
-	//			//inetAddress = inetAddress.To4()
-	//		} else {
-	//			addr, err := addr.ToIPv6().GetEmbeddedIPv4Address()
-	//			if err != nil {
-	//				//failed = true;
-	//				t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr.ToIP()))
-	//				return false
-	//			}
-	//			b5 = addr.CopyBytes(bytesToUse)
-	//		}
-	//		//byte[] b3 = addr.isIPv4() ? addr.getSection().getBytes() : addr.toIPv6().toMappedIPv4Segments().getBytes();
-	//		if !bytes.Equal(inetAddress, b5) {
-	//			//if(!Arrays.equals(b, b3)) {
-	//			failed = true
-	//			t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
-	//		}
-	//	}
-	//} else {
-	//	t.addFailure(newIPAddrFailure("bytes on addr "+inetAddress.String(), addr))
-	//}
-
-	//}
-	//} catch(UnknownHostException e) {
-	//failed = true;
-	//addFailure(new Failure("bytes on addr " + e, addr));
-	//}
 	return !failed
 }
 
 func (t ipAddressTester) testMaskBytes(cidr2 string, w2 *ipaddr.IPAddressString) {
-
 	if t.allowsRange() {
 		t.testBytes(w2.GetAddress())
 		return
 	}
-
 	index := strings.Index(cidr2, "/")
 	if index < 0 {
 		index = len(cidr2)
 	}
 	w3 := t.createAddress(cidr2[:index])
-	//try {
 	inetAddress := net.ParseIP(w3.String())
 	if w3.IsIPv4() {
 		inetAddress = inetAddress.To4()
 	}
-	//InetAddress inetAddress = null;
-	//inetAddress = InetAddress.getByName(w3.toString());//no wildcards allowed here
-	//byte[] b = inetAddress.getAddress();
 	b2 := w3.GetAddress().Bytes()
 	if !bytes.Equal(inetAddress, b2) {
-		//if(!Arrays.equals(b, b2)) {
 		t.addFailure(newFailure("bytes on addr "+inetAddress.String(), w3))
 	} else {
 		b3 := w2.GetAddress().Bytes()
@@ -3068,15 +2773,11 @@ func (t ipAddressTester) testMaskBytes(cidr2 string, w2 *ipaddr.IPAddressString)
 			t.addFailure(newFailure("bytes on addr "+w3.String(), w2))
 		}
 	}
-	//} catch(UnknownHostException e) {
-	//	addFailure(new Failure("bytes on addr " + w3, w3));
-	//}
 }
 
 func (t ipAddressTester) testCIDRSubnets(cidr1, normalizedString string) {
 	w := t.createAddress(cidr1)
 	w2 := t.createAddress(normalizedString)
-	//try {
 	first := w.Equal(w2)
 	v, err := w.ToAddress()
 	v2, err2 := w2.ToAddress()
@@ -3097,9 +2798,6 @@ func (t ipAddressTester) testCIDRSubnets(cidr1, normalizedString string) {
 			t.testMaskBytes(normalizedString, w2)
 		}
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure("failed " + w2, w));
-	//}
 	t.incrementTestCount()
 }
 
@@ -3108,7 +2806,6 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 	sampleIpv4 := t.createAddress("123.156.178.201").GetAddress().ToIPv4()
 
 	ipv6Network := ipaddr.IPv6Network
-	//IPv6AddressNetwork ipv6Network = ADDRESS_OPTIONS.getIPv6Parameters().getNetwork();
 	ipv6SampleNetMask := sampleIpv6.GetNetworkMask()
 	ipv6SampleHostMask := sampleIpv6.GetHostMask()
 	onesNetworkMask := ipv6Network.GetNetworkMask(ipaddr.IPv6BitCount)
@@ -3120,7 +2817,6 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 		t.addFailure(newIPAddrFailure("mask mismatch between address "+ipv6SampleHostMask.String()+" and network "+onesHostMask.String(), sampleIpv6.ToIP()))
 	}
 
-	//IPv4AddressNetwork ipv4Network = ADDRESS_OPTIONS.getIPv4Parameters().getNetwork();
 	ipv4Network := ipaddr.IPv4Network
 	ipv4SampleNetMask := sampleIpv4.GetNetworkMask()
 	ipv4SampleHostMask := sampleIpv4.GetHostMask()
@@ -3169,13 +2865,7 @@ func (t ipAddressTester) testMasksAndPrefixes() {
 	}
 }
 
-//var secondTry bool
-
 func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.BitCount, network bool, secondTry bool) bool {
-	//fmt.Println("Handling 1 " + address.String())
-	//if prefixBits == 80 {
-	//	fmt.Println("huh? getting block pref len for " + address.String())
-	//}
 	maskPrefix := address.GetBlockMaskPrefixLen(network)
 	otherMaskPrefix := address.GetBlockMaskPrefixLen(!network)
 
@@ -3239,60 +2929,33 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 		return false
 	}
 	if network {
-		//try {
 		originalPrefixStr := "/" + bitCountToString(prefixBits)
-		//originalChoppedStr := originalPrefixStr
-		//if prefixBits > address.GetBitCount() {
-		//	originalChoppedStr = "/" + address.GetBitCount().String()
-		//}
 		prefix := t.createAddress(originalPrefixStr)
-		//maskStr := convertToMask(prefix, address.GetIPVersion())
 
 		prefixExtra := originalPrefixStr
 		addressWithNoPrefix := address
-		//fmt.Println("Handling 3 " + address.String())
 		if address.IsPrefixed() {
 			var err error
 			addressWithNoPrefix, err = address.Mask(address.GetNetwork().GetNetworkMask(address.GetPrefixLen().Len()))
 			if err != nil {
 				t.addFailure(newIPAddrFailure("failed mask "+err.Error(), address))
 			}
-		} //else {
-		//	panic("whatever")
-		//}
+		}
 
 		ipForNormalizeMask := addressWithNoPrefix.String()
 		maskStrx2 := t.normalizeMask(originalPrefixStr, ipForNormalizeMask) + prefixExtra
 		maskStrx3 := t.normalizeMask(bitCountToString(prefixBits), ipForNormalizeMask) + prefixExtra
 		normalStr := address.ToNormalizedString()
 		if maskStrx2 != normalStr || maskStrx3 != normalStr {
-			//if maskStr != normalStr || maskStrx2 != normalStr || maskStrx3 != normalStr {
 			t.addFailure(newFailure("failed prefix conversion", prefix))
 			return false
 		}
-		//else {
-		//	 maskStr2 := t.createAddress(maskStr);
-		//	 prefixStr := maskStr2.ConvertToPrefixLength();
-		//	if(prefixStr != originalChoppedStr) {
-		//		maskStr2 = t.createAddress(maskStr);
-		//		maskStr2.convertToPrefixLength();
-		//		t.addFailure(newFailure("failed mask conversion " + prefixStr, maskStr2));
-		//		return false;
-		//	}
-		//}
-		//} catch(AddressStringException | RuntimeException e) {
-		//	addFailure(new Failure("failed conversion: " + e.getMessage(), address));
-		//	return false;
-		//}
 	}
 
 	t.incrementTestCount()
 	if !secondTry {
-		//secondTry = true
 		thebytes := address.Bytes()
 		var another *ipaddr.IPAddress
-		// if address.IsIPv4() {
-		//ipaddr.IPv4Network.
 		if network {
 			another, _ = ipaddr.NewIPAddressFromPrefixedNetIP(thebytes, cacheTestBits(prefixBits))
 		} else {
@@ -3302,14 +2965,7 @@ func (t ipAddressTester) checkMask(address *ipaddr.IPAddress, prefixBits ipaddr.
 				another = ipaddr.DefaultAddressConverter{}.ToIPv6(another).ToIP()
 			}
 		}
-		// }
-		//IPAddressStringFormatParams params = address.isIPv4() ? ADDRESS_OPTIONS.getIPv4Parameters() : ADDRESS_OPTIONS.getIPv6Parameters();
-		//IPAddressNetwork<?, ?, ?, ?, ?> addressNetwork = params.getNetwork();
-		//IPAddressCreator<?, ?, ?, ?, ?> creator = addressNetwork.getAddressCreator();
-		//IPAddress another = network ? creator.createAddress(bytes, cacheTestBits(prefixBits)) : creator.createAddress(bytes);
-
 		result := t.checkMask(another, prefixBits, network, true)
-		//secondTry = false
 
 		//now check the prefix in the mask
 		if result {
@@ -3337,7 +2993,6 @@ func (t ipAddressTester) normalizeMask(maskString, ipString string) string {
 		}
 		addressString := ipaddr.NewIPAddressString(ipString)
 		if addressString.IsValid() {
-			//try {
 			version := addressString.GetIPVersion()
 			prefix, perr := ipaddr.ValidatePrefixLenStr(maskString, version)
 			if perr != nil {
@@ -3346,29 +3001,17 @@ func (t ipAddressTester) normalizeMask(maskString, ipString string) string {
 			}
 			maskAddress := addressString.GetAddress().GetNetwork().GetNetworkMask(prefix.Len())
 			return maskAddress.ToNormalizedString()
-			//} catch(PrefixLenException e) {
-			//if validation vails, fall through and return mask string
-			//}
 		}
 	}
 	//Note that here I could normalize the mask to be a full one with an else
 	return maskString
 }
 
-//func convertToMask(str *ipaddr.IPAddressString, version ipaddr.IPVersion) string {
-//	address := str.GetVersionedAddress(version)
-//	if address != nil {
-//		return address.ToNormalizedString()
-//	}
-//	return ""
-//}
-
 func (t ipAddressTester) testNotContains(cidr1, cidr2 string) {
 	t.testNotContainsNoReverse(cidr1, cidr2, false)
 }
 
 func (t ipAddressTester) testNotContainsNoReverse(cidr1, cidr2 string, skipReverse bool) {
-	//	try {
 	w := t.createAddress(cidr1).GetAddress()
 	w2 := t.createAddress(cidr2).GetAddress()
 	if w.Contains(w2) {
@@ -3376,9 +3019,6 @@ func (t ipAddressTester) testNotContainsNoReverse(cidr1, cidr2 string, skipRever
 	} else if !skipReverse && w2.Contains(w) {
 		t.addFailure(newIPAddrFailure("failed "+w.String(), w2))
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure("failed " + e));
-	//}
 	t.testContainsEqual(cidr1, cidr2, false, false)
 	t.incrementTestCount()
 }
@@ -3388,7 +3028,6 @@ func (t ipAddressTester) testContains(cidr1, cidr2 string, equal bool) {
 }
 
 func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bool) {
-	//	try {
 	wstr := t.createAddress(cidr1)
 	w2str := t.createAddress(cidr2)
 	w := wstr.GetAddress()
@@ -3426,37 +3065,8 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 		t.testStringContains(result, equal, t.createAddress(cidr1), t.createAddress(cidr2))
 
 	}
-	//boolean false = prefixConfiguration.allPrefixedAddressesAreSubnets();
-	//if(false) {
-	//	wstr = createAddress(cidr1);
-	//	w2str = createAddress(cidr2);
-	//	boolean prefixMatches = wstr.prefixEquals(w2str);
-	//	if(prefixMatches && !result) {
-	//		addFailure(new Failure("expected containment due to same prefix 1" + w2, w));
-	//	}
-	//	wstr.isValid();
-	//	w2str.isValid();
-	//	prefixMatches = wstr.prefixEquals(w2str);
-	//	if(prefixMatches && !result) {
-	//		addFailure(new Failure("expected containment due to same prefix 2" + w2, w));
-	//	}
-	//	w = wstr.toAddress();
-	//	w2 = w2str.toAddress();
-	//	prefixMatches = wstr.prefixEquals(w2str);
-	//	if(prefixMatches && !result) {
-	//		addFailure(new Failure("expected containment due to same prefix 3 " + w2, w));
-	//	}
-	//}
 
 	if !needsConversion {
-		//var params ipaddr.RangeParams
-		//if w.IsIPv4() {
-		//	params = wstr.GetValidationOptions().GetIPv4Params().GetRangeParams()
-		//} else {
-		//	params = wstr.GetValidationOptions().GetIPv6Params().GetRangeParams()
-		//}
-		//noRangeParsingAllowed := ipaddr.AllowsNoRange(params)
-
 		wstr = t.createAddress(cidr1)
 		w2str = t.createAddress(cidr2)
 		prefContains := wstr.PrefixContains(w2str)
@@ -3480,7 +3090,6 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 		}
 
 		if !needsConversion { // with explicit subnets strings look like 1.2.*.*/16
-			//if(!needsConversion && !(prefixConfiguration.prefixedSubnetsAreExplicit() && noRangeParsingAllowed)) { // with explicit subnets strings look like 1.2.*.*/16
 
 			// now do testing on the prefix block, allowing us to test prefixContains
 			wstr = t.createAddress(wstr.GetAddress().ToPrefixBlock().String())
@@ -3559,9 +3168,6 @@ func (t ipAddressTester) testContainsEqual(cidr1, cidr2 string, result, equal bo
 			}
 		}
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure("failed " + e));
-	//}
 	t.incrementTestCount()
 }
 
@@ -3602,28 +3208,18 @@ func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress
 	ipv4Addr := t.createAddress(ipv4NetworkAddress)
 	if prefix <= ipaddr.IPv6BitCount {
 		w2NoPrefix := t.createAddress(ipv6NetworkAddressNoPrefix)
-		//try {
+
 		_, err := ipaddr.ValidatePrefixLenStr(strconv.Itoa(int(prefix)), ipaddr.IPv6)
 		if err != nil {
 			t.addFailure(newFailure("failed prefix "+strconv.Itoa(int(prefix))+": "+err.Error(), w2NoPrefix))
 		}
 		ipv6AddrValue := ipv6Addr.GetAddress()
 		ipv6network := ipv6AddrValue.GetNetwork()
-		//if(ipv6network.getPrefixConfiguration().zeroHostsAreSubnets()) {
-		//	IPAddress networkAddress = ipv6network.GetNetworkAddress(prefix);
-		//	//IPAddress networkAddress = ipv6network.getNetworkMask(prefix).toPrefixBlock();
-		//	if(!isSameAllAround(networkAddress, ipv6AddrValue)) {
-		//		addFailure(new Failure("network address mismatch " + networkAddress, ipv6AddrValue));
-		//	}
 		ipv6AddrValue = ipv6AddrValue.GetLower()
-		//}
 		addr6 := ipv6network.GetPrefixedNetworkMask(prefix)
 		addr6NoPrefix := ipv6network.GetNetworkMask(prefix)
 		w2ValueNoPrefix := w2NoPrefix.GetAddress()
-		//boolean one;
 		if (!isSameAllAround(ipv6AddrValue, addr6)) || !isSameAllAround(w2ValueNoPrefix, addr6NoPrefix) {
-			//one = !isSameAllAround(ipv6AddrValue, addr6);//min prefix is 0 vs 128
-			//isSameAllAround(w2ValueNoPrefix, addr6NoPrefix);
 			if !isSameAllAround(ipv6AddrValue, addr6) {
 				t.addFailure(newIPAddrFailure("failed "+addr6.String(), ipv6AddrValue))
 			} else {
@@ -3632,37 +3228,22 @@ func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress
 		} else {
 			addrHost6 := ipv6network.GetHostMask(prefix)
 			ipv6HostAddrString := t.createAddress(ipv6HostAddress)
-			//try {
 			ipv6HostAddrValue := ipv6HostAddrString.GetAddress()
 			if !isSameAllAround(ipv6HostAddrValue, addrHost6) {
 				t.addFailure(newFailure("failed "+addrHost6.String(), ipv6HostAddrString))
 			} else if prefix <= ipaddr.IPv4BitCount {
 				wNoPrefix := t.createAddress(ipv4NetworkAddressNoPrefix)
-				//try {
-				//prefix, err := ipaddr.ValidatePrefixLenStr(strconv.Itoa(int(prefix)), ipaddr.IPv6);
-				//if err != nil {
-				//	t.addFailure(newFailure("failed prefix "+strconv.Itoa(int(prefix)) + ": " + err.Error(), w2NoPrefix))
-				//}
 				_, err = ipaddr.ValidatePrefixLenStr(strconv.Itoa(int(prefix)), ipaddr.IPv4)
 				if err != nil {
 					t.addFailure(newFailure("failed prefix "+strconv.Itoa(int(prefix))+": "+err.Error(), wNoPrefix))
 				}
 				wValue := ipv4Addr.GetAddress()
 				ipv4network := wValue.GetNetwork()
-				//if(ipv4network.getPrefixConfiguration().zeroHostsAreSubnets()) {
-				//	IPAddress networkAddress = ipv4network.getNetworkAddress(prefix);
-				//	//IPAddress networkAddress = ipv6network.getNetworkMask(prefix).toPrefixBlock();
-				//	if(!isSameAllAround(networkAddress, wValue)) {
-				//		addFailure(new Failure("network address mismatch " + networkAddress, wValue));
-				//	}
 				wValue = wValue.GetLower()
-				//}
 				addr4 := ipv4network.GetPrefixedNetworkMask(prefix)
 				addr4NoPrefix := ipv4network.GetNetworkMask(prefix)
 				wValueNoPrefix := wNoPrefix.GetAddress()
 				if (!isSameAllAround(wValue, addr4)) || !isSameAllAround(wValueNoPrefix, addr4NoPrefix) {
-					//isSameAllAround(wValue, addr4);
-					//isSameAllAround(wValueNoPrefix, addr4NoPrefix);
 					if !isSameAllAround(wValue, addr4) {
 						t.addFailure(newIPAddrFailure("failed "+addr4.String(), wValue))
 					} else {
@@ -3671,52 +3252,28 @@ func (t ipAddressTester) testNetmasks(prefix ipaddr.BitCount, ipv4NetworkAddress
 				} else {
 					addr4 := ipv4network.GetHostMask(prefix)
 					ipv4Addr = t.createAddress(ipv4HostAddress)
-					//try {
 					wValue = ipv4Addr.GetAddress()
 					if !isSameAllAround(wValue, addr4) {
 						t.addFailure(newFailure("failed "+addr4.String(), ipv4Addr))
 					}
-					//} catch(AddressStringException e) {
-					//	addFailure(new Failure("failed " + addr4, ipv4Addr));
-					//}
 				}
-				//} catch(AddressStringException | IncompatibleAddressException e) {
-				//	addFailure(new Failure("failed prefix val", ipv4Addr));
-				//}
 			} else { //prefix > IPv4Address.BIT_COUNT
-				//try {
 				_, err := ipv4Addr.ToAddress()
 				if err == nil {
 					t.addFailure(newFailure("did not succeed with extra-large prefix", ipv4Addr))
 				}
-
-				//} catch(AddressStringException e) {}
 			}
-			//} catch(AddressStringException e) {
-			//	addFailure(new Failure("failed " + addrHost6, ipv6HostAddrString));
-			//}
 		}
-		//} catch(AddressStringException | IncompatibleAddressException e) {
-		//	addFailure(new Failure("failed prefix val", ipv6Addr));
-		//}
 	} else {
-		//try {
 		_, err := ipv6Addr.ToAddress()
 		if err == nil {
 			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv6Addr.String(), ipv4Addr))
 		}
-		//addFailure(new Failure("succeeded with invalid prefix", ipv6Addr));
-		//} catch(AddressStringException e) {
 		_, err = ipv4Addr.ToAddress()
 		if err == nil {
 			//t.addFailure(newFailure("succeeded with invalid prefix in "+ipv4Addr.String()+": "+err.Error(), ipv4Addr))
 			t.addFailure(newFailure("succeeded with invalid prefix in "+ipv4Addr.String(), ipv4Addr))
 		}
-		//try {
-		//	ipv4Addr.toAddress();
-		//	addFailure(new Failure("succeeded with invalid prefix", ipv4Addr));
-		//} catch(AddressStringException e4) {}
-		//}
 	}
 	t.incrementTestCount()
 }
@@ -3746,13 +3303,11 @@ func (t ipAddressTester) checkNotMask(addr string) {
 }
 
 func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network, networkNoRange, networkWithPrefix string, networkStringCount int, host string, hostStringCount int) {
-	//try {
 	w := t.createAddress(address)
 	v := w.GetAddress()
 	section := v.GetNetworkSectionLen(bits)
 	section = section.WithoutPrefixLen()
 	sectionStr := section.ToNormalizedString()
-	//printStrings(section);
 	if sectionStr != network {
 		t.addFailure(newFailure("failed got "+sectionStr+" expected "+network, w))
 	} else {
@@ -3762,7 +3317,6 @@ func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network
 			t.addFailure(newFailure("failed got "+sectionStrWithPrefix+" expected "+networkWithPrefix, w))
 		} else {
 			s := section.GetLower()
-			//fmt.Printf("%v %v\n", s, section)
 			sectionStrNoRange := s.ToNormalizedString()
 			if sectionStrNoRange != networkNoRange || s.GetCount().Int64() != 1 {
 				t.addFailure(newFailure("failed got "+sectionStrNoRange+" expected "+networkNoRange, w))
@@ -3790,15 +3344,11 @@ func (t ipAddressTester) testSplit(address string, bits ipaddr.BitCount, network
 			}
 		}
 	}
-	//} catch(RuntimeException e) {
-	//	addFailure(new Failure("unexpected throw: " + e));
-	//}
 	t.incrementTestCount()
 }
 
 func (t ipAddressTester) testURL(url string) {
 	w := t.createAddress(url)
-	//try {
 	_, err := w.ToAddress()
 	if err == nil {
 		t.addFailure(newFailure("failed: "+"URL "+url, w))
@@ -3816,10 +3366,6 @@ func (t ipAddressTester) testURL(url string) {
 	if err == nil {
 		t.addFailure(newFailure("failed: "+"URL "+url, w2))
 	}
-	//} catch(AddressStringException e) {
-	//pass
-	//e.getMessage();
-	//}
 }
 
 // gets host address, then creates a second ip addr to match the original and gets host address that way
@@ -3933,7 +3479,6 @@ func (t ipAddressTester) testMask(original, mask, expected string) {
 
 func (t ipAddressTester) testNormalizedMC(original, expected string, keepMixed, compress bool) {
 	w := t.createAddress(original)
-	//String normalized;
 	if w.IsIPv6() {
 		val := w.GetAddress().ToIPv6()
 		var paramsBuilder = new(addrstr.IPv6StringOptionsBuilder)
@@ -3968,15 +3513,12 @@ func (t ipAddressTester) testNormalizedMC(original, expected string, keepMixed, 
 func (t ipAddressTester) testCompressed(original, expected string) {
 	w := t.createAddress(original)
 	var normalized string
-	//if(w.isIPAddress()) {
 	val := w.GetAddress()
 	if val != nil {
 		normalized = val.ToCompressedString()
 	} else {
-		//} else {
 		normalized = w.String()
 	}
-	//}
 	if normalized != expected {
 		t.addFailure(newFailure("canonical was "+normalized, w))
 	}
@@ -4008,12 +3550,10 @@ func (t ipAddressTester) testMixedNoComp(original, expected, expectedNoCompressi
 		t.addFailure(newFailure("mixed was "+normalized+" expected was "+expected, w))
 	} else {
 		compressOpts := new(addrstr.CompressOptionsBuilder).SetCompressSingle(true).SetRangeSelection(addrstr.ZerosOrHost).SetMixedOptions(addrstr.NoMixedCompression).ToOptions()
-		//CompressOptions opts = new CompressOptions(true, CompressOptions.CompressionChoiceOptions.ZerosOrHost, CompressOptions.MixedCompressionOptions.NO);
 		normalized, err := val.ToCustomString(new(addrstr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions())
 		if err != nil {
 			t.addFailure(newIPAddrFailure("ToCustomString errored with error: "+err.Error(), val.ToIP()))
 		}
-		//normalized = val.ToNormalizedString(new(ipaddr.IPv6StringOptionsBuilder).SetMixed(true).SetCompressOptions(compressOpts).ToOptions())
 		if normalized != expectedNoCompression {
 			t.addFailure(newFailure("mixed was "+normalized+" expected was "+expectedNoCompression, w))
 		}
@@ -4068,43 +3608,22 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed expected error for "+addr.String(), addr.ToIP()))
 	}
-	//} catch(AddressValueException e) {}
-	//try {
 	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIP()))
 	}
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
-	//new IPv4Address(new byte[4]);
 	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIP()))
 	}
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
-	//new IPv4Address(new byte[3]);
 	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIP()))
 	}
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
 	addr, err = ipaddr.NewIPv4AddressFromBytes([]byte{0, 0})
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+addr.String()+" error: "+err.Error(), addr.ToIP()))
 	}
-	//new IPv4Address(new byte[2]);
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
 	addr = ipaddr.NewIPv4AddressFromVals(func(segmentIndex int) ipaddr.IPv4SegInt {
 		var val = 256 // will be truncated to 0
 		return ipaddr.IPv4SegInt(val)
@@ -4112,8 +3631,6 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	if !addr.IsZero() {
 		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIP()))
 	}
-	//} catch(AddressValueException e) {}
-	//try {
 	addr = ipaddr.NewIPv4AddressFromVals(func(segmentIndex int) ipaddr.IPv4SegInt {
 		var val = -1 // will be truncated to 0
 		return ipaddr.IPv4SegInt(val)
@@ -4121,8 +3638,6 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	if !addr.IsMax() {
 		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIP()))
 	}
-	//} catch(AddressValueException e) {}
-	//try {
 	addr = ipaddr.NewIPv4AddressFromVals(func(segmentIndex int) ipaddr.IPv4SegInt {
 		var val = 255 // will be truncated to 0
 		return ipaddr.IPv4SegInt(val)
@@ -4130,24 +3645,13 @@ func (t ipAddressTester) testInvalidIpv4Values() {
 	if !addr.IsMax() {
 		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIP()))
 	}
-	//new IPv4Address(new SegmentValueProvider() {
-	//	@Override
-	//	public int getValue(int segmentIndex) {
-	//		return 255;
-	//	}
-	//});
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
 }
 
 func (t ipAddressTester) testIPv4Values(segs []int, decimal string) {
 	vals := make([]byte, len(segs))
 	strb := strings.Builder{}
-	//longval := 0;
 	intval := uint32(0)
 	bigInt := new(big.Int)
-	//BigInteger bigInteger = BigInteger.ZERO;
 	bitsPerSegment := ipaddr.IPv4BitsPerSegment
 	for i := 0; i < len(segs); i++ {
 		seg := segs[i]
@@ -4156,23 +3660,17 @@ func (t ipAddressTester) testIPv4Values(segs []int, decimal string) {
 		}
 		strb.WriteString(strconv.Itoa(seg))
 		vals[i] = byte(seg)
-		//longval = (longval << bitsPerSegment) | seg;
 		intval = (intval << uint(bitsPerSegment)) | uint32(seg)
 		bigInt = bigInt.Lsh(bigInt, uint(bitsPerSegment)).Or(bigInt, new(big.Int).SetInt64(int64(seg)))
 	}
-	//try {
 	strbStr := strb.String()
 	ipaddressStr := t.createAddress(strbStr)
 	addr := [7]*ipaddr.IPv4Address{}
-	//IPv4Address addr[] = new IPv4Address[7];
-	//int i = 0;
 	addr[0] = t.createAddressFromIP(vals).ToIPv4()
 	addr[1] = ipaddressStr.GetAddress().ToIPv4()
 	addr[2] = t.createIPv4Address(intval)
 	ips := net.ParseIP(strbStr)
 	ips2 := net.IPv4(vals[0], vals[1], vals[2], vals[3])
-	//InetAddress inetAddress1 = InetAddress.getByName(strbStr);
-	//InetAddress inetAddress2 = InetAddress.getByAddress(vals);
 	ip, err := ipaddr.NewIPv4AddressFromBytes(ips)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip.ToIP()))
@@ -4202,9 +3700,6 @@ func (t ipAddressTester) testIPv4Values(segs []int, decimal string) {
 			}
 		}
 	}
-	//} catch(UnknownHostException e) {
-	//	addFailure(new Failure("failed unexpected: " + e));
-	//}
 }
 
 func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
@@ -4221,20 +3716,14 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 		vals[i<<1] = byte(seg >> 8)
 		vals[(i<<1)+1] = byte(seg)
 		bigInt = bigInt.Lsh(bigInt, uint(bitsPerSegment)).Or(bigInt, new(big.Int).SetInt64(int64(seg)))
-		//bigInteger = bigInteger.shiftLeft(bitsPerSegment).add(BigInteger.valueOf(seg));
 	}
-	//try {
 	strbStr := strb.String()
 	ipaddressStr := t.createAddress(strbStr)
 	addr := [5]*ipaddr.IPv6Address{}
-	//IPv6Address addr[] = new IPv6Address[5];
-	//int i = 0;
 	addr[0] = t.createAddressFromIP(vals).ToIPv6()
 	addr[1] = ipaddressStr.GetAddress().ToIPv6()
 	ips := net.ParseIP(strbStr)
 	ips2 := net.IP{vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7], vals[8], vals[9], vals[10], vals[11], vals[12], vals[13], vals[14], vals[15]}
-	//InetAddress inetAddress1 = InetAddress.getByName(strb.toString());
-	//InetAddress inetAddress2 = InetAddress.getByAddress(vals);
 	ip, err := ipaddr.NewIPv6AddressFromBytes(ips)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip.ToIP()))
@@ -4245,32 +3734,11 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 	}
 	addr[2] = ip
 	addr[3] = ip2
-	//addr[2] = new IPv6Address((Inet6Address) inetAddress1);
-	//addr[3] = new IPv6Address((Inet6Address) inetAddress2);
 	ip3, err := ipaddr.NewIPv6AddressFromInt(bigInt)
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr+" error: "+err.Error(), ip2.ToIP()))
 	}
 	addr[4] = ip3
-	/*
-		addr[0] = t.createAddressFromIP(vals).ToIPv4();
-					addr[1] = ipaddressStr.GetAddress().ToIPv4();
-					addr[2] = t.createIPv4Address(intval);
-					ips := net.ParseIP(strbStr)
-					ips2 := net.IPv4(vals[0],vals[1],vals[2],vals[3])
-			ip, err := ipaddr.NewIPv4AddressFromBytes(ips);
-			if err != nil {
-				t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr + " error: " + err.Error(), ip.ToIP()));
-			}
-			ip2, err := ipaddr.NewIPv4AddressFromBytes(ips2);
-			if err != nil {
-				t.addFailure(newIPAddrFailure("failed unexpected error for "+strbStr + " error: " + err.Error(), ip2.ToIP()));
-			}
-			addr[3] = ip;
-					addr[4] = ip2;
-					addr[5] = ipaddr.NewIPv4AddressFromUint32(intval);
-					addr[6] = ipaddr.NewIPv4AddressFromUint32(uint32(bigInt.Uint64()));
-	*/
 	for j := 0; j < len(addr); j++ {
 		for k := j; k < len(addr); k++ {
 			if !addr[k].Equal(addr[j]) || !addr[j].Equal(addr[k]) {
@@ -4284,24 +3752,8 @@ func (t ipAddressTester) testIPv6Values(segs []int, decimal string) {
 			if decimal != addr[i].GetValue().String() {
 				t.addFailure(newFailure("failed equals: "+addr[i].GetValue().String()+" and "+decimal, ipaddressStr))
 			}
-			//if decimal != strconv.FormatUint(uint64(addr[i].Uint32Value()), 10)  {
-			//	t.addFailure(newFailure("failed equals: " + strconv.FormatUint(uint64(addr[i].Uint32Value()), 10) + " and " + decimal,ipaddressStr));
-			//}
 		}
 	}
-	//if(decimal != null) {
-	//	for(i = 0; i < addr.length; i++) {
-	//		if(!decimal.equals(addr[i].getValue().toString())) {
-	//			addFailure(new Failure("failed equals: " + addr[i].getValue() + " and " + decimal));
-	//		}
-	//	}
-	//}
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("failed unexpected: " + e));
-	//} catch(UnknownHostException e) {
-	//	addFailure(new Failure("failed unexpected: " + e));
-	//}
-
 }
 
 func (t ipAddressTester) testInvalidIpv6Values() {
@@ -4348,32 +3800,6 @@ func (t ipAddressTester) testInvalidIpv6Values() {
 	if !addr.IsMax() {
 		t.addFailure(newIPAddrFailure("failed expected exception for "+addr.String(), addr.ToIP()))
 	}
-
-	//try {
-	//	byte thebytes[] = new byte[17];
-	//	thebytes[0] = 1;
-	//	IPv6Address addr = new IPv6Address(thebytes);
-	//	addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {}
-	//try {
-	//	new IPv6Address(new byte[17]);
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
-	//	new IPv6Address(new byte[16]);
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}try {
-	//	new IPv6Address(new byte[15]);
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
-	//	new IPv6Address(new byte[14]);
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
 	addr, err = ipaddr.NewIPv6AddressFromInt(new(big.Int).SetInt64(-1))
 	if err == nil {
 		t.addFailure(newIPAddrFailure("failed, expected error for -1", addr.ToIP()))
@@ -4398,56 +3824,7 @@ func (t ipAddressTester) testInvalidIpv6Values() {
 	if err != nil {
 		t.addFailure(newIPAddrFailure("failed, unexpected error for "+new(big.Int).SetUint64(0x1ffffffff).String(), addr.ToIP()))
 	}
-	//try {
-	//	new IPv6Address(BigInteger.valueOf(-1));//-1 becomes [ff] which is sign extended to 16 thebytes like [ff][ff]...[ff]
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//BigInteger thirtyTwo = BigInteger.valueOf(0xffffffffL);
-	//BigInteger one28 = thirtyTwo.shiftLeft(96).or(thirtyTwo.shiftLeft(64).or(thirtyTwo.shiftLeft(32).or(thirtyTwo)));
-	//try {
-	//	new IPv6Address(one28);
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//}
-	//try {
-	//	IPv6Address addr = new IPv6Address(one28.add(BigInteger.ONE));
-	//	addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {}
-	//try {
-	//	new IPv6Address(BigInteger.valueOf(0xffffffffL));//must make it a long so it is not negative
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("failed unexpected: " + e));
-	//}
-	//try {
-	//	IPv6Address addr = new IPv6Address(new SegmentValueProvider() {
-	//		@Override
-	//		public int getValue(int segmentIndex) {
-	//			return 0x10000;
-	//		}
-	//	});
-	//	addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {}
-	//try {
-	//	IPv6Address addr = new IPv6Address(new SegmentValueProvider() {
-	//		@Override
-	//		public int getValue(int segmentIndex) {
-	//			return -1;
-	//		}
-	//	});
-	//	addFailure(new Failure("failed expected exception for " + addr, addr));
-	//} catch(AddressValueException e) {}
-	//try {
-	//	new IPv6Address(new SegmentValueProvider() {
-	//		@Override
-	//		public int getValue(int segmentIndex) {
-	//			return 0xffff;
-	//		}
-	//	});
-	//} catch(AddressValueException e) {
-	//	addFailure(new Failure("unexpected exception " + e));
-	//	e.printStackTrace();
-	//}
+	t.incrementTestCount()
 }
 
 func (t ipAddressTester) testSub(one, two string, resultStrings []string) {
@@ -4455,7 +3832,6 @@ func (t ipAddressTester) testSub(one, two string, resultStrings []string) {
 	sub := t.createAddress(two)
 	addr := str.GetAddress()
 	subAddr := sub.GetAddress()
-	//try {
 	res := addr.Subtract(subAddr)
 	if len(resultStrings) == 0 {
 		if len(res) != 0 {
@@ -4483,9 +3859,6 @@ func (t ipAddressTester) testSub(one, two string, resultStrings []string) {
 			}
 		}
 	}
-	//} catch(IncompatibleAddressException e) {
-	//	addFailure(new Failure("threw " + e + " when subtracting " + subAddr, addr));
-	//}
 	t.incrementTestCount()
 }
 
@@ -4592,15 +3965,12 @@ func (t ipAddressTester) testZeroNetwork(addrString, zeroNetworkString string) {
 	zeroNetwork := string2.GetAddress()
 	transformedNetwork := addr.ToZeroNetwork()
 	if !zeroNetwork.Equal(transformedNetwork) {
-		//if(!prefixConfiguration.zeroHostsAreSubnets() && !zeroNetwork.equals(transformedNetwork)) {
 		t.addFailure(newIPAddrFailure("mismatch "+zeroNetwork.String()+" with network "+transformedNetwork.String(), addr))
 	}
-	//if(!prefixConfiguration.allPrefixedAddressesAreSubnets()) {
 	networkSection := transformedNetwork.GetNetworkSection()
 	if networkSection.GetSegmentCount() > 0 && !networkSection.IsZero() {
 		t.addFailure(newIPAddrFailure("non-zero network "+networkSection.String(), addr))
 	}
-	//}
 	if !transformedNetwork.GetNetworkPrefixLen().Equal(zeroNetwork.GetNetworkPrefixLen()) {
 		t.addFailure(newIPAddrFailure("network prefix length mismatch "+transformedNetwork.GetNetworkPrefixLen().String()+" and "+zeroNetwork.GetNetworkPrefixLen().String(), addr))
 	}
@@ -4658,7 +4028,6 @@ func (t ipAddressTester) testSplitBytesAddr(addr *ipaddr.IPAddress) {
 func (t ipAddressTester) testByteExtension(addrString string, byteRepresentations [][]byte) {
 	addrStr := t.createAddress(addrString)
 	addr := addrStr.GetAddress()
-	//ArrayList<IPAddress> all = new ArrayList<IPAddress>();
 	var all []*ipaddr.IPAddress
 	if addr.IsIPv4() {
 		for _, byteRepresentation := range byteRepresentations {
@@ -4668,25 +4037,11 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				return
 			}
 			all = append(all, ipv4Addr.ToIP())
-
-			//byte bytes[] = new byte[48];
-			//Arrays.fill(bytes, (byte) 5); // this just throws some garbage in those bytes
-			//System.arraycopy(byteRepresentation, 0, bytes, 5, byteRepresentation.length);
-			//ipv4Addr = new IPv4Address(bytes, 5, 5 + byteRepresentation.length);
-
-			//bytes := make([]byte, 32);
-			//ipv4Addr, err = ipaddr.NewIPv4AddressFromBytes(bytes);
-			//if err != nil {
-			//	t.addFailure(newIPAddrFailure("failed unexpected error for "+addrString+" error: "+err.Error(), ipv4Addr.ToIP()))
-			//}
-			//all = append(all, ipv4Addr.ToIP())
 		}
 		all = append(all, addr)
 		var lastBytes []byte
-		//byte lastBytes[] = null;
 		for i := 0; i < len(all); i++ {
 			byts := all[i].Bytes()
-			//byte bytes[] = all.get(i).getBytes();
 			if lastBytes == nil {
 				lastBytes = byts
 				if len(byts) != ipaddr.IPv4ByteCount {
@@ -4712,20 +4067,12 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				return
 			}
 			all = append(all, ipv6Addr.ToIP())
-
-			//byte bytes[] = new byte[48];
-			//Arrays.fill(bytes, (byte) 5);
-			//System.arraycopy(byteRepresentation, 0, bytes, 5, byteRepresentation.length);
-			//ipv6Addr = new IPv6Address(bytes, 5, 5 + byteRepresentation.length);
-			//all.add(ipv6Addr);
 		}
 
 		all = append(all, addr)
 		var lastBytes []byte
-		//byte lastBytes[] = null;
 		for i := 0; i < len(all); i++ {
 			byts := all[i].Bytes()
-			//byte bytes[] = all.get(i).getBytes();
 			if lastBytes == nil {
 				lastBytes = byts
 				if len(byts) != ipaddr.IPv6ByteCount {
@@ -4739,8 +4086,6 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 				all = append(all, ipv6Addr.ToIP())
 
 				b := new(big.Int).SetBytes(byts)
-				//BigInteger b = new BigInteger(bytes);
-				//ipv6Addr = new IPv6Address(b);
 				all = append(all, ipv6Addr.ToIP())
 				bs := b.Bytes()
 				ipv6Addr, err = ipaddr.NewIPv6AddressFromBytes(bs)
@@ -4749,9 +4094,6 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 					return
 				}
 				all = append(all, ipv6Addr.ToIP())
-
-				//ipv4Addr = ipaddr.NewIPv4AddressFromUint32(uint32(new(big.Int).SetBytes(byts).Uint64()));
-				//all = append(all, ipv4Addr.ToIP())
 			} else if !bytes.Equal(lastBytes, byts) {
 				t.addFailure(newFailure(fmt.Sprintf("generated addr bytes mismatch %v and %v", byts, lastBytes), addrStr))
 			}
@@ -4779,15 +4121,10 @@ func (t ipAddressTester) testByteExtension(addrString string, byteRepresentation
 }
 
 func reconstitute(version ipaddr.IPVersion, bytes []byte, segmentByteSize int) []*ipaddr.IPAddress {
-	//IPAddressCreator<?, ?, ?, S, ?> creator = (IPAddressCreator<?, ?, ?, S, ?>) originalAddress.getNetwork().getAddressCreator();
 	var addresses []*ipaddr.IPAddress
-	//ArrayList<IPAddress> addresses = new ArrayList<IPAddress>();
 	sets := createSets(bytes, segmentByteSize)
 	creator := ipaddr.IPAddressCreator{version}
 	for _, set := range sets {
-		//for(byte set[][] : sets) {
-		//ArrayList<S> segments = new ArrayList<S>();
-		//ArrayList<S> segments2 = new ArrayList<S>();
 		var segments, segments2 []*ipaddr.IPAddressSegment
 
 		for i, ind := 0, 0; i < len(set); i++ {
@@ -4803,18 +4140,11 @@ func reconstitute(version ipaddr.IPVersion, bytes []byte, segmentByteSize int) [
 			ind += len(setBytes)
 			segments = append(segments, segs...)
 			segments2 = append(segments2, segs2...)
-			//segments.addAll(Arrays.asList(segs));
-			//segments2.addAll(Arrays.asList(seg2));
 		}
 		addr1, _ := ipaddr.NewIPAddressFromSegments(segments)
 		addr2, _ := ipaddr.NewIPAddressFromSegments(segments2)
 		addresses = append(addresses, addr1)
 		addresses = append(addresses, addr2)
-		//S segs[] = creator.createSegmentArray(segments.size());
-		//IPAddress addr1 = creator.createAddress(segments.toArray(segs));
-		//IPAddress addr2 = creator.createAddress(segments2.toArray(segs));
-		//addresses.add(addr1);
-		//addresses.add(addr2);
 	}
 	return addresses
 }
@@ -4834,7 +4164,6 @@ func createSets(bytes []byte, segmentByteSize int) [][][]byte {
 		for i, ind := 0, 0; i < len(set); i++ {
 			part := set[i]
 			copy(part, bytes[ind:])
-			//System.arraycopy(bytes, ind, part, 0, part.length);
 			ind += len(part)
 		}
 	}
@@ -4877,14 +4206,12 @@ func (t ipAddressTester) testIncrement(originalStr string, increment int64, resu
 }
 
 func (t ipAddressTester) testLeadingZeroAddr(addrStr string, hasLeadingZeros bool) {
-	//try {
 	str := t.createAddress(addrStr)
 	_, err := str.ToAddress()
 	if err != nil {
 		t.addFailure(newFailure("unexpected error "+err.Error(), str))
 	}
-	//try {
-	params := new(addrparam.IPAddressStringParamsBuilder).
+	params := new(addrstrparam.IPAddressStringParamsBuilder).
 		GetIPv4AddressParamsBuilder().AllowLeadingZeros(false).GetParentBuilder().
 		GetIPv6AddressParamsBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
@@ -4898,12 +4225,10 @@ func (t ipAddressTester) testLeadingZeroAddr(addrStr string, hasLeadingZeros boo
 			t.addFailure(newFailure("leading zeros not there", str))
 		}
 	}
-
 	t.incrementTestCount()
 }
 
 func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZeros, hasInetAtonLeadingZeros, isInetAtonOctal bool) {
-	//try {
 	str := t.createInetAtonAddress(addrStr)
 	addr, err := str.ToAddress()
 	if err != nil {
@@ -4912,7 +4237,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 	}
 	value := addr.GetValue()
 
-	params := new(addrparam.IPAddressStringParamsBuilder).
+	params := new(addrstrparam.IPAddressStringParamsBuilder).
 		GetIPv4AddressParamsBuilder().AllowLeadingZeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
@@ -4926,7 +4251,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		}
 	}
 
-	params = new(addrparam.IPAddressStringParamsBuilder).Set(params).GetIPv4AddressParamsBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
+	params = new(addrstrparam.IPAddressStringParamsBuilder).Set(params).GetIPv4AddressParamsBuilder().AllowLeadingZeros(true).Allow_inet_aton(true).Allow_inet_aton_leading_zeros(false).GetParentBuilder().ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if err == nil {
@@ -4939,11 +4264,10 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		}
 	}
 
-	params = new(addrparam.IPAddressStringParamsBuilder).Set(params).Allow_inet_aton(false).ToParams()
+	params = new(addrstrparam.IPAddressStringParamsBuilder).Set(params).Allow_inet_aton(false).ToParams()
 	str = ipaddr.NewIPAddressStringParams(addrStr, params)
 	_, err = str.ToAddress()
 	if isInetAtonOctal {
-		//try {
 		addr, err = str.ToAddress()
 		if err != nil {
 			t.addFailure(newFailure("inet aton octal should be decimal, unexpected error: "+err.Error(), str))
@@ -4961,16 +4285,12 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		if valsEqual {
 			t.addFailure(newFailure("inet aton octal should be unequal", str))
 		}
-		//} catch(AddressStringException e) {
-		//	addFailure(new Failure("inet aton octal should be decimal", str));
-		//}
 	} else if hasLeadingZeros { // if not octal but has leading zeros, then must be hex
 		_, err = str.ToAddress()
 		if err == nil {
 			t.addFailure(newFailure("inet aton hex should be forbidden", str))
 		}
 	} else { // neither octal nor hex
-		//try {
 		addr, err = str.ToAddress()
 		if err != nil {
 			t.addFailure(newFailure("inet aton should have no effect, unexpected error: "+err.Error(), str))
@@ -4980,17 +4300,7 @@ func (t ipAddressTester) testInetAtonLeadingZeroAddr(addrStr string, hasLeadingZ
 		if value.Cmp(value2) != 0 {
 			t.addFailure(newFailure("should be same value", str))
 		}
-		//} catch(AddressStringException e) {
-		//	addFailure(new Failure("inet aton should have no effect", string));
-		//}
 	}
-	//} catch(AddressStringException e) {
-	//	addFailure(new Failure(e.toString()));
-	//} catch(IncompatibleAddressException e) {
-	//	addFailure(new Failure(e.toString()));
-	//} catch(RuntimeException e) {
-	//	addFailure(new Failure(e.toString()));
-	//}
 	t.incrementTestCount()
 }
 
@@ -5294,9 +4604,7 @@ func (t ipAddressTester) testAddressStringRangeP(address string, isIncompatibleA
 			t.addFailure(newIPAddrFailure("address range from "+rangeString.String()+" after address ("+rangeAfterAddr.GetLower().String()+","+rangeAfterAddr.GetUpper().String()+")"+
 				" does not match range from address string "+addr.String()+" ("+addrRange.GetLower().String()+","+addrRange.GetUpper().String()+")", addr))
 		}
-
 	}
-
 	//seqStr := t.createAddress(address)
 	//if isSequential != nil {
 	//if *isSequential != seqStr.IsSequential() {
@@ -5421,13 +4729,11 @@ func makePrefixSubnet(directAddress *ipaddr.IPAddress) *ipaddr.IPAddress {
 				segs[i].CopyBytes(thebytes[j:])
 				j += bytesPerSegment
 			}
-			//directAddress = creator.NewIPAddressFromPrefixedIP(thebytes, pref)
 			directAddress, _ = ipaddr.NewIPAddressFromPrefixedNetIP(thebytes, pref)
 		} else {
 			//we could have used SegmentValueProvider in both blocks, but mixing it up to test everything
 			origSeg := segs[prefSeg]
 			mask := origSeg.GetSegmentNetworkMask(pref.Len() % directAddress.GetBitsPerSegment())
-			//maxValue := directAddress.GetMaxSegmentValue()
 			directAddress = creator.NewIPAddressFromPrefixedVals(
 				func(segmentIndex int) ipaddr.SegInt {
 					if segmentIndex < prefSeg {

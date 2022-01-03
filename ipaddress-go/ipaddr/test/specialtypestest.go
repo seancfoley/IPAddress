@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@
 package test
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"math/big"
 	"net"
 	"strconv"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 type specialTypesTester struct {
@@ -29,13 +30,11 @@ type specialTypesTester struct {
 }
 
 var (
-	//hostOptionsSpecial            = new(ipaddr.HostNameParamsBuilder).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).GetIPAddressParamsBuilder().AllowEmpty(false).SetRangeParams(ipaddr.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
-	//addressOptionsSpecial         = new(ipaddr.IPAddressStringParamsBuilder).Set(hostOptionsSpecial.GetIPAddressParams()).AllowEmpty(true).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	hostOptionsSpecial            = new(addrparam.HostNameParamsBuilder).AllowEmpty(true).GetIPAddressParamsBuilder().AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).SetRangeParams(addrparam.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
-	addressOptionsSpecial         = new(addrparam.IPAddressStringParamsBuilder).Set(hostOptionsSpecial.GetIPAddressParams()).AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).ToParams()
-	macOptionsSpecial             = new(addrparam.MACAddressStringParamsBuilder).Set(macAddressOptions).AllowEmpty(true).SetRangeParams(addrparam.WildcardOnly).AllowAll(true).ToParams()
-	emptyAddressOptions           = new(addrparam.HostNameParamsBuilder).Set(hostOptions).GetIPAddressParamsBuilder().AllowEmpty(true).ParseEmptyStrAs(addrparam.LoopbackOption).GetParentBuilder().ToParams()
-	emptyAddressNoLoopbackOptions = new(addrparam.HostNameParamsBuilder).Set(emptyAddressOptions).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.NoAddressOption).GetParentBuilder().ToParams()
+	hostOptionsSpecial            = new(addrstrparam.HostNameParamsBuilder).AllowEmpty(true).GetIPAddressParamsBuilder().AllowEmpty(true).ParseEmptyStrAs(addrstrparam.LoopbackOption).SetRangeParams(addrstrparam.WildcardOnly).AllowAll(true).GetParentBuilder().ToParams()
+	addressOptionsSpecial         = new(addrstrparam.IPAddressStringParamsBuilder).Set(hostOptionsSpecial.GetIPAddressParams()).AllowEmpty(true).ParseEmptyStrAs(addrstrparam.LoopbackOption).ToParams()
+	macOptionsSpecial             = new(addrstrparam.MACAddressStringParamsBuilder).Set(macAddressOptions).AllowEmpty(true).SetRangeParams(addrstrparam.WildcardOnly).AllowAll(true).ToParams()
+	emptyAddressOptions           = new(addrstrparam.HostNameParamsBuilder).Set(hostOptions).GetIPAddressParamsBuilder().AllowEmpty(true).ParseEmptyStrAs(addrstrparam.LoopbackOption).GetParentBuilder().ToParams()
+	emptyAddressNoLoopbackOptions = new(addrstrparam.HostNameParamsBuilder).Set(emptyAddressOptions).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrstrparam.NoAddressOption).GetParentBuilder().ToParams()
 )
 
 func (t specialTypesTester) run() {
@@ -131,7 +130,6 @@ func (t specialTypesTester) run() {
 	addressEmpty2 := t.createParamsHost("", emptyAddressNoLoopbackOptions)
 	t.hostLabelsHostTest(addressEmpty2, []string{})
 	hostEmpty := t.createParamsHost("", hostOptionsSpecial)
-	//t.hostLabelsHostTest(hostEmpty, []string{})
 	t.hostLabelsHostTest(hostEmpty, []string{"127", "0", "0", "1"})
 
 	t.testEmptyIsSelf()
@@ -222,20 +220,20 @@ func (t specialTypesTester) testIPv6Strings(addr string,
 
 func (t specialTypesTester) testEmptyValues() {
 	//zeroHostOptions := new(ipaddr.HostNameParamsBuilder).ParseEmptyStrAs(ipaddr.LoopbackOption).ToParams()
-	zeroHostOptions := new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.LoopbackOption).GetParentBuilder().ToParams()
-	zeroAddrOptions := new(addrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrparam.LoopbackOption).ToParams()
+	zeroHostOptions := new(addrstrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrstrparam.LoopbackOption).GetParentBuilder().ToParams()
+	zeroAddrOptions := new(addrstrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrstrparam.LoopbackOption).ToParams()
 	t.testEmptyValuesOpts(hostOptionsSpecial, addressOptionsSpecial)
 
-	zeroHostOptions = new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.ZeroAddressOption).GetParentBuilder().ToParams()
-	zeroAddrOptions = new(addrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrparam.ZeroAddressOption).ToParams()
+	zeroHostOptions = new(addrstrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrstrparam.ZeroAddressOption).GetParentBuilder().ToParams()
+	zeroAddrOptions = new(addrstrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrstrparam.ZeroAddressOption).ToParams()
 	t.testEmptyValuesOpts(zeroHostOptions, zeroAddrOptions)
 
-	zeroHostOptions = new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrparam.NoAddressOption).GetParentBuilder().ToParams()
-	zeroAddrOptions = new(addrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrparam.NoAddressOption).ToParams()
+	zeroHostOptions = new(addrstrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().ParseEmptyStrAs(addrstrparam.NoAddressOption).GetParentBuilder().ToParams()
+	zeroAddrOptions = new(addrstrparam.IPAddressStringParamsBuilder).ParseEmptyStrAs(addrstrparam.NoAddressOption).ToParams()
 	t.testEmptyValuesOpts(zeroHostOptions, zeroAddrOptions)
 }
 
-func (t specialTypesTester) testEmptyValuesOpts(hp addrparam.HostNameParams, sp addrparam.IPAddressStringParams) {
+func (t specialTypesTester) testEmptyValuesOpts(hp addrstrparam.HostNameParams, sp addrstrparam.IPAddressStringParams) {
 	hostEmpty := t.createParamsHost("", hp)
 	addressEmpty := t.createParamsAddress("", sp)
 
@@ -246,22 +244,19 @@ func (t specialTypesTester) testEmptyValuesOpts(hp addrparam.HostNameParams, sp 
 	//var addr, addr2 net.IP
 	var addr net.IP
 	if preferredAddressVersion.IsIPv6() {
-		if sp.EmptyStrParsedAs() == addrparam.LoopbackOption {
+		if sp.EmptyStrParsedAs() == addrstrparam.LoopbackOption {
 			addr = net.IPv6loopback
-		} else if sp.EmptyStrParsedAs() == addrparam.ZeroAddressOption {
+		} else if sp.EmptyStrParsedAs() == addrstrparam.ZeroAddressOption {
 			addr = net.IPv6zero
 		}
 	} else {
-		if sp.EmptyStrParsedAs() == addrparam.LoopbackOption {
+		if sp.EmptyStrParsedAs() == addrstrparam.LoopbackOption {
 			addr = net.IPv4(127, 0, 0, 1)
-		} else if sp.EmptyStrParsedAs() == addrparam.ZeroAddressOption {
+		} else if sp.EmptyStrParsedAs() == addrstrparam.ZeroAddressOption {
 			addr = net.IPv4(0, 0, 0, 0)
 		}
 	}
 
-	//if preferredAddressVersion != preferredHostVersion || hp.EmptyStrParsedAs() != sp.EmptyStrParsedAs() {
-	//	t.addFailure(newFailure("failure: precondition to test is that options have same preferred version and emptry string options", addressEmpty))
-	//}
 	if preferredAddressVersion != preferredHostVersion {
 		t.addFailure(newFailure("failure: precondition to test is that options have same preferred version", addressEmpty))
 	}
@@ -284,89 +279,44 @@ func (t specialTypesTester) testEmptyValuesOpts(hp addrparam.HostNameParams, sp 
 		return
 	}
 	address, _ := ipaddr.NewIPAddressFromNetIP(addr)
-	//xxxx so we created the inetaddress, then creating an address from that, and expected equality with the address created directly
-	//xxxx so here we could get the equivalent net.IP, and create an address from that
-	////try {
-	//	InetAddress addr = InetAddress.getByName("");
-	//	InetAddress addr2 = InetAddress.getByName(null);
-	//
-	//	var  params ipaddr.IPAddressStringFormatParams
-	//	if preferredVersion.IsIPv6() {
-	//		params = addressOptionsSpecial.GetIPv6Params()
-	//	} else {
-	//		params = addressOptionsSpecial.GetIPv4Params()
-	//	}
-
-	//IPAddressStringFormatParams params = addr instanceof Inet6Address ? ADDRESS_OPTIONS_SPECIAL.getIPv6Parameters() : ADDRESS_OPTIONS_SPECIAL.getIPv4Parameters();
-	//IPAddressNetwork<?, ?, ?, ?, ?> network = params.getNetwork();
-	//IPAddress address = network.getAddressCreator().createAddress(addr.getAddress());
-
-	//IPAddressStringFormatParams params2 = addr2 instanceof Inet6Address ? ADDRESS_OPTIONS_SPECIAL.getIPv6Parameters() : ADDRESS_OPTIONS_SPECIAL.getIPv4Parameters();
-	//IPAddressNetwork<?, ?, ?, ?, ?> network2 = params2.getNetwork();
-	//IPAddress address2 = network2.getAddressCreator().createAddress(addr2.getAddress());
 
 	if !addressEmpty.GetAddress().Equal(address) {
 		t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-		//} else if(!addressEmpty.GetAddress().Equal(address2)) {
-		//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 	} else if addressEmpty.GetAddress().Compare(address) != 0 {
 		t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-		//} else if(addressEmpty.GetAddress().Compare(address2) != 0) {
-		//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 	} else if addressEmpty.GetAddress().GetCount().Cmp(bigOneConst()) != 0 {
 		t.addFailure(newFailure("no count match "+addr.String(), addressEmpty))
 	} else {
 		addressEmpty = hostEmpty.AsAddressString() //note that hostEmpty allows empty strings and they resolve to loopbacks, but they are not treated as addresses
-		//if addressEmpty == nil {
-		//	t.addFailure(newFailure("host "+hostEmpty.String()+" treated as address "+addressEmpty.String(), addressEmpty))
-		//} else {
-		//addressEmpty = t.createParamsHost("", emptyAddressOptions).AsAddressString()
 		if addressEmpty == nil {
 			t.addFailure(newFailure("host "+hostEmpty.String()+" treated as address "+addressEmpty.String(), addressEmpty))
-			//t.addFailure(newFailure("no match ", addressEmpty))
-			//} else if(!addressEmpty.GetAddress().Equal(address2)) {
-			//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 		} else if !addressEmpty.GetAddress().Equal(address) {
 			t.addFailure(newFailure("no match "+addressEmpty.GetAddress().String()+" with "+address.String(), addressEmpty))
-			//} else if(!addressEmpty.GetAddress().Equal(address2)) {
-			//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 		} else if addressEmpty.GetAddress().Compare(address) != 0 {
 			t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-			//} else if(addressEmpty.GetAddress().Compare(address2) != 0) {
-			//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 		} else if addressEmpty.GetAddress().GetCount().Cmp(bigOneConst()) != 0 {
 			t.addFailure(newFailure("no count match "+addr.String(), addressEmpty))
 		} else {
 			addressEmptyValue := hostEmpty.GetAddress()
 			if !addressEmptyValue.Equal(address) {
 				t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-				//} else if(!addressEmptyValue.Equal(address2)) {
-				//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 			} else if addressEmptyValue.Compare(address) != 0 {
 				t.addFailure(newFailure("no match "+addr.String(), addressEmpty))
-				//} else if(addressEmptyValue.Compare(address2) != 0) {
-				//	t.addFailure(newFailure("no match " + addr2, addressEmpty));
 			} else if addressEmptyValue.GetCount().Cmp(bigOneConst()) != 0 {
 				t.addFailure(newFailure("no count match "+addr.String(), addressEmpty))
 			}
 		}
-		//}
 	}
-	//} catch(UnknownHostException e) {
-	//	addFailure(new Failure("unexpected unknown host", addressEmpty));
-	//}
 	t.incrementTestCount()
 }
 
 func (t specialTypesTester) testInvalidValues() {
 	// invalid mask
 	addressAll := t.createParamsAddress("*/f0ff::", addressOptionsSpecial)
-	//try {
 	_, err := addressAll.ToAddress()
 	if err == nil {
 		t.addFailure(newFailure("unexpectedly valid", addressAll))
 	} else {
-		//} catch(IncompatibleAddressException e) {
 		// valid mask
 		addressAll = t.createParamsAddress("*/fff0::", addressOptionsSpecial)
 		//try {
@@ -387,12 +337,6 @@ func (t specialTypesTester) testInvalidValues() {
 			}
 		}
 	}
-	//	} catch(IncompatibleAddressException e2) {
-	//	t.addFailure(new Failure("unexpectedly valid", addressAll));
-	//	}
-	//} catch(AddressStringException e) {
-	//t.addFailure(new Failure("unexpected exception: " + e, addressAll));
-	//}
 }
 
 func (t specialTypesTester) testValidity() {
@@ -511,8 +455,6 @@ func (t specialTypesTester) testAllValuesVersioned(version ipaddr.IPVersion, cou
 	} else if addressAll.Compare(address) != 0 {
 		t.addFailure(newIPAddrFailure("no match "+address.String(), addressAll))
 	} else if addressAll.GetCount().Cmp(count) != 0 {
-		// x := t.createParamsAddress("*", addressOptionsSpecial).GetVersionedAddress(version);
-		//x.getCount();
 		t.addFailure(newIPAddrFailure("no count match ", addressAll))
 	} else {
 		str := hostAll.AsAddressString()
@@ -594,7 +536,6 @@ func (t specialTypesTester) testLoopback(host string, isSelf bool) {
 
 func (t specialTypesTester) testNils() {
 	var ipRangesIPv4 []*ipaddr.IPAddressSeqRange
-	//var ipv4Addresses []*ipaddr.IPv4Address
 	ipv4Addr1 := ipaddr.NewIPAddressString("1.2.3.3").GetAddress().ToIPv4()
 	ipv4Addr2 := ipaddr.NewIPAddressString("2.2.3.4-5").GetAddress().ToIPv4()
 
@@ -609,8 +550,6 @@ func (t specialTypesTester) testNils() {
 
 	for i := range ipRangesIPv4 {
 		range1 := ipRangesIPv4[i]
-		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
-		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
 		for j := i; j < len(ipRangesIPv4); j++ {
 			range2 := ipRangesIPv4[j]
 			if i == j {
@@ -652,8 +591,6 @@ func (t specialTypesTester) testNils() {
 
 	for i := range ipRangesIPv6 {
 		range1 := ipRangesIPv6[i]
-		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
-		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
 		for j := i; j < len(ipRangesIPv6); j++ {
 			range2 := ipRangesIPv6[j]
 			if i == j {
@@ -838,8 +775,6 @@ func (t specialTypesTester) testNils() {
 
 	for i := range ipAddressesIPv4 {
 		range1 := ipAddressesIPv4[i]
-		//fmt.Printf("range %d using fmt is %v\n", i+1, range1)
-		//fmt.Printf("range %d using Stringer is "+range1.String()+"\n\n", i+1)
 		for j := i; j < len(ipAddressesIPv4); j++ {
 			range2 := ipAddressesIPv4[j]
 			if i == j {
@@ -901,11 +836,6 @@ func (t specialTypesTester) testNils() {
 			}
 		}
 	}
-
-	//noIPV4Error := func(sect *ipaddr.IPv4AddressSection) *ipaddr.IPAddress {
-	//	ipv4addrx, _ := ipaddr.NewIPv4Address(sect)
-	//	return ipv4addrx.ToIP()
-	//}
 
 	var ipSectionsIPv4 []*ipaddr.IPAddressSection
 
@@ -1134,5 +1064,4 @@ func (t specialTypesTester) compareLists(items1, items2 []ipaddr.AddressItem) {
 func getCount(segmentMax, segmentCount uint64) *big.Int {
 	segMax := new(big.Int).SetUint64(segmentMax + 1)
 	return segMax.Exp(segMax, new(big.Int).SetUint64(segmentCount), nil)
-	//return segMax.pow(segmentCount);
 }

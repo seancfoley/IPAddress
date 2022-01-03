@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package test
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
 	"math/big"
 	"strconv"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 )
 
 type ipAddressAllTester struct {
@@ -532,8 +533,6 @@ func (t ipAddressAllTester) testAllContains(cidr1, cidr2 string, result bool) {
 }
 
 func (t ipAddressAllTester) testStrings() {
-	//super.testStrings();
-
 	/* TODO LATER base 85
 	//It is good to have at least one base 85 input test, since we have code that caches base 85 input strings for output
 	t.testIPv6Strings("4)+k&C#VzJ4br>0wv%Yp",

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,39 +18,31 @@ package main
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"net"
-
-	//ip_addr_old "github.com/seancfoley/ipaddress/ipaddress-go/ipaddrold"
-	//"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 
 	//"go/ast"
 	"go/doc"
 	"go/parser"
 	"go/token"
 	"os"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
+// this is just a test program used for trying out code
 func main() {
-	//ipaddr.Test()
-
-	//ipaddr.divFunc(nil)
 	seg := ipaddr.IPv4AddressSegment{}
 
 	seg.GetSegmentValue()
 
-	//seg.getSplitSegments()
-	//fmt.Printf("\n%v\n", seg.getDivisionValue())
-	//fmt.Printf("%v\n", seg.GetSegmentValue())
 	fmt.Printf("%v\n", seg.GetBitCount())
 	fmt.Printf("%v\n", seg.GetByteCount())
 
 	grouping := ipaddr.IPv4AddressSection{}
 	grouping.GetSegmentCount()
-	//grouping.hasNoDivisions()
 
-	builder := addrparam.IPAddressStringParamsBuilder{}
+	builder := addrstrparam.IPAddressStringParamsBuilder{}
 	params := builder.AllowAll(false).ToParams()
 	fmt.Printf("%+v\n", params)
 

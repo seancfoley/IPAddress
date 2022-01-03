@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,30 +14,9 @@
 // limitations under the License.
 //
 
-package addrparam
+package addrstrparam
 
-//func convertHostParams(orig HostNameParams) *hostNameParameters {
-//	if params, ok := orig.(*hostNameParameters); ok {
-//		return params
-//	}
-//
-//	paramsBuilder := HostNameParamsBuilder{}
-//	return paramsBuilder.
-//		// general settings
-//		AllowIPAddress(orig.AllowsIPAddress()).
-//		AllowBracketedIPv6(orig.AllowsBracketedIPv6()).
-//		AllowBracketedIPv4(orig.AllowsBracketedIPv4()).
-//		SetEmptyLoopback(orig.EmptyIsLoopback()).
-//		AllowPort(orig.AllowsPort()).
-//		AllowService(orig.AllowsService()).
-//		ExpectPort(orig.ExpectsPort()).
-//		AllowEmpty(orig.AllowsEmpty()).
-//		NormalizeToLowercase(orig.NormalizesToLowercase()).
-//		SetIPAddressParams(orig.GetIPAddressParams()).
-//		//
-//		ToParams().(*hostNameParameters)
-//}
-
+// CopyHostNameParams produces an immutable copy of the original HostNameParams.
 func CopyHostNameParams(orig HostNameParams) HostNameParams {
 	if p, ok := orig.(*hostNameParameters); ok {
 		return p
@@ -45,24 +24,16 @@ func CopyHostNameParams(orig HostNameParams) HostNameParams {
 	return new(HostNameParamsBuilder).Set(orig).ToParams()
 }
 
-//func DefaultHostNameParams() HostNameParams {
-//	xxx use builder instead xxx
-//	return &hostNameParameters{}
-//}
-
+// HostNameParams provides parameters for parsing host name strings
 type HostNameParams interface {
 	// AllowsEmpty determines if an empty host string, when not a valid address, is considered valid.
 	// The parser will first parse as an empty address, if allowed by the nested IPAddressStringParams.
 	// Otherwise, it will be considered an empty host if this returns true, or an invalid host if it returns false.
 	AllowsEmpty() bool
 
-	//xxxx gotta defer to address on this xxx
-	//EmptyStrParsedAs() EmptyStrOption
-
 	// Indicates the version to prefer when resolving host names.
 	GetPreferredVersion() IPVersion
 
-	//EmptyIsLoopback() bool
 	AllowsBracketedIPv4() bool
 	AllowsBracketedIPv6() bool
 	NormalizesToLowercase() bool
@@ -72,16 +43,12 @@ type HostNameParams interface {
 	ExpectsPort() bool
 
 	GetIPAddressParams() IPAddressStringParams
-
-	//ToAddressOptionsBuilder() IPAddressStringParamsBuilder
 }
 
-// hostNameParameters has parameters for parsing IP address strings
+// hostNameParameters has parameters for parsing host name strings
 // They are immutable and can be constructed using an HostNameParamsBuilder
 type hostNameParameters struct {
 	ipParams ipAddressStringParameters
-
-	//emptyStringOption EmptyStrOption
 
 	preferredVersion IPVersion
 
@@ -89,17 +56,9 @@ type hostNameParameters struct {
 	noNormalizeToLower, noIPAddress, noPort, noService, expectPort bool
 }
 
-//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParamsBuilder {xxx no longer use this xxxx
-//	return params.ipParams.ToBuilder()
-//}
-
 func (params *hostNameParameters) AllowsEmpty() bool {
 	return !params.noEmpty
 }
-
-//func (params *hostNameParameters) EmptyStrParsedAs() EmptyStrOption {
-//	return params.emptyStringOption
-//}
 
 func (params *hostNameParameters) GetPreferredVersion() IPVersion {
 	return params.preferredVersion
@@ -144,36 +103,6 @@ type HostNameParamsBuilder struct {
 	ipAddressBuilder IPAddressStringParamsBuilder
 }
 
-//func (params *hostNameParameters) ToAddressOptionsBuilder() IPAddressStringParamsBuilder {xxx no longer use this xxxx
-//	return params.ipParams.ToBuilder()
-//}
-
-//func ToIPAddressParametersBuilder(params HostNameParams) *IPAddressStringParamsBuilder {
-//	return ToIPAddressStringParamsBuilder(params.GetIPAddressParams())
-//}
-
-//func ToHostNameParametersBuilder(params HostNameParams) *HostNameParamsBuilder {
-//	var result HostNameParamsBuilder
-//	if p, ok := params.(*hostNameParameters); ok {
-//		result.hostNameParameters = *p
-//	} else {
-//		result.hostNameParameters = hostNameParameters{
-//			emptyStringOption:  params.EmptyStrParsedAs(),
-//			preferredVersion:   params.GetPreferredVersion(),
-//			noEmpty:            !params.AllowsEmpty(),
-//			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
-//			noBracketedIPv6:    !params.AllowsBracketedIPv6(),
-//			noNormalizeToLower: !params.NormalizesToLowercase(),
-//			noIPAddress:        !params.AllowsIPAddress(),
-//			noPort:             !params.AllowsPort(),
-//			noService:          !params.AllowsService(),
-//			expectPort:         params.ExpectsPort(),
-//		}
-//	}
-//	result.SetIPAddressParams(params.GetIPAddressParams())
-//	return &result
-//}
-
 func (builder *HostNameParamsBuilder) ToParams() HostNameParams {
 	// We do not return a pointer to builder.params because that would make it possible to change a ipAddressStringParameters
 	// by continuing to use the same builder,
@@ -191,12 +120,10 @@ func (builder *HostNameParamsBuilder) GetIPAddressParamsBuilder() (result *IPAdd
 }
 
 func (builder *HostNameParamsBuilder) Set(params HostNameParams) *HostNameParamsBuilder {
-	//var result HostNameParamsBuilder
 	if p, ok := params.(*hostNameParameters); ok {
 		builder.hostNameParameters = *p
 	} else {
 		builder.hostNameParameters = hostNameParameters{
-			//emptyStringOption:  params.EmptyStrParsedAs(),
 			preferredVersion:   params.GetPreferredVersion(),
 			noEmpty:            !params.AllowsEmpty(),
 			noBracketedIPv4:    !params.AllowsBracketedIPv4(),
@@ -222,19 +149,6 @@ func (builder *HostNameParamsBuilder) AllowEmpty(allow bool) *HostNameParamsBuil
 	builder.hostNameParameters.noEmpty = !allow
 	return builder
 }
-
-//func (builder *HostNameParamsBuilder) SetEmptyLoopback(isLoopback bool) *HostNameParamsBuilder {
-//	builder.hostNameParameters.emptyIsNotLoopback = !isLoopback
-//	return builder
-//}
-//
-//func (builder *HostNameParamsBuilder) ParseEmptyStrAs(option EmptyStrOption) *HostNameParamsBuilder {
-//	builder.hostNameParameters.emptyStringOption = option
-//	if option != NoAddressOption {
-//		builder.AllowEmpty(true)
-//	}
-//	return builder
-//}
 
 func (builder *HostNameParamsBuilder) SetPreferredVersion(version IPVersion) *HostNameParamsBuilder {
 	builder.hostNameParameters.preferredVersion = version

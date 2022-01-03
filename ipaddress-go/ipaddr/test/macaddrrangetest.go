@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@
 package test
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 	"math"
 	"strconv"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
 )
 
 type macAddressRangeTester struct {
@@ -28,8 +29,8 @@ type macAddressRangeTester struct {
 
 func (t macAddressRangeTester) run() {
 
-	t.mactest(true, "*-abcdef|fffffe")        // throws IncompatibleAddressException
-	t.mactest(true, "0|ffffff-abcdef|fffffe") // throws IncompatibleAddressException
+	t.mactest(true, "*-abcdef|fffffe")        //  IncompatibleAddressError
+	t.mactest(true, "0|ffffff-abcdef|fffffe") //  IncompatibleAddressError
 	t.mactest(true, "*-ab0000|ffffff")
 	t.mactest(true, "0|ffffff-ab0000|ffffff")
 
@@ -573,7 +574,6 @@ func (t macAddressRangeTester) run() {
 
 	t.testInsertAndAppend("*:*:*:*:*:*:*:*", "*:*:*:*:*:*:*:*", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
 	t.testInsertAndAppend("a:b:c:d:e:f:aa:bb", "*:*:*:*:*:*:*:*", []ipaddr.BitCount{0, 8, 16, 24, 32, 40, 48, 56, 64})
-	//t.testInsertAndAppend("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
 	t.testInsertAndAppendPrefs("*:*:*:*:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{nil, p0, p0, p0, p0, p0, p0, p0, p0})
 
 	t.testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{32, 32, 32, 32, 32, 32, 32, 32, 32})
@@ -584,7 +584,6 @@ func (t macAddressRangeTester) run() {
 
 	t.testInsertAndAppend("a:b:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{32, 32, 16, 16, 16, 16, 16, 16, 16})
 	t.testInsertAndAppend("a:b:c:d:*:*:*:*", "1:2:*:*:*:*:*:*", []ipaddr.BitCount{16, 16, 16, 24, 32, 32, 32, 32, 32})
-	//t.testInsertAndAppend("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.BitCount{0, 0, 0, 0, 0, 0, 0, 0, 0})
 	t.testInsertAndAppendPrefs("*:*:*:*:*:*:*:*", "1:2:3:4:*:*:*:*", []ipaddr.PrefixLen{p32, p0, p0, p0, p0, p0, p0, p0, p0})
 	t.testInsertAndAppendPrefs("a:b:c:d:*:*:*:*", "1:2:3:4:5:6:7:8", []ipaddr.PrefixLen{pnil, pnil, pnil, pnil, p32, p32, p32, p32, p32})
 	t.testInsertAndAppendPrefs("a:b:c:d:e:f:aa:bb", "1:2:3:4:*:*:*:*", []ipaddr.PrefixLen{p32, p32, p32, p32, p32, p40, p48, p56, pnil})
@@ -644,9 +643,6 @@ func (t macAddressRangeTester) testToOUIPrefixed(addrString string) {
 		suffixSegs[i] = suffixSeg
 	}
 	suffix := ipaddr.NewMACSection(suffixSegs)
-	//if err != nil {
-	//	t.addFailure(newMACFailure(err.Error(), w))
-	//}
 	suffixed, err := ipaddr.NewMACAddress(suffix)
 	if err != nil {
 		t.addFailure(newMACFailure(err.Error(), w))
@@ -1004,7 +1000,6 @@ func (t macAddressRangeTester) testTree(start string, parents []string) {
 		if k == 1 {
 			usePrefixBlocks = true
 		}
-		//try {
 		str := t.createMACParamsAddress(start, wildcardAndRangeMACAddressOptions)
 		addr := str.GetAddress()
 		//now do the same thing but use the IPAddress objects instead
@@ -1021,10 +1016,6 @@ func (t macAddressRangeTester) testTree(start string, parents []string) {
 			}
 			pref = addr.GetPrefixLen()
 			addr = enlargeMACSubnet(addr)
-			//addr = addr.adjustPrefixBySegment(false, false)
-			//if(prefixConfiguration.allPrefixedAddressesAreSubnets()) {
-			//	i++;
-			//}
 			if usePrefixBlocks {
 				addr = addr.ToPrefixBlock()
 				i++
@@ -1037,9 +1028,6 @@ func (t macAddressRangeTester) testTree(start string, parents []string) {
 		if !brokeEarly && j != len(parents) {
 			t.addFailure(newMACFailure("failed: invalid label count "+strconv.Itoa(len(parents))+" expected "+strconv.Itoa(j), str))
 		}
-		//} catch(RuntimeException e) {
-		//	addFailure(new Failure("failed: " + e + " " + start));
-		//}
 		t.incrementTestCount()
 	}
 }
@@ -1055,10 +1043,6 @@ func enlargeMACSubnet(addr *ipaddr.MACAddress /*boolean nextSegment  false , int
 	}
 	adjustment := ((prefLen - 1) % addr.GetBitsPerSegment()) + 1
 	addr = addr.SetPrefixLen(prefLen - adjustment)
-	//addr, _ = addr.SetPrefixLenZeroed(prefLen - adjustment) xxx
-	//if addr.GetLower().IsZeroHost() {
-	//	addr = addr.ToPrefixBlock()
-	//}
 	return addr
 }
 

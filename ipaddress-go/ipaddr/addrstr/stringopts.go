@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,15 @@
 // limitations under the License.
 //
 
+/*
+addrstr provides interfaces for specifying how to create specific strings from addresses and address sections,
+as well as builder types to construct instances of those interfaces.
+
+For example, StringOptionsBuilder produces instances implementing StringOptions for specifiying generic strings.
+More specific builders and corresponding interface types exist for more specific address versions and types.
+
+Each instance produced by a builders is immutable.
+*/
 package addrstr
 
 import "unsafe"
@@ -101,14 +110,7 @@ func (wildcards *WildcardsBuilder) ToWildcards() Wildcards {
 	return &res
 }
 
-//type StringOptionsBase struct {
-//	// This is an object representing the string options converted to an object.
-//	// It can write a supplied division using those params.
-//	//Use this field if the options to params conversion is not dependent on the address part so it can be reused
-//	cachedParams addressDivisionWriter
-//}
-
-// Represents a clear way to create a specific type of string.
+// StringOptions represents a clear way to create a specific type of string.
 type StringOptions interface {
 	GetWildcards() Wildcards
 
@@ -172,10 +174,6 @@ func (opts *stringOptions) IsReverse() bool {
 func (opts *stringOptions) IsUppercase() bool {
 	return opts.uppercase
 }
-
-//func (w *stringOptions) isSplitDigits() bool {
-//	return w.splitDigits
-//}
 
 func (opts *stringOptions) IsExpandedSegments() bool {
 	return opts.expandSegments
@@ -436,8 +434,6 @@ type IPStringOptions interface {
 	GetAddressSuffix() string
 
 	GetWildcardOption() WildcardOption
-
-	//GetZoneSeparator() byte
 }
 
 type ipStringOptionsCache struct {
@@ -530,11 +526,6 @@ func (builder *IPStringOptionsBuilder) SetUppercase(uppercase bool) *IPStringOpt
 	builder.StringOptionsBuilder.SetUppercase(uppercase)
 	return builder
 }
-
-//func (w *IPStringOptionsBuilder) setSplitDigits(splitDigits bool) *IPStringOptionsBuilder {
-//	w.StringOptionsBuilder.setSplitDigits(splitDigits)
-//	return w
-//}
 
 func (builder *IPStringOptionsBuilder) SetExpandedSegments(expandSegments bool) *IPStringOptionsBuilder {
 	builder.StringOptionsBuilder.SetExpandedSegments(expandSegments)
@@ -654,36 +645,6 @@ func (builder *IPv4StringOptionsBuilder) ToOptions() IPStringOptions {
 	return builder.IPStringOptionsBuilder.ToOptions()
 }
 
-//xxx this blows xxxx
-//xxx use a bool and get rid of these xxx
-//xxx actually, can just use zero values for the separator and radix
-//BUT how to handle ipv4? maybe IPStringOptionsBuilder has defaults of radix 10 and sep ., ipv6 otherwise
-//OR you create a new IPv4StringOptionsBuilder?  It just wraps IPStringOptionsBuilder?
-//If you do that, maybe you remove the default separator
-//but then, you already have hex as the default radix - so not so sure
-//hmmmmm
-//Let us wrap both MACSize and IPv4
-//and then all three MACSize/IPv4/6 will all have their own getDefaults
-//xxx
-
-//// NewIPv4StringOptionsBuilder returns a builder with default options set to create a specific type of IPv4 address string.
-//func NewIPv4StringOptionsBuilder() *IPStringOptionsBuilder {
-//	opts := IPStringOptionsBuilder{}
-//	return opts.SetRadix(IPv4DefaultTextualRadix).SetSeparator(IPv4SegmentSeparator)
-//}
-//
-//// NewMACStringOptionsBuilder returns a builder with default options set to create a specific type of MACSize address string.
-//func NewMACStringOptionsBuilder() *StringOptionsBuilder {
-//	opts := StringOptionsBuilder{}
-//	return opts.SetRadix(MACDefaultTextualRadix).SetSeparator(MACColonSegmentSeparator)
-//}
-//
-//// NewIPv6StringOptionsBuilder returns a builder with default options set to create a specific type of IPv6 address string.
-//func NewIPv6StringOptionsBuilder() *IPv6StringOptionsBuilder {
-//	opts := IPv6StringOptionsBuilder{}
-//	return opts.SetRadix(IPv6DefaultTextualRadix).SetSeparator(IPv6SegmentSeparator)
-//}
-
 type IPv6StringOptions interface {
 	IPStringOptions
 
@@ -703,8 +664,6 @@ type IPv6StringOptions interface {
 }
 
 type ipv6StringOptionsCache struct {
-	//	cachedIPv6Addr      *ipv6StringParams
-	//	cachedMixedIPv6Addr *ipv6v4MixedParams
 	cachedIPv6Addr,
 	cachedMixedIPv6Addr unsafe.Pointer
 }
@@ -729,14 +688,6 @@ func (opts *ipv6StringOptions) GetIPv6StringOptionsCache() *unsafe.Pointer {
 func (opts *ipv6StringOptions) GetIPv6StringOptionsMixedCache() *unsafe.Pointer {
 	return &opts.ipv6StringOptionsCache.cachedMixedIPv6Addr
 }
-
-//func (opts *ipv6StringOptions) isCacheable() bool {
-//	return opts.compressOptions == nil
-//}
-
-//func (opts *ipv6StringOptions) makeMixed() bool {
-//	return opts.ipv4Opts != nil
-//}
 
 func (opts *ipv6StringOptions) IsSplitDigits() bool {
 	return opts.splitDigits

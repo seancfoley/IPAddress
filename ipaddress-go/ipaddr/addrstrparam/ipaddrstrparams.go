@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,103 +14,11 @@
 // limitations under the License.
 //
 
-package addrparam
+package addrstrparam
 
 import "strings"
 
-//func convertIPAddrParams(orig IPAddressStringParams) *ipAddressStringParameters { //note this is a duplicate of getPrivateParams which calls ToIPAddressStringParamsBuilder(orig).ToParams()
-//	if params, ok := orig.(*ipAddressStringParameters); ok {
-//		return params
-//	}
-//	origIPv4 := orig.GetIPv4Params()
-//	origIPv4Range := origIPv4.GetRangeParams()
-//	origIPv6 := orig.GetIPv6Params()
-//	origIPv6Range := origIPv6.GetRangeParams()
-//	origMixedIPv4 := origIPv6.GetEmbeddedIPv4AddressParams()
-//	origMixedIPv4Range := origMixedIPv4.GetRangeParams()
-//	paramsBuilder := IPAddressStringParamsBuilder{}
-//	return paramsBuilder.
-//		// general settings
-//		AllowIPv6(orig.AllowsIPv6()).
-//		AllowIPv4(orig.AllowsIPv4()).
-//		SetEmptyLoopback(orig.EmptyIsLoopback()).
-//		AllowMask(orig.AllowsMask()).
-//		AllowPrefixOnly(orig.AllowsPrefixOnly()).
-//		AllowPrefix(orig.AllowsPrefix()).
-//		AllowEmpty(orig.AllowsEmpty()).
-//		AllowSingleSegment(orig.AllowsSingleSegment()).
-//		AllowAll(orig.AllowsAll()).
-//		//
-//		// IPv6 settings
-//		GetIPv6AddressParamsBuilder().
-//		AllowZone(origIPv6.AllowsZone()).
-//		AllowMixed(origIPv6.AllowsMixed()).
-//		AllowBase85(origIPv6.AllowsBase85()).
-//		AllowBinary(origIPv6.AllowsBinary()).
-//		AllowWildcardedSeparator(origIPv6.AllowsWildcardedSeparator()).
-//		AllowLeadingZeros(origIPv6.AllowsLeadingZeros()).
-//		AllowUnlimitedLeadingZeros(origIPv6.AllowsUnlimitedLeadingZeros()).
-//		AllowPrefixesBeyondAddressSize(origIPv6.AllowsPrefixesBeyondAddressSize()).
-//		AllowPrefixLenLeadingZeros(origIPv6.AllowsPrefixLenLeadingZeros()).
-//		//
-//		// IPv6 ranges
-//		GetRangeParamsBuilder().
-//		AllowWildcard(origIPv6Range.AllowsWildcard()).
-//		AllowRangeSeparator(origIPv6Range.AllowsRangeSeparator()).
-//		AllowReverseRange(origIPv6Range.AllowsReverseRange()).
-//		AllowInferredBoundary(origIPv6Range.AllowsInferredBoundary()).
-//		AllowSingleWildcard(origIPv6Range.AllowsSingleWildcard()).
-//		GetIPv6ParentBuilder().
-//		//
-//		// mixed-in embedded ipv4AddrType settings (the 1.2.3.4 in a:b:c:d:e:f:1.2.3.4)
-//		GetEmbeddedIPv4AddressParamsBuilder().
-//		Allow_inet_aton_hex(origMixedIPv4.Allows_inet_aton_hex()).
-//		Allow_inet_aton_octal(origMixedIPv4.Allows_inet_aton_octal()).
-//		Allow_inet_aton_leading_zeros(origMixedIPv4.Allows_inet_aton_leading_zeros()).
-//		Allow_inet_aton_joinedSegments(origMixedIPv4.Allows_inet_aton_joinedSegments()).
-//		AllowBinary(origMixedIPv4.AllowsBinary()).
-//		AllowUnlimitedLeadingZeros(origMixedIPv4.AllowsUnlimitedLeadingZeros()).
-//		AllowWildcardedSeparator(origMixedIPv4.AllowsWildcardedSeparator()).
-//		AllowLeadingZeros(origMixedIPv4.AllowsLeadingZeros()).
-//		//
-//		// embedded IPv4 ranges
-//		GetRangeParamsBuilder().
-//		AllowWildcard(origMixedIPv4Range.AllowsWildcard()).
-//		AllowRangeSeparator(origMixedIPv4Range.AllowsRangeSeparator()).
-//		AllowReverseRange(origMixedIPv4Range.AllowsReverseRange()).
-//		AllowInferredBoundary(origMixedIPv4Range.AllowsInferredBoundary()).
-//		AllowSingleWildcard(origMixedIPv4Range.AllowsSingleWildcard()).
-//		GetIPv4ParentBuilder().
-//		GetParentBuilder().
-//		//
-//		//IPv4 settings
-//		GetIPv4AddressParamsBuilder().
-//		Allow_inet_aton_hex(origIPv4.Allows_inet_aton_hex()).
-//		Allow_inet_aton_octal(origIPv4.Allows_inet_aton_octal()).
-//		Allow_inet_aton_leading_zeros(origIPv4.Allows_inet_aton_leading_zeros()).
-//		Allow_inet_aton_joinedSegments(origIPv4.Allows_inet_aton_joinedSegments()).
-//		Allow_inet_aton_single_segment_mask(origIPv4.Allows_inet_aton_single_segment_mask()).
-//		AllowPrefixesBeyondAddressSize(origIPv4.AllowsPrefixesBeyondAddressSize()).
-//		AllowPrefixLenLeadingZeros(origIPv4.AllowsPrefixLenLeadingZeros()).
-//		AllowBinary(origIPv4.AllowsBinary()).
-//		SetNetwork(origIPv4.GetNetwork()).
-//		AllowUnlimitedLeadingZeros(origIPv4.AllowsUnlimitedLeadingZeros()).
-//		AllowWildcardedSeparator(origIPv4.AllowsWildcardedSeparator()).
-//		AllowLeadingZeros(origIPv4.AllowsLeadingZeros()).
-//		//
-//		//  IPv4 ranges
-//		GetRangeParamsBuilder().
-//		AllowWildcard(origIPv4Range.AllowsWildcard()).
-//		AllowRangeSeparator(origIPv4Range.AllowsRangeSeparator()).
-//		AllowReverseRange(origIPv4Range.AllowsReverseRange()).
-//		AllowInferredBoundary(origIPv4Range.AllowsInferredBoundary()).
-//		AllowSingleWildcard(origIPv4Range.AllowsSingleWildcard()).
-//		GetIPv4ParentBuilder().
-//		GetParentBuilder().
-//		//
-//		ToParams().(*ipAddressStringParameters)
-//}
-
+// CopyIPAddressStringParams produces an immutable copy of the original IPAddressStringParams.
 func CopyIPAddressStringParams(orig IPAddressStringParams) IPAddressStringParams {
 	if p, ok := orig.(*ipAddressStringParameters); ok {
 		return p
@@ -118,20 +26,11 @@ func CopyIPAddressStringParams(orig IPAddressStringParams) IPAddressStringParams
 	return new(IPAddressStringParamsBuilder).Set(orig).ToParams()
 }
 
-//func DefaultIPAddressParams() IPAddressStringParams {
-//	xxx use builder instead xxx
-//	return &ipAddressStringParameters{}
-//}
-
-// IPAddressStringParams can be used to control string parsing of IP address strings,
+// IPAddressStringParams provides parameters for parsing IP address strings,
 // indicating what to allow, what to disallow, and other options.
 // You can use IPAddressStringParamsBuilder to construct an IPAddressStringParams.
 type IPAddressStringParams interface {
 	AddressStringParams
-
-	// AllowsPrefixOnly indicates whether strings like /16 are interpreted as the corresponding network mask like 255.255.0.0
-	// The mask version is determined by GetPreferredVersion() in the cases where it is ambiguous.
-	//AllowsPrefixOnly() bool
 
 	// AllowsPrefix indicates whether addresses with prefix length like 1.2.0.0/16 are allowed.
 	AllowsPrefix() bool
@@ -245,7 +144,6 @@ func init() {
 		AllowEmpty(false).
 		AllowPrefix(false).
 		AllowMask(false).
-		//AllowPrefixOnly(false).
 		AllowAll(false).
 		AllowIPv6(false).
 		GetIPv6AddressParamsBuilder().
@@ -274,12 +172,6 @@ type ipAddressStringParameters struct {
 	//noPrefixOnly,
 	noPrefix, noMask, noIPv6, noIPv4 bool
 }
-
-//// Whether a string like "/16" is allowed as a stand-in for the associated network mask 255.255.0.0 or ffff::
-//// The mask version is dependent on the preferred IP version
-//func (params *ipAddressStringParameters) AllowsPrefixOnly() bool {
-//	return !params.noPrefixOnly
-//}
 
 func (params *ipAddressStringParameters) AllowsPrefix() bool {
 	return !params.noPrefix
@@ -355,21 +247,15 @@ func (builder *IPAddressStringParamsBuilder) GetIPv4AddressParamsBuilder() (resu
 	return
 }
 
-//func (builder *IPAddressStringParamsBuilder) SetHostParams(params HostNameParams) *IPAddressStringParamsBuilder {
-//	return ToIPAddressStringParamsBuilder(params.GetIPAddressParams())
-//}
-
 func (builder *IPAddressStringParamsBuilder) Set(params IPAddressStringParams) *IPAddressStringParamsBuilder {
 	return builder.set(params, false)
 }
 
 func (builder *IPAddressStringParamsBuilder) set(params IPAddressStringParams, isMixed bool) *IPAddressStringParamsBuilder {
-	//var result IPAddressStringParamsBuilder
 	if p, ok := params.(*ipAddressStringParameters); ok {
 		builder.params = *p
 	} else {
 		builder.params = ipAddressStringParameters{
-			//noPrefixOnly:      !params.AllowsPrefixOnly(),
 			preferredVersion:  params.GetPreferredVersion(),
 			emptyStringOption: params.EmptyStrParsedAs(),
 			allStringOption:   params.AllStrParsedAs(),
@@ -382,9 +268,6 @@ func (builder *IPAddressStringParamsBuilder) set(params IPAddressStringParams, i
 	builder.AddressStringParamsBuilder.set(params)
 	builder.ipv4Builder.Set(params.GetIPv4Params())
 	builder.ipv6Builder.set(params.GetIPv6Params(), isMixed)
-	//builder.AddressStringParamsBuilder = *ToAddressStringParamsBuilder(params)
-	//builder.ipv4Builder = *ToIPv4AddressStringParamsBuilder(params.GetIPv4Params())
-	//builder.ipv6Builder = *toIPv6AddressStringParamsBuilder(params.GetIPv6Params(), isMixed)
 	return builder
 }
 
@@ -405,9 +288,7 @@ func (builder *IPAddressStringParamsBuilder) AllowAll(allow bool) *IPAddressStri
 
 func (builder *IPAddressStringParamsBuilder) ParseEmptyStrAs(option EmptyStrOption) *IPAddressStringParamsBuilder {
 	builder.params.emptyStringOption = option
-	//if option != NoAddressOption {
 	builder.AllowEmpty(true)
-	//}
 	return builder
 }
 
@@ -430,11 +311,6 @@ func (builder *IPAddressStringParamsBuilder) AllowMask(allow bool) *IPAddressStr
 	builder.params.noMask = !allow
 	return builder
 }
-
-//func (builder *IPAddressStringParamsBuilder) AllowPrefixOnly(allow bool) *IPAddressStringParamsBuilder {
-//	builder.params.noPrefixOnly = !allow
-//	return builder
-//}
 
 func (builder *IPAddressStringParamsBuilder) AllowIPv4(allow bool) *IPAddressStringParamsBuilder {
 	builder.params.noIPv4 = !allow
@@ -503,8 +379,6 @@ func (builder *IPAddressStringFormatParamsBuilder) ToParams() IPAddressStringFor
 }
 
 func (builder *IPAddressStringFormatParamsBuilder) set(params IPAddressStringFormatParams) {
-	//xxx
-	//var result IPAddressStringFormatParamsBuilder
 	if p, ok := params.(*ipAddressStringFormatParameters); ok {
 		builder.ipParams = *p
 	} else {
@@ -515,8 +389,6 @@ func (builder *IPAddressStringFormatParamsBuilder) set(params IPAddressStringFor
 		}
 	}
 	builder.AddressStringFormatParamsBuilder.set(params)
-	//builder.AddressStringFormatParamsBuilder = *ToAddressStringFormatParamsBuilder(params)
-	//return &result
 }
 
 func (builder *IPAddressStringFormatParamsBuilder) AllowsPrefixesBeyondAddressSize() bool {
@@ -633,7 +505,6 @@ func (builder *IPv6AddressStringParamsBuilder) Set(params IPv6AddressStringParam
 }
 
 func (builder *IPv6AddressStringParamsBuilder) set(params IPv6AddressStringParams, isMixed bool) *IPv6AddressStringParamsBuilder {
-	//var result IPv6AddressStringParamsBuilder
 	if p, ok := params.(*ipv6AddressStringParameters); ok {
 		builder.params = *p
 	} else {
@@ -642,13 +513,8 @@ func (builder *IPv6AddressStringParamsBuilder) set(params IPv6AddressStringParam
 			noZone:      !params.AllowsZone(),
 			noEmptyZone: !params.AllowsEmptyZone(),
 			noBase85:    !params.AllowsBase85(),
-			//network:  params.GetNetwork(),
 		}
 	}
-	//builder.IPAddressStringFormatParamsBuilder = *ToIPAddressStringFormatParamsBuilder(params)
-	//if !isMixed {
-	//	builder.getEmbeddedIPv4ParametersBuilder().ipv4Builder = *ToIPv4AddressStringParamsBuilder(params.GetEmbeddedIPv4AddressParams())
-	//}
 	builder.IPAddressStringFormatParamsBuilder.set(params)
 	if !isMixed {
 		builder.getEmbeddedIPv4ParametersBuilder().ipv4Builder.Set(params.GetEmbeddedIPv4AddressParams())
@@ -673,8 +539,6 @@ func (builder *IPv6AddressStringParamsBuilder) AllowZone(allow bool) *IPv6Addres
 
 func (builder *IPv6AddressStringParamsBuilder) AllowEmptyZone(allow bool) *IPv6AddressStringParamsBuilder {
 	builder.params.noEmptyZone = !allow
-
-	// ipv4Builder can be nil when builder == &defaultEmbeddedBuilder.ipv6Builder, see getEmbeddedIPv4ParametersBuilder()
 	if ipv4Builder := builder.getEmbeddedIPv4ParametersBuilder(); ipv4Builder != nil {
 		ipv4Builder.GetIPv6AddressParamsBuilder().params.noEmptyZone = !allow
 	}
@@ -799,8 +663,8 @@ func (builder *IPv4AddressStringParamsBuilder) ToParams() IPv4AddressStringParam
 	return result
 }
 
-// If this builder was obtained by a call to getEmbeddedIPv4ParamsBuilder() from IPv6AddressStringParamsBuilder,
-// returns that IPv6AddressStringParamsBuilder
+// GetEmbeddedIPv4AddressParentBuilder the parent IPv6AddressStringParamsBuilder,
+// if this builder was obtained by a call to getEmbeddedIPv4ParamsBuilder() from IPv6AddressStringParamsBuilder.
 func (builder *IPv4AddressStringParamsBuilder) GetEmbeddedIPv4AddressParentBuilder() *IPv6AddressStringParamsBuilder {
 	return builder.mixedParent
 }
@@ -812,8 +676,6 @@ func (builder *IPv4AddressStringParamsBuilder) GetRangeParamsBuilder() *RangePar
 }
 
 func (builder *IPv4AddressStringParamsBuilder) Set(params IPv4AddressStringParams) *IPv4AddressStringParamsBuilder {
-	//xxx
-	//var result IPv4AddressStringParamsBuilder
 	if p, ok := params.(*ipv4AddressStringParameters); ok {
 		builder.params = *p
 	} else {
@@ -823,7 +685,6 @@ func (builder *IPv4AddressStringParamsBuilder) Set(params IPv4AddressStringParam
 			no_inet_aton_joinedSegments:   !params.Allows_inet_aton_joinedSegments(),
 			inet_aton_single_segment_mask: params.Allows_inet_aton_single_segment_mask(),
 			no_inet_aton_leading_zeros:    !params.Allows_inet_aton_leading_zeros(),
-			//network:                       params.GetNetwork(),
 		}
 	}
 	builder.IPAddressStringFormatParamsBuilder.set(params)
@@ -897,6 +758,8 @@ func (builder *IPv4AddressStringParamsBuilder) AllowBinary(allow bool) *IPv4Addr
 	return builder
 }
 
+// IPVersion is the version type used by IP string parameters.
+// It is interchangeable with the ipaddr.Version, the more generic version type used by the library as a whole.
 type IPVersion string
 
 const (
@@ -922,92 +785,6 @@ func (version IPVersion) IsIndeterminate() bool {
 	return true
 }
 
-//// returns an index starting from 0 with IndeterminateIPVersion being the highest
-//func (version IPVersion) index() int {
-//	if version.IsIPv4() {
-//		return 0
-//	} else if version.IsIPv6() {
-//		return 1
-//	}
-//	return 2
-//}
-//
-//func (version IPVersion) Equal(other IPVersion) bool {
-//	return strings.EqualFold(string(version), string(other)) || (version.IsIndeterminate() && other.IsIndeterminate())
-//}
-
 func (version IPVersion) String() string {
 	return string(version)
 }
-
-//func (version IPVersion) getNetwork() (network IPAddressNetwork) {
-//	if version.IsIPv6() {
-//		network = IPv6Network
-//	} else if version.IsIPv4() {
-//		network = IPv4Network
-//	}
-//	return
-//}
-//
-//func (version IPVersion) toType() (t addrType) {
-//	if version.IsIPv6() {
-//		t = ipv6Type
-//	} else if version.IsIPv4() {
-//		t = ipv4Type
-//	}
-//	return
-//}
-
-//func (version IPVersion) GetMaxSegmentValue() SegInt {
-//	if version.IsIPv4() {
-//		return IPv4MaxValuePerSegment
-//	} else if version.IsIPv6() {
-//		return IPv6MaxValuePerSegment
-//	}
-//	return 0
-//}
-//
-//func (version IPVersion) GetBytesPerSegment() int {
-//	if version.IsIPv4() {
-//		return IPv4BytesPerSegment
-//	} else if version.IsIPv6() {
-//		return IPv6BytesPerSegment
-//	}
-//	return 0
-//}
-//
-//func (version IPVersion) GetBitsPerSegment() BitCount {
-//	if version.IsIPv4() {
-//		return IPv4BitsPerSegment
-//	} else if version.IsIPv6() {
-//		return IPv6BitsPerSegment
-//	}
-//	return 0
-//}
-//
-//func (version IPVersion) GetByteCount() int {
-//	if version.IsIPv4() {
-//		return IPv4ByteCount
-//	} else if version.IsIPv6() {
-//		return IPv6ByteCount
-//	}
-//	return 0
-//}
-//
-//func (version IPVersion) GetSegmentCount() int {
-//	if version.IsIPv4() {
-//		return IPv4SegmentCount
-//	} else if version.IsIPv6() {
-//		return IPv6SegmentCount
-//	}
-//	return 0
-//}
-//
-//func (version IPVersion) GetBitCount() BitCount {
-//	if version.IsIPv4() {
-//		return IPv4BitCount
-//	} else if version.IsIPv6() {
-//		return IPv6BitCount
-//	}
-//	return 0
-//}

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,11 +44,6 @@ type AddressError interface {
 	// their own method of i18n to incorporate those translations,
 	// such as the method provided by golang.org/x/text
 	GetKey() string
-}
-
-type MergedAddressError interface {
-	AddressError
-	GetMerged() AddressError
 }
 
 type HostIdentifierError interface {

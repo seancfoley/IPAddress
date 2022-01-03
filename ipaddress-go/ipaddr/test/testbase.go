@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,21 +18,21 @@ package test
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 	"math"
 	"math/big"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstrparam"
 )
 
 func Test(isLimited bool) {
 	acc := testAccumulator{lock: &sync.Mutex{}}
 	var addresses addresses
-	//fullTest := true
 	fullTest := false
 	fmt.Println("Starting TestRunner")
 	startTime := time.Now()
@@ -47,9 +47,9 @@ func Test(isLimited bool) {
 		// warm up
 		acc = testAll(addresses, rangedAddresses, allAddresses, fullTest)
 		allAddresses.useCache(true)
-		routineCount := 10
+		routineCount := 100
 		var wg sync.WaitGroup
-		wg.Add(10)
+		wg.Add(routineCount)
 		for i := 0; i < routineCount; i++ {
 			go func() {
 				defer wg.Done()
@@ -58,83 +58,7 @@ func Test(isLimited bool) {
 			}()
 		}
 		wg.Wait()
-
-		/*
-			//now set the caching and do it again
-						CACHING = true;
-						failures.add(testAll());
-						failures.add(testAll());
-
-						//now multi-threaded with the caching
-						Thread threads[] = runInThreads(10, new Runnable() {xxx
-							@Override
-							public void run() {
-								failures.add(testAll());
-							}
-						});
-
-						try {
-							for(Thread thread : threads) {
-								thread.join();
-							}
-
-							//now use caching but start with a fresh cache, to test synchronization better
-							cache.clear();
-
-							threads = runInThreads(10, new Runnable() {
-								@Override
-								public void run() {
-									failures.add(testAll());
-								}
-							});
-							Thread threads2[] = runInThreads(5, new Runnable() {
-								@Override
-								public void run() {
-									failures.add(testAll());
-								}
-							});
-							for(Thread thread : threads) {
-								thread.join();
-							}
-							for(Thread thread : threads2) {
-								thread.join();
-							}
-						} catch(InterruptedException e) {
-							e.printStackTrace();
-						}
-		*/
 	}
-	//tester := ipAddressTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
-	//tester.run()
-	//
-	//hTester := hostTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
-	//hTester.run()
-	//
-	//macTester := macAddressTester{testBase{testResults: &acc, testAddresses: &addresses}}
-	//macTester.run()
-	//
-	//rangedAddresses := rangedAddresses{addresses}
-	//rangeTester := ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
-	//rangeTester.run()
-	//
-	//hostRTester := hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}
-	//hostRTester.run()
-	//
-	//macRangeTester := macAddressRangeTester{macAddressTester{testBase{testResults: &acc, testAddresses: &rangedAddresses}}}
-	//macRangeTester.run()
-	//
-	//allAddresses := allAddresses{rangedAddresses}
-	//allTester := ipAddressAllTester{ipAddressRangeTester{ipAddressTester{testBase{testResults: &acc, testAddresses: &allAddresses, fullTest: fullTest}}}}
-	//allTester.run()
-	//
-	//hostATester := hostAllTester{hostRangeTester{hostTester{testBase{testResults: &acc, testAddresses: &rangedAddresses, fullTest: fullTest}}}}
-	//hostATester.run()
-	//
-	//sTypesTester := specialTypesTester{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
-	//sTypesTester.run()
-	//
-	//addressOrderTester := addressOrderTest{testBase{testResults: &acc, testAddresses: &addresses, fullTest: fullTest}}
-	//addressOrderTester.run()
 
 	endTime := time.Now().Sub(startTime)
 	fmt.Printf("TestRunner\ntest count: %d\nfail count: %d\n", acc.counter, len(acc.failures))
@@ -211,10 +135,6 @@ func (t *testAccumulator) incrementTestCount() {
 	t.counter++
 }
 
-//type tester interface {
-//	run()
-//}
-
 type testBase struct {
 	fullTest bool
 	testResults
@@ -257,7 +177,6 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		equalityResult = !equalityResult
 	}
 	if equalityResult {
-		//if(bitsReversedIsSame ? !series.equals(bitsReversed) : series.equals(bitsReversed)) {
 		t.addFailure(newSegmentSeriesFailure("bit reversal 2a: "+series.String()+" "+bitsReversed.String(), series))
 		return
 	}
@@ -281,7 +200,6 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		equalityResult = !equalityResult
 	}
 	if equalityResult {
-		//if(bitsReversedPerByteIsSame ? !series.equals(bitsReversed2) : series.equals(bitsReversed2)) {
 		t.addFailure(newSegmentSeriesFailure("bit reversal 3a: "+series.String(), series))
 		return
 	}
@@ -301,7 +219,6 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 		t.addFailure(newSegmentSeriesFailure("failed "+err.Error(), series))
 		return
 	}
-	//bitsReversed3 = bitsReversed3.ReverseBytesPerSegment();
 	for i, j := 0, len(bytes)-1; i < bitsReversed3.GetSegmentCount(); i++ {
 		seg := bitsReversed3.GetSegment(i)
 		segBytes := seg.Bytes()
@@ -313,7 +230,6 @@ func (t testBase) testReverse(series ipaddr.ExtendedSegmentSeries, bitsReversedI
 				segBytes[m], segBytes[last-m] = lastByte, first
 			}
 		}
-		//for k := 0; k < seg.GetByteCount(); k++ {
 		for k := seg.GetByteCount() - 1; k >= 0; k-- {
 			if segBytes[k] != bytes[j] { //reversal 4: 1:1:1:1-fffe:2:3:3:3 300:300:300:200:1-fffe:100:100:100
 				t.addFailure(newSegmentSeriesFailure("reversal 4: "+series.String()+" "+bitsReversed3.String(), series))
@@ -335,15 +251,8 @@ func (t testBase) testSegmentSeriesPrefixes(original ipaddr.ExtendedSegmentSerie
 		var err error
 		if j == 0 {
 			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
-			//fmt.Println("beyond " + removed.String())
-			//if removed.IsPrefixed() {
-			//	original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
-			//}
-			//	removed = original.WithoutPrefixLen()
 		} else {
 			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount())
-			//removed = original.AdjustPrefixLen(original.GetBitCount())
-			//fmt.Println("not beyond " + removed.String())
 		}
 		if err != nil {
 			t.addFailure(newSegmentSeriesFailure("removed prefix error: "+err.Error(), original))
@@ -372,20 +281,14 @@ func (t testBase) testSegmentSeriesPrefixes(original ipaddr.ExtendedSegmentSerie
 					lower := seg.GetSegmentValue()
 					upper := seg.GetUpperSegmentValue()
 					if (lower&mask) != lower || (upper&mask) != upper {
-						//removed = original.removePrefixLength();
 						t.addFailure(newSegmentSeriesFailure("prefix app: "+removed.String()+" "+strconv.Itoa(int(lower&mask))+" "+strconv.Itoa(int(upper&mask)), original))
 						break
 					}
 				}
 			}
-			//if removed.IsPrefixed() {
-			//	t.addFailure(newSegmentSeriesFailure("prefix not removed: "+removed.String(), original))
-			//}
 		} else if !removed.Equal(original) {
 			t.addFailure(newSegmentSeriesFailure("prefix removed: "+removed.String(), original))
-		} //else if removed.IsPrefixed() {
-		//	t.addFailure(newSegmentSeriesFailure("prefix not removed from non-prefixed: "+removed.String(), original))
-		//}
+		}
 	}
 }
 
@@ -400,23 +303,13 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 		var err error
 		if j == 0 {
 			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
-			//fmt.Println("beyond " + removed.String())
-			//if removed.IsPrefixed() {
-			//	original.AdjustPrefixLenZeroed(original.GetBitCount() + 1)
-			//}
-			//	removed = original.WithoutPrefixLen()
 		} else {
 			removed, err = original.AdjustPrefixLenZeroed(original.GetBitCount())
-			//removed = original.AdjustPrefixLen(original.GetBitCount())
-			//fmt.Println("not beyond " + removed.String())
 		}
 		if err != nil {
 			t.addFailure(newSegmentSeriesFailure("removed prefix error: "+err.Error(), original))
 			break
 		}
-		//if j == 1 && original.GetPrefixLen() != nil && *original.GetPrefixLen() == 0 {
-		//	removed = original.AdjustPrefixLen(original.GetBitCount() + 1)
-		//}
 		if original.IsPrefixed() {
 			prefLength := original.GetPrefixLen().Len()
 			bitsSoFar := ipaddr.BitCount(0)
@@ -446,51 +339,19 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 					}
 				}
 			}
-			//if removed.IsPrefixed() {
-			//	t.addFailure(newSegmentSeriesFailure("prefix not removed: "+removed.String(), original))
-			//}
 		} else if !removed.Equal(original) {
 			t.addFailure(newSegmentSeriesFailure("prefix removed: "+removed.String(), original))
-		} //else if removed.IsPrefixed() {
-		//	t.addFailure(newSegmentSeriesFailure("prefix not removed from non-prefixed: "+removed.String(), original))
-		//}
+		}
 	}
 	var adjustedSeries ipaddr.ExtendedIPSegmentSeries
-	//AddressSegmentSeries adjustedSeries = original.adjustPrefixBySegment(true);
-	//Integer nextPrefix = adjustedSeries.getPrefixLength();
-	//if(!adjustedSeries.equals(next)) {
-	//	addFailure(new Failure("prefix next: " + adjustedSeries, next));
-	//} else {
-	//adjustedSeries = original.adjustPrefixBySegment(false);
-	//Integer prevPrefix = adjustedSeries.getPrefixLength();
-	//if(!adjustedSeries.equals(previous)) {
-	//	addFailure(new Failure("prefix previous: " + adjustedSeries, previous));
-	//} else {
 	adjustedSeries, err := original.AdjustPrefixLenZeroed(adjustment)
 	if err != nil {
 		t.addFailure(newSegmentSeriesFailure("adjusted prefix error: "+err.Error(), original))
 		return
 	}
 	adjustedPrefix := adjustedSeries.GetPrefixLen()
-
-	//ok, either I implement all this zero max host shit on mac, or I just have two different test methods
-	//going halfway is senseless
-	//
-	//ok let us go back and remove the toZeroHost and isZeroHost and just use separate methods
-	//
-	//thankfully I have not committed the shit i did so far
-
-	//if original.IsPrefixBlock() && adjustment < 0 {
-	//if original.IsPrefixed() && *adjustedPrefix >= original.GetBitCount()+adjustment {
 	if (original.IsPrefixed() && adjustedPrefix.Matches(original.GetBitCount()+adjustment)) ||
 		(!original.IsPrefixBlock() && adjustedSeries.IsZeroHost()) { //xxxxx if we do not have prefix block, then our positive adjustment creates what would be one, then our expected is one which is wrong
-		//xxx if adjustment is negative and original is pref block xxx
-		//  case 3 - original is prefix block, adjustment is negative, so we are not prefix block but expected is
-		// either we are converted to prefix block or what? that is the only option
-		// OR consider that we do have the correct expected but it is converted to prefix block: 255.96.*.*/11
-		// maybe we need to change the fact that address is converted to prefix block
-		// I think we do.
-
 		// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
 		adjusted, err = adjusted.ToZeroHost()
 		if err != nil {
@@ -500,28 +361,16 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 	}
 
 	if !adjustedSeries.Equal(adjusted) {
-		//TWO things wrong: 1. the new series is not a prefix subnet (which is actually correct, I think, since I wanted to stop doing that).  But how am I supposed to specify the result?  I guess with the toZeroHost
-		// 2. the canonical string things otherwise!  how is that possible?  wrong, it is correct
-		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.String() + " expected: " + adjusted.String() + " increment: " + adjustment.String())
-		//fmt.Println("original " + original.String() + " adjusted series: " + adjustedSeries.ToNormalizedWildcardString() + " expected: " + adjusted.ToNormalizedWildcardString() + " increment: " + adjustment.String())
 		t.addFailure(newSegmentSeriesFailure("prefix adjusted: "+adjustedSeries.String(), adjusted))
 		_, _ = original.AdjustPrefixLenZeroed(adjustment)
-		//a, berr := original.AdjustPrefixLenZeroed(adjustment)
-		//_ = berr
-		//a.String()
 	} else {
 		adjustedSeries, err = original.SetPrefixLenZeroed(prefix)
-		//adjustedSeries = original.SetPrefixLen(prefix)
 		if err != nil {
 			t.addFailure(newSegmentSeriesFailure("set prefix error: "+err.Error(), original))
 			return
 		}
-		//if original.IsPrefixBlock() && original.GetPrefixLen().Exceeds(prefix) {
 		if (original.IsPrefixed() && original.GetPrefixLen().Matches(original.GetBitCount())) ||
 			(!original.IsPrefixBlock() && adjustedSeries.IsZeroHost()) {
-			//xxx if diff between prefix set and original is negative and original is pref block xxx
-
-			//if original.IsPrefixed() && *original.GetPrefixLen() == original.GetBitCount() && original.GetPrefixLen().Is(original.GetBitCount()) {
 			// all host bits of matching address are zeroed out, so we must get the zero host and not the prefix subnet
 			prefixSet, err = prefixSet.ToZeroHost()
 			if err != nil {
@@ -535,23 +384,10 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 			fmt.Println(original.String() + " set: " + adjustedSeries.String() + " expected: " + prefixSet.String() + " set prefix: " + bitCountToString(prefix))
 			t.addFailure(newSegmentSeriesFailure("prefix set: "+adjustedSeries.String(), prefixSet))
 		} else {
-			//adjustedSeries = original.ApplyPrefixLen(prefix);
-			//appliedPrefix := adjustedSeries.GetPrefixLen();
-			//if(!adjustedSeries.Equal(prefixApplied)) {
-			//t.addFailure(newFailure("prefix applied: " + adjustedSeries, prefixApplied));
-			//} else {
-
 			originalPref := original.GetPrefixLen()
 			var expected ExpectedPrefixes
 			bitLength := original.GetBitCount()
-			//segmentBitLength := original.GetBitsPerSegment()
 			if originalPref == nil {
-				//_, ok := original.Unwrap().(*ipaddr.MACAddress)
-				//if ok {
-				//	expected.previous = cacheTestBits(bitLength - segmentBitLength)
-				//} else {
-				//	expected.previous = cacheTestBits(bitLength)
-				//}
 				if adjustment <= 0 {
 					expected.adjusted = cacheTestBits(bitLength + adjustment)
 				} else {
@@ -559,29 +395,15 @@ func (t testBase) testPrefixes(original ipaddr.ExtendedIPSegmentSeries,
 				}
 				expected.set = cacheTestBits(prefix)
 			} else {
-				//if *originalPref != bitLength {
-				//	expected.next = cacheTestBits(min(bitLength, ((*originalPref + segmentBitLength) / segmentBitLength) * segmentBitLength))
-				//}
-				//expected.previous = cacheTestBits(max(0, ((*originalPref - 1) / segmentBitLength) * segmentBitLength));
 				adj := min(max(0, originalPref.Len()+adjustment), original.GetBitCount())
-				//if adj <= bitLength {
 				expected.adjusted = cacheTestBits(adj)
-				//}
-				//this.set = set;
 				expected.set = cacheTestBits(prefix)
 			}
-
-			//ExpectedPrefixes expected = new ExpectedPrefixes(original instanceof MACAddress, original.getPrefixLength(), original.getBitCount(), original.getBitsPerSegment(), prefix, adjustment);
 			if !expected.compare(adjustedPrefix, setPrefix) {
-				//if(!expected.compare(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)) {
 				t.addFailure(newSegmentSeriesFailure("expected: "+expected.adjusted.String()+" actual "+adjustedPrefix.String()+" expected: "+expected.set.String()+" actual "+setPrefix.String(), original))
-				//t.addFailure(newSegmentSeriesFailure(expected.print(nextPrefix, prevPrefix, adjustedPrefix, setPrefix, appliedPrefix)))
 			}
-			//}
 		}
 	}
-	//}
-	//	}
 }
 
 func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []string, sep byte, isMac bool) {
@@ -590,7 +412,6 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 	isIpv4 := !isMac && segmentCount == ipaddr.IPv4SegmentCount
 	prefixes := strings.Builder{}
 	prefixes.WriteString("[\n")
-	//StringBuilder prefixes = new StringBuilder("[\n");//currently unused
 	for replaceTargetIndex := 0; replaceTargetIndex < len(fronts); replaceTargetIndex++ {
 		if replaceTargetIndex > 0 {
 			prefixes.WriteString(",\n")
@@ -638,9 +459,7 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 					} else {
 						prefix = front.GetPrefixLen()
 					}
-				} //else {
-				//	prefix = null;
-				//}
+				}
 				replaceStr := " replacing " + strconv.Itoa(replaceCount) + " segments in " + front.String() + " at index " + strconv.Itoa(replaceTargetIndex) +
 					" with segments from " + back.String() + " starting at " + strconv.Itoa(replaceSourceIndex)
 
@@ -672,10 +491,6 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 					failStr := "Replacement was " + new1.String() + " expected was " + new2.String() + " " + replaceStr
 					t.addFailure(newIPAddrFailure(failStr, front.ToIP()))
 
-					//this was debug
-					//IPv6AddressSection frontSection = ((IPv6Address) front).getSection();
-					//IPv6AddressSection backSection = ((IPv6Address) back).getSection();
-					//frontSection.replace(replaceTargetIndex, replaceTargetIndex + replaceCount, backSection, replaceSourceIndex, replaceSourceIndex + replaceCount);
 				}
 				if lowest.Len() > 0 {
 					lowest.WriteByte(',')
@@ -691,9 +506,6 @@ func (t testBase) testReplace(front, back *ipaddr.Address, fronts, backs []strin
 }
 
 func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs []string, sep byte, expectedPref []ipaddr.PrefixLen, isMac bool) {
-	//if(front.getSegmentCount() >= expectedPref.length) {
-	//	throw new IllegalArgumentException();
-	//}
 	extra := 0
 	if isMac {
 		extra = ipaddr.ExtendedUniqueIdentifier64SegmentCount - front.GetSegmentCount()
@@ -715,7 +527,6 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			}
 			str.WriteString(backs[k])
 		}
-		//var hostIdStr ipaddr.HostIdentifierString
 
 		//Split up into two sections to test append
 		frontSection := front.GetSubSection(0, i)
@@ -745,8 +556,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 		//We already test append pretty good
 		//So really, just insert the middle one after appending first and last
 		var splitsJoined []*ipaddr.Address
-		//List<Address> splitsJoined = new ArrayList<Address>(splits.size());
-		//try {
+
 		var mixed, mixed2 *ipaddr.Address
 		if isMac {
 			hostIdStr := t.createMACAddress(str.String())
@@ -758,7 +568,6 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				mixed = mixed.SetPrefixLen(max(ipaddr.BitCount(i)*bitsPerSegment, back.GetPrefixLen().Len()))
 			}
 			sec := frontSection.ToMAC().Append(backSection.ToMAC())
-			//mixed2 = (back.ToMAC()).GetNetwork().getAddressCreator().createAddress(sec);
 			mixed2x, err := ipaddr.NewMACAddress(sec)
 			if err != nil {
 				t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
@@ -767,24 +576,14 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 
 			if frontSectionInvalid != nil && backSectionInvalid != nil {
 				//This doesn't fail anymore because we allow large sections
-				//try {
 				newSec := (frontSection.ToMAC()).Append(backSectionInvalid.ToMAC())
 				if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
 					t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 				}
-				//addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
-				//} catch(AddressValueException e) {
-				//pass
-				//}
-				//try {
 				newSec = (frontSectionInvalid.ToMAC()).Append(backSection.ToMAC())
 				if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
 					t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 				}
-				//addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
-				//} catch(AddressValueException e) {
-				//pass
-				//}
 			}
 			for o := 0; o < len(splits); o++ {
 				split := splits[o]
@@ -792,9 +591,6 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				g := split[1]
 				h := split[2]
 				sec = f.ToMAC().Append(h.ToMAC())
-				//if(h.IsPrefixed() && h.GetPrefixLen() == 0 && !f.IsPrefixed()) {
-				//	sec = sec.AppendToPrefix((MACAddressSection) g);
-				//} else {
 				sec = sec.Insert(f.GetSegmentCount(), g.ToMAC())
 				if h.IsPrefixed() && h.GetPrefixLen().Len() == 0 && !f.IsPrefixed() {
 					gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.MACBitsPerSegment
@@ -803,11 +599,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					}
 					sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.MACBitsPerSegment + gPref)
 				}
-
-				//}
 				mixed3, err := ipaddr.NewMACAddress(sec)
-
-				//MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 				}
@@ -831,33 +623,20 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 			if isIpv4 {
 				sec := (frontSection.ToIPv4()).Append(backSection.ToIPv4())
 				mixed2x, err := ipaddr.NewIPv4Address(sec)
-				//mixed2 = ( back.ToIPv4()).GetNetwork().GetAddressCreator().createAddress(sec);
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 				}
 				mixed2 = mixed2x.ToAddressBase()
 
 				if frontSectionInvalid != nil && backSectionInvalid != nil {
-					//try {
 					newSec := (frontSection.ToIPv4()).Append(backSectionInvalid.ToIPv4())
 					if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
-					//((IPv4AddressSection) frontSection).append((IPv4AddressSection) backSectionInvalid);
-					//addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
-					//} catch(AddressValueException e) {
-					//pass
-					//}
-					//try {
 					newSec = (frontSectionInvalid.ToIPv4()).Append(backSection.ToIPv4())
 					if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
-					//((IPv4AddressSection) frontSectionInvalid).append((IPv4AddressSection) backSection);
-					//addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
-					//} catch(AddressValueException e) {
-					//pass
-					//}
 				}
 				for o := 0; o < len(splits); o++ {
 					split := splits[o]
@@ -865,9 +644,6 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					g := split[1]
 					h := split[2]
 					sec = (f.ToIPv4()).Append(h.ToIPv4())
-					//if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
-					//	sec = sec.appendToNetwork((IPv4AddressSection) g);
-					//} else {
 					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv4())
 					if h.IsPrefixed() && h.GetPrefixLen().Len() == 0 && !f.IsPrefixed() {
 						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv4BitsPerSegment
@@ -876,43 +652,28 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 						}
 						sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.IPv4BitsPerSegment + gPref)
 					}
-					//}
 					mixed3, err := ipaddr.NewIPv4Address(sec)
-					//MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
 					if err != nil {
 						t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 					}
 					splitsJoined = append(splitsJoined, mixed3.ToAddressBase())
-					//IPv4Address mixed3 = ((IPv4Address) back).getNetwork().getAddressCreator().createAddress(sec);
-					//splitsJoined.add(mixed3);
 				}
 			} else { // IPv6
 				sec := frontSection.ToIPv6().Append(backSection.ToIPv6())
 				mixed2x, err := ipaddr.NewIPv6Address(sec)
-				//mixed2x, err := ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
 				if err != nil {
 					t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 				}
 				mixed2 = mixed2x.ToAddressBase()
 				if frontSectionInvalid != nil && backSectionInvalid != nil {
-					//try {
 					newSec := (frontSection.ToIPv6()).Append(backSectionInvalid.ToIPv6())
 					if newSec.GetSegmentCount() != frontSection.GetSegmentCount()+backSectionInvalid.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
-					//	addFailure(new Failure("invalid segment length should have failed in join of " + frontSection + " with " + backSectionInvalid, front));
-					//} catch(AddressValueException e) {
-					//pass
-					//}
-					//try {
 					newSec = (frontSectionInvalid.ToIPv6()).Append(backSection.ToIPv6())
 					if newSec.GetSegmentCount() != frontSectionInvalid.GetSegmentCount()+backSection.GetSegmentCount() {
 						t.addFailure(newSegmentSeriesFailure("unexpected seg count: "+strconv.Itoa(newSec.GetSegmentCount()), newSec))
 					}
-					//addFailure(new Failure("invalid segment length should have failed in join of " + frontSectionInvalid + " with " + backSection, front));
-					//} catch(AddressValueException e) {
-					//pass
-					//}
 				}
 				for o := 0; o < len(splits); o++ {
 					split := splits[o]
@@ -920,11 +681,7 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 					g := split[1]
 					h := split[2]
 					sec = f.ToIPv6().Append(h.ToIPv6())
-					//if(h.isPrefixed() && h.getPrefixLength() == 0 && !f.isPrefixed()) {
-					//	sec = sec.appendToNetwork((IPv6AddressSection) g);
-					//} else {
 					sec = sec.Insert(f.GetSegmentCount(), g.ToIPv6())
-					//}
 					if h.IsPrefixed() && h.GetPrefixLen().Len() == 0 && !f.IsPrefixed() {
 						gPref := ipaddr.BitCount(g.GetSegmentCount()) * ipaddr.IPv6BitsPerSegment
 						if g.IsPrefixed() {
@@ -933,29 +690,15 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 						sec = sec.SetPrefixLen(ipaddr.BitCount(f.GetSegmentCount())*ipaddr.IPv6BitsPerSegment + gPref)
 					}
 					mixed3, err := ipaddr.NewIPv6Address(sec)
-					//MACAddress mixed3 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
 					if err != nil {
 						t.addFailure(newSegmentSeriesFailure("unexpected error: "+err.Error(), sec))
 					}
 					splitsJoined = append(splitsJoined, mixed3.ToAddressBase())
-					//IPv6Address mixed3 = ((IPv6Address) back).getNetwork().getAddressCreator().createAddress(sec);
-					//splitsJoined.add(mixed3);
 				}
 			}
 		}
 		if !mixed.Equal(mixed2) {
 			t.addFailure(newSegmentSeriesFailure("mixed was "+mixed.String()+" expected was "+mixed2.String(), mixed))
-			//hostIdStr = createMACAddress(str.toString());
-			//mixed = hostIdStr.GetAddress();
-			//if(front.isPrefixed() && front.getPrefixLength() <= i * bitsPerSegment) {
-			//	mixed = mixed.setPrefixLength(front.getPrefixLength(), false);
-			//} else if(back.isPrefixed()) {
-			//	mixed = mixed.setPrefixLength(Math.max(i * bitsPerSegment, back.getPrefixLength()), false);
-			//}
-			//MACAddressSection sec = ((MACAddressSection) frontSection).append((MACAddressSection) backSection);
-			//mixed2 = ((MACAddress) back).getNetwork().getAddressCreator().createAddress(sec);
-			//System.out.println("mixed is " + mixed);
-			//System.out.println("mixed2 is " + mixed2);
 		}
 		if !expectedPref[i].Equal(mixed.GetPrefixLen()) {
 			t.addFailure(newSegmentSeriesFailure("mixed prefix was "+mixed.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed))
@@ -972,20 +715,9 @@ func (t testBase) testAppendAndInsert(front, back *ipaddr.Address, fronts, backs
 				t.addFailure(newSegmentSeriesFailure("mixed was "+mixed3.String()+" expected was "+mixed2.String(), mixed3))
 			}
 			if !expectedPref[i].Equal(mixed3.GetPrefixLen()) {
-				//fmt.Printf("%v\n", splitsJoined)
-				//fmt.Printf("%v\n", splits)
 				t.addFailure(newSegmentSeriesFailure("mixed3 prefix was "+mixed3.GetPrefixLen().String()+" expected was "+expectedPref[i].String(), mixed3))
 			}
 		}
-		//} catch(IncompatibleAddressException e) {
-		//	if(expectedPref[i] == null || expectedPref[i] >= 0) {
-		//		addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
-		//	}
-		//} catch(IllegalArgumentException e) {
-		//	if(expectedPref[i] == null || expectedPref[i] >= 0) {
-		//		addFailure(new Failure("expected prefix " + expectedPref[i] + ", but append failed due to prefix for " + frontSection + " and " + backSection, hostIdStr));
-		//	}
-		//}
 	}
 	t.incrementTestCount()
 }
@@ -995,7 +727,6 @@ func (t testBase) testIncrement(orig *ipaddr.Address, increment int64, expectedR
 }
 
 func (t testBase) testIncrementF(orig *ipaddr.Address, increment int64, expectedResult *ipaddr.Address, first bool) {
-	//try {
 	result := orig.Increment(increment)
 	if expectedResult == nil {
 		if result != nil {
@@ -1006,15 +737,9 @@ func (t testBase) testIncrementF(orig *ipaddr.Address, increment int64, expected
 			t.addFailure(newSegmentSeriesFailure("increment mismatch result "+result.String()+" vs expected "+expectedResult.String(), orig))
 		}
 		if first && !orig.IsMultiple() && increment > math.MinInt64 { //negating Long.MIN_VALUE results in same address
-			//if(first && !orig.isMultiple() && increment > Long.MIN_VALUE) {//negating Long.MIN_VALUE results in same address
 			t.testIncrementF(expectedResult, -increment, orig, false)
 		}
 	}
-	//} catch(AddressValueException e) {
-	//if(expectedResult != null) {
-	//	addFailure(newIPAddrFailure("increment mismatch exception " +  e.Error() + ", expected " + expectedResult, orig));
-	//}
-	//}
 	t.incrementTestCount()
 }
 
@@ -1062,12 +787,6 @@ func (t testBase) testIPv6OnlyStrings(w *ipaddr.IPAddressString, ipAddr *ipaddr.
 	mixedString,
 	base85String string) {
 
-	//if ipAddr == nil {
-	//	t.addFailure(newFailure("failed expected IPv6 address, got nil ", w))
-	//	return
-	//}
-
-	//try {
 	base85 := ""
 	//try { TODO LATER base85
 	//	base85 = ipAddr.toBase85String();
@@ -1136,8 +855,6 @@ func (t testBase) confirmMACAddrStrings(macAddr *ipaddr.MACAddress, strs ...stri
 	return true
 }
 
-//private static final IPAddressStringParams DEFAULT_BASIC_VALIDATION_OPTIONS = new IPAddressStringParams.Builder().toParams();
-
 func (t testBase) confirmAddrStrings(ipAddr *ipaddr.IPAddress, strs ...string) bool {
 	for _, str := range strs {
 		if str == "" {
@@ -1148,11 +865,6 @@ func (t testBase) confirmAddrStrings(ipAddr *ipaddr.IPAddress, strs ...string) b
 		addr := addrString.GetAddress()
 		if !ipAddr.Equal(addr) {
 			t.addFailure(newIPAddrFailure("failed produced string: "+str, ipAddr))
-			//fmt.Println("failed: " + str)
-			//fmt.Println(fmt.Sprintf("original: "+ipAddr.String()+" others: %v", strs))
-			//t.confirmAddrStrings(ipAddr, strs...)
-			//addrString = createAddress(str, DEFAULT_BASIC_VALIDATION_OPTIONS);
-			//addrString.GetAddress();
 			return false
 		}
 	}
@@ -1234,7 +946,6 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 
 	var hex, hexNoPrefix string
 	var err error
-	//try {
 	hex, err = ipAddr.ToHexString(true)
 	if err != nil {
 		isMatch := singleHex == ""
@@ -1244,13 +955,6 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 	} else {
 		t.confirmMACAddrStrings(ipAddr, hex)
 	}
-	//} catch(IncompatibleAddressException | IllegalStateException e) {
-	//	boolean isMatch = singleHex == null;
-	//	if(!isMatch) {
-	//		addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
-	//	}
-	//}
-	//try {
 	hexNoPrefix, err = ipAddr.ToHexString(false)
 	if err != nil {
 		isMatch := singleHex == ""
@@ -1265,12 +969,6 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 		}
 		t.confirmMACAddrStrings(ipAddr, hexNoPrefix) //For ipv4, no 0x means decimal
 	}
-	//} catch(IncompatibleAddressException | IllegalStateException e) {
-	//	boolean isMatch = singleHex == null;
-	//	if(!isMatch) {
-	//		addFailure(new Failure("failed expected non-null, actual: " + e, w));
-	//	}
-	//}
 
 	t.confirmMACAddrStrings(ipAddr, c, canonical, d, n, cd, sd)
 
@@ -1292,7 +990,6 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 				} else {
 					var sMatch bool
 					var dotted string
-					//try {
 					dotted, err = ipAddr.ToDottedString()
 					if err != nil {
 						sMatch = dottedString == ""
@@ -1300,9 +997,6 @@ func (t testBase) testMACStrings(w *ipaddr.MACAddressString,
 						t.confirmMACAddrStrings(ipAddr, dotted)
 						sMatch = dotted == (dottedString)
 					}
-					//} catch(IncompatibleAddressException e) {
-					//	sMatch = (dottedString == null);
-					//}
 					if !sMatch {
 						t.addFailure(newMACFailure("failed expected: "+dottedString+" actual: "+dotted, w))
 					} else {
@@ -1361,7 +1055,6 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	singleHex,
 	singleOctal string) {
 	// testing: could test a leading zero split digit non-reverse string - a funky range string with split digits and leading zeros, like 100-299.*.10-19.4-7 which should be 1-2.0-9.0-9.*.*.*.0.1.0-9.0.0.4-7
-	//try {
 
 	if !ipAddr.IsIPv6() || !ipAddr.ToIPv6().HasZone() {
 		if singleHex != "" && singleOctal != "" {
@@ -1410,13 +1103,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 		}
 		t.confirmAddrStrings(ipAddr, hex)
 	}
-	//} catch(IncompatibleAddressException | IllegalStateException e) {
-	//	boolean isMatch = singleHex == null;
-	//	if(!isMatch) {
-	//		addFailure(new Failure("failed expected: " + singleHex + " actual: " + e, w));
-	//	}
-	//}
-	//try {
+
 	hexNoPrefix, err = ipAddr.ToHexString(false)
 	if err != nil {
 		isMatch := singleHex == ""
@@ -1428,13 +1115,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 			t.confirmAddrStrings(ipAddr, hexNoPrefix) //For ipv4, no 0x means decimal
 		}
 	}
-	//} catch(IncompatibleAddressException | IllegalStateException e) {
-	//	boolean isMatch = singleHex == null;
-	//	if(!isMatch) {
-	//		addFailure(new Failure("failed expected non-null, actual: " + e, w));
-	//	}
-	//}
-	//try {
+
 	octal, err = ipAddr.ToOctalString(true)
 	if err != nil {
 		isMatch := singleOctal == ""
@@ -1450,14 +1131,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 			t.confirmAddrStrings(ipAddr, octal)
 		}
 	}
-	//} catch(IncompatibleAddressException | IllegalStateException e) {
-	//	boolean isMatch = singleOctal == null;
-	//	if(!isMatch) {
-	//		addFailure(new Failure("failed expected: " + singleOctal + " actual: " + e, w));
-	//	}
-	//}
 
-	//try {
 	binary, err := ipAddr.ToBinaryString(false)
 	if err != nil {
 		isMatch := singleHex == "" //iff hex is null is binary null
@@ -1499,12 +1173,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 		}
 		t.confirmAddrStrings(ipAddr, withStrPrefix)
 	}
-	//} catch(IncompatibleAddressException | IllegalStateException e) {
-	//	boolean isMatch = singleHex == null;//iff hex is null is binary null
-	//	if(!isMatch) {
-	//		addFailure(new Failure("failed expected non-null binary string but got: " + e, w));
-	//	}
-	//}
+
 	binary = ipAddr.ToSegmentedBinaryString()
 	t.confirmAddrStrings(ipAddr, c, canonical, s, cidr, n, nw, caw, cw, binary)
 	if ipAddr.IsIPv6() {
@@ -1512,7 +1181,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, true, rDNS);//these two are valid hosts with embedded addresses
 		//t.confirmHostStrings(ipAddr, false, unc);//these two are valid hosts with embedded addresses
 	} else {
-		params := new(addrparam.IPAddressStringParamsBuilder).Allow_inet_aton(false).ToParams()
+		params := new(addrstrparam.IPAddressStringParamsBuilder).Allow_inet_aton(false).ToParams()
 		fullAddrString := ipaddr.NewIPAddressStringParams(full, params)
 		t.confirmIPAddrStrings(ipAddr, fullAddrString)
 		//TODO LATER reinstate //t.confirmHostStrings(ipAddr, false, rDNS, unc);//these two are valid hosts with embedded addresses
@@ -1521,7 +1190,7 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 	if ipAddr.IsIPv6() {
 		t.confirmHostStrings(ipAddr, false, full)
 	} else {
-		params := new(addrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
+		params := new(addrstrparam.HostNameParamsBuilder).GetIPAddressParamsBuilder().Allow_inet_aton(false).GetParentBuilder().ToParams()
 		fullAddrString := ipaddr.NewHostNameParams(full, params)
 		t.confirmHostNameStrings(ipAddr, fullAddrString)
 	}
@@ -1586,9 +1255,6 @@ func (t testBase) testStrings(w *ipaddr.IPAddressString,
 			}
 		}
 	}
-	//} catch(RuntimeException e) {
-	//	addFailure(new Failure("unexpected throw: " + e));
-	//}
 	t.incrementTestCount()
 }
 
@@ -1610,13 +1276,8 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 	} else {
 		count = val.GetCount()
 	}
-	//BigInteger count = excludeZeroHosts ? ((IPAddress)val).getNonZeroHostCount() : val.getCount(); // non zero host count: check if includesZeroHost, and if not, 0, if so, then get prefix count, subtract from total count
 	var set []ipaddr.AddressItem
-	//Set<AddressItem> set = new HashSet<AddressItem>();
 	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
-		//IPAddressString w3 = t.createAddress(w.toString());
-		//Address val3 = w3.getAddress();
-		//count = excludeZeroHosts ? ((IPAddress)val3).getNonZeroHostCount() : val3.getCount();
 		t.addFailure(newSegmentSeriesFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), val))
 	} else {
 		var addrIterator ipaddr.AddressIterator
@@ -1625,7 +1286,6 @@ func (t testBase) testCountImpl(w ipaddr.ExtendedIdentifierString, number uint64
 		} else {
 			addrIterator = val.ToAddressBase().Iterator()
 		}
-		//Iterator<? extends Address> addrIterator = excludeZeroHosts ? ((IPAddress)val).nonZeroHostIterator() : val.iterator();
 		var counter uint64
 		var next *ipaddr.Address
 		for addrIterator.HasNext() {
@@ -1962,10 +1622,6 @@ func (f failure) String() string {
 }
 
 func concat(str string, stringer fmt.Stringer) string {
-	//val := reflect.ValueOf(stringer)
-	//if !val.IsValid() {
-	//	return str
-	//}
 	if stringer != nil {
 		stringerStr := stringer.String()
 		if stringerStr == "<nil>" {
@@ -2034,28 +1690,10 @@ func newFailure(str string, addrStr *ipaddr.IPAddressString) failure {
 	return newHostIdFailure(str, addrStr)
 }
 
-//var cachedPrefixLens = initPrefLens()
-//
-//func initPrefLens() []ipaddr.PrefixLen {
-//	cachedPrefLens := make([]ipaddr.PrefixLen, ipaddr.IPv6BitCount+1)
-//	for i := ipaddr.BitCount(0); i <= ipaddr.IPv6BitCount; i++ {
-//		//bc := i
-//		//cachedPrefLens[i] = &bc
-//		cachedPrefLens[i] = &ipaddr.prefixBitCount{i}
-//	}
-//	return cachedPrefLens
-//}
-
 func cacheTestBits(i ipaddr.BitCount) ipaddr.PrefixLen {
 	res := ipaddr.PrefixBitCount(i)
 	return &res
-	//return ipaddr.ToPrefixLen(i)
-	//return &ipaddr.PrefixBitCount(i)
 }
-
-//var px = ipaddr.PrefixX{}
-//var one ipaddr.BitCount = 1
-//var px = ipaddr.PrefixX{&one}
 
 var (
 	pnil ipaddr.PrefixLen = nil

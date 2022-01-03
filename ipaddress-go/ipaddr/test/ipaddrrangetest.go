@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ func (t ipAddressRangeTester) run() {
 	t.testEquivalentPrefix("0-127.*.*.*", 1)
 	t.testEquivalentPrefix("128-255.*.*.*", 1)
 	t.testEquivalentPrefix("*.*.*.*/1", 0)
-	//t.testEquivalentPrefix("0.*.*.*/1", 1)
 	t.testEquivalentPrefix("0.*.*.*/1", 8)
 	t.testEquivalentPrefix("128-255.*.*.*/1", 1)
 	t.testEquivalentPrefix("1.2.*.*", 16)
@@ -112,7 +111,6 @@ func (t ipAddressRangeTester) run() {
 		"255.127.0.0/24",
 		"255.0.0.0/8",
 		"255.96.*.*/11",
-		//"255.96.0.0/11",
 		"255.127.0.0/16",
 		"255.127.0.0/16")
 
@@ -120,10 +118,8 @@ func (t ipAddressRangeTester) run() {
 		16, -17,
 		"255.127.0.0/24",
 		"255.127.0.0/16",
-		//"0.0.0.0/0",
 		"0.0.0-127.*/0",
 		"255.127.0-127.*/16",
-		//"255.127.0.0/16",
 		"255.127.0.0/16")
 
 	t.testPrefixes("ffff:ffff:1:ffff::/64",
@@ -131,8 +127,6 @@ func (t ipAddressRangeTester) run() {
 		"ffff:ffff:1:ffff::/80",
 		"ffff:ffff:1::/48",
 		"ffff:ffff:1:ffe0:*:*:*:*/59",
-		//"ffff:ffff:1:ffe0::/59",
-		//"ffff::/16",
 		"ffff::*:*:*:*/16",
 		"ffff::/16")
 
@@ -141,7 +135,6 @@ func (t ipAddressRangeTester) run() {
 		"ffff:ffff:1:ffff::/80",
 		"ffff:ffff:1::/48",
 		"ffff:ffff:1:ffff::/65",
-		//"ffff::/16",
 		"ffff::*:*:*:*/16",
 		"ffff::/16")
 
@@ -186,12 +179,6 @@ func (t ipAddressRangeTester) run() {
 	t.testDelimitedCount("1:2,3,*:3:ffff:ffff:6:4:5,ff,7,8,99", 15)
 	t.testDelimitedCount("0,1-2,3,5:3::6:4:5,ffff,7,8,99", 30)
 
-	//if(false) {
-	//	testMatches(true, "1.2.3.4/16", "1.2.*.*");
-	//	testMatches(true, "1.2.3.4/16", "1.2.*");
-	//	testMatches(false, "1.2.3.4/15", "1.2.*.*");
-	//	testMatches(false, "1.2.3.4/17", "1.2.*.*");
-	//} else {
 	t.testMatches(true, "1.2.3.4/16", "1.2.3.4")
 	t.testMatches(true, "1.2.3.4/15", "1.2.3.4")
 	t.testMatches(true, "1.2.3.4/17", "1.2.3.4")
@@ -203,8 +190,6 @@ func (t ipAddressRangeTester) run() {
 	t.testMatches(true, "1.2.0.4/14", "1.2.0.4")
 	t.testMatches(true, "1.2.0.0/14", "1.2.0.0")
 	t.testMatches(true, "1.0.3.0/14", "1.0.3.0")
-
-	//}
 
 	t.testMatches(true, "1.2.0.0/16", "1.2.*.*")
 	t.testMatches(true, "1.2.0.0/16", "1.2.*")
@@ -379,18 +364,10 @@ func (t ipAddressRangeTester) run() {
 	t.testMatches(true, "::1:0:0:0.0.0.0", "0:0:0:1::0.0.0.0")
 
 	t.testMatches(true, "1::-1:16", "1::0-1:16")
-	//if isNoAutoSubnets {
-	//	t.testMatches(true, "1::-1:16/16", "1::0-1:16")
-	//	t.testMatches(true, "1::-1:16", "1::0-1:16/16")
-	//	t.testMatches(true, "1:-1::16/16", "1:0-1::16")
-	//	t.testMatches(true, "1:-1::16", "1:0-1::16/16")
-	//} else if false {
-	//	t.testMatches(true, "1:-1::16/32", "1:0-1:*")
-	//	t.testMatches(true, "1:-1:*", "1:0-1::16/32")
-	//} else {
+
 	t.testMatches(true, "1:-1::16/32", "1:0-1::16")
 	t.testMatches(true, "1:-1::16", "1:0-1::16/32")
-	//}
+
 	t.testMatches(true, "0.0.0.-", "0.0.0.*")           // ok
 	t.testMatches(true, "1-.0.0.1-", "1-255.0.0.1-255") // ok // more than one inferred range
 
@@ -451,25 +428,25 @@ func (t ipAddressRangeTester) run() {
 	t.ipv6test(false, "1:*::1/1:*::2")
 	t.ipv6test(true, "1:*::1/1::2")
 
-	t.ipv4rangetest(true, "1.1.*.100-101", addrparam.WildcardAndRange)
-	t.ipv4rangetest(true, "1.2.*.101-100", addrparam.WildcardAndRange)   //downwards range
-	t.ipv4rangetest(false, "1.2.*.1010-100", addrparam.WildcardAndRange) //downwards range
-	t.ipv4rangetest(true, "1.2.*.101-101", addrparam.WildcardAndRange)
-	t.ipv6rangetest(true, "1:2:f4:a-ff:0-2::1", addrparam.WildcardAndRange)
-	t.ipv6rangetest(true, "1:2:4:ff-a:0-2::1", addrparam.WildcardAndRange)     //downwards range
-	t.ipv6rangetest(false, "1:2:4:ff1ff-a:0-2::1", addrparam.WildcardAndRange) //downwards range
-	t.ipv4rangetest(true, "1.2.*.101-100/24", addrparam.WildcardAndRange)      //downwards range but covered CIDR
+	t.ipv4rangetest(true, "1.1.*.100-101", addrstrparam.WildcardAndRange)
+	t.ipv4rangetest(true, "1.2.*.101-100", addrstrparam.WildcardAndRange)   //downwards range
+	t.ipv4rangetest(false, "1.2.*.1010-100", addrstrparam.WildcardAndRange) //downwards range
+	t.ipv4rangetest(true, "1.2.*.101-101", addrstrparam.WildcardAndRange)
+	t.ipv6rangetest(true, "1:2:f4:a-ff:0-2::1", addrstrparam.WildcardAndRange)
+	t.ipv6rangetest(true, "1:2:4:ff-a:0-2::1", addrstrparam.WildcardAndRange)     //downwards range
+	t.ipv6rangetest(false, "1:2:4:ff1ff-a:0-2::1", addrstrparam.WildcardAndRange) //downwards range
+	t.ipv4rangetest(true, "1.2.*.101-100/24", addrstrparam.WildcardAndRange)      //downwards range but covered CIDR
 
 	//these tests create strings that validate ipv4 and ipv6 differently, allowing ranges for one and not the other
-	t.ipv4rangestest(true, "1.*.3.4", addrparam.WildcardAndRange, addrparam.NoRange)
-	t.ipv4rangestest(false, "1.*.3.4", addrparam.NoRange, addrparam.WildcardAndRange)
-	t.ipv6rangestest(false, "a:*::1.*.3.4", addrparam.WildcardAndRange, addrparam.NoRange)
-	t.ipv6rangestest(true, "a:*::1.*.3.4", addrparam.NoRange, addrparam.WildcardAndRange)
-	t.ipv6rangestest(false, "a:*::", addrparam.WildcardAndRange, addrparam.NoRange)
-	t.ipv6rangestest(true, "a:*::", addrparam.NoRange, addrparam.WildcardAndRange)
+	t.ipv4rangestest(true, "1.*.3.4", addrstrparam.WildcardAndRange, addrstrparam.NoRange)
+	t.ipv4rangestest(false, "1.*.3.4", addrstrparam.NoRange, addrstrparam.WildcardAndRange)
+	t.ipv6rangestest(false, "a:*::1.*.3.4", addrstrparam.WildcardAndRange, addrstrparam.NoRange)
+	t.ipv6rangestest(true, "a:*::1.*.3.4", addrstrparam.NoRange, addrstrparam.WildcardAndRange)
+	t.ipv6rangestest(false, "a:*::", addrstrparam.WildcardAndRange, addrstrparam.NoRange)
+	t.ipv6rangestest(true, "a:*::", addrstrparam.NoRange, addrstrparam.WildcardAndRange)
 
-	//		octal, hex, dec overflow
-	//		do it with 1, 2, 3, 4 segments
+	// octal, hex, dec overflow
+	// do it with 1, 2, 3, 4 segments
 	t.ipv4_inet_aton_test(true, "0.0.0.1-255")
 	t.ipv4_inet_aton_test(false, "0.0.0.1-256")
 	t.ipv4_inet_aton_test(true, "0.0.512-65535")
@@ -478,7 +455,6 @@ func (t ipAddressRangeTester) run() {
 	t.ipv4_inet_aton_test(false, "0.65536-16777216")
 	t.ipv4_inet_aton_test(true, "16777216-4294967295")
 	t.ipv4_inet_aton_test(true, "0b00000001000000000000000000000000-4294967295")
-	//t.ipv4_inet_aton_test(true, "0b1000000000000000000000000-4294967295");
 	t.ipv4_inet_aton_test(false, "16777216-4294967296")
 	t.ipv4_inet_aton_test(false, "0.0.0.0x1x")
 	t.ipv4_inet_aton_test(false, "0.0.0.1x")
@@ -497,7 +473,6 @@ func (t ipAddressRangeTester) run() {
 	t.ipv4_inet_aton_test(true, "0.0.0x100-017777")
 	t.ipv4_inet_aton_test(false, "0.0.0x100-0200000")
 	t.ipv4_inet_aton_test(true, "0.0x10000-077777777")
-	//t.ipv4_inet_aton_test(false, "0.0x1-077777777"); the given address throw IncompatibleAddressException as expected, would need to rewrite the test to make that a pass
 	t.ipv4_inet_aton_test(false, "0.0x10000-0100000000")
 	t.ipv4_inet_aton_test(true, "0x1000000-03777777777")
 	t.ipv4_inet_aton_test(true, "0x1000000-037777777777")
@@ -649,9 +624,9 @@ func (t ipAddressRangeTester) run() {
 	t.ipv6test(false, "2001:0000:1234:0000:0*:C1C0:ABCD:0876")         // extra 0 not allowed!
 	t.ipv6test(true, "2001:0000:1234:0000:*:C1C0:ABCD:0876")
 
-	//t.ipv6test(true," 2001:0000:1234:0000:0000:C1C0:ABCD:0876"); // leading space
-	//t.ipv6test(true,"2001:0000:1234:0000:0000:C1C0:ABCD:0876 "); // trailing space
-	//t.ipv6test(true," 2001:0000:1234:0000:0000:C1C0:ABCD:0876  "); // leading and trailing space
+	t.ipv6test(true, " 2001:0000:1234:0000:0000:C1C0:ABCD:0876")   // leading space
+	t.ipv6test(true, "2001:0000:1234:0000:0000:C1C0:ABCD:0876 ")   // trailing space
+	t.ipv6test(true, " 2001:0000:1234:0000:0000:C1C0:ABCD:0876  ") // leading and trailing space
 
 	t.ipv6test(false, "2001:0000:1234:0000:0000:C1C0*:ABCD:0876  0") // junk after valid address
 	t.ipv6test(false, "0 2001:0000:123*:0000:0000:C1C0:ABCD:0876")   // junk before valid address
@@ -1319,20 +1294,11 @@ func (t ipAddressRangeTester) run() {
 	t.testContains("192.13.1.0/25", "192.13.1.1-127", false)
 
 	t.testNotContains("192.13.1.0/25", "192.13.1.1-255")
-	//testContainsNonZeroHosts("192.13.1.1-127", "192.13.1.0/25")
-	//testContainsNonZeroHosts("192.13.1.1-255", "192.13.1.0/24")
-	//testNotContainsNonZeroHosts("192.13.1.1-255", "192.13.1.0/23")
-	//
-	//testContainsNonZeroHosts("192.13.1.0-255", "192.13.1.0/23")
 
 	t.testContains("192.13.1.0-255", "192.13.1.0/23", false)
 
 	t.testContains("192.13.0-1.0-255", "192.13.1.0/23", false)
 	t.testContains("192.13.0-1.0-255", "192.13.0.0/23", true)
-
-	//testContainsNonZeroHosts("::192:13:1:1-7fff", "::192:13:1:0/113")
-	//testContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/112")
-	//testNotContainsNonZeroHosts("::192:13:1:1-ffff", "::192:13:1:0/111")
 
 	t.testSubnet("1.2-4.3.4", "255.255.254.255", 24, "1.2-4.2.4/24", "1.2-4.2.4", "1.2-4.3.4/24")
 	t.testSubnet("1.2-4.3.4", "255.248.254.255", 24, "1.0.2.4/24", "1.0.2.4", "1.2-4.3.4/24")
@@ -1341,7 +1307,6 @@ func (t ipAddressRangeTester) run() {
 	t.testSubnet("0-ff::", "fff0::", 128, "", "", "0-ff:0:0:0:0:0:0:0/128")
 
 	t.testSubnet("0-ff::", "fff0::", 12, "0-ff:0:0:0:0:0:0:0/12", "", "0-ff:0:0:0:0:0:0:0/12")
-	//testSubnet("0-f0::", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", "0-f0:0:0:0:0:0:0:0", "0-f0:0:0:0:0:0:0:0/12");
 	t.testSubnet("0-f0::", "fff0::", 12, "0-f0:0:0:0:0:0:0:0/12", "", "0-f0:0:0:0:0:0:0:0/12")
 	t.testSubnet("0-f::", "fff0::", 12, "0-f:0:0:0:0:0:0:0/12", "0:0:0:0:0:0:0:0", "0-f:0:0:0:0:0:0:0/12")
 	t.testSubnet("0-f::*", "fff0::ffff", 12, "0-f:0:0:0:0:0:0:*/12", "0:0:0:0:0:0:0:*", "0-f:0:0:0:0:0:0:*/12")
@@ -1939,7 +1904,7 @@ func (t ipAddressRangeTester) run() {
 	t.testCountExcludeZeros("1.2.3.4/31", 2, 1)
 	t.testCountExcludeZeros("1.2.3.4/30", 4, 3)
 	t.testCountExcludeZeros("1.2.3.6/30", 1, 1)
-	t.testCountRangeParams("1.1-2.3.4", 2, 2, addrparam.WildcardAndRange)
+	t.testCountRangeParams("1.1-2.3.4", 2, 2, addrstrparam.WildcardAndRange)
 	t.testCountExcludeZeros("1.2.3.0/24", 256, 255)
 	t.testCountExcludeZeros("1.*.3.4", 256, 256)
 	t.testCountExcludeZeros("1.2.252.0/22", 4*256, (4*256)-1)
@@ -2050,24 +2015,24 @@ func (t ipAddressRangeTester) run() {
 	t.testRangePrefixCount("2:3:ffff:5::", "2:4:1:5::", 48, 3)
 
 	//these can take a while, since they generate 48640, 65536, and 32758 addresses respectively
-	t.testCountRangeParams("1.*.11-200.4", 190*256, 190*256, addrparam.WildcardAndRange)
+	t.testCountRangeParams("1.*.11-200.4", 190*256, 190*256, addrstrparam.WildcardAndRange)
 	t.testCountExcludeZeros("1.3.*.4/16", 256, 256)
-	t.testCountRangeParams("1.2.*.1-3/25", 256*3, 256*3, addrparam.WildcardAndRange)
-	t.testCountRangeParams("1.2.*.0-2/25", 256*3, (256*3)-256, addrparam.WildcardAndRange)
+	t.testCountRangeParams("1.2.*.1-3/25", 256*3, 256*3, addrstrparam.WildcardAndRange)
+	t.testCountRangeParams("1.2.*.0-2/25", 256*3, (256*3)-256, addrstrparam.WildcardAndRange)
 
 	t.testCountRangeParams("11-13.*.0.0/23", 3*256*2*256,
-		((3*256)*(2*256))-(3*256), addrparam.WildcardAndRange)
+		((3*256)*(2*256))-(3*256), addrstrparam.WildcardAndRange)
 
 	//this one test can take a while, since it generates (0xffff + 1) = 65536 addresses
 	t.testCountExcludeZeros("*::1", 0xffff+1, 0xffff+1)
 
-	t.testCountRangeParams("1-3::1", 3, 3, addrparam.WildcardAndRange)
-	t.testCountRangeParams("0-299::1", 0x299+1, 0x299+1, addrparam.WildcardAndRange)
+	t.testCountRangeParams("1-3::1", 3, 3, addrstrparam.WildcardAndRange)
+	t.testCountRangeParams("0-299::1", 0x299+1, 0x299+1, addrstrparam.WildcardAndRange)
 
 	//this one test can take a while, since it generates 3 * (0xffff + 1) = 196606 addresses
-	t.testCountRangeParams("1:2:4:*:0-2::1", 3*(0xffff+1), 3*(0xffff+1), addrparam.WildcardAndRange)
+	t.testCountRangeParams("1:2:4:*:0-2::1", 3*(0xffff+1), 3*(0xffff+1), addrstrparam.WildcardAndRange)
 
-	t.testCountRangeParams("1:2:4:0-2:0-2::1", 3*3, 3*3, addrparam.WildcardAndRange)
+	t.testCountRangeParams("1:2:4:0-2:0-2::1", 3*3, 3*3, addrstrparam.WildcardAndRange)
 	t.testCountExcludeZeros("1::2:3", 1, 1)
 	t.testCountExcludeZeros("1::2:3/128", 1, 0)
 	t.testCountExcludeZeros("1::2:3/127", 1, 1)
@@ -2111,7 +2076,6 @@ func (t ipAddressRangeTester) run() {
 
 	t.testMerge("1:2:3:4::/63", "1:2:3:4-5::/66", "1:2:3:4-5:8000::/65", "1:2:3:4-5:4000::/66") //[1:2:3:5::/65]
 
-	//testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65");
 	t.testMerge2("1:2:3:4::/64", "1:2:3:6::/64", "1:2:3:4:8000::/65", "1:2:3:4::/66", "1:2:3:4:4000::/66", "1:2:3:6:4000::/66", "1:2:3:6::/66", "1:2:3:6:8000::/65")
 
 	t.testMerge2("1.2.1.*", "1.2.2.*", "1.2.1.0", "1.2.2.0", "1.2.1-2.1-255")
@@ -2326,23 +2290,23 @@ func setBigString(str string, base int) *big.Int {
 	return res
 }
 
-func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions addrparam.RangeParams) {
+func (t ipAddressRangeTester) ipv4rangestest(pass bool, x string, ipv4RangeOptions, ipv6RangeOptions addrstrparam.RangeParams) {
 	t.iprangestest(pass, x, false, false, true, ipv4RangeOptions, ipv6RangeOptions)
 }
 
-func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions addrparam.RangeParams) {
+func (t ipAddressRangeTester) ipv4rangetest(pass bool, x string, rangeOptions addrstrparam.RangeParams) {
 	t.iprangetest(pass, x, false, false, true, rangeOptions)
 }
 
-func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options addrparam.RangeParams) {
+func (t ipAddressRangeTester) ipv6rangestest(pass bool, x string, ipv4Options, ipv6Options addrstrparam.RangeParams) {
 	t.iprangestest(pass, x, false, false, false, ipv4Options, ipv6Options)
 }
 
-func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options addrparam.RangeParams) {
+func (t ipAddressRangeTester) ipv6rangetest(pass bool, x string, options addrstrparam.RangeParams) {
 	t.iprangetest(pass, x, false, false, false, options)
 }
 
-func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions addrparam.RangeParams) {
+func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth, ipv4Test bool, ipv4RangeOptions, ipv6RangeOptions addrstrparam.RangeParams) {
 	addr := t.createDoubleParametrizedAddress(x, ipv4RangeOptions, ipv6RangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2350,7 +2314,7 @@ func (t ipAddressRangeTester) iprangestest(pass bool, x string, isZero, notBoth,
 	}
 }
 
-func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions addrparam.RangeParams) {
+func (t ipAddressRangeTester) iprangetest(pass bool, x string, isZero, notBoth, ipv4Test bool, rangeOptions addrstrparam.RangeParams) {
 	addr := t.createParametrizedAddress(x, rangeOptions)
 	if t.iptest(pass, addr, isZero, notBoth, ipv4Test) {
 		//do it a second time to test the caching
@@ -2454,7 +2418,7 @@ func (t ipAddressRangeTester) testPrefixCount(original string, number uint64) {
 	t.testPrefixCountImpl(w.Wrap(), number)
 }
 
-func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions addrparam.RangeParams) {
+func (t ipAddressRangeTester) testCountRangeParams(original string, number, excludeZerosNumber uint64, rangeOptions addrstrparam.RangeParams) {
 	w := t.createParametrizedAddress(original, rangeOptions)
 	t.testCountRedirect(w.Wrap(), number, excludeZerosNumber)
 }
@@ -2579,17 +2543,12 @@ func (t ipAddressRangeTester) testRangePrefixCountImpl(w, high *ipaddr.IPAddress
 	}
 	val := w.GetAddress().SpanWithRange(high.GetAddress())
 	count := val.GetPrefixCountLen(prefixLength)
-	//		Set<IPAddress> prefixBlockSet = new HashSet<IPAddress>();
-	//		Set<IPAddressSeqRange> prefixSet = new HashSet<IPAddressSeqRange>();
 	var prefixSet, prefixBlockSet []ipaddr.AddressItem
-	//Set<AddressItem> prefixBlockSet = new HashSet<AddressItem>();
-	//Set<AddressItem> prefixSet = new HashSet<AddressItem>();
 	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
 		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
 	} else {
 		addrIterator := val.PrefixBlockIterator(prefixLength)
 		var counter uint64
-		//IPAddress next = null, previous = null;
 		var next, previous *ipaddr.IPAddress
 		set := prefixBlockSet
 		for addrIterator.HasNext() {
@@ -2608,7 +2567,6 @@ func (t ipAddressRangeTester) testRangePrefixCountImpl(w, high *ipaddr.IPAddress
 			}
 			set = append(set, next)
 			previous = next
-			//System.out.println(next);
 			counter++
 		}
 		if number < uint64(maxInt) && len(set) != int(number) {
@@ -2622,14 +2580,11 @@ func (t ipAddressRangeTester) testRangePrefixCountImpl(w, high *ipaddr.IPAddress
 		totalCount := val.GetCount()
 		countedCount := bigZero()
 		rangeIterator := val.PrefixIterator(prefixLength)
-		//var counter uint64
 		counter = 0
 		rangeSet := prefixSet
 		var nextRange, previousRange *ipaddr.IPAddressSeqRange
-		//int i = 0;
 		for rangeIterator.HasNext() {
 			nextRange = rangeIterator.Next()
-			//System.out.println(++i + " " + nextRange);
 			blocks := nextRange.SpanWithPrefixBlocks()
 			if previous != nil && addrIterator.HasNext() {
 				if len(blocks) != 1 {
@@ -2693,7 +2648,6 @@ func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, seg
 	}
 	val := w.GetAddress()
 	count := val.GetBlockCount(segmentCount)
-	//count := val.GetPrefixCountLen(ipaddr.BitCount(segmentCount) * val.GetBitsPerSegment())
 	var set []ipaddr.AddressItem
 	if count.Cmp(new(big.Int).SetUint64(number)) != 0 {
 		t.addFailure(newFailure("count was "+count.String()+" instead of expected count "+strconv.FormatUint(number, 10), w))
@@ -2736,15 +2690,8 @@ func (t ipAddressRangeTester) testRangeBlocksImpl(w *ipaddr.IPAddressString, seg
 			sectionCounter++
 		}
 		if number < uint64(maxInt) && len(set) != int(number) {
-			//if((number < Integer.MAX_VALUE && set.size() != number) || counter != number) {
 			t.addFailure(newFailure("set count was "+strconv.Itoa(len(set))+" instead of expected "+strconv.Itoa(int(number)), w))
 		} else if sectionIterator.HasNext() {
-			//for {
-			//	sectionCounter++;
-			//	if !sectionIterator.HasNext() {
-			//		break
-			//	}
-			//}
 			t.addFailure(newFailure("counter mismatch, count was "+strconv.FormatUint(counter, 10)+" section count "+strconv.FormatUint(sectionCounter, 10), w))
 		} else if number > 0 {
 			upperSection := val.GetUpper().GetSubSection(0, segmentCount)
@@ -2791,8 +2738,6 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 	result := addr1.SpanWithPrefixBlocksTo(addr2)
 	resultList := result
 	var expectedList []*ipaddr.IPAddress
-	//List<IPAddress> resultList = Arrays.asList(result);
-	//List<IPAddress> expectedList = new ArrayList<>();
 	for _, s := range expected {
 		expectedList = append(expectedList, t.createAddress(s).GetAddress())
 	}
@@ -2827,20 +2772,17 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 
 	backAgain := result[0].MergeToPrefixBlocks(result...)
 	matches := ipaddr.AddrsMatchOrdered(result, backAgain)
-	//boolean matches = Arrays.deepEquals(result, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
 	}
 	backAgain = result[len(result)-1].MergeToPrefixBlocks(result...)
 	matches = ipaddr.AddrsMatchOrdered(result, backAgain)
-	//matches = Arrays.deepEquals(result, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
 	}
 	if len(result) > 2 {
 		backAgain = result[len(result)/2].MergeToPrefixBlocks(result...)
 		matches = ipaddr.AddrsMatchOrdered(result, backAgain)
-		//matches = Arrays.deepEquals(result, backAgain);
 		if !matches {
 			t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result)+" and "+asSliceString(backAgain), addr1))
 		}
@@ -2848,33 +2790,28 @@ func (t ipAddressRangeTester) testSpanAndMerge(address1, address2 string, count 
 
 	backAgain = result2[0].MergeToSequentialBlocks(result2...)
 	matches = ipaddr.AddrsMatchOrdered(result2, backAgain)
-	//matches = Arrays.deepEquals(result2, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
 	}
 	backAgain = result2[len(result2)-1].MergeToSequentialBlocks(result2...)
 	matches = ipaddr.AddrsMatchOrdered(result2, backAgain)
-	//matches = Arrays.deepEquals(result2, backAgain);
 	if !matches {
 		t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
 	}
 	if len(result2) > 2 {
 		backAgain = result2[len(result2)/2].MergeToSequentialBlocks(result2...)
 		matches = ipaddr.AddrsMatchOrdered(result2, backAgain)
-		//matches = Arrays.deepEquals(result2, backAgain);
 		if !matches {
 			t.addFailure(newIPAddrFailure("merge mismatch merging "+addr1.String()+" and "+addr2.String()+" into "+asSliceString(result2)+" and "+asSliceString(backAgain), addr1))
 		}
 	}
 
-	//List<IPAddressSeqRange> rangeList = new ArrayList<>();
 	var rangeList []*ipaddr.IPAddressSeqRange
 	for _, a := range result {
 		rng := a.ToSequentialRange()
 		rangeList = append(rangeList, rng)
 	}
 	joined := rangeList[0].Join(rangeList...)
-	//IPAddressSeqRange joined[] = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
 	if len(joined) == 0 || len(joined) > 1 || !joined[0].GetLower().Equal(addr1.GetLower()) || !joined[0].GetUpper().Equal(addr2.GetUpper()) {
 		t.addFailure(newIPAddrFailure("joined range "+asRangeSliceString(joined)+" did not match "+addr1.String()+" and "+addr2.String(), addr1))
 	}
@@ -2895,7 +2832,6 @@ func (t ipAddressRangeTester) testMergeSingles(addrStr string) {
 	addr := resultStr.GetAddress()
 	iter := addr.Iterator()
 	var addrs []*ipaddr.IPAddress
-	//ArrayList<IPAddress> addrs = new ArrayList<>();
 	for iter.HasNext() {
 		addrs = append(addrs, iter.Next())
 	}
@@ -2957,7 +2893,6 @@ func getMergedPrefixBlocksAlt(mergedBlocks []*ipaddr.IPAddress) (result []*ipadd
 }
 
 func getMergedPrefixBlocksAltRange(addresses []*ipaddr.IPAddress) (result []*ipaddr.IPAddress) {
-	//fmt.Printf("\nstarting with %v\n", addresses)
 	var ranges []*ipaddr.IPAddressSeqRange
 	for _, addr := range addresses {
 		iter := addr.SequentialBlockIterator()
@@ -2966,22 +2901,18 @@ func getMergedPrefixBlocksAltRange(addresses []*ipaddr.IPAddress) (result []*ipa
 			ranges = append(ranges, next)
 		}
 	}
-	//fmt.Printf("joining %v\n", ranges)
 	joined := ranges[0].Join(ranges...)
-	//fmt.Printf("result %v\n", joined)
 	for _, rng := range joined {
 		joins := rng.SpanWithPrefixBlocks()
 		for _, join := range joins {
 			result = append(result, join)
 		}
 	}
-	//fmt.Printf("spanned result %v\n", result)
 	return
 }
 
 func getMergedPrefixBlocksAltRange2(addresses []*ipaddr.IPAddress) (result []*ipaddr.IPAddress) {
 	var ranges []*ipaddr.IPAddressSeqRange
-	//	ArrayList<IPAddressSeqRange> ranges = new ArrayList<>(addresses.length << 3);
 	for _, addr := range addresses {
 		iter := addr.SequentialBlockIterator()
 		for iter.HasNext() {
@@ -2992,8 +2923,6 @@ func getMergedPrefixBlocksAltRange2(addresses []*ipaddr.IPAddress) (result []*ip
 	sort.Slice(ranges, func(i, j int) bool {
 		return ipaddr.LowValueComparator.CompareRanges(ranges[i], ranges[j]) < 0
 	})
-	//sort.Slice(ranges, less func(i, j int) bool)
-	//ranges.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
 	for i := 0; i < len(ranges); i++ {
 		one := ranges[i]
 		if one == nil {
@@ -3015,8 +2944,6 @@ func getMergedPrefixBlocksAltRange2(addresses []*ipaddr.IPAddress) (result []*ip
 			break
 		}
 	}
-
-	//ArrayList<IPAddressSegmentSeries> result = new ArrayList<>(ranges.size());
 	for i := 0; i < len(ranges); i++ {
 		one := ranges[i]
 		if one == nil {
@@ -3039,7 +2966,6 @@ func joinAddrToAddresses(addresses []*ipaddr.IPAddress, another *ipaddr.IPAddres
 	result := make([]*ipaddr.IPAddress, len(addresses)+1)
 	copy(result, addresses)
 	result[len(addresses)] = another
-	//result = append(result, another)
 	return result
 }
 
@@ -3052,11 +2978,7 @@ func (t ipAddressRangeTester) testMergeImpl(result string, prefix bool, addresse
 	for i := 0; i < len(mergers); i++ {
 		mergers[i] = t.createAddress(addresses[i+1]).GetAddress()
 	}
-
 	merged := addr2.MergeToSequentialBlocks(mergers...)
-	//if err != nil {
-	//	t.addFailure(newIPAddrFailure("mismatch merging "+asSliceString(mergers)+": "+err.Error(), resultAddr))
-	//}
 	if prefix {
 		merged2 := getMergedPrefixBlocksAlt(merged)
 		merged3 := getMergedPrefixBlocksAltRange(joinAddrToAddresses(mergers, addr2))
@@ -3102,22 +3024,14 @@ func (t ipAddressRangeTester) testMerge2Impl(result, result2 string, prefix bool
 		mergers[i] = t.createAddress(addresses[i+1]).GetAddress()
 	}
 	seqMerged := addr2.MergeToSequentialBlocks(mergers...)
-	//if err != nil {
-	//	t.addFailure(newIPAddrFailure("mismatch merging "+asSliceString(mergers)+": "+err.Error(), resultAddr))
-	//}
 	var merged []*ipaddr.IPAddress
 
 	if prefix {
 		merged = addr2.MergeToPrefixBlocks(mergers...)
-		//if err != nil {
-		//	t.addFailure(newIPAddrFailure("mismatch merging "+asSliceString(mergers)+": "+err.Error(), resultAddr))
-		//}
 	} else {
 		merged = seqMerged
 	}
 
-	//HashSet<IPAddress> all = new HashSet<IPAddress>(Arrays.asList(merged));
-	//HashSet<IPAddress> expected = new HashSet<IPAddress>();
 	var all, expected []*ipaddr.IPAddress
 	all = append(all, merged...)
 	expected = append(append(expected, resultAddr), resultAddr2)
@@ -3333,11 +3247,6 @@ func (t ipAddressRangeTester) testTree(start string, parents []string) {
 			break
 		}
 		labelAddr := enlargeSubnet(str.GetAddress())
-		//IPAddress labelAddr = str.getAddress().adjustPrefixBySegment(false);
-		//IPAddress subnetAddr = labelAddr.toPrefixBlock(labelAddr.getNetworkPrefixLength());
-		//if(labelAddr != subnetAddr) {
-		//addFailure(new Failure("not already a subnet " + labelAddr + " expected: " + subnetAddr, labelAddr));
-		//}
 		str = labelAddr.ToAddressString()
 		labelStr = str
 		if str.GetNetworkPrefixLen().Len() == 0 { //when network prefix is 0, IPAddress.adjustPrefixBySegment() returns the same address
@@ -3379,7 +3288,6 @@ func (t ipAddressRangeTester) testInetAtonCombos(w *ipaddr.IPAddressString, ipAd
 	vals := []ipaddr.Inet_aton_radix{ipaddr.Inet_aton_radix_octal, ipaddr.Inet_aton_radix_hex, ipaddr.Inet_aton_radix_decimal}
 	for _, radix := range vals {
 		for i := 0; i < ipaddr.IPv4SegmentCount; i++ {
-			//try {
 			str, e := ipAddr.ToInetAtonJoinedString(radix, i)
 			if e != nil {
 				//verify this case: joining segments results in a joined segment that is not a contiguous range
@@ -3400,12 +3308,10 @@ func (t ipAddressRangeTester) testInetAtonCombos(w *ipaddr.IPAddressString, ipAd
 				}
 			} else {
 				parsed := ipaddr.NewIPAddressStringParams(str, inetAtonwildcardAndRangeOptions)
-				// try{
 				parsedValue := parsed.GetAddress()
 				if !ipAddr.Equal(parsedValue) {
 					t.addFailure(newFailure("failed expected: "+ipAddr.String()+" actual: "+parsedValue.String(), w))
 				} else {
-					//int pos;
 					origStr := str
 					count := 0
 					pos := -1
@@ -3418,16 +3324,6 @@ func (t ipAddressRangeTester) testInetAtonCombos(w *ipaddr.IPAddressString, ipAd
 					if ipaddr.IPv4SegmentCount-1-i != count {
 						failStr := "failed expected separator count in " + origStr + ": " + strconv.Itoa(ipaddr.IPv4SegmentCount-1-i) + " actual separator count: " + strconv.Itoa(count)
 						t.addFailure(newFailure(failStr, w))
-
-						//str = origStr
-						//count = 0
-						//pos := -1
-						//for pos = strings.IndexByte(str, ipaddr.IPv4SegmentSeparator); pos >= 0 && pos < len(str); {
-						//	//for ((pos = str.indexOf(ipaddr.IPv4SegmentSeparator)) >= 0){
-						//	str = str[pos+1:]
-						//	count++
-						//}
-						//fmt.Println("WTF")
 					}
 				}
 			}
@@ -3439,7 +3335,6 @@ func (t ipAddressRangeTester) testInetAtonCombos(w *ipaddr.IPAddressString, ipAd
 func (t ipAddressRangeTester) testIPv4Strings(addr, normalizedString, normalizedWildcardString, sqlString, fullString, octalString, hexString, reverseDNSString, singleHex, singleOctal string) {
 	w := t.createAddress(addr)
 	ipAddr := w.GetAddress()
-	//createList(w);
 
 	if ipAddr == nil {
 		t.addFailure(newFailure("failed expected IPv4 address, got nil ", w))
@@ -3476,8 +3371,6 @@ func (t ipAddressRangeTester) testIPv6Strings(addr,
 		return
 	}
 
-	//createList(w);
-
 	t.testBase.testIPv6Strings(w,
 		ipAddr,
 		normalizedString,
@@ -3503,9 +3396,6 @@ func (t ipAddressRangeTester) testIPv6Strings(addr,
 //each ipv4 failure is 6, each ipv6 is 10, current total is 520
 
 func (t ipAddressRangeTester) testStrings() {
-
-	//boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
-	//boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
 
 	t.testIPv4Strings("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "001.002.003.004", "01.02.03.04", "0x1.0x2.0x3.0x4", "4.3.2.1.in-addr.arpa", "0x01020304", "000100401404")
 
@@ -4773,11 +4663,8 @@ func (t ipAddressRangeTester) testStrings() {
 
 func (t ipAddressRangeTester) testFmtStrings(
 	addr string,
-	//ipAddress *ipaddr.IPAddressString,
 	defaultStr,
 	strString,
-	//quotedStr,
-	//backtickStr,
 	lowerHex,
 	upperHex,
 	lowerHexPrefixed,
@@ -4794,8 +4681,6 @@ func (t ipAddressRangeTester) testFmtStrings(
 	t.testFmtStringsIP(ipAddress,
 		defaultStr,
 		strString,
-		//quotedStr,
-		//backtickStr,
 		lowerHex,
 		upperHex,
 		lowerHexPrefixed,
@@ -4809,12 +4694,9 @@ func (t ipAddressRangeTester) testFmtStrings(
 }
 
 func (t ipAddressRangeTester) testFmtStringsIP(
-	//addr string,
 	ipAddress *ipaddr.IPAddress,
 	defaultStr,
 	strString,
-	//quotedStr,
-	//backtickStr,
 	lowerHex,
 	upperHex,
 	lowerHexPrefixed,
@@ -4905,27 +4787,6 @@ func (t ipAddressRangeTester) testFmtStringsIP(
 	}
 }
 
-/*
-Integer prefix = address.getNetworkPrefixLength();
-		if(!nextSegment && prefix != null && prefix == 0 && address.isMultiple() && address.isPrefixBlock()) {
-			return new IPAddressString(IPAddress.SEGMENT_WILDCARD_STR, validationOptions);
-		}
-
-
-zeroed is true
-*/
-
-//xxxx ok, so I find the code I have in java is jsut too convoluted for ajust by segment xxxxx
-//too many  corner cases
-//but then that leaves the question, how to express the transition from 0 prefix to all address
-//It sort of hinges on the notion of adjusting the prefix as enlarging or reducing a subnet
-//BUT that is a bit of a stretch, which I have mover away from
-//So, you could perhaps use "enlarge" or "shrink" subnet, although shrink we already have as setPrefixLenZeroed
-//Maybe increasePrefixBlockSize?  Or nothing, since it is just a AdjustPrefix along with a ToPrefixBlock?
-//Can you generalize increasePrefixBlockSize to go to '*'?  Not really.  IncreaseSubnetSize?
-//That still does not make sense since it involves expanding to IPv6.
-//	Just do your own.
-
 func enlargeSubnetStr(str *ipaddr.IPAddressString /*boolean nextSegment  false , int bitsPerSegment, /* boolean skipBitCountPrefix false */) *ipaddr.IPAddressString {
 	addr := str.GetAddress()
 	if addr == nil {
@@ -4939,17 +4800,6 @@ func enlargeSubnetStr(str *ipaddr.IPAddressString /*boolean nextSegment  false ,
 		return ipaddr.NewIPAddressString(ipaddr.SegmentWildcardStr)
 	}
 	return res.ToAddressString()
-	//prefix := str.GetNetworkPrefixLen()
-	//	addr := str.GetAddress()
-	//	if(prefix == nil) {
-	//		return addr.SetPrefixLen(addr.GetBitCount()).ToAddressString()
-	//	}
-	//	prefLen := *prefix
-	//	if prefLen == 0 {
-	//		return ipaddr.NewIPAddressString(ipaddr.SegmentWildcardStr)
-	//	}
-	//	adjustment := ((prefLen - 1) % addr.GetBitsPerSegment()) + 1
-	//	return addr.SetPrefixLen(prefLen + adjustment).ToPrefixBlock().ToAddressString()
 }
 
 func enlargeSubnet(addr *ipaddr.IPAddress /*boolean nextSegment  false , int bitsPerSegment, /* boolean skipBitCountPrefix false */) *ipaddr.IPAddress {
