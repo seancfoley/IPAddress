@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package ipaddr
 
 import (
 	"strings"
-	//	"sync/atomic"
-	//	"unsafe"
 	"sync/atomic"
 	"unsafe"
 
@@ -35,8 +33,6 @@ type embeddedAddress struct {
 }
 
 var (
-	// used by hosts
-	//NO_EMBEDDED_ADDRESS *embeddedAddress                     = &embeddedAddress{}
 	noQualifier = &parsedHostIdentifierStringQualifier{}
 )
 
@@ -125,20 +121,14 @@ func (host *parsedHost) asGenericAddressString() *IPAddressString {
 		addressProvider := host.getAddressProvider()
 		if addressProvider.isProvidingAllAddresses() {
 			return NewIPAddressStringParams(SegmentWildcardStr, addressProvider.getParameters())
-			//} else if(addressProvider.isProvidingPrefixOnly()) {
-			//	return new IPAddressString(IPAddressNetwork.getPrefixString(addressProvider.getProviderNetworkPrefixLength()), addressProvider.getParameters());
 		} else if addressProvider.isProvidingEmpty() {
 			return NewIPAddressStringParams("", addressProvider.getParameters())
 		} else {
-			//try {
 			addr, err := addressProvider.getProviderAddress()
 			if err != nil {
 				return NewIPAddressStringParams(host.originalStr, addressProvider.getParameters())
 			}
 			return addr.ToAddressString()
-			//} catch(IncompatibleAddressError e) {
-			//return new IPAddressString(originalStr, addressProvider.getParameters());
-			//}
 		}
 	}
 	return nil
@@ -213,12 +203,6 @@ func (host *parsedHost) buildStrings() *hostStrings {
 func (host *parsedHost) getNormalizedLabels() []string {
 	return host.buildStrings().normalizedLabels
 }
-
-/*
-	public addrerr.AddressStringError getAddressStringException() { // this is an exception when something looks like reverse dns string or ip literal string and it is off a bit
-		return embeddedAddress.addressStringError;
-	}
-*/
 
 func (host *parsedHost) isUNCIPv6Literal() bool {
 	return host.embeddedAddress.isUNCIPv6Literal

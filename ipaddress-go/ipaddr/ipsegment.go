@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,24 +17,18 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
-	//"net"
 	"math/bits"
 	"strings"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
-//
-//
 type ipAddressSegmentInternal struct {
 	addressSegmentInternal
 }
-
-//func (seg *ipAddressSegmentInternal) ToSegmentBase() *AddressSegment {
-//	return (*AddressSegment)(seg)
-//}
 
 func (seg *ipAddressSegmentInternal) isPrefixed() bool {
 	return seg.GetSegmentPrefixLen() != nil
@@ -253,7 +247,6 @@ func (seg *ipAddressSegmentInternal) setStandardString(
 		if cache.cachedString == nil && isStandardString && originalLowerValue == seg.getSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cacheStrPtr(&cache.cachedString, &str)
-			//cache.cachedString = &str
 		}
 	}
 }
@@ -268,7 +261,6 @@ func (seg *ipAddressSegmentInternal) setWildcardString(
 		if cache.cachedWildcardString == nil && isStandardString && lowerValue == seg.getSegmentValue() && lowerValue == seg.getUpperSegmentValue() {
 			str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 			cacheStrPtr(&cache.cachedWildcardString, &str)
-			//cache.cachedWildcardString = &str
 		}
 	}
 }
@@ -288,11 +280,9 @@ func (seg *ipAddressSegmentInternal) setRangeStandardString(
 				if isStandardString && rangeLower == seg.getSegmentValue() {
 					str := addressStr[lowerStringStartIndex:lowerStringEndIndex]
 					cacheStrPtr(&cache.cachedString, &str)
-					//cache.cachedString = &str
 				}
 			} else if seg.IsFullRange() {
 				cacheStrPtr(&cache.cachedString, &segmentWildcardStr)
-				//cache.cachedString = &segmentWildcardStr
 			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() {
 				upper := seg.getUpperSegmentValue()
 				if seg.isPrefixed() {
@@ -301,7 +291,6 @@ func (seg *ipAddressSegmentInternal) setRangeStandardString(
 				if rangeUpper == upper {
 					str := addressStr[lowerStringStartIndex:upperStringEndIndex]
 					cacheStrPtr(&cache.cachedString, &str)
-					//cache.cachedString = &str
 				}
 			}
 		}
@@ -319,11 +308,9 @@ func (seg *ipAddressSegmentInternal) setRangeWildcardString(
 		if cache.cachedWildcardString == nil {
 			if seg.IsFullRange() {
 				cacheStrPtr(&cache.cachedWildcardString, &segmentWildcardStr)
-				//cache.cachedWildcardString = &segmentWildcardStr
 			} else if isStandardRangeString && rangeLower == seg.getSegmentValue() && rangeUpper == seg.getUpperSegmentValue() {
 				str := addressStr[lowerStringStartIndex:upperStringEndIndex]
 				cacheStrPtr(&cache.cachedWildcardString, &str)
-				//cache.cachedWildcardString = &str
 			}
 		}
 	}

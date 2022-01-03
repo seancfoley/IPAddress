@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,12 +26,12 @@ import (
 )
 
 // NewIPAddressStringParams constructs an IPAddressString that will parse the given string according to the given parameters
-func NewIPAddressStringParams(str string, params addrparam.IPAddressStringParams) *IPAddressString {
-	var p addrparam.IPAddressStringParams
+func NewIPAddressStringParams(str string, params addrstrparam.IPAddressStringParams) *IPAddressString {
+	var p addrstrparam.IPAddressStringParams
 	if params == nil {
 		p = defaultIPAddrParameters
 	} else {
-		p = addrparam.CopyIPAddressStringParams(params)
+		p = addrstrparam.CopyIPAddressStringParams(params)
 	}
 	return &IPAddressString{str: strings.TrimSpace(str), params: p, ipAddrStringCache: new(ipAddrStringCache)}
 }
@@ -55,9 +55,7 @@ func newIPAddressStringFromAddr(str string, addr *IPAddress) *IPAddressString {
 
 var validator strValidator
 
-var defaultIPAddrParameters = new(addrparam.IPAddressStringParamsBuilder).ToParams()
-
-//var defaultIPAddrParameters = addrformat.DefaultIPAddressParams()
+var defaultIPAddrParameters = new(addrstrparam.IPAddressStringParamsBuilder).ToParams()
 
 var zeroIPAddressString = NewIPAddressString("")
 
@@ -72,7 +70,7 @@ type ipAddrStringCache struct {
 
 type IPAddressString struct {
 	str    string
-	params addrparam.IPAddressStringParams // when nil, default parameters is used, never access this field directly
+	params addrstrparam.IPAddressStringParams // when nil, default parameters is used, never access this field directly
 	*ipAddrStringCache
 }
 
@@ -83,11 +81,7 @@ func (addrStr *IPAddressString) init() *IPAddressString {
 	return addrStr
 }
 
-//func (addrStr *IPAddressString) getParams() addrformat.IPAddressStringParams {
-//	return addrStr.init().params
-//}
-
-func (addrStr *IPAddressString) GetValidationOptions() addrparam.IPAddressStringParams {
+func (addrStr *IPAddressString) GetValidationOptions() addrstrparam.IPAddressStringParams {
 	return addrStr.init().params
 }
 
@@ -338,12 +332,12 @@ func (addrStr *IPAddressString) ToSequentialRange() (res *IPAddressSeqRange, err
 	return
 }
 
-// Validates that this string is a valid IPv4 address, and if not, returns an error with a descriptive message indicating why it is not.
+// ValidateIPv4 validates that this string is a valid IPv4 address, and if not, returns an error with a descriptive message indicating why it is not.
 func (addrStr *IPAddressString) ValidateIPv4() addrerr.AddressStringError {
 	return addrStr.ValidateVersion(IPv4)
 }
 
-// Validates that this string is a valid IPv6 address, and if not, returns an error with a descriptive message indicating why it is not.
+// ValidateIPv6 validates that this string is a valid IPv6 address, and if not, returns an error with a descriptive message indicating why it is not.
 func (addrStr *IPAddressString) ValidateIPv6() addrerr.AddressStringError {
 	return addrStr.ValidateVersion(IPv6)
 }
@@ -354,7 +348,7 @@ func (addrStr *IPAddressString) getAddressProvider() (ipAddressProvider, addrerr
 	return addrStr.addressProvider, err
 }
 
-// Validate validates that this string is a valid address, and if not, returns an error with a descriptive message indicating why it is not.
+// Validate validates that this string is a valid IP address, and if not, returns an error with a descriptive message indicating why it is not.
 func (addrStr *IPAddressString) Validate() addrerr.AddressStringError {
 	addrStr = addrStr.init()
 	data := addrStr.addrData
@@ -378,18 +372,15 @@ func (addrStr *IPAddressString) ValidateVersion(version IPVersion) addrerr.Addre
 	} else if version.IsIndeterminate() {
 		return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.ipVersionIndeterminate"}}
 	} else {
-		//addrStr = addrStr.init()
 		addrVersion := addrStr.addressProvider.getProviderIPVersion()
 		if version.IsIPv4() {
 			if addrVersion.IsIPv6() {
-				//if !addrVersion.IsIPv4() {
 				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv6"}}
 			} else if addrStr.validateException != nil {
 				return addrStr.validateException
 			}
 		} else if version.IsIPv6() {
 			if addrVersion.IsIPv4() {
-				//if !addrVersion.IsIPv6() {
 				return &addressStringError{addressError{str: addrStr.str, key: "ipaddress.error.address.is.ipv4"}}
 			} else if addrStr.validateException != nil {
 				return addrStr.validateException
@@ -420,14 +411,8 @@ func (addrStr *IPAddressString) Compare(other *IPAddressString) int {
 			if res, err := addrStr.addressProvider.providerCompare(other.addressProvider); err == nil {
 				return res
 			}
-			//addr := addrStr.GetAddress()
-			//if addr != nil {
-			//	otherAddr := other.GetAddress()
-			//	if otherAddr != nil {
-			//		return addr.Compare(otherAddr)
-			//	}
-			//}
-			// one or the other is null, either empty or IncompatibleAddressException
+
+			// one or the other is nil, either empty or IncompatibleAddressException
 			return strings.Compare(addrStr.String(), other.String())
 		}
 		return 1
@@ -435,17 +420,9 @@ func (addrStr *IPAddressString) Compare(other *IPAddressString) int {
 		return -1
 	}
 	return strings.Compare(addrStr.String(), other.String())
-
-	//isValid, otherIsValid := addrStr.IsValid(), other.IsValid()
-	//if isValid || otherIsValid {xxx both need to be valid to have addressProviders see mac xxxx
-	//	if res, err := addrStr.addressProvider.providerCompare(other.addressProvider); err == nil {
-	//		return res
-	//	}
-	//}
-	//return strings.Compare(addrStr.String(), other.String())
 }
 
-// Similar to {@link #equals(Object)}, but instead returns whether the prefix of this address matches the same of the given address,
+// PrefixEqual is similar to Equal, but instead returns whether the prefix of this address matches the same of the given address,
 // using the prefix length of this address.
 //
 // In other words, determines if the other address is in the same prefix subnet using the prefix length of this address.
@@ -487,7 +464,7 @@ func (addrStr *IPAddressString) PrefixEqual(other *IPAddressString) bool {
 	return false
 }
 
-// Similar to {@link #prefixEquals(IPAddressString)}, but instead returns whether the prefix of this address contains the same of the given address,
+// PrefixContains is similar to PrefixEqual, but instead returns whether the prefix of this address contains the same of the given address,
 // using the prefix length of this address.
 //
 // In other words, determines if the other address is in one of the same prefix subnets using the prefix length of this address.
@@ -565,6 +542,7 @@ func (addrStr *IPAddressString) Contains(other *IPAddressString) bool {
 	return false
 }
 
+// Equal compares two IP address strings for equality.
 // Two IPAddressString objects are equal if they represent the same set of addresses.
 // Whether one or the other has an associated network prefix length is not considered.
 //
@@ -616,15 +594,15 @@ func (addrStr *IPAddressString) Equal(other *IPAddressString) bool {
 	return false
 }
 
-//Increases or decreases prefix length by the given increment.
+// AdjustPrefixLen increases or decreases prefix length by the given increment.
 //
-//If the address string has prefix length 0 and represents all addresses of the same version,
-//and the prefix length is being decreased, then the address representing all addresses of any version is returned.
+// If the address string has prefix length 0 and represents all addresses of the same version,
+// and the prefix length is being decreased, then the address representing all addresses of any version is returned.
 //
-//When there is an associated address value and the prefix length is increased, the bits moved within the prefix become zero,
-//and if prefix length is extended beyond the segment series boundary, it is removed.
-//When there is an associated address value
-//and the prefix length is decreased, the bits moved outside the prefix become zero.
+// When there is an associated address value and the prefix length is increased, the bits moved within the prefix become zero,
+// and if prefix length is extended beyond the segment series boundary, it is removed.
+// When there is an associated address value
+// and the prefix length is decreased, the bits moved outside the prefix become zero.
 //
 // If the address string represents a prefix block, then the result will also represent a prefix block.
 func (addrStr *IPAddressString) AdjustPrefixLen(adjustment BitCount) (*IPAddressString, addrerr.IncompatibleAddressError) {
@@ -664,10 +642,3 @@ func (addrStr *IPAddressString) Wrap() ExtendedIdentifierString {
 func ValidatePrefixLenStr(str string, version IPVersion) (prefixLen PrefixLen, err addrerr.AddressStringError) {
 	return validator.validatePrefixLenStr(str, version)
 }
-
-//func getPrivateParams(orig IPAddressStringParams) *ipAddressStringParameters {
-//	if p, ok := orig.(*ipAddressStringParameters); ok {
-//		return p
-//	}
-//	return new(IPAddressStringParamsBuilder).Set(orig).ToParams().(*ipAddressStringParameters)
-//}

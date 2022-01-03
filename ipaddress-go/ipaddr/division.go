@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"math/bits"
 	"strings"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 // DivInt is an integer type for holding generic division values, which can be larger than segment values
@@ -172,7 +173,6 @@ func (div *divValues) getUpperDivisionValue() DivInt {
 
 func (div *divValues) deriveNew(val, upperVal DivInt, prefLen PrefixLen) divisionValues {
 	return NewRangePrefixDivision(val, upperVal, prefLen, div.bitCount)
-	//return NewRangePrefixDivision(val, upperVal, prefLen, div.bitCount, div.defaultRadix)
 }
 
 func (div *divValues) getSegmentValue() SegInt {
@@ -185,12 +185,10 @@ func (div *divValues) getUpperSegmentValue() SegInt {
 
 func (div *divValues) deriveNewMultiSeg(val, upperVal SegInt, prefLen PrefixLen) divisionValues {
 	return NewRangePrefixDivision(DivInt(val), DivInt(upperVal), prefLen, div.bitCount)
-	//return NewRangePrefixDivision(DivInt(val), DivInt(upperVal), prefLen, div.bitCount, div.defaultRadix)
 }
 
 func (div *divValues) deriveNewSeg(val SegInt, prefLen PrefixLen) divisionValues {
 	return NewPrefixDivision(DivInt(val), prefLen, div.bitCount)
-	//return NewPrefixDivision(DivInt(val), prefLen, div.bitCount, div.defaultRadix)
 }
 
 var _ divisionValues = &divValues{}
@@ -526,36 +524,6 @@ func (div *addressDivisionInternal) GetPrefixCountLen(divisionPrefixLength BitCo
 	return bigZero().SetUint64(count)
 }
 
-//func (div *addressDivisionInternal) equal(other StandardDivisionType) bool {
-//	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
-//	//if otherDiv, ok := other.(StandardDivisionType); ok {
-//	if other == nil || other.ToDiv() == nil {
-//		return false
-//	}
-//	if div.isMultiple() {
-//		if other.IsMultiple() {
-//			matches, _ := div.matchesStructure(other)
-//			otherDivision := other.ToDiv()
-//			return matches && divValsSame(div.getDivisionValue(), otherDivision.GetDivisionValue(),
-//				div.getUpperDivisionValue(), otherDivision.GetUpperDivisionValue())
-//		} else {
-//			return false
-//		}
-//	} else if other.IsMultiple() {
-//		return false
-//	} else {
-//		matches, _ := div.matchesStructure(other)
-//		otherDivision := other.ToDiv()
-//		return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
-//	}
-//	//}
-//	//return div.addressDivisionBase.equal(other)
-//}
-
-//func (div *addressDivisionInternal) Compare(item AddressItem) int {
-//	return CountComparator.Compare(div.toAddressDivision(), item)
-//}
-
 func (div *addressDivisionInternal) matchesIPSegment() bool {
 	return div.divisionValues == nil || div.getAddrType().isIP()
 }
@@ -662,9 +630,6 @@ func (div *addressDivisionInternal) getUpperStringMasked(radix int, uppercase bo
 	} else if div.isPrefixed() {
 		upperValue := div.getUpperDivisionValue()
 		mask := ^DivInt(0) << uint(div.GetBitCount()-div.getDivisionPrefixLength().bitCount())
-		//mask := ^(^DivInt(0) >> *seg.GetSegmentPrefixLen())
-		//mask := seg.GetSegmentNetworkMask(*seg.GetSegmentPrefixLen())
-		//return seg.GetMaxValue() & (^SegInt(0) << (bc - bits))
 		upperValue &= mask
 		toUnsignedStringCased(upperValue, radix, 0, uppercase, appendable)
 	} else {
@@ -790,17 +755,12 @@ func (div *addressDivisionInternal) getDigitCount(radix int) int {
 }
 
 func (div *addressDivisionInternal) getMaxDigitCountRadix(radix int) int {
-	//if radix == 10 || radix == 16 {
-	//	return div.getMaxDigitCount()
-	//}
 	return getMaxDigitCount(radix, div.GetBitCount(), div.getMaxValue())
 }
 
 // returns the number of digits for the maximum possible value of the division when using the default radix
 func (div *addressDivisionInternal) getMaxDigitCount() int {
 	return div.getMaxDigitCountRadix(div.getDefaultTextualRadix())
-	//xxx
-	//return int((div.GetBitCount() + 7) >> 2) // works for hex chars, the default, but also IPv4 where bitcount of 8 results in result of 3
 }
 
 // A simple string using just the lower value and the default radix.
@@ -875,11 +835,6 @@ func (div *addressDivisionInternal) CopyUpperBytes(bytes []byte) []byte {
 	return div.addressDivisionBase.CopyUpperBytes(bytes)
 }
 
-//func (div *addressDivisionBase) GetPrefixCountLen(prefixLength BitCount) *big.Int {
-//
-//
-//}
-
 func (div *addressDivisionInternal) IsZero() bool {
 	return div.addressDivisionBase.IsZero()
 }
@@ -951,31 +906,6 @@ func (div *AddressDivision) GetCount() *big.Int {
 	}
 	return div.getCount()
 }
-
-//func (div *AddressDivision) Equal(other AddressSegmentType) bool {
-//	if div == nil {
-//		return other == nil || other.ToDiv() == nil
-//		//return other == nil || other.To
-//		//xxx you gotta figure this out xxxx
-//		//xxx ok, this kinda makes sense xxx
-//		//xxx type assertion checks if concrete type implements StandardDivisionType
-//		//xxx and then we can call ToDiv on that concrete type through the interface StandardDivisionType
-//		//xxx BUT THE PROBLEM IS
-//		//xxx What if the thing is not a StandardDivisionType but is also nil?
-//		//xxx There is no way to know!  And nil is nil.  Well, we wanted to think that nil *Ipv6Segment is the same as nil *AddressDivision
-//		//xxx So do we want one nil not equal to some other nil?
-//		//xxx it boils down to the fact we can pass in some types here and we can never get equality for those types
-//		//xxx which in a way is not so bad, that is how equals(Object) works in Java
-//		//
-//		//xxx I think there is no reason not to use StandardDivisionType here xxx
-//
-//		//if otherDiv, ok := other.(StandardDivisionType); ok {
-//		//	return otherDiv.ToDiv() == nil
-//		//}
-//		//return false
-//	}
-//	return div.equal(other)
-//}
 
 func (div *AddressDivision) Compare(item AddressItem) int {
 	return CountComparator.Compare(div, item)

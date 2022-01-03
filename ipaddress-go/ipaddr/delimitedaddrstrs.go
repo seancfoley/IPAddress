@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import "strings"
 
 const SegmentValueDelimiter = ','
 
-// CountDelimitedAddresses will count the possible combinations, given a string with comma delimiters to denote segment elements.
+// CountDelimitedAddresses will count the possible combinations, given a string with comma delimiters separating segment elements.
 //
 // For example, given "1,2.3.4,5.6" this method will return 4 for the possible combinations: "1.3.4.6", "1.3.5.6", "2.3.4.6" and "2.3.5.6"
 func CountDelimitedAddresses(str string) int {

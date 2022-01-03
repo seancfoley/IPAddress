@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 // SegInt is an integer type for holding generic address segment values.  It is at least as large as all address segment values: IPv6SegInt, IPv4SegInt, MACSegInt
@@ -63,8 +64,6 @@ func (seg *addressSegmentInternal) contains(other AddressSegmentType) bool {
 }
 
 func (div *addressDivisionInternal) equal(other AddressSegmentType) bool {
-	//func (div *addressDivisionInternal) equals(other DivisionType) bool {
-	//if otherDiv, ok := other.(StandardDivisionType); ok {
 	if other == nil || other.ToDiv() == nil {
 		return false
 	}
@@ -83,8 +82,6 @@ func (div *addressDivisionInternal) equal(other AddressSegmentType) bool {
 	matches, _ := div.matchesStructure(other)
 	otherDivision := other.ToDiv()
 	return matches && divValSame(div.getDivisionValue(), otherDivision.GetDivisionValue())
-	//}
-	//return div.addressDivisionBase.equal(other)
 }
 
 func (seg *addressSegmentInternal) equalsSegment(other *AddressSegment) bool {
@@ -125,10 +122,6 @@ func (seg *addressSegmentInternal) PrefixEqual(other AddressSegmentType, prefixL
 func (seg *addressSegmentInternal) toAddressSegment() *AddressSegment {
 	return (*AddressSegment)(unsafe.Pointer(seg))
 }
-
-//func (seg *addressSegmentInternal) ToDiv() *AddressDivision {
-//	return (*AddressDivision)(seg)
-//}
 
 func (seg *addressSegmentInternal) GetSegmentValue() SegInt {
 	vals := seg.divisionValues
@@ -180,7 +173,7 @@ func (seg *addressSegmentInternal) TestBit(n BitCount) bool {
 	return (value & (1 << uint(n))) != 0
 }
 
-// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+// IsOneBit returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
 func (seg *addressSegmentInternal) IsOneBit(segmentBitIndex BitCount) bool {
 	value := seg.GetSegmentValue()
 	bitCount := seg.GetBitCount()
@@ -270,18 +263,6 @@ func (seg *addressSegmentInternal) segmentIterator(segPrefLen PrefixLen, isPrefi
 		isBlockIterator,
 	)
 }
-
-//func (seg *addressSegmentInternal) GetSegmentNetworkMask(networkBits BitCount) SegInt {
-//	bc := seg.GetBitCount()
-//	networkBits = checkBitCount(networkBits, bc)
-//	return seg.GetMaxValue() & (^SegInt(0) << uint(bc-networkBits))
-//}
-//
-//func (seg *addressSegmentInternal) GetSegmentHostMask(networkBits BitCount) SegInt {
-//	bc := seg.GetBitCount()
-//	networkBits = checkBitCount(networkBits, bc)
-//	return ^(^SegInt(0) << uint(bc-networkBits))
-//}
 
 var (
 	// wildcards differ, for divs we use only range since div size not implicit, here we use both range and *

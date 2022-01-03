@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ func toUnsignedStringFast(value uint16, radix int, uppercase bool, appendable *s
 		}
 		return true
 	}
-	//var quotient, remainder uint //we iterate on //value == quotient * radix + remainder
+	//var quotient, remainder uint //we iterate on value == quotient * radix + remainder
 	if radix == 10 {
 		// we know value <= 0xffff (ie 16 bits or less)
 		if value < 10 {
@@ -756,7 +756,7 @@ func toUnsignedSplitRangeString(
 	appendable *strings.Builder) (err addrerr.IncompatibleAddressError) {
 	//A split can be invalid.  Consider xxx.456-789.
 	//The number 691, which is in the range 456-789, is not in the range 4-7.5-8.6-9
-	//In such cases we throwaddrerr.IncompatibleAddressError
+	//In such cases we have IncompatibleAddressError
 	//To avoid such cases, we must have lower digits covering the full range, for example 400-799 in which lower digits are both 0-9 ranges.
 	//If we have 401-799 then 500 will not be included when splitting.
 	//If we have 400-798 then 599 will not be included when splitting.
@@ -1001,12 +1001,12 @@ func createMap() *map[uint64]int {
 }
 
 func getMaxDigitCount(radix int, bitCount BitCount, maxValue uint64) int {
-	return getMaxDigitCountx(radix, bitCount, func() int {
+	return getMaxDigitCountCalc(radix, bitCount, func() int {
 		return getDigitCount(maxValue, radix)
 	})
 }
 
-func getMaxDigitCountx(radix int, bitCount BitCount, calc func() int) int {
+func getMaxDigitCountCalc(radix int, bitCount BitCount, calc func() int) int {
 	rad64 := uint64(radix)
 	key := (rad64 << 32) | uint64(bitCount)
 	theMap := *maxDigitMap
@@ -1066,33 +1066,3 @@ func getDigitCount(value uint64, radix int) int {
 	}
 	return result
 }
-
-//func getDigitCount(maxValue uint64, bitCount BitCount, radix int) int {
-//	result := 1
-//	if radix == 16 {
-//		return int(bitCount >> 2)
-//	} else {
-//		if radix == 10 {
-//			if maxValue < 10 {
-//				return 1
-//			} else if maxValue < 100 {
-//				return 2
-//			} else if maxValue < 1000 {
-//				return 3
-//			}
-//			maxValue /= 1000
-//			result = 3 //we start with 3 in the loop below
-//		} else if radix == 8 {
-//			return int(bitCount / 3)
-//		}
-//		rad64 := uint64(radix)
-//		for {
-//			maxValue /= rad64
-//			if maxValue == 0 {
-//				break
-//			}
-//			result++
-//		}
-//	}
-//	return result
-//}

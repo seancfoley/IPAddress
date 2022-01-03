@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ func (parsedQual *parsedHostIdentifierStringQualifier) getService() string {
 	return parsedQual.service
 }
 
-func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions addrparam.IPAddressStringParams) IPVersion {
+func (parsedQual *parsedHostIdentifierStringQualifier) inferVersion(validationOptions addrstrparam.IPAddressStringParams) IPVersion {
 	if parsedQual.networkPrefixLength != nil {
 		if parsedQual.networkPrefixLength.bitCount() > IPv4BitCount &&
 			!validationOptions.GetIPv4Params().AllowsPrefixesBeyondAddressSize() {

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ func (provider macAddressEmptyProvider) getAddress() (*MACAddress, addrerr.Incom
 var defaultMACAddressEmptyProvider = macAddressEmptyProvider{}
 
 type macAddressAllProvider struct {
-	validationOptions addrparam.MACAddressStringParams
+	validationOptions addrstrparam.MACAddressStringParams
 	address           *MACAddress
 	creationLock      sync.Mutex
 }
@@ -48,11 +48,10 @@ func (provider *macAddressAllProvider) getAddress() (*MACAddress, addrerr.Incomp
 		addr = provider.address
 		if addr == nil {
 			validationOptions := provider.validationOptions
-			//creator := provider.validationOptions.GetNetwork().GetMACAddressCreator() xxxx ipaddress we used addrType to get network to get creator
 			size := validationOptions.GetPreferredLen()
 			creator := macType.getNetwork().getAddressCreator()
 			var segCount int
-			if size == addrparam.EUI64Len {
+			if size == addrstrparam.EUI64Len {
 				segCount = ExtendedUniqueIdentifier64SegmentCount
 			} else {
 				segCount = MediaAccessControlSegmentCount

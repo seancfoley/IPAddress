@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -250,11 +250,34 @@ func (rng *IPv6AddressSeqRange) SpanWithSequentialBlocks() []*IPv6Address {
 	return rng.GetLower().SpanWithSequentialBlocksTo(rng.GetUpper())
 }
 
-// Joins the given ranges into the fewest number of ranges.
+//TODO look into whether this should be taking IPAddressSeqRange, doesn't look like I handle other versions at all, I think I must have gotten distracted here, I think the arg should be ipv6
+
+// Join joins the given ranges into the fewest number of ranges.
 // The returned array will be sorted by ascending lowest range value.
 func (rng *IPv6AddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPv6AddressSeqRange {
 	origLen := len(ranges)
 	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
 	ranges[origLen] = rng.ToIP()
 	return cloneToIPv6SeqRange(join(ranges))
+}
+
+// JoinTo joins this range to the other.  If this range overlaps with the given range,
+// or if the highest value of the lower range is one below the lowest value of the higher range,
+// then the two are joined into a new larger range that is returned.
+// Otherwise nil is returned.
+func (rng *IPv6AddressSeqRange) JoinTo(other *IPv6AddressSeqRange) *IPv6AddressSeqRange {
+	return rng.init().joinTo(other.init().ToIP()).ToIPv6()
+}
+
+// Extend extends this sequential range to include all address in the given range.
+// If the argument has a different IP version than this, nil is returned.
+// Otherwise, this method returns the range that includes this range, the given range, and all addresses in-between.
+func (rng *IPv6AddressSeqRange) Extend(other *IPv6AddressSeqRange) *IPv6AddressSeqRange {
+	return rng.init().extend(other.init().ToIP()).ToIPv6()
+}
+
+// Subtract Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
+// If the result has length 2, the two ranges are ordered by ascending lowest range value.
+func (rng *IPv6AddressSeqRange) Subtract(other *IPv6AddressSeqRange) []*IPv6AddressSeqRange {
+	return cloneToIPv6SeqRange(rng.init().subtract(other.init().ToIP()))
 }

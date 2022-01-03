@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -225,7 +225,7 @@ func (div *addressDivisionBase) IsZero() bool {
 	return !div.isMultiple() && div.IncludesZero()
 }
 
-// Returns whether this item includes the value of zero within its range
+// IncludesZero returns whether this item includes the value of zero within its range
 func (div *addressDivisionBase) IncludesZero() bool {
 	vals := div.divisionValues
 	if vals == nil {
@@ -234,12 +234,12 @@ func (div *addressDivisionBase) IncludesZero() bool {
 	return vals.includesZero()
 }
 
-// Returns whether this item matches the maximum possible value for the address type or version
+// IsMax returns whether this item matches the maximum possible value for the address type or version
 func (div *addressDivisionBase) IsMax() bool {
 	return !div.isMultiple() && div.includesMax()
 }
 
-// Returns whether this item includes the maximum possible value for the address type or version within its range
+// IncludesMax returns whether this item includes the maximum possible value for the address type or version within its range
 func (div *addressDivisionBase) IncludesMax() bool {
 	vals := div.divisionValues
 	if vals == nil {
@@ -248,15 +248,12 @@ func (div *addressDivisionBase) IncludesMax() bool {
 	return vals.includesMax()
 }
 
-// whether this address item represents all possible values attainable by an address item of this type
+// IsFullRange returns whether this address item represents all possible values attainable by an address item of this type
 func (div *addressDivisionBase) IsFullRange() bool {
 	return div.includesZero() && div.includesMax()
 }
 
 func (div *addressDivisionBase) getAddrType() addrType {
-	//if div == nil {
-	//	return zeroType
-	//}
 	vals := div.divisionValues
 	if vals == nil {
 		return zeroType
@@ -272,18 +269,6 @@ func (div *addressDivisionBase) matchesStructure(other DivisionType) (res bool, 
 	res = true
 	return
 }
-
-//func (div *addressDivisionBase) equal(other DivisionType) (res bool) {
-//	//func (div *addressDivisionBase) equals(other DivisionType) (res bool) {
-//	matches, _ := div.matchesStructure(other)
-//	if div.isMultiple() {
-//		return matches && bigDivValsSame(div.GetValue(), other.GetValue(),
-//			div.GetUpperValue(), other.GetUpperValue())
-//	} else if other.IsMultiple() {
-//		return false
-//	}
-//	return bigDivValSame(div.GetValue(), other.GetValue())
-//}
 
 // returns the default radix for textual representations of addresses (10 for IPv4, 16 for IPv6, MAC and other)
 func (div *addressDivisionBase) getDefaultTextualRadix() int {

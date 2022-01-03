@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"net"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 const (
@@ -68,11 +69,6 @@ func NewIPv4AddressFromSegs(segments []*IPv4AddressSegment) (*IPv4Address, addre
 	}
 	section := NewIPv4Section(segments)
 	return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
-	//section, err := NewIPv4Section(segments)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
 func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength PrefixLen) (*IPv4Address, addrerr.AddressValueError) {
@@ -85,11 +81,6 @@ func NewIPv4AddressFromPrefixedSegs(segments []*IPv4AddressSegment, prefixLength
 	}
 	section := NewIPv4PrefixedSection(segments, prefixLength)
 	return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
-	//section, err := NewIPv4PrefixedSection(segments, prefixLength)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//return createAddress(section.ToSectionBase(), NoZone).ToIPv4(), nil
 }
 
 func NewIPv4AddressFromUint32(val uint32) *IPv4Address {
@@ -203,14 +194,14 @@ func (addr *IPv4Address) GetSection() *IPv4AddressSection {
 	return addr.init().section.ToIPv4()
 }
 
-// Gets the subsection from the series starting from the given index
+// GetTrailingSection gets the subsection from the series starting from the given index
 // The first segment is at index 0.
 func (addr *IPv4Address) GetTrailingSection(index int) *IPv4AddressSection {
 	return addr.GetSection().GetTrailingSection(index)
 }
 
-//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
-//// The first segment is at index 0.
+// GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex
+// The first segment is at index 0.
 func (addr *IPv4Address) GetSubSection(index, endIndex int) *IPv4AddressSection {
 	return addr.GetSection().GetSubSection(index, endIndex)
 }
@@ -300,10 +291,6 @@ func (addr *IPv4Address) Mask(other *IPv4Address) (masked *IPv4Address, err addr
 	return addr.maskPrefixed(other, true)
 }
 
-//func (addr *IPv4Address) MaskPrefixed(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
-//	return addr.maskPrefixed(other, true)
-//}
-
 func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	addr = addr.init()
 	sect, err := addr.GetSection().maskPrefixed(other.GetSection(), retainPrefix)
@@ -316,13 +303,6 @@ func (addr *IPv4Address) maskPrefixed(other *IPv4Address, retainPrefix bool) (ma
 func (addr *IPv4Address) BitwiseOr(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	return addr.bitwiseOrPrefixed(other, true)
 }
-
-//xxxx this is not bitwiseOrNetwork and I think it should go xxxx
-//// maybe rename, maybe drop this, it's not clear if this is bitwiseOrNetwork or just bitwiseOr keeping the prefix
-//// Maybe I should never drop the prefix - If they want to drop it they would before doing the bitwise
-//func (addr *IPv4Address) BitwiseOrPrefixed(other *IPv4Address) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
-//	return addr.bitwiseOrPrefixed(other, true)
-//}
 
 func (addr *IPv4Address) bitwiseOrPrefixed(other *IPv4Address, retainPrefix bool) (masked *IPv4Address, err addrerr.IncompatibleAddressError) {
 	addr = addr.init()
@@ -541,7 +521,7 @@ func (addr *IPv4Address) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }
 
-// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+// IsOneBit returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
 func (addr *IPv4Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
@@ -607,7 +587,7 @@ func (addr *IPv4Address) ToSequentialRange() *IPv4AddressSeqRange {
 	return newSeqRangeUnchecked(addr.GetLower().ToIP(), addr.GetUpper().ToIP(), addr.isMultiple()).ToIPv4()
 }
 
-// ToBroadcastAddress returns the broadcast address.
+// ToBroadcastAddress returns the IPv4 broadcast address.
 // The broadcast address has the same prefix but a host that is all 1 bits.
 // If this address or subnet is not prefixed, this returns the address of all 1 bits, the "max" address.
 // This returns an error if a prefixed and ranged-valued segment cannot be converted to a host of all ones and remain a range of consecutive values.
@@ -615,7 +595,7 @@ func (addr *IPv4Address) ToBroadcastAddress() (*IPv4Address, addrerr.Incompatibl
 	return addr.ToMaxHost()
 }
 
-// ToNetworkAddress returns the network address.
+// ToNetworkAddress returns the IPv4 network address.
 // The network address has the same prefix but a zero host.
 // If this address or subnet is not prefixed, this returns the zero "any" address.
 // This returns an error if a prefixed and ranged-valued segment cannot be converted to a host of all zeros and remain a range of consecutive values.
@@ -686,12 +666,12 @@ func (addr *IPv4Address) IsLocal() bool {
 	return addr.IsLinkLocal() || addr.IsPrivate() || addr.IsAnyLocal()
 }
 
-// The unspecified address is the address that is all zeros.
+// IsUnspecified returns whether this is the unspecified address.  The unspecified address is the address that is all zeros.
 func (addr *IPv4Address) IsUnspecified() bool {
 	return addr.section == nil || addr.IsZero()
 }
 
-// Returns whether this address is the address which binds to any address on the local host.
+// IsAnyLocal returns whether this address is the address which binds to any address on the local host.
 // This is the address that has the value of 0, aka the unspecified address.
 func (addr *IPv4Address) IsAnyLocal() bool {
 	return addr.section == nil || addr.IsZero()
@@ -800,7 +780,7 @@ func (addr *IPv4Address) MergeToSequentialBlocks(addrs ...*IPv4Address) []*IPv4A
 }
 
 //
-// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of prefix blocks.
+// MergeToPrefixBlocks merges this with the list of sections to produce the smallest array of CIDR prefix blocks.
 //
 // The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 func (addr *IPv4Address) MergeToPrefixBlocks(addrs ...*IPv4Address) []*IPv4Address {
@@ -865,18 +845,12 @@ func (addr *IPv4Address) GetNetwork() IPAddressNetwork {
 
 // GetIPv6Address creates an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
 func (addr *IPv4Address) GetIPv6Address(section *IPv6AddressSection) (*IPv6Address, addrerr.AddressError) {
-	//func (addr *IPv4Address) GetIPv6Address(segs []*IPv6AddressSegment) (*IPv6Address, AddressError) {
-	//if len(segs) < IPv6MixedOriginalSegmentCount {
 	if section.GetSegmentCount() < IPv6MixedOriginalSegmentCount {
 		return nil, &addressValueError{addressError: addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
 	}
 	newSegs := createSegmentArray(IPv6SegmentCount)
 	section = section.WithoutPrefixLen()
 	section.copyDivisions(newSegs)
-	//for i, seg := range segs[:IPv6MixedOriginalSegmentCount] {
-	//	newSegs[i] = seg.ToDiv()
-	//}
-	//xxx I think I want to drop this one, unless I use a section, which I can remove prefix from xxxx
 	sect, err := createMixedSection(newSegs, addr)
 	if err != nil {
 		return nil, err

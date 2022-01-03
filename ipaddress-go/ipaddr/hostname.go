@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package ipaddr
 import (
 	"fmt"
 	"net"
-	//"strconv"
 	"strings"
 	"sync/atomic"
 	"unsafe"
@@ -42,12 +41,12 @@ func NewHostName(str string) *HostName {
 }
 
 // NewHostNameParams constructs an HostName that will parse the given string according to the given parameters
-func NewHostNameParams(str string, params addrparam.HostNameParams) *HostName {
-	var prms addrparam.HostNameParams
+func NewHostNameParams(str string, params addrstrparam.HostNameParams) *HostName {
+	var prms addrstrparam.HostNameParams
 	if params == nil {
 		prms = defaultHostParameters
 	} else {
-		prms = addrparam.CopyHostNameParams(params)
+		prms = addrstrparam.CopyHostNameParams(params)
 	}
 	str = strings.TrimSpace(str)
 	return &HostName{str: str, params: prms, hostCache: &hostCache{}}
@@ -170,7 +169,7 @@ func NewHostNameFromPrefixedNetIPAddr(addr *net.IPAddr, prefixLen PrefixLen) (ho
 	return
 }
 
-var defaultHostParameters = new(addrparam.HostNameParamsBuilder).ToParams()
+var defaultHostParameters = new(addrstrparam.HostNameParamsBuilder).ToParams()
 
 var zeroHost = NewHostName("")
 
@@ -194,7 +193,7 @@ type hostCache struct {
 
 type HostName struct {
 	str    string
-	params addrparam.HostNameParams
+	params addrstrparam.HostNameParams
 	*hostCache
 }
 
@@ -205,11 +204,7 @@ func (host *HostName) init() *HostName {
 	return host
 }
 
-//func (host *HostName) getParams() *hostNameParameters {
-//	return host.init().params
-//}
-
-func (host *HostName) GetValidationOptions() addrparam.HostNameParams {
+func (host *HostName) GetValidationOptions() addrstrparam.HostNameParams {
 	return host.init().params
 }
 
@@ -270,7 +265,7 @@ func (host *HostName) GetAddress() *IPAddress {
 }
 
 // ToAddress resolves to an address.
-// This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid
+// This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid.
 func (host *HostName) ToAddress() (addr *IPAddress, err addrerr.AddressError) {
 	addresses, err := host.ToAddresses()
 	if len(addresses) > 0 {
@@ -280,8 +275,8 @@ func (host *HostName) ToAddress() (addr *IPAddress, err addrerr.AddressError) {
 }
 
 // ToAddresses resolves to one or more addresses.
-// error can be addrerr.AddressStringError,addrerr.IncompatibleAddressError, addrerr.HostNameError
-// This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid
+// The error can be addrerr.AddressStringError,addrerr.IncompatibleAddressError, or addrerr.HostNameError.
+// This method can potentially return a list of resolved addresses and an error as well if some resolved addresses were invalid.
 func (host *HostName) ToAddresses() (addrs []*IPAddress, err addrerr.AddressError) {
 	host = host.init()
 	data := host.resolveData
@@ -301,17 +296,7 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err addrerr.AddressErro
 			strHost := parsedHost.getHost()
 			validationOptions := host.GetValidationOptions()
 			if len(strHost) == 0 {
-				//emptyStringOpt := validationOptions.EmptyStrParsedAs()
-				//if emptyStringOpt != NoAddressOption {
-				//	addrFunc, _ := emptyAddressCreator(
-				//		validationOptions.EmptyStrParsedAs(),
-				//		validationOptions.GetPreferredVersion(),
-				//		NoZone)
-				//	addr, _ := addrFunc()
-				//	addrs = []*IPAddress{addr}
-				//} else {
 				addrs = []*IPAddress{}
-				//}
 			} else {
 				var ips []net.IP
 				ips, lookupErr := net.LookupIP(strHost)
@@ -438,12 +423,6 @@ func (host *HostName) ToAddresses() (addrs []*IPAddress, err addrerr.AddressErro
 	}
 	return data.resolvedAddrs, nil
 }
-
-//func (host *HostName) ToHostAddress() (*Address, AddressError) {
-//	host = host.init()
-//	addr, err := host.ToAddressBase()
-//	return addr.ToAddressBase(), err
-//}
 
 func (host *HostName) IsValid() bool {
 	return host.init().Validate() == nil

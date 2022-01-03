@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,13 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"net"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 const (
@@ -84,10 +85,6 @@ func NewMACAddressFromBytes(bytes net.HardwareAddr) (*MACAddress, addrerr.Addres
 	return createAddress(section.ToSectionBase(), NoZone).ToMAC(), nil
 }
 
-//func NewMACAddressFromUint64(val uint64) *MACAddress {
-//	return NewMACAddressFromUint64Ext(val, false)
-//}
-
 func NewMACAddressFromUint64Ext(val uint64, isExtended bool) *MACAddress {
 	section := NewMACSectionFromUint64(val, getMacSegCount(isExtended))
 	return createAddress(section.ToSectionBase(), NoZone).ToMAC()
@@ -98,10 +95,6 @@ func NewMACAddressFromSegments(segments []*MACAddressSegment) (*MACAddress, addr
 	if segsLen != MediaAccessControlSegmentCount && segsLen != ExtendedUniqueIdentifier64SegmentCount {
 		return nil, &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.mac.invalid.segment.count"}}
 	}
-	//section, err := NewMACSection(segments)
-	//if err != nil {
-	//	return nil, err
-	//}
 	section := NewMACSection(segments)
 	return createAddress(section.ToSectionBase(), NoZone).ToMAC(), nil
 }
@@ -164,9 +157,6 @@ var zeroMAC = createMACZero()
 func createMACZero() *MACAddress {
 	segs := []*MACAddressSegment{zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg, zeroMACSeg}
 	section := NewMACSection(segs)
-	//div := NewMACSegment(0).ToDiv()
-	//segs := []*AddressDivision{div, div, div, div, div, div}
-	//section, _ := newMACSection(segs)
 	return newMACAddress(section)
 }
 
@@ -287,14 +277,14 @@ func (addr *MACAddress) GetSection() *MACAddressSection {
 	return addr.init().section.ToMAC()
 }
 
-// Gets the subsection from the series starting from the given index
+// GetTrailingSection gets the subsection from the series starting from the given index
 // The first segment is at index 0.
 func (addr *MACAddress) GetTrailingSection(index int) *MACAddressSection {
 	return addr.GetSection().GetTrailingSection(index)
 }
 
-//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
-//// The first segment is at index 0.
+// GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex.
+// The first segment is at index 0.
 func (addr *MACAddress) GetSubSection(index, endIndex int) *MACAddressSection {
 	return addr.GetSection().GetSubSection(index, endIndex)
 }
@@ -341,7 +331,7 @@ func (addr *MACAddress) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }
 
-// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+// IsOneBit returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
 func (addr *MACAddress) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
@@ -417,10 +407,7 @@ func (addr *MACAddress) GetPrefixLenForSingleBlock() PrefixLen {
 }
 
 func (addr *MACAddress) Compare(item AddressItem) int {
-	//if addr != nil {
-	//	addr = addr.init()
-	//}
-	return CountComparator.Compare(addr.init(), item)
+	return CountComparator.Compare(addr, item)
 }
 
 func (addr *MACAddress) PrefixEqual(other AddressType) bool {
@@ -564,7 +551,7 @@ func (addr *MACAddress) GetODISection() *MACAddressSection {
 	return addr.GetTrailingSection(MACOrganizationalUniqueIdentifierSegmentCount)
 }
 
-// Returns a section in which the range of values match the full block for the OUI (organizationally unique identifier) bytes
+// ToOUIPrefixBlock returns a section in which the range of values match the full block for the OUI (organizationally unique identifier) bytes
 func (addr *MACAddress) ToOUIPrefixBlock() *MACAddress {
 	segmentCount := addr.GetSegmentCount()
 	currentPref := addr.getPrefixLen()
@@ -649,37 +636,25 @@ func (addr *MACAddress) IsEUI64(asMAC bool) bool {
 // Note that IPv6 treats MACSize as EUI-48 and extends MACSize to IPv6 addresses using ff-fe
 func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, addrerr.IncompatibleAddressError) {
 	section := addr.GetSection()
-	if addr.GetSegmentCount() == ExtendedUniqueIdentifier48SegmentCount { //getSegmentCount() == EXTENDED_UNIQUE_IDENTIFIER_48_SEGMENT_COUNT
-		//MACAddressSegment segs[] = creator.createSegmentArray(EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT);
+	if addr.GetSegmentCount() == ExtendedUniqueIdentifier48SegmentCount {
 		segs := createSegmentArray(ExtendedUniqueIdentifier64SegmentCount)
 		section.copySubDivisions(0, 3, segs)
-		//section.CopySubSegments(0,  3, segs);
-		//var ffMACSeg, feMACSeg = NewMACSegment(0xff), NewMACSegment(0xfe)
-		//MACAddressSegment ffSegment = creator.createSegment(0xff);
 		segs[3] = ffMACSeg.ToDiv()
 		if asMAC {
 			segs[4] = ffMACSeg.ToDiv()
 		} else {
 			segs[4] = feMACSeg.ToDiv()
 		}
-		//segs[4] = asMAC ? ffSegment : creator.createSegment(0xfe);
 		section.copySubDivisions(3, 6, segs[5:])
-		//section.getSegments(3,  6, segs, 5);
 		prefixLen := addr.getPrefixLen()
-		//Integer prefLength = getPrefixLength();
 		if prefixLen != nil {
-			//MACAddressSection resultSection = creator.createSectionInternal(segs, true);
 			if prefixLen.bitCount() >= 24 {
 				prefixLen = cacheBitCount(prefixLen.bitCount() + (MACBitsPerSegment << 1)) //two segments
 			}
-			//resultSection.assignPrefixLength(prefLength);
 		}
 		newSect := createInitializedSection(segs, prefixLen, addr.getAddrType()).ToMAC()
 		return newMACAddress(newSect), nil
-		//return newMACAddress()
-		//return creator.createAddressInternal(segs);
 	}
-	//MACAddressSection section = getSection();
 	seg3 := section.GetSegment(3)
 	seg4 := section.GetSegment(4)
 	if seg3.matches(0xff) {
@@ -694,7 +669,6 @@ func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, addrerr.IncompatibleAd
 		}
 	}
 	return nil, &incompatibleAddressError{addressError{key: "ipaddress.mac.error.not.eui.convertible"}}
-	//throw new IncompatibleAddressException(this, "ipaddress.mac.error.not.eui.convertible");
 }
 
 func (addr *MACAddress) String() string {

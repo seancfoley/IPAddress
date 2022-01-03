@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,35 +17,13 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"strings"
 	"sync/atomic"
 	"unsafe"
-)
 
-// An object for writing an address part string in a specific format.
-//type addressDivisionWriter interface {
-//	appendDivision(builder *strings.Builder, div AddressStringDivision) *strings.Builder
-//
-//	getDivisionStringLength(div AddressStringDivision) int
-//}
-//
-//// An object for writing an IP address part string in a specific format.
-//type ipAddressStringWriter interface {
-//	addressDivisionWriter
-//
-//	// returns the number of segment separators in the string produced by these params
-//	getTrailingSeparatorCount(addr IPAddressStringDivisionSeries) int
-//
-//	getTrailingSegmentSeparator() byte
-//
-//	//returns the string produced by these params
-//	toString(addr IPAddressStringDivisionSeries) string
-//
-//	//returns the string produced by these params
-//	toZonedString(addr IPAddressStringDivisionSeries, zone string) string
-//}
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
+)
 
 // Note: For IPv6, translation from options to params is more complicated and requires the section, so it's done in IPv6AddressSection methods
 
@@ -75,19 +53,15 @@ func toZonedIPParams(opts addrstr.IPStringOptions) *ipAddressStringParams {
 	return parms
 }
 
-//protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
 func toIPParams(opts addrstr.IPStringOptions) (res *ipAddressStringParams) {
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
 	options, hasCache := opts.(ipCacheAccess)
-	//options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
 		cached := options.GetIPStringOptionsIPCache()
 		res = (*ipAddressStringParams)(*cached)
-		//res = options.cachedIPAddr
 	}
 	if res == nil {
-		//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 		res = &ipAddressStringParams{
 			addressStringParams: addressStringParams{
 				radix:            opts.GetRadix(),
@@ -98,17 +72,13 @@ func toIPParams(opts addrstr.IPStringOptions) (res *ipAddressStringParams) {
 				wildcards:        opts.GetWildcards(),
 				segmentStrPrefix: opts.GetSegmentStrPrefix(),
 				reverse:          opts.IsReverse(),
-				//splitDigits:      opts.isSplitDigits(),
-				addressLabel: opts.GetAddressLabel(),
-				//zoneSeparator: opts.GetZoneSeparator(),
+				addressLabel:     opts.GetAddressLabel(),
 			},
 			wildcardOption: opts.GetWildcardOption(),
 			addressSuffix:  opts.GetAddressSuffix(),
 		}
 		if hasCache {
 			dataLoc := options.GetIPStringOptionsIPCache()
-			//dataLoc := &cacheStruct.CachedIPAddr
-			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedIPAddr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
 	}
@@ -132,14 +102,11 @@ func toParams(opts addrstr.StringOptions) (res *addressStringParams) {
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
 	options, hasCache := opts.(cacheAccess)
-	//options, hasCache := opts.(*stringOptions)
 	if hasCache {
 		cached := options.GetStringOptionsCache()
 		res = (*addressStringParams)(*cached)
-		//res = options.cached
 	}
 	if res == nil {
-		//radix, wildcards, separator, _ := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), 0)
 		res = &addressStringParams{
 			radix:            opts.GetRadix(),
 			separator:        opts.GetSeparator(),
@@ -150,13 +117,9 @@ func toParams(opts addrstr.StringOptions) (res *addressStringParams) {
 			segmentStrPrefix: opts.GetSegmentStrPrefix(),
 			addressLabel:     opts.GetAddressLabel(),
 			reverse:          opts.IsReverse(),
-			//splitDigits:      opts.isSplitDigits(),
 		}
 		if hasCache {
 			dataLoc := options.GetStringOptionsCache()
-			//dataLoc := cached
-			//dataLoc := &cacheStruct.Cached
-			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cached))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
 	}
@@ -171,14 +134,11 @@ func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringPara
 	//since the params here are not dependent on the section, we could cacheBitCountx the params in the options
 	//this is not true on the IPv6 side where compression settings change based on the section
 	options, hasCache := opts.(ipCacheAccess)
-	//options, hasCache := opts.(*ipStringOptions)
 	if hasCache {
 		cached := options.GetIPStringOptionsCache()
 		res = (*addressStringParams)(*cached)
-		//res = options.cachedAddr
 	}
 	if res == nil {
-		//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 		res = &addressStringParams{
 			radix:            opts.GetRadix(),
 			separator:        opts.GetSeparator(),
@@ -189,13 +149,9 @@ func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringPara
 			segmentStrPrefix: opts.GetSegmentStrPrefix(),
 			addressLabel:     opts.GetAddressLabel(),
 			reverse:          opts.IsReverse(),
-			//splitDigits:      opts.isSplitDigits(),
-			//zoneSeparator: opts.GetZoneSeparator(),
 		}
 		if hasCache {
 			dataLoc := options.GetIPStringOptionsCache()
-			//dataLoc := &cacheStruct.CachedAddr
-			//dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&options.cachedAddr))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(res))
 		}
 	}
@@ -203,7 +159,6 @@ func toParamsFromIPOptions(opts addrstr.IPStringOptions) (res *addressStringPara
 }
 
 func from(opts addrstr.IPv6StringOptions, addr *IPv6AddressSection) (res *ipv6StringParams) {
-	//radix, wildcards, separator, zoneSeparator := getDefaults(opts.GetRadix(), opts.GetWildcards(), opts.GetSeparator(), opts.GetZoneSeparator())
 	res = &ipv6StringParams{
 		ipAddressStringParams: ipAddressStringParams{
 			addressStringParams: addressStringParams{
@@ -286,17 +241,6 @@ type divStringProvider interface {
 	//
 	// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
 	//
-	// For instance, generally the '*' is used as a wildcard to denote all possible values for a given segment,
-	// but in some cases that character is used for a segment separator.
-	//
-	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
-	// Those methods must be aware of the defaults as well, to know when they can defer to the defaults and when they cannot.
-	//getDefaultSegmentWildcardString() string //not sure this needs to be here
-
-	// This is the wildcard string to be used when producing the default strings with getString() or getWildcardString()
-	//
-	// Since no parameters for the string are provided, default settings are used, but they must be consistent with the address.
-	//
 	//For instance, generally the '-' is used as a range separator, but in some cases that character is used for a segment separator.
 	//
 	// Note that this only applies to "default" settings, there are additional string methods that allow you to specify these separator characters.
@@ -330,8 +274,6 @@ type addressSegmentParams interface {
 }
 
 type addressStringParams struct {
-	//protected static class AddressStringParams<T extends AddressStringDivisionSeries> implements AddressDivisionWriter, AddressSegmentParams, Cloneable {
-
 	wildcards      addrstr.Wildcards
 	expandSegments bool //whether to expand 1 to 001 for IPv4 or 0001 for IPv6
 
@@ -353,46 +295,9 @@ type addressStringParams struct {
 	zoneSeparator byte
 }
 
-// the setters and getters and constructors not implemented can be deleted, I only need the builder functions really
-
-//public AddressStringParams(int radix, Character separator, boolean uppercase) {
-//	this(radix, separator, uppercase, (char) 0);
-//}
-//
-//public AddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
-//	this.radix = radix;
-//	this.separator = separator;
-//	this.uppercase = uppercase;
-//	this.zoneSeparator  = zoneSeparator;
-//}
-
-//public void setZoneSeparator(char zoneSeparator) {
-//	this.zoneSeparator = zoneSeparator;
-//}
-//
-//public String getAddressLabel() {
-//	return addressLabel;
-//}
-//
-//public void setAddressLabel(String str) {
-//	this.addressLabel = str;
-//}
-//
-//public Character getSeparator() {
-//	return separator;
-//}
-//
-//public void setSeparator(Character separator) {
-//	this.separator = separator;
-//}
-
 func (params *addressStringParams) getWildcards() addrstr.Wildcards {
 	return params.wildcards
 }
-
-//public void setWildcards(Wildcards wc) {
-//	wildcards = wc;
-//}
 
 func (params *addressStringParams) preferWildcards() bool {
 	return true
@@ -410,32 +315,13 @@ func (params *addressStringParams) getSegmentStrPrefix() string {
 	return params.segmentStrPrefix
 }
 
-//public void setSegmentStrPrefix(String segmentStrPrefix) {
-//	if(segmentStrPrefix == null) {
-//		throw new NullPointerException();
-//	}
-//	this.segmentStrPrefix = segmentStrPrefix;
-//}
-
 func (params *addressStringParams) getRadix() int {
 	return params.radix
 }
 
-//public void setRadix(int radix) {
-//	this.radix = radix;
-//}
-//
-//public void setUppercase(boolean uppercase) {
-//	this.uppercase = uppercase;
-//}
-
 func (params *addressStringParams) isUppercase() bool {
 	return params.uppercase
 }
-
-//public void setSplitDigits(boolean split) {
-//	this.splitDigits = split;
-//}
 
 func (params *addressStringParams) isSplitDigits() bool {
 	return params.splitDigits
@@ -452,245 +338,6 @@ func (params *addressStringParams) getSplitDigitSeparator() byte {
 func (params *addressStringParams) isReverseSplitDigits() bool {
 	return params.reverse
 }
-
-//public void setReverse(boolean rev) {
-//	this.reverse = rev;
-//}
-//
-//public boolean isReverse() {
-//	return reverse;
-//}
-
-//public void expandSegments(boolean expand) {
-//	expandSegments = expand;
-//}
-
-// here we have the machinery to build a string, which calls into the division
-// which is passed in, in fact the whole address passed in
-// The IPv6 version of this stuff needs to stay in that class, it is aware tht
-// it is dealing with a more complicated beast, just gotta be sure
-// control does not pass into here from there
-// eg call to getSegmentsStringLength calls appendSegment
-// if we override appendSegment we must also override getSegmentsStringLength
-//
-// OK in more detail:
-// there are 3 levels of these functions:
-//AddressStringParams
-//IPAddressStringParams - handles prefixes, for which you need isFullRange, isPrefixBlock, isSinglePrefixBlock, getPrefixAdjustedRangeString
-//IPv6AddressStringParams - handles compression, for which you need your getZeroSegments amd getCompressIndexAndCount
-//
-// you will need to provide an independent set of these three functions for each level
-// which will call into the corresponding types on the division and segment side
-// the types will be interfaces at the two bottom levels:
-// - AddressStringDivisionSeries for all divisions
-//		This can use DivisionType
-//		I believe I can merge AddressDivisionSeries/AddressStringDivisionSeries DivisionType/AddressStringDivision
-//		But, for the time being, can keep those 4 types. merge them later
-// - IPAddressDivisionSeries, an interface to represent the ip div/seg types
-//		IPAddressSection, IPv4AddressSection, IPv6AddressSection, IPAddressLargeDivision
-//		this interface will have a method to return IPAddressStringDivision, segments with prefix length functions
-//		This will need a new method GetIPDivision() IPAddressStringDivision
-// - the highest level can use IPv6AddressSection
-//
-// In both params and div side, I need to ensure my methods avoid the virtual method trap,
-// where SubTypeX method subx calls ParentTypeY parenty which calls ParentTypeY parentz which is supposed to be overridden in SubTypeX
-// In go I'll just have to use one of the several tricks, see #2 and #3 in: IDEAS for replacing virtual methods
-//
-// In Java it's a little bit easier to have those extra interfaces for strings.
-// The reason is the way you can have the same method getDivision return different things in different types.
-// In go you need to create duplicate methods, getStringDIvision, getGenericDivision, etc, to return the different interface types
-//
-
-// next let's figure out what methods we override in the division classes
-// it seems isPrefixBlock() and isSinglePrefixBlock() are not part of the overriding stucture, they are simply called from the params classes
-// Overridden:
-// IPAddressDivision:
-//		getUpperStringMasked,
-//		getStringAsLower which is really getDefaultLowerString,
-//		getWildcardString,
-//		getString
-// IPAddressSegment: getDefaultSegmentWildcardString
-
-// getStandardString -> getLowerStandardString -> getStringAsLower
-// getRangeStringCounts -> getRangeStringSep -> getUpperStringMasked
-//
-// getDefaultRangeString -> getDefaultRangeStringVals -> buildDefaultRangeString -> getRangeStringSep
-
-// getString -> getDefaultRangeStringVals
-// getString -> getDefaultRangeString
-// getWildcardString -> getDefaultRangeString
-// getWildcardString -> getString
-// getDefaultRangeString -> getDefaultRangeStringVals
-// getDefaultRangeStringVals -> buildDefaultRangeString -> getRangeStringSep
-// getPrefixAdjustedRangeString -> getString
-// getRangeString -> getWildcardString
-// getStandardString -> getRangeString
-// getStandardString -> getLowerStandardString
-
-//xxx So how to handle the above? xxx
-//you have basically two entry points, getStandardString and getLowerStandardString
-//	plus a third in ipv6, getPrefixAdjustedRangeString
-//these entrypoints call a sequence of methods that eventually hit a few selection overridden methods
-// One option is to use func pointers inside the div types, put this requires initialization of those func pointers,
-//		which is a PITA
-// One option is to duplicate the methods leaning up to those calls, which I think is a non-starter
-// One option is to put those select funcs into an interface and pass it in to the params,
-//		and then pass that interface in to those entry points
-//		and the type itself can be either the div type, or instead some separate type
-//		But those interface methods also need to pass the same interface back as they call further methods
-//		YOu have basically two sets of methods.  One is the shared set.  The second is the interface set, not shared.
-//		I think both sets likely need access to the div types themselves, as well
-//		hmmmmm
-//		Obviously using enough interfaces and/or function ptr arguments should do the trick
-//		Just need to figure out the best/simplest pattern
-//		OK, I think I got it, you create a new wrapper type
-//		The wrapper type as both methods and function pointers, both.
-//		You create and initialize this type in the params at the entry points.
-//		You call into this type as the new entry points.
-//		It is basically the equivalent of an abstract class.
-//		The shared methods are part of this new type and are in this new type.
-//
-//		type StringWriter {
-//			func1(StringWriter, args) //examples are getString and getWildcardString
-//			func2(StringWriter, args)
-//
-//			At this time I am not so sure any of the funcs need to call back into StringWriter.
-// 			If they call into other methods on the same division type, that is generally ok.
-//			Hold on: getWildcardString -> getDefaultRangeString -> getDefaultRangeStringVals -> buildDefaultRangeString -> getRangeStringSep -> getUpperStringMasked
-//				getString -> getDefaultRangeStringVals -> buildDefaultRangeString -> getRangeStringSep -> getUpperStringMasked
-//			The other problem is that some of these methods like getString() are public methods in the division,
-//			so passing in a StringWriter is a no-go
-//			So I need to ensure they don't need the StringWriter callback
-//			IN tehse cases, the problem is the call to getRangeStringSep
-//			But the overriding getUpperStringMasked not needed there
-//			nor here:
-//			getStandardString -> getRangeString -> getRangeStringCounts -> getRangeStringSep -> getUpperStringMasked
-//			But it is needed here:
-//			getPrefixAdjustedRangeString -> getRangeStringCounts -> getRangeStringSep -> getUpperStringMasked
-//			In those cases, I can pass the StringWriter.  Do I want to?
-//			No, because nothing in that chain is another one of the function pointers, BUT
-//				getRangeStringSep is supposed to be inside the divs, since it is also called by getString
-//			So.... Is there a case of getString, getWildcardString, getStringAsLower, getLowerString calling another overridden method in the list?
-//			checking IPAddressDivision,
-//				I think getString() is OK - getDefaultSegmentWildcardString would have been a problem but since IPAddressDivision merged to IPAddressSection, it's not
-//				getWildcardString is OK
-//				getStringAsLower is OK
-//
-//			So looks like getRangeStringSep is the only issue (I think), it needs to be in the divs, but it needs the StringWriter passed too for using getUpperStringMasked
-//			it is in a parent class calling up into the sub class
-//			We need to avoid the callbacks
-//		}
-//
-//		func (StringWriter) method1() {} //entry points and other shared methods
-//		func (StringWriter) method2() {}
-//
-//		in the params, you take the AddressDivisionSeries or the other IPAddressDivisionSeries or the IPv6AddressSection,
-//		you call a method that creates this type (or gets the stored one) from it, then you call into that provided object
-//
-//		So, you could have done the Java side this way as well, which you kinda did.
-//		The only diff is that the new type is separated from the original in go.
-//		In java you could separate there too, but that would then require the creation of this new object at some point, and you'd store it as well.
-//		By merging into the original classes in Java, you avoid that.
-//
-
-// LARGE vs STANDARD
-// NOte, it seems a whole bunch of other methods are overridden in IPAddressLargeDivision, call them the L set
-// That is largely the reason for the existence of AddressDivisionBase
-// BUT, really they are all called by getStandardString and getLowerStandardString
-// So, to replicate that, you have to worry about just those two methods
-// And they are both the two entry points to producing ip division strings
-// So in the end, you might want to have wrapper methods for those two in each of large and standard ip divisions,
-// the wrappers will call general funcs, passing in the *AddressDivisionBase as an argument,
-// the func parameter will be an interface that has all those L set methods,
-// and then you can just have the implementations in the large and standard ip division types
-// So that takes care of large vs standard
-//
-//  we want the pattern above, but we need more thought into this
-// Actually, the statement that "they are all called by getStandardString and getLowerStandardString"
-//	is not really true.  But in the end, you can likely reuse the same solution as I use above for the abstract stuff in general.
-//	You will just need an expanded set of function pointers.
-//	BUT you will once again have the same problem with getRangeStringSep, but with more functions, not just getUpperStringMasked
-//
-// buildDefaultRangeString and the like is an issue, it creates a StringBuilder to call into some of these shared funcs
-// It seems to be the only one that does that
-// I think that is key.  I think that you might want to instead cause that to use the full StringWriter framework.
-// But do we want things like getString to be plugging into the full StringWriter framework, while at the same time being clients of it?
-// Not really.
-// Still confused here what to do.
-// We want, once you are inside the divs, to not want to be pulled back int the StringWriter framework.
-// Or, another way of looking at it, we want those secondary methods like getUpperStringMasked, getUpperString, etc,
-// to NOT be abstract in the sense we go from general lower function to something more specialized
-//
-// Maybe two frameworks?  Yeah, you might need two.
-// One, call it FL for framework lower, is for those lower level getUpperStringMasked, getUpperString.
-// The other, call it FU for framework upper, is for the other methods that are called by the entry points, which is getString, getWildcardString.
-// We've already figured how how FU works:
-//
-//		type StringWriter {
-//			func1(args) //examples are getString and getWildcardString
-//			func2(args)
-//		}
-//
-//		func (StringWriter) method1() {} //entry points and other shared methods used by the params.  eg getStandardString.
-//		func (StringWriter) method2() {}
-//
-// Now, for LU, we are inside high level methods like getString, and we want to call methods like getDefaultRangeString and getDefaultRangeStringVals
-// Those are methods in base classes that eventually call methods overridden
-// So here we want to use another framework.  We need those methods to take an interface that points to the overriden methods.
-//	Yeah:
-//		type StringProducer interface {
-//			getUpperStringMasked string
-//			getUpperString string
-//		}
-//  The shared lower methods must take this as an arg.  Not only that, the FU must also use one of these, since it too calls into them.
-// This is tactic 1 of "IDEAS for replacing virtual methods".  Any method that calls an abstract or an overridden method,
-//	either directly or indirectly, must use this tactic.  The method must either pass along the StringProducer (if it is lower level), or create it (if higher level).
-// If a method is lower level but cannot pass it along, you must replicate the same method at a higher level.
-// buildDefaultRangeString is one example, it must pass in this StringProducer.
-//
-//  this will work.  Use the FU LU frameworks.  The lower level functions that take StringProducer can be methods or functions.  Methods if they need lower level data, functions otherwise.
-//
-/*
-	type StringWriter {
-		StringProducer
-
-		// function fields:
-		func1(args) //examples to go here are getString and getWildcardString
-		func2(args)	// anything these call inside the divs can create their own StringProducer objs to call shared methods in the divs
-	}
-
-	func (StringWriter) method1() {} //entry points and other shared methods used by the params.  eg getStandardString.
-	func (StringWriter) method2() {}
-
-	type StringProducer interface { // each of IPSegment, IPLargeDivision, Division gets mapped to this interface
-		getUpperStringMasked string
-		getUpperString string
-		// the other abstract methods in AddressDivisionBase
-	}
-
-	In the end, this code might be cleaner than the Java code, although the callback tacking of using StringProducer objs as args is less clean that the Java code
-
-*/
-
-//
-// These methods are overridden in IPAddressSegment, overriding default behaviour in AddressDivision
-//		getUpperStringMasked,
-//		getStringAsLower which is really getDefaultLowerString,
-//		getWildcardString,
-//		getString
-
-//
-//
-//
-//
-//
-//
-//
-//
-
-//var (
-//	_, _ divStringProvider = &AddressDivision{}, &IPAddressSegment{}
-//)
 
 func (params *addressStringParams) getSegmentsStringLength(part AddressDivisionSeries) int {
 	count := 0
@@ -786,12 +433,7 @@ func (params *addressStringParams) getStringLength(addr AddressDivisionSeries) i
 
 func (params *addressStringParams) appendZone(builder *strings.Builder, zone Zone) *strings.Builder {
 	if zone != NoZone {
-		//if params.zoneSeparator == 0 {
-		//	builder.WriteByte(IPv6ZoneSeparator)
-		//	//params.zoneSeparator = IPv6ZoneSeparator
-		//} else {
 		builder.WriteByte(params.zoneSeparator)
-		//}
 		builder.WriteString(string(zone))
 	}
 	return builder
@@ -855,7 +497,6 @@ func (params *addressStringParams) clone() *addressStringParams {
 	return &result
 }
 
-//var _ addressDivisionWriter = &addressStringParams{}
 var _ addressSegmentParams = &addressStringParams{}
 
 // Each StringParams has settings to write exactly one type of IP address part string.
@@ -863,37 +504,14 @@ var _ addressSegmentParams = &addressStringParams{}
 type ipAddressStringParams struct {
 	addressStringParams
 
-	//public static final WildcardOption DEFAULT_WILDCARD_OPTION = WildcardOption.NETWORK_ONLY;
-	//protected static final int EXTRA_SPACE = 16;
-
 	wildcardOption addrstr.WildcardOption
 	expandSeg      []int //the same as expandSegments but for each segment
 	addressSuffix  string
 }
 
-//public IPAddressStringParams(int radix, Character separator, boolean uppercase) {
-//	this(radix, separator, uppercase, (char) 0);
-//}
-//
-//public IPAddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
-//	super(radix, separator, uppercase, zoneSeparator);
-//}
-
-//public String getAddressSuffix() {
-//	return addressSuffix;
-//}
-//
-//public void setAddressSuffix(String suffix) {
-//	this.addressSuffix = suffix;
-//}
-
 func (params *ipAddressStringParams) preferWildcards() bool {
 	return params.wildcardOption == addrstr.WildcardsAll
 }
-
-//public void setWildcardOption(WildcardOption option) {
-//	wildcardOption = option;
-//}
 
 func (params *ipAddressStringParams) getExpandedSegmentLength(segmentIndex int) int {
 	expandSegment := params.expandSeg
@@ -1046,9 +664,7 @@ func (params *ipAddressStringParams) appendSegment(segmentIndex int, div Divisio
 	if params.isSplitDigits() {
 		panic("split digits") // split digits restricted to IPv6, because we ignore the errors generated by split digits elsewhere.
 	}
-	//div := part.GetGenericIPDivision(segmentIndex)
 	writer := stringWriter{div}
-	//prefixLen := div.GetSegmentPrefixLen()
 	// consider all the cases in which we need not account for prefix length
 	if params.preferWildcards() ||
 		divPrefixLen == nil ||
@@ -1101,12 +717,6 @@ func (params *ipAddressStringParams) clone() *ipAddressStringParams {
 	return &result
 }
 
-//var _ ipAddressStringWriter = &ipAddressStringParams{}
-
-//IPv4StringParams(int radix) {
-//	super(radix, IPv4Address.SEGMENT_SEPARATOR, false);
-//}
-
 // Each IPv6StringParams has settings to write exactly one IPv6 address section string
 //static class IPv6StringParams extends IPAddressStringParams<IPv6AddressSection> {
 type ipv6StringParams struct {
@@ -1116,27 +726,6 @@ type ipv6StringParams struct {
 
 	hostCompressed bool //whether the host was compressed, which with some prefix configurations means we must print the network prefix to indicate that the host is full range
 }
-
-//IPv6StringParams() {
-//	this(-1, 0);
-//}
-//
-//IPv6StringParams(int firstCompressedSegmentIndex, int compressedCount) {
-//	this(false, firstCompressedSegmentIndex, compressedCount, false, IPv6Address.SEGMENT_SEPARATOR, IPv6Address.ZONE_SEPARATOR);
-//}
-
-//private IPv6StringParams(
-//		boolean expandSegments,
-//		int firstCompressedSegmentIndex,
-//		int compressedCount,
-//		boolean uppercase,
-//		char separator,
-//		char zoneSeparator) {
-//	super(IPv6Address.DEFAULT_TEXTUAL_RADIX, separator, uppercase, zoneSeparator);
-//	this.expandSegments(expandSegments);
-//	this.firstCompressedSegmentIndex = firstCompressedSegmentIndex;
-//	this.nextUncompressedIndex = firstCompressedSegmentIndex + compressedCount;
-//}
 
 func (params *ipv6StringParams) endIsCompressed(addr IPAddressSegmentSeries) bool {
 	return params.nextUncompressedIndex >= addr.GetDivisionCount()
@@ -1242,7 +831,6 @@ func (params *ipv6StringParams) appendSegments(builder *strings.Builder, addr IP
 }
 
 func (params *ipv6StringParams) getSegmentsStringLength(part IPv6AddressSegmentSeries) int {
-	//func (params *ipv6StringParams) getSegmentsStringLength(part *IPv6AddressSection) int {
 	count := 0
 	divCount := part.GetDivisionCount()
 	if divCount != 0 {
@@ -1443,50 +1031,8 @@ func (params *ipv6v4MixedParams) clone() *ipv6v4MixedParams {
 }
 
 type stringWriter struct {
-	//divStringProvider // the division itself, seen as a string provider
-
-	//div DivisionType // the division itself
-
 	DivisionType
-
-	// do these really need to be function pointers?
-	// MAYBE
-	// 1. THEY are methods in the divs to be accessible publicly , at least two are
-	// 2. Those public methods will scale up, so technically maybe they do not need to be here
-	// 3. BUT, are they in DivisionType?  Maybe two will be
-	// 4. Maybe the other could be moved to divStringProvider?
-	//maybe just call these on the div itself?
-	//in there they should scale up
-	//and move them into DivisionType too
-	//
-	//getStringAsLower  func() string
-	//getString         func() string
-	//getWildcardString func() string
 }
-
-//func (writer stringWriter) getStringAsLower() string {
-//	return writer.div.getStringAsLower()
-//}
-//
-//func (writer stringWriter) getString() string {
-//	return writer.div.GetString()
-//}
-//
-//func (writer stringWriter) getWildcardString() string {
-//	return writer.div.GetWildcardString()
-//}
-
-//func (writer stringWriter) getStringAsLower() string {
-//	return writer.DivisionType.getStringAsLower()
-//}
-//
-//func (writer stringWriter) getString() string {
-//	return writer.GetString()
-//}
-//
-//func (writer stringWriter) getWildcardString() string {
-//	return writer.GetWildcardString()
-//}
 
 // Produces a string to represent the segment, using wildcards and range characters.
 // Use this instead of getWildcardString() if you have a customized wildcard or range separator or you have a non-zero leadingZeroCount,
@@ -1543,9 +1089,6 @@ func (writer stringWriter) getStandardString(segmentIndex int, params addressSeg
 	} else if writer.IsFullRange() {
 		wildcard := params.getWildcards().GetWildcard()
 		if len(wildcard) > 0 {
-			//if wildcard == writer.getDefaultSegmentWildcardString() { unnecessary and a PITA for golang
-			//	setDefaultAsFullRangeWildcardString() //cacheBitCountx
-			//}
 			splitDigits := params.isSplitDigits()
 			if splitDigits {
 				radix := params.getRadix()
@@ -1581,13 +1124,12 @@ func (writer stringWriter) getPrefixAdjustedRangeString(segmentIndex int, params
 	if len(wildcards.GetSingleWildcard()) != 0 {
 		rangeDigitCount = writer.getRangeDigitCount(radix)
 	}
-	//div := writer.div
 
 	//If we can, we reuse the standard string to construct this string (must have the same radix and no chopped digits)
 	//We can insert leading zeros, string prefix, and a different separator string if necessary
 	//Also, we cannot in the case of full range (in which case we are only here because we do not want '*')
 	if rangeDigitCount == 0 && radix == writer.getDefaultTextualRadix() && !writer.IsFullRange() {
-		//we call getString() to cacheBitCountx the result, and we call getString instead of getWildcardString() because it will also mask with the segment prefix length
+		//we call getString() to cache the result, and we call getString instead of getWildcardString() because it will also mask with the segment prefix length
 		str := writer.GetString()
 		rangeSep := writer.getDefaultRangeSeparatorString()
 		stringPrefix := params.getSegmentStrPrefix()
@@ -1657,24 +1199,6 @@ func (writer stringWriter) getPrefixAdjustedRangeString(segmentIndex int, params
 	return writer.getRangeStringWithCounts(segmentIndex, params, lowerLeadingZeroCount, upperLeadingZeroCount, true, appendable)
 }
 
-// before you move ahead, chexk to see if the methods below are called internally in the division classes
-// If so, you cannot put them here.  In such cases they will need a divStringProvider arg added as well, most likely.
-// I suppose that the more you can pull out here, the better, but be careful.
-// ANything that is overridden cannot go here either.  Really just the entry points from params to divisions
-// needs to be here.
-
-// entry points:
-// getStandardString
-// getPrefixAdjustedRangeString
-// getLowerStandardString
-//
-
-//stay away from buildDefaultRangeString
-//getRangeString
-// In go, getRangeStringSep should no longer be a method, since it will use divStringProvider
-//getLowerString/getUpperString/getUpperStringMasked
-// ok the ones below are all of it
-
 func (writer stringWriter) getLowerStandardString(segmentIndex int, params addressSegmentParams, appendable *strings.Builder) int {
 	count := 0
 	stringPrefix := params.getSegmentStrPrefix()
@@ -1735,7 +1259,6 @@ func (writer stringWriter) getRangeString(segmentIndex int, params addressSegmen
 	}
 	lowerLeadingZeroCount := writer.adjustLowerLeadingZeroCount(leadingZeroCount, radix)
 	upperLeadingZeroCount := writer.adjustUpperLeadingZeroCount(leadingZeroCount, radix)
-	//div := writer.div
 	//check the case where we can use the result of getWildcardString which is cached.
 	//It must have same radix and no chopped digits, and no splitting or reversal of digits.
 	//We can insert leading zeros, string prefix, and a different separator string if necessary.
@@ -2052,23 +1575,6 @@ func getLeadingZeros(leadingZeroCount int, builder *strings.Builder) {
 
 const zeros = "00000000000000000000"
 
-// used by non-segment string ranges
-//func toNormalizedStringRange(params *addressStringParams, lower, upper *AddressSection, zone Zone) string {
-//	length := params.getStringLength(lower) + params.getZonedStringLength(upper, zone)
-//	var builder strings.Builder
-//	separator := params.getWildcards().GetRangeSeparator()
-//	if separator != "" {
-//		length += len(separator)
-//		builder.Grow(length)
-//		params.append(&builder, lower).WriteString(separator)
-//		params.appendZoned(&builder, upper, zone)
-//	} else {
-//		builder.Grow(length)
-//		params.appendZoned(params.append(&builder, lower), upper, zone)
-//	}
-//	checkLengths(length, &builder)
-//	return builder.String()
-//}
 func toNormalizedStringRange(params *addressStringParams, lower, upper AddressDivisionSeries, zone Zone) string {
 	if lower.GetDivisionCount() > 0 {
 		var builder strings.Builder

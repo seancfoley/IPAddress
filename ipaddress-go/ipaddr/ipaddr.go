@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ const (
 	PrefixLenSeparatorStr = "/"
 )
 
+// IPVersion is the version type used by IP address types.
 type IPVersion string
 
 const (
@@ -1056,10 +1057,6 @@ func (addr *IPAddress) Mask(other *IPAddress) (masked *IPAddress, err addrerr.In
 	return addr.maskPrefixed(other, true)
 }
 
-//func (addr *IPAddress) MaskPrefixed(other *IPAddress) (masked *IPAddress, err addrerr.IncompatibleAddressError) {
-//	return addr.maskPrefixed(other, true)
-//}
-
 func (addr *IPAddress) maskPrefixed(other *IPAddress, retainPrefix bool) (*IPAddress, addrerr.IncompatibleAddressError) {
 	if thisAddr := addr.ToIPv4(); thisAddr != nil {
 		if oth := other.ToIPv4(); oth != nil {
@@ -1634,31 +1631,6 @@ func (creator IPAddressCreator) NewIPSectionFromPrefixedBytes(bytes []byte, segm
 	return nil, &addressValueError{addressError: addressError{key: "ipaddress.error.ipVersionIndeterminate"}}
 }
 
-// the reason this was not here before was that with the creator, the version field determines the version
-// so, the creator is not needed for these two because the byte length determines the version,
-// so for these you can just call the public functions
-//func (creator IPAddressCreator) NewIPAddressFromIP(bytes net.IP) *IPAddress {
-//	if creator.IsIPv4() {
-//		addr, _ := NewIPv4AddressFromBytes(bytes)
-//		return addr.ToIP()
-//	} else if creator.IsIPv6() {
-//		addr, _ := NewIPv6AddressFromBytes(bytes)
-//		return addr.ToIP()
-//	}
-//	return nil
-//}
-//
-//func (creator IPAddressCreator) NewIPAddressFromPrefixedIP(bytes net.IP, prefLen PrefixLen) *IPAddress {
-//	if creator.IsIPv4() {
-//		addr, _ := NewIPv4AddressFromPrefixedBytes(bytes, prefLen)
-//		return addr.ToIP()
-//	} else if creator.IsIPv6() {
-//		addr, _ := NewIPv6AddressFromPrefixedBytes(bytes, prefLen)
-//		return addr.ToIP()
-//	}
-//	return nil
-//}
-
 func (creator IPAddressCreator) NewIPAddressFromVals(lowerValueProvider SegmentValueProvider) *IPAddress {
 	return NewIPAddressFromVals(creator.IPVersion, lowerValueProvider)
 }
@@ -1773,97 +1745,6 @@ func NewIPAddressFromPrefixedZonedVals(version IPVersion, lowerValueProvider, up
 	return nil
 }
 
-//func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection) (res *IPAddress) {
-//	xxx
-//	if len(segs) > 0 {
-//		if segs[0].IsIPv4() {
-//			for _, seg := range segs[1:] {
-//				if !seg.IsIPv4() {
-//					return nil
-//				}
-//			}
-//			xxxxx sect := sectionCreator(true, cloneIPSegsToDivs(segs))
-//			addr, err := NewIPv4Address(sect.ToIPv4())
-//			if err == nil {
-//				res = addr.ToIP()
-//			}
-//		} else if segs[0].IsIPv6() {
-//			for _, seg := range segs[1:] {
-//				if !seg.IsIPv6() {
-//					return nil
-//				}
-//			}
-//			xxxxx sect := sectionCreator(false, cloneIPSegsToDivs(segs))
-//			addr, err := NewIPv6Address(sect.ToIPv6())
-//			if err == nil {
-//				res = addr.ToIP()
-//			}
-//		}
-//	}
-//	return res
-//}
-//
-//// NewIPAddressFromSegments creates an address from the given segments.
-//// If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
-//// then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
-//func NewIPAddressFromSegments(segments []*IPAddressSegment) *IPAddress {
-//	xxx
-//	return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection {
-//		if isIPv4 {
-//			sect, _ := newIPv4Section(segs, true)
-//			return sect.ToIP()
-//		} else {
-//			sect, _ := newIPv6Section(segs, true)
-//			return sect.ToIP()
-//		}
-//	})
-//}
-//
-//// newIPAddressFromSegments creates an address from the given segments and prefix length.
-//// If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
-//// then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
-//func NewIPAddressFromPrefixedSegments(segments []*IPAddressSegment, prefixLength PrefixLen) *IPAddress {
-//	xxx
-//	return newIPAddressFromSegments(segments, func(isIPv4 bool, segs []*AddressDivision) *IPAddressSection {
-//		if isIPv4 {
-//			sect, _ := newIPv4PrefixedSection(segs, prefixLength)
-//			return sect.ToIP()
-//		} else {
-//			sect, _ := newIPv6PrefixedSection(segs, prefixLength)
-//			return sect.ToIP()
-//		}
-//	})
-//}
-//
-//func newIPAddressFromSegments(segs []*IPAddressSegment, sectionCreator func(isIPv4 bool, segs []*IPAddressSegment) *IPAddressSection) (res *IPAddress) {
-//	if len(segs) > 0 {
-//		if segs[0].IsIPv4() {
-//			for _, seg := range segs[1:] {
-//				if !seg.IsIPv4() {
-//					return nil
-//				}
-//			}
-//			sect := sectionCreator(true, segs)
-//			addr, err := NewIPv4Address(sect.ToIPv4())
-//			if err == nil {
-//				res = addr.ToIP()
-//			}
-//		} else if segs[0].IsIPv6() {
-//			for _, seg := range segs[1:] {
-//				if !seg.IsIPv6() {
-//					return nil
-//				}
-//			}
-//			sect := sectionCreator(false, segs)
-//			addr, err := NewIPv6Address(sect.ToIPv6())
-//			if err == nil {
-//				res = addr.ToIP()
-//			}
-//		}
-//	}
-//	return res
-//}
-
 // NewIPAddressFromSegments creates an address from the given segments.
 // If the segments are not consistently IPv4 or IPv6, or if there is not the correct number for the version,
 // then nil is returned.  An error is not returned because it is not clear with version was intended and so any error may be misleading as to what was incorrect.
@@ -1956,7 +1837,6 @@ func asMap(addrs []*IPAddress) (result map[string]struct{}) {
 	if addrLen := len(addrs); addrLen > 0 {
 		result = make(map[string]struct{})
 		for _, addr := range addrs {
-
 			result[addr.ToNormalizedWildcardString()] = struct{}{}
 		}
 	}

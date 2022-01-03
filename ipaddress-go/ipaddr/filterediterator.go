@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,6 +66,8 @@ func (it *filteredIPAddrIterator) HasNext() bool {
 	return it.next != nil
 }
 
+// NewFilteredIPAddrIterator returns an iterator similar to the passed in iterator,
+// but skipping those elements for which the "skip" function returns true
 func NewFilteredIPAddrIterator(iter IPAddressIterator, skip func(*IPAddress) bool) IPAddressIterator {
 	res := &filteredIPAddrIterator{skip: skip, iter: iter}
 	res.Next()

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -320,9 +320,6 @@ func maskExtendedRange(
 		}
 		return newWrappedMasker(masker)
 	}
-	//if(extendedValue > extendedUpperValue) {
-	//	throw new IllegalArgumentException("value > upper value");
-	//}
 	if (maskValue == maxValue && extendedMaskValue == extendedMaxValue /* all ones mask */) ||
 		(maskValue == 0 && extendedMaskValue == 0 /* all zeros mask */) {
 		return defaultMasker
@@ -369,48 +366,9 @@ func maskExtendedRange(
 				lowerBig.SetUint64(extendedValue).Lsh(&lowerBig, 64).Or(&lowerBig, val.SetUint64(value))
 				count := upperBig.Sub(&upperBig, &lowerBig).Add(&upperBig, big.NewInt(1))
 				maskedIsSequential = count.Cmp(countRequiredForSequential) >= 0
-				//			BigInteger countRequiredForSequential = ONE_SHIFTED_EXTENDED[shift];
-				//			if(countRequiredForSequential == null) {
-				//				countRequiredForSequential = ONE_SHIFTED_EXTENDED[shift] = BigInteger.valueOf(1L << shift).shiftLeft(Long.SIZE);
-				//			}
-				//			BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
-				//			BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
-				//			BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
-				//			maskedIsSequential = count.Compare(countRequiredForSequential) >= 0;
 			}
-			//		ExtendedFullRangeMasker cacheBitCountx[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
-			//		ExtendedFullRangeMasker result = cacheBitCountx[highestDifferingBitMasked];
-			//		if(result == null) {
-			//			cacheBitCountx[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
-			//		}
-			//		return result;
 			return newExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential)
 		} else if !maskedIsSequential {
-			//xxx
-			//countRequiredForSequential := big.NewInt(1)
-			//countRequiredForSequential.Lsh(countRequiredForSequential, 128-uint(highestDifferingBitMasked))
-			//
-
-			//count := upperBig.Sub(&upperBig, &lowerBig).Add(&upperBig, big.NewInt(1))
-			//maskedIsSequential = count.Cmp(countRequiredForSequential) >= 0
-
-			//		BigInteger bigHostMask = HOST_MASK_EXTENDED[highestDifferingBitMasked];
-			//		if(bigHostMask == null) {
-			//			bigHostMask = BigInteger.valueOf(hostMask);
-			//			bigHostMask = bigHostMask.shiftLeft(Long.SIZE);
-			//			byte b = (byte) 0xff;
-			//			bigHostMask = bigHostMask.or(new BigInteger(1, new byte[] {b, b, b, b, b, b, b, b}));
-			//			HOST_MASK_EXTENDED[highestDifferingBitMasked] = bigHostMask;
-			//		}
-			//		BigInteger bigHostZeroed = NETWORK_MASK_EXTENDED[highestDifferingBitMasked];
-			//		if(bigHostZeroed == null) {
-			//			bigHostZeroed = NETWORK_MASK_EXTENDED[highestDifferingBitMasked] = bigHostMask.not();
-			//		}
-			//		BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
-			//		BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
-			//		BigInteger upperToBeMaskedBig = upperBig.and(bigHostZeroed);
-			//		BigInteger lowerToBeMaskedBig = lowerBig.or(bigHostMask);
-			//		BigInteger maskBig = new BigInteger(1, toBytesSizeAdjusted(maskValue, extendedMaskValue, 16));
 
 			var bigHostZeroed, bigHostMask, val big.Int
 			bigHostMask.SetUint64(hostMask).Lsh(&bigHostMask, 64).Or(&bigHostMask, val.SetUint64(^uint64(0)))
@@ -440,14 +398,9 @@ func maskExtendedRange(
 				// keep our upperToBeMasked bit as 0
 				// keep our lowerToBeMasked bit as 1
 			}
-			//newExtendedSpecificValueMasker(extendedLower, lower, extendedUpper, upper uint64)
 			var lowerMaskedBig, upperMaskedBig big.Int
 			lowerMaskedBig.Set(&lowerToBeMaskedBig).And(&lowerToBeMaskedBig, val.SetUint64(^uint64(0)))
 			upperMaskedBig.Set(&upperToBeMaskedBig).And(&upperToBeMaskedBig, &val)
-
-			//var lowerMasked, upperMasked uint64 = lowerMaskedBig.Uint64(), upperMaskedBig.Uint64()
-			//var extendedLowerMasked, extendedUpperMasked uint64 = lowerToBeMaskedBig.Rsh(&lowerToBeMaskedBig, 64).Uint64(),
-			//	upperToBeMaskedBig.Rsh(&upperToBeMaskedBig, 64).Uint64()
 
 			return newExtendedSpecificValueMasker(
 				lowerToBeMaskedBig.Rsh(&lowerToBeMaskedBig, 64).Uint64(),
@@ -455,25 +408,6 @@ func maskExtendedRange(
 				upperToBeMaskedBig.Rsh(&upperToBeMaskedBig, 64).Uint64(),
 				upperMaskedBig.Uint64())
 
-			//		for(int nextBit = 128 - (highestDifferingBitMasked + 1) - 1; nextBit >= 0; nextBit--) {
-			//			if(maskBig.testBit(nextBit)) {
-			//				BigInteger candidate = upperToBeMaskedBig.setBit(nextBit);
-			//				if(candidate.Compare(upperBig) <= 0) {
-			//					upperToBeMaskedBig = candidate;
-			//				}
-			//				candidate = lowerToBeMaskedBig.clearBit(nextBit);
-			//				if(candidate.Compare(lowerBig) >= 0) {
-			//					lowerToBeMaskedBig = candidate;
-			//				}
-			//			} //else
-			//			// keep our upperToBeMaskedBig bit as 0
-			//			// keep our lowerToBeMaskedBig bit as 1
-			//		}
-			//		return new ExtendedSpecificValueMasker(
-			//				lowerToBeMaskedBig.shiftRight(Long.SIZE).longValue(),
-			//				lowerToBeMaskedBig.longValue(),
-			//				upperToBeMaskedBig.shiftRight(Long.SIZE).longValue(),
-			//				upperToBeMaskedBig.longValue());
 		}
 		return defaultMasker
 	}
@@ -514,42 +448,10 @@ func maskExtendedRange(
 		lowerBig.SetUint64(extendedValue).Lsh(&lowerBig, 64).Or(&lowerBig, val.SetUint64(value))
 		count := upperBig.Sub(&upperBig, &lowerBig).Add(&upperBig, big.NewInt(1))
 		maskedIsSequential = count.Cmp(countRequiredForSequential) >= 0
-
-		//	BigInteger countRequiredForSequential;
-		//	if(highestDifferingBitMaskedLow == 0) {
-		//		countRequiredForSequential = ONE_EXTENDED;
-		//	} else if(highestDifferingBitMaskedLow == 1) { // need this case because 1 << 63 is a negative number
-		//		countRequiredForSequential = HIGH_BIT;
-		//	} else {
-		//		int shift = Long.SIZE - highestDifferingBitMaskedLow;
-		//		countRequiredForSequential = ONE_SHIFTED[shift];
-		//		if(countRequiredForSequential == null) {
-		//			countRequiredForSequential = ONE_SHIFTED[shift] = BigInteger.valueOf(1L << shift);
-		//		}
-		//	}
-		//	BigInteger upperBig = new BigInteger(1, toBytesSizeAdjusted(upperValue, extendedUpperValue, 16));
-		//	BigInteger lowerBig = new BigInteger(1, toBytesSizeAdjusted(value, extendedValue, 16));
-		//	BigInteger count = upperBig.subtract(lowerBig).add(BigInteger.ONE);
-		//	maskedIsSequential = count.Compare(countRequiredForSequential) >= 0;
 	}
 	highestDifferingBitMasked = highestDifferingBitMaskedLow + 64
-	//ExtendedFullRangeMasker cacheBitCountx[] = maskedIsSequential ? EXTENDED_SEQUENTIAL_FULL_RANGE_MASKERS : EXTENDED_FULL_RANGE_MASKERS;
-	//ExtendedFullRangeMasker result = cacheBitCountx[highestDifferingBitMasked];
-	//if(result == null) {
-	//	cacheBitCountx[highestDifferingBitMasked] = result = new ExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential);
-	//}
-	//return result;
 	return newExtendedFullRangeMasker(highestDifferingBitMasked, maskedIsSequential)
-	//return nil
 }
-
-//func MaskRange(value, upperValue, maskValue uint64) Masker {
-//	return MaskRange(value, upperValue, maskValue, 0xffffffffffffffff)
-//}
-
-//func TestMaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
-//	return MaskRange(value, upperValue, maskValue, maxValue)
-//}
 
 func MaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 	if value == upperValue {
@@ -656,10 +558,6 @@ func MaskRange(value, upperValue, maskValue, maxValue uint64) Masker {
 	return defaultMasker
 }
 
-//public static BitwiseOrer bitwiseOrRange(long value, long upperValue, long maskValue) {
-//		return bitwiseOrRange(value, upperValue, maskValue, -1);
-//	}
-//
 func bitwiseOrRange(value, upperValue, maskValue, maxValue uint64) BitwiseOrer {
 	if value == upperValue {
 		return defaultOrMasker

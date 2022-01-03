@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
@@ -45,48 +46,14 @@ func createIPv4Section(segments []*AddressDivision) *IPv4AddressSection {
 	}
 }
 
-//func newIPv4PrefixedSection(segments []*AddressDivision, prefixLength PrefixLen) (res *IPv4AddressSection, err addrerr.AddressValueError) {
-//	res, err = newIPv4Section(segments, prefixLength == nil)
-//	if err == nil && prefixLength != nil {
-//		assignPrefix(prefixLength, segments, res.ToIP(), false, BitCount(len(segments)<<ipv4BitsToSegmentBitshift))
-//	}
-//	return
-//}
-
 func newIPv4SectionParsed(segments []*AddressDivision, isMultiple bool) (res *IPv4AddressSection) {
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
 	return
 }
 
-//func newIPv4Section(segments []*AddressDivision, normalizeSegments bool) (res *IPv4AddressSection) {
-//	//segsLen := len(segments)
-//	//if segsLen > IPv4SegmentCount {
-//	//	// I think I wanted to get rid of this requirement since I tossed it when doing insert and append
-//	//	// the only other error in here is inconsistent prefix in the segments in initMultAndPrefLen
-//	//	// maybe you could avoid the error there too by using the first prefixed segment to determine the prefix?
-//	//	// so you could call assignPrefix?
-//	//	err = &addressValueError{val: segsLen, addressError: addressError{key: "ipaddress.error.exceeds.size"}}
-//	//	return
-//	//}
-//	res = createIPv4Section(segments)
-//	res.initMultAndPrefLen()
-//	//if err = res.initMultAndPrefLen(); err != nil {
-//	//	res = nil
-//	//	return
-//	//}
-//	prefLen := res.prefixLength
-//	if normalizeSegments && prefLen != nil {
-//		normalizePrefixBoundary(*prefLen, segments, IPv4BitsPerSegment, IPv4BytesPerSegment, func(val, upperVal SegInt, prefLen PrefixLen) *AddressDivision {
-//			return NewIPv4RangePrefixedSegment(IPv4SegInt(val), IPv4SegInt(upperVal), prefLen).ToDiv()
-//		})
-//	}
-//	return
-//}
-
 // this one is used by that parsing code when there are prefix lengths to be applied
 func newPrefixedIPv4SectionParsed(segments []*AddressDivision, isMultiple bool, prefixLength PrefixLen, singleOnly bool) (res *IPv4AddressSection) {
-	//res = newIPv4Section(segments /*cloneSegments,*/, prefixLength == nil)
 	res = createIPv4Section(segments)
 	res.isMult = isMultiple
 	if prefixLength != nil {
@@ -97,12 +64,10 @@ func newPrefixedIPv4SectionParsed(segments []*AddressDivision, isMultiple bool, 
 
 func NewIPv4Section(segments []*IPv4AddressSegment) *IPv4AddressSection {
 	return createIPv4SectionFromSegs(segments, nil)
-	//return newIPv4Section(cloneIPv4SegsToDivs(segments), true)
 }
 
 func NewIPv4PrefixedSection(segments []*IPv4AddressSegment, prefixLen PrefixLen) *IPv4AddressSection {
 	return createIPv4SectionFromSegs(segments, prefixLen)
-	//return newIPv4PrefixedSection(cloneIPv4SegsToDivs(segments), prefixLen)
 }
 
 func createIPv4SectionFromSegs(orig []*IPv4AddressSegment, prefLen PrefixLen) (result *IPv4AddressSection) {
@@ -171,7 +136,6 @@ func newIPv4SectionFromBytes(bytes []byte, segmentCount int, prefixLength Prefix
 		segmentCount,
 		IPv4BytesPerSegment,
 		IPv4BitsPerSegment,
-		//expectedByteCount,
 		IPv4Network.getIPAddressCreator(),
 		prefixLength)
 	if err == nil {
@@ -347,14 +311,14 @@ func (section *IPv4AddressSection) GetSegment(index int) *IPv4AddressSegment {
 	return section.getDivision(index).ToIPv4()
 }
 
-// Gets the subsection from the series starting from the given index
+// GetTrailingSection gets the subsection from the series starting from the given index.
 // The first segment is at index 0.
 func (section *IPv4AddressSection) GetTrailingSection(index int) *IPv4AddressSection {
 	return section.GetSubSection(index, section.GetSegmentCount())
 }
 
-//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
-//// The first segment is at index 0.
+// GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex.
+// The first segment is at index 0.
 func (section *IPv4AddressSection) GetSubSection(index, endIndex int) *IPv4AddressSection {
 	return section.getSubSection(index, endIndex).ToIPv4()
 }
@@ -406,10 +370,6 @@ func (section *IPv4AddressSection) Mask(other *IPv4AddressSection) (res *IPv4Add
 	return section.maskPrefixed(other, true)
 }
 
-//func (section *IPv4AddressSection) MaskPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err addrerr.IncompatibleAddressError) {
-//	return section.maskPrefixed(other, true)
-//}
-
 func (section *IPv4AddressSection) maskPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err addrerr.IncompatibleAddressError) {
 	sec, err := section.mask(other.ToIP(), retainPrefix)
 	if err == nil {
@@ -421,10 +381,6 @@ func (section *IPv4AddressSection) maskPrefixed(other *IPv4AddressSection, retai
 func (section *IPv4AddressSection) BitwiseOr(other *IPv4AddressSection) (res *IPv4AddressSection, err addrerr.IncompatibleAddressError) {
 	return section.bitwiseOrPrefixed(other, true)
 }
-
-//func (section *IPv4AddressSection) BitwiseOrPrefixed(other *IPv4AddressSection) (res *IPv4AddressSection, err addrerr.IncompatibleAddressError) {
-//	return section.bitwiseOrPrefixed(other, true)
-//}
 
 func (section *IPv4AddressSection) bitwiseOrPrefixed(other *IPv4AddressSection, retainPrefix bool) (res *IPv4AddressSection, err addrerr.IncompatibleAddressError) {
 	sec, err := section.bitwiseOr(other.ToIP(), retainPrefix)
@@ -485,14 +441,6 @@ func (section *IPv4AddressSection) ToMaxHostLen(prefixLength BitCount) (*IPv4Add
 	res, err := section.toMaxHostLen(prefixLength)
 	return res.ToIPv4(), err
 }
-
-//func (section *IPv4AddressSection) Uint64Value() uint64 {
-//	return uint64(section.Uint32Value())
-//}
-//
-//func (section *IPv4AddressSection) UpperUint64Value() uint64 {
-//	return uint64(section.UpperUint32Value())
-//}
 
 func (section *IPv4AddressSection) Uint32Value() uint32 {
 	lower, _ := section.getIntValues()
@@ -777,13 +725,6 @@ func (section *IPv4AddressSection) ReverseBytes() *IPv4AddressSection {
 	return section.ReverseSegments()
 }
 
-//func (section *IPv4AddressSection) ReverseBytesPerSegment() *IPv4AddressSection {
-//	if !section.IsPrefixed() {
-//		return section
-//	}
-//	return section.WithoutPrefixLen()
-//}
-
 func (section *IPv4AddressSection) ReverseSegments() *IPv4AddressSection {
 	if section.GetSegmentCount() <= 1 {
 		if section.IsPrefixed() {
@@ -808,12 +749,12 @@ func (section *IPv4AddressSection) Insert(index int, other *IPv4AddressSection) 
 	return section.insert(index, other.ToIP(), ipv4BitsToSegmentBitshift).ToIPv4()
 }
 
-// Replace the segments of this section starting at the given index with the given replacement segments
+// Replace replaces the segments of this section starting at the given index with the given replacement segments
 func (section *IPv4AddressSection) Replace(index int, replacement *IPv4AddressSection) *IPv4AddressSection {
 	return section.ReplaceLen(index, index+replacement.GetSegmentCount(), replacement, 0, replacement.GetSegmentCount())
 }
 
-// Replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
+// ReplaceLen replaces segments starting from startIndex and ending before endIndex with the segments starting at replacementStartIndex and
 //ending before replacementEndIndex from the replacement section
 func (section *IPv4AddressSection) ReplaceLen(startIndex, endIndex int, replacement *IPv4AddressSection, replacementStartIndex, replacementEndIndex int) *IPv4AddressSection {
 	return section.replaceLen(startIndex, endIndex, replacement.ToIP(), replacementStartIndex, replacementEndIndex, ipv4BitsToSegmentBitshift).ToIPv4()
@@ -1069,9 +1010,7 @@ func (section *IPv4AddressSection) ToJoinedSegments(joinCount int) (AddressDivis
 	section.copySubSegmentsToSlice(0, notJoinedCount, segs)
 	segs[notJoinedCount] = joinedSegment
 	equivalentPart := createInitializedGrouping(segs, section.getPrefixLen())
-	//IPAddressDivisionGrouping equivalentPart = new IPAddressDivisionGrouping(segs, getNetwork());
 	return equivalentPart, nil
-	//createInitializedGrouping
 }
 
 func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision, addrerr.IncompatibleAddressError) {
@@ -1102,7 +1041,6 @@ func (section *IPv4AddressSection) joinSegments(joinCount int) (*AddressDivision
 			}
 		}
 	}
-	//return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3, IPv4DefaultTextualRadix), nil
 	return NewRangePrefixDivision(lower, upper, prefix, (BitCount(joinCount)+1)<<3), nil
 }
 

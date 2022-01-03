@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,7 +53,6 @@ const (
 	emptyType
 	ipv4AddrType
 	ipv6AddrType
-	//PREFIX_ONLY
 	allType
 )
 
@@ -103,7 +102,7 @@ type ipAddressProvider interface {
 
 	// If the address was created by parsing, this provides the parameters used when creating the address,
 	// otherwise nil
-	getParameters() addrparam.IPAddressStringParams
+	getParameters() addrstrparam.IPAddressStringParams
 
 	// containsProvider is an optimized contains that does not need to create address objects to return an answer.
 	// Unconventional addresses may require that the address objects are created, in such cases null is returned.
@@ -216,7 +215,7 @@ func (p *ipAddrProvider) getProviderNetworkPrefixLen() PrefixLen {
 	return nil
 }
 
-func (p *ipAddrProvider) getParameters() addrparam.IPAddressStringParams {
+func (p *ipAddrProvider) getParameters() addrstrparam.IPAddressStringParams {
 	return nil
 }
 
@@ -304,16 +303,11 @@ func providerEquals(p, other ipAddressProvider) (res bool, err addrerr.Incompati
 	return
 }
 
-// if you have a type with 3 funcs, and 3 methods that defer to the funs
-// then that is 4 decls, and then you can deine each of the 3 vars
-// if you do a new type for each overridden method, that is 6 decls
-
 type nullProvider struct {
 	ipAddrProvider
 
 	ipType                ipType
 	isInvalidVal, isEmpty bool
-	//isInvalidVal, isUninitializedVal, isEmpty bool
 }
 
 func (p *nullProvider) isInvalid() bool {
@@ -341,11 +335,7 @@ var (
 	emptyProvider   = &nullProvider{isEmpty: true, ipType: emptyType}
 )
 
-///**
-//	 * Wraps an IPAddress for IPAddressString in the cases where no parsing is provided, the address exists already
-//	 * @param value
-//	 * @return
-//	 */
+// Wraps an IPAddress for IPAddressString in the cases where no parsing is provided, the address exists already
 func getProviderFor(address, hostAddress *IPAddress) ipAddressProvider {
 	return &cachedAddressProvider{addresses: &addressResult{address: address, hostAddress: hostAddress}}
 }
@@ -401,10 +391,6 @@ func (cached *cachedAddressProvider) isSequential() bool {
 	}
 	return false
 }
-
-//func (cached *cachedAddressProvider) hasCachedAddresses() bool {
-//	return cached.addressCreator == nil || cached.isItemCreated()
-//}
 
 func (cached *cachedAddressProvider) getProviderHostAddress() (res *IPAddress, err addrerr.IncompatibleAddressError) {
 	addrs := cached.addresses
@@ -483,10 +469,10 @@ type versionedAddressCreator struct {
 
 	versionedValues [2]*IPAddress
 
-	parameters addrparam.IPAddressStringParams
+	parameters addrstrparam.IPAddressStringParams
 }
 
-func (versioned *versionedAddressCreator) getParameters() addrparam.IPAddressStringParams {
+func (versioned *versionedAddressCreator) getParameters() addrstrparam.IPAddressStringParams {
 	return versioned.parameters
 }
 
@@ -529,15 +515,15 @@ func (versioned *versionedAddressCreator) getVersionedAddress(version IPVersion)
 	return
 }
 
-func emptyAddressCreator(emptyStrOption addrparam.EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
+func emptyAddressCreator(emptyStrOption addrstrparam.EmptyStrOption, version IPVersion, zone Zone) (addrCreator func() (address, hostAddress *IPAddress), versionedCreator func() *IPAddress) {
 	preferIPv6 := version.IsIPv6()
 	double := func(one *IPAddress) (address, hostAddress *IPAddress) {
 		return one, one
 	}
-	if emptyStrOption == addrparam.NoAddressOption {
+	if emptyStrOption == addrstrparam.NoAddressOption {
 		addrCreator = func() (*IPAddress, *IPAddress) { return double(nil) }
 		versionedCreator = func() *IPAddress { return nil }
-	} else if emptyStrOption == addrparam.LoopbackOption {
+	} else if emptyStrOption == addrstrparam.LoopbackOption {
 		if preferIPv6 {
 			if len(zone) > 0 {
 				ipv6WithZoneLoop := func() *IPAddress {
@@ -589,7 +575,7 @@ func emptyAddressCreator(emptyStrOption addrparam.EmptyStrOption, version IPVers
 	return
 }
 
-func newLoopbackCreator(options addrparam.IPAddressStringParams, zone Zone) *loopbackCreator {
+func newLoopbackCreator(options addrstrparam.IPAddressStringParams, zone Zone) *loopbackCreator {
 	var version = IPVersion(options.GetPreferredVersion())
 	addrCreator, versionedCreator := emptyAddressCreator(options.EmptyStrParsedAs(), version, zone)
 	cached := cachedAddressProvider{
@@ -611,7 +597,6 @@ func newLoopbackCreator(options addrparam.IPAddressStringParams, zone Zone) *loo
 		}
 		_, vCreator := emptyAddressCreator(options.EmptyStrParsedAs(), v, zone)
 		return vCreator()
-		//return versionedCreator() xxxxx
 	}
 	versionedAddressCreatorFunc := func(version IPVersion) (*IPAddress, addrerr.IncompatibleAddressError) {
 		return versionedCreatorFunc(version), nil
@@ -669,7 +654,7 @@ func (adjusted *adjustedAddressCreator) getProviderHostAddress() (*IPAddress, ad
 	return adjusted.versionedAddressCreator.getProviderHostAddress()
 }
 
-func newMaskCreator(options addrparam.IPAddressStringParams, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
+func newMaskCreator(options addrstrparam.IPAddressStringParams, adjustedVersion IPVersion, networkPrefixLength PrefixLen) *maskCreator {
 	if adjustedVersion == IndeterminateIPVersion {
 		adjustedVersion = IPVersion(options.GetPreferredVersion())
 	}
@@ -713,7 +698,7 @@ type maskCreator struct {
 	adjustedAddressCreator
 }
 
-func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrparam.IPAddressStringParams) ipAddressProvider {
+func newAllCreator(qualifier *parsedHostIdentifierStringQualifier, adjustedVersion IPVersion, originator HostIdentifierString, options addrstrparam.IPAddressStringParams) ipAddressProvider {
 	result := &allCreator{
 		adjustedAddressCreator: adjustedAddressCreator{
 			networkPrefixLength: qualifier.getEquivalentPrefixLen(),
@@ -892,101 +877,7 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //
 // - go over the java to-dos as some might make sense in golang too
 // - clean up
-
-// Look into splitting this up.  Can we move the framework into new package? iterators?
-// How do you group the constructors with their associated types?
-//  it seems that constructors with errors must use error for godoc to group them properly
-//	Are there ways around this?  Should we simplify our errors?  Group constructors into their own type (this is a lame idea)?
-// Can we make godoc recognize errors?
-// source might be here: https://github.com/golang/pkgsite/blob/51e9505d354ca32c3b505a62c0c143969000577d/internal/godoc/internal/doc/reader.go
-// note "fixlist" in above source
-// this line: https://github.com/golang/pkgsite/blob/51e9505d354ca32c3b505a62c0c143969000577d/internal/godoc/internal/doc/reader.go#L411
-// Code suggests that if imported, that would be influential
-// Yeah, I think that is key.  It is not about error.  It is about imported types.  ALso predeclared types, like int8, which also includes error too.
-// So moving them into another package would do the trick I think.
-//  builders and params separated
-// pkgs: addrerr, addrfwork, addriter or iter, maybe addrformat (iterators, string parameters/builders, framework interfaces)
-// kind leaning to putting them all in addrformat to match Java
-// OK, iterators will not work.  Because of cycle.  base points to iterators.  Next() of each iterator points to base.
-// In fact, this is a big reason why you ended up using one package.
-// string parameters/builders: should be separable.
-// framework interfaces: the checks for each framework interface not separable (actually, they are, IF you have the sub depending on the base, which is the reverse of what we have for addrerr).
-// So, it depends which way we want that dependency to go.  We probably want it to go like addrerr.  NOPE.  We have plenty of dependencies in the framework on the base.
-// But some interfaces in the framework used by the base!
-// We are screwed.  The two are intertwined.
-// so that leaves the string params and builders.
-// There is a dependency on constances like IPVersion.  And a reverse dependency on constants like EmptyStrOption
-//
-//
-//  rename addrFormat addrParams, then recreate addrFormat
-//  it looks like you can realize your goal of moving address framework into addrFormat by moving all the basic types in there
-// ACTUALLY, still not possible, due to stuff like: ToAddressBase() *Address
-// Parts of the framework we use cannot be moved (actually no, it is the reverse direction we need to be careful about)
-// we can only move:
-// BitCount
-// PrefixLen
-//
-// AddressItem
-// AddressComponent
-// AddressDivisionSeries
-//
-// DivisionType
-// Does not seem worth it
-// Nor do I think that base types like BitCount belong in addrformat
-//  it does like look perhaps you can split off StringOptions, StringOptionsBuilder - which would split off about 17 types, not bad
-//
-//  figure out why my license not being detected - https://pkg.go.dev/github.com/google/licensecheck#section-documentation
-// It may simply be because in local mode it skips the license check
-//  it seems the godoc doesn't list GetPrefixCount for IPv4Address, but it does for MACAddress.  Huh?
-// Is this because it only goes down one level?  Do I need to accomodate this (ie add to ipaddressInternal stuff from addressInternal?)
-// Yes.
+// - the TODOs in ipv4 and ipv6 sequential range
+// - the 1 TODO in the validator code
 
 // TODO figure out whether you go for a separate repo or not
-// Basically I discovered that version names seem to map directly to tags
-// discussion here on multiple modules per repo: https://research.swtch.com/vgo-module#multiple-module_repositories
-/*
-It seems that go mandates the same format for tags.
-Because it must follow semantic versioning. Been unable to see how tag could differ from version, but even if it did, conflicting with existing tags may be lame.
-
-So, you'd have to reuse your existing ones to start from version 1. You could also start using new tags with "java' for future java releases, and start golang at version 6.
-https://go.dev/ref/mod
-https://go.dev/blog/using-go-modules
-
-https://github.com/golang/go/issues/47757
-
-Options
-You could rename all your java tags. Unfortunately, this would likely require you to redo all your github releases.check github for an easier option.
-Actually, maybe not.  Create the dup tag first, edit the release to the new tag, and you are good. So there ya go, you could do it that way.
-
-https://huongdanjava.com/rename-tag-git.html
-
-https://gist.github.com/da-n/9998623
-
-https://stackoverflow.com/questions/1028649/how-do-you-rename-a-git-tag
-
-this link is just interesting:
-https://donatstudios.com/Go-v2-Modules
-
-Or you use a separate project. Which still allows you to leverage google, using your other link... use the same docs and wiki.
-
-Same repo:
-Pros Shared
-- higher stars
-- google ranking
-- shared wiki, shared web pages
-- already we support multi languages
-- emphasis on similarity
-- same repo name, ie "IPAddress", although even then, you include the extra "ipaddress-go" in the path
-
-Pros separate
-- a little unusual, no need to keep them same repo
-- versioning / tags / branching
-- you can still make use of one of the google rankings by sharing the docs
-- versioning becomes more complicated with same repo.
-- no downloading extra code
-- shorter import path
-- can see different stats and traffic for each
-- another popular URL for google
-
-The original plan was to use same repo, in part for more stars
-*/

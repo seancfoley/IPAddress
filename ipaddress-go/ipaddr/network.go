@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,10 +65,6 @@ func (network *IPv6AddressNetwork) getAddressCreator() parsedAddressCreator {
 	return &network.creator
 }
 
-//func (network *IPv6AddressNetwork) GetIPv6AddressCreator() *ipv6AddressCreator {
-//	return &network.creator
-//}
-
 func (network *IPv6AddressNetwork) GetLoopback() *IPAddress {
 	return ipv6loopback
 }
@@ -119,29 +115,9 @@ func (network *IPv4AddressNetwork) getAddressCreator() parsedAddressCreator {
 	return &network.creator
 }
 
-//func (network *IPv4AddressNetwork) GetIPv4AddressCreator() *ipv4AddressCreator {
-//	return &network.creator
-//}
-
-//func (network *IPv4AddressNetwork) GetIPAddressCreator() ipAddressCreator {
-//	return network.GetIPv4AddressCreator()
-//}
-
-//func (network *IPv4AddressNetwork) GetAddressCreator() AddressCreator {
-//	return network.GetIPv4AddressCreator()
-//}
-
 func (network *IPv4AddressNetwork) GetLoopback() *IPAddress {
 	return ipv4loopback
 }
-
-//func (network *IPv4AddressNetwork) GetNetworkIPAddress(prefLen PrefixLen) *IPAddress {
-//	return network.GetNetworkIPv4Address(prefLen).ToIP()
-//}
-//func (network *IPv4AddressNetwork) GetNetworkIPv4Address(prefLen PrefixLen) *IPv4Address {
-//	// get the ipv4 network address for a given prefix len, which is the all ones host (but for what address?)
-//	return nil
-//}
 
 func (network *IPv4AddressNetwork) GetNetworkMask(prefLen BitCount) *IPAddress {
 	return getMask(IPv4, zeroIPv4Seg.ToDiv(), prefLen, network.subnetMasks, true, false)
@@ -174,7 +150,6 @@ var maskMutex sync.Mutex
 
 func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength BitCount, cache []*IPAddress, network, withPrefixLength bool) *IPAddress {
 	bits := networkPrefixLength
-	//IPVersion version = getIPVersion();
 	addressBitLength := version.GetBitCount()
 	if bits < 0 {
 		bits = 0
@@ -209,118 +184,61 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 	zerosSubnet := cache[zerosSubnetIndex]
 	segmentCount := version.GetSegmentCount()
 	bitsPerSegment := version.GetBitsPerSegment()
-	//bytesPerSegment := GetBytesPerSegment(version);
-	//if(onesSubnet == nil || zerosSubnet == nil) {
-	//synchronized(cacheBitCountx) {
-	//onesSubnet = cacheBitCountx[onesSubnetIndex];
 	maxSegmentValue := version.GetMaxSegmentValue()
 	if onesSubnet == nil {
-		//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
 		newSegments := createSegmentArray(segmentCount)
 
-		//if network && withPrefixLength {
 		if withPrefixLength {
 			if network {
 				segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, nil))
-				//lastSegment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, getDivisionPrefixLength(bitsPerSegment, bitsPerSegment) /* bitsPerSegment */))
 				lastSegment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, cacheBitCount(bitsPerSegment) /* bitsPerSegment */))
 				lastIndex := len(newSegments) - 1
 				fillDivs(newSegments[:lastIndex], segment)
-				//S segment = creator.createSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, addressBitLength) /* null */ );
-				//Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
 				newSegments[lastIndex] = lastSegment
 				onesSubnet = createIPAddress(createSection(newSegments, cacheBitCount(addressBitLength), version.toType()), NoZone)
-				//onesSubnet = creator.createAddressInternal(newSegments, cacheBits(addressBitLength)); /* address creation */
-
 			} else {
 				segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, cacheBitCount(0)))
-				//newSegments[0] = firstSegment
-				//fillDivs(newSegments[1:], segment)
 				fillDivs(newSegments, segment)
 				onesSubnet = createIPAddress(createSection(newSegments, cacheBitCount(0), version.toType()), NoZone)
 			}
 		} else {
 			segment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, nil))
-			//S segment = creator.createSegment(maxSegmentValue);
-			//Arrays.fill(newSegments, segment);
 			fillDivs(newSegments, segment)
 			onesSubnet = createIPAddress(createSection(newSegments, nil, version.toType()), NoZone) /* address creation */
-			//onesSubnet = creator.createAddressInternal(newSegments); /* address creation */
 		}
-		//initMaskCachedValues(onesSubnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, onesSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
-
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[onesSubnetIndex]))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(onesSubnet))
-
-		//cacheBitCountx[onesSubnetIndex] = onesSubnet;
 	}
-	//zerosSubnet = cacheBitCountx[zerosSubnetIndex];
 	if zerosSubnet == nil {
-		//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
 		newSegments := createSegmentArray(segmentCount)
-		//S seg;
 		if withPrefixLength {
 			prefLen := cacheBitCount(0)
 			if network {
 				segment := createAddressDivision(zeroSeg.deriveNewSeg(0, prefLen))
-				//seg = creator.createSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
 				fillDivs(newSegments, segment)
-				//Arrays.fill(newSegments, seg);
 				zerosSubnet = createIPAddress(createSection(newSegments, prefLen, version.toType()), NoZone)
-				//zerosSubnet = creator.createAddressInternal(newSegments, prefLen); /* address creation */
-				//if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
-				//	zerosSubnet = (T) zerosSubnet.getLower();
-				//}
 			} else {
-
-				//segment := createAddressDivision(zeroSeg.deriveNewSeg(0, xxx))
-				//lastSegment := createAddressDivision(zeroSeg.deriveNewSeg(maxSegmentValue, getDivisionPrefixLength(bitsPerSegment, bitsPerSegment) /* bitsPerSegment */))
 				lastSegment := createAddressDivision(zeroSeg.deriveNewSeg(0, cacheBitCount(bitsPerSegment) /* bitsPerSegment */))
 				lastIndex := len(newSegments) - 1
 				fillDivs(newSegments[:lastIndex], zeroSeg)
-				//S segment = creator.createSegment(maxSegmentValue, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, addressBitLength) /* null */ );
-				//Arrays.fill(newSegments, 0, newSegments.length - 1, segment);
 				newSegments[lastIndex] = lastSegment
 				zerosSubnet = createIPAddress(createSection(newSegments, cacheBitCount(addressBitLength), version.toType()), NoZone)
-				//onesSubnet = creator.createAddressInternal(newSegments, cacheBits(addressBitLength)); /* address creation */
-
 			}
 		} else {
 			segment := createAddressDivision(zeroSeg.deriveNewSeg(0, nil))
 			fillDivs(newSegments, segment)
 			zerosSubnet = createIPAddress(createSection(newSegments, nil, version.toType()), NoZone)
-			//seg = creator.createSegment(0);
-			//Arrays.fill(newSegments, seg);
-			//zerosSubnet = creator.createAddressInternal(newSegments); /* address creation */
 		}
-		//initMaskCachedValues(zerosSubnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, zerosSubnetIndex, segmentCount, bitsPerSegment, bytesPerSegment);
-
 		dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[zerosSubnetIndex]))
 		atomic.StorePointer(dataLoc, unsafe.Pointer(zerosSubnet))
-
-		//cacheBitCountx[zerosSubnetIndex] = zerosSubnet;
 	}
-	//}
-	//}
-
-	//synchronized(cacheBitCountx) {
-	//subnet = cacheBitCountx[cacheIndex];
-	//if(subnet == nil) {
-	//BiFunction<T, Integer, S> segProducer = getSegmentProducer();
 	prefix := bits
 	onesSegment := onesSubnet.getDivision(0)
 	zerosSegment := zerosSubnet.getDivision(0)
-	//onesSegment := segProducer(onesSubnet, 1);
-	//zerosSegment := segProducer(zerosSubnet, 1);
-	//ipAddressCreator<T, ?, ?, S, ?> creator = getIPAddressCreator();
-
-	//ArrayList<S> segmentList = new ArrayList<S>(segmentCount);
 	newSegments := createSegmentArray(segmentCount)[:0]
 	i := 0
-	//for ; bits > 0; i++, bits -= bitsPerSegment {
 	for ; bits > 0; i, bits = i+1, bits-bitsPerSegment {
 		if bits <= bitsPerSegment {
-			//S segment = null;
 			var segment *AddressDivision
 
 			//first do a check whether we have already created a segment like the one we need
@@ -331,7 +249,6 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 					prev := cache[entry]
 					if prev != nil {
 						segment = prev.getDivision(j)
-						//segment = segProducer.apply(prev, j);
 						break
 					}
 				}
@@ -339,16 +256,12 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 
 			//if none of the other addresses with a similar segment are created yet, we need a new segment.
 			if segment == nil {
-				//int networkMask = fullMask & (fullMask << (segmentBitSize - i));
-				//int mask = getSegmentNetworkMask(bits);
 				if network {
 					mask := maxSegmentValue & (maxSegmentValue << uint(bitsPerSegment-bits))
 					if withPrefixLength {
 						segment = createAddressDivision(zeroSeg.deriveNewSeg(mask, getDivisionPrefixLength(bitsPerSegment, bits)))
-						//segment = creator.createSegment(mask, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, bits));
 					} else {
 						segment = createAddressDivision(zeroSeg.deriveNewSeg(mask, nil))
-						//segment = creator.createSegment(mask);
 					}
 				} else {
 					mask := maxSegmentValue & ^(maxSegmentValue << uint(bitsPerSegment-bits))
@@ -357,10 +270,8 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 					} else {
 						segment = createAddressDivision(zeroSeg.deriveNewSeg(mask, nil))
 					}
-					//segment = creator.createSegment(getSegmentHostMask(bits));
 				}
 			}
-			//segmentList.add(segment);
 			newSegments = append(newSegments, segment)
 		} else {
 			if network {
@@ -368,7 +279,6 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 			} else {
 				newSegments = append(newSegments, zerosSegment)
 			}
-			//segmentList.add(network ? onesSegment : zerosSegment);
 		}
 	}
 	for ; i < segmentCount; i++ {
@@ -377,42 +287,17 @@ func getMask(version IPVersion, zeroSeg *AddressDivision, networkPrefixLength Bi
 		} else {
 			newSegments = append(newSegments, onesSegment)
 		}
-		//segmentList.add(network ? zerosSegment : onesSegment);
 	}
-	//S newSegments[] = creator.createSegmentArray(segmentList.size());
-	//segmentList.toArray(newSegments);
 	var prefLen PrefixLen
 	if withPrefixLength {
 		prefLen = cacheBitCount(prefix)
 	}
 	subnet = createIPAddress(createSection(newSegments, prefLen, version.toType()), NoZone)
-
-	//if withPrefixLength {
-	//	subnet = createIPAddress(createSection(newSegments, cacheBitCount(prefix), version.toType(), 0), NoZone)
-	//
-	//	//subnet = creator.createAddressInternal(newSegments, cacheBits(prefix)); /* address creation */
-	//	//if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
-	//	//	subnet = (T) subnet.getLower();
-	//	//}
-	//} else {
-	//	subnet = createIPAddress(createSection(newSegments, nil, version.toType(), 0), NoZone)
-	//	//subnet = creator.createAddressInternal(newSegments); /* address creation */
-	//}
-	//initialize the cacheBitCountx fields since we know what they are now - they do not have to be calculated later
-	//initMaskCachedValues(subnet.getSection(), network, withPrefixLength, networkAddress, addressBitLength, prefix, segmentCount, bitsPerSegment, bytesPerSegment);
-	//cacheBitCountx[cacheIndex] = subnet; //last thing is to put into the cacheBitCountx - don't put it there before we are done with it
-	//} // end subnet from cacheBitCountx is null
-
 	dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[cacheIndex]))
 	atomic.StorePointer(dataLoc, unsafe.Pointer(subnet))
 
-	//} //end synchronized
-
-	//
-	//
 	maskMutex.Unlock()
 
-	//} // end subnet from cacheBitCountx is null
 	return subnet
 }
 
@@ -423,14 +308,6 @@ type MACAddressNetwork struct {
 func (network *MACAddressNetwork) getAddressCreator() parsedAddressCreator {
 	return &network.creator
 }
-
-//func (network *MACAddressNetwork) GetMACAddressCreator() *macAddressCreator {
-//	return &network.creator
-//}
-
-//func (network *MACAddressNetwork) GetAddressCreator() AddressCreator {
-//	return network.GetMACAddressCreator()
-//}
 
 var MACNetwork = &MACAddressNetwork{}
 

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -250,11 +250,6 @@ func (rng *ipAddressSeqRangeInternal) extend(other *IPAddressSeqRange) *IPAddres
 		if upperComp <= 0 { // ol l u ou
 			return other
 		}
-		//IPAddress max = otherUpper.getNetwork().getNetworkMask(getBitCount(), false);
-		//int versionComp = compareLowValues(lower, max);
-		//if(versionComp > 0) { // different versions: ol ou max l u
-		//	return null;
-		//}
 		// ol l ou u or ol ou l u
 		return newSeqRangeUnchecked(otherLower, upper, true)
 	}
@@ -262,11 +257,6 @@ func (rng *ipAddressSeqRangeInternal) extend(other *IPAddressSeqRange) *IPAddres
 	if upperComp >= 0 { // l ol ou u
 		return rng.toIPSequentialRange()
 	}
-	//IPAddress max = upper.getNetwork().getNetworkMask(getBitCount(), false);
-	//int versionComp = compareLowValues(otherLower, max);
-	//if(versionComp > 0) { // different versions: l u max ol ou
-	//	return null;
-	//}
 	return newSeqRangeUnchecked(lower, otherUpper, true) // l ol u ou or l u ol ou
 }
 
@@ -553,7 +543,6 @@ func (rng *ipAddressSeqRangeInternal) iterator() AddressIterator {
 	return rng.rangeIterator(
 		false,
 		nil,
-		//lower.getAddrType().getCreator(),
 		(*IPAddress).GetSegment,
 		func(seg *IPAddressSegment, index int) IPSegmentIterator {
 			return seg.Iterator()
@@ -631,7 +620,6 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 				iterator := segIteratorProducer(
 					createAddressDivision(lowerSeg.deriveNewMultiSeg(lowerSeg.getSegmentValue(), upper.getSegment(i).getSegmentValue(), nil)).ToIP(),
 					i)
-				//creator.createSegment(lowerSeg.getSegmentValue(), upper.getSegment(i).getSegmentValue(), nil).ToIP(), i)
 				wrappedFinalIterator := &wrappedIterator{
 					iterator:   iterator,
 					finalValue: finalValue,
@@ -649,13 +637,11 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 			// the first iterator goes from the segment value of lower address to the max value of the segment
 			firstIterator := segIteratorProducer(
 				createAddressDivision(lowerSeg.deriveNewMultiSeg(lowerSeg.getSegmentValue(), lower.GetMaxSegmentValue(), nil)).ToIP(),
-				//creator.createSegment(lowerSeg.getSegmentValue(), lower.GetMaxSegmentValue(), nil).ToIP(),
 				i)
 
 			// the final iterator goes from 0 to the segment value of our upper address
 			finalIterator := segIteratorProducer(
 				createAddressDivision(lowerSeg.deriveNewMultiSeg(0, upper.getSegment(i).getSegmentValue(), nil)).ToIP(),
-				//creator.createSegment(0, upper.getSegment(i).getSegmentValue(), nil).ToIP(),
 				i)
 
 			// the wrapper iterator detects when the final iterator has reached its final value
@@ -666,7 +652,6 @@ func (rng *ipAddressSeqRangeInternal) rangeIterator(
 			}
 			if allSegShared == nil {
 				allSegShared = createAddressDivision(lowerSeg.deriveNewMultiSeg(0, lower.getMaxSegmentValue(), nil)).ToIP()
-				//allSegShared = creator.createSegment(0, lower.getMaxSegmentValue(), nil).ToIP()
 			}
 			// all iterators after the first iterator and before the final iterator go from 0 the max segment value,
 			// and there will be many such iterators
@@ -957,7 +942,7 @@ func (rng *IPAddressSeqRange) Extend(other *IPAddressSeqRange) *IPAddressSeqRang
 	return rng.extend(other)
 }
 
-// Subtract Subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
+// Subtract subtracts the given range from this range, to produce either zero, one, or two address ranges that contain the addresses in this range and not in the given range.
 // If the result has length 2, the two ranges are ordered by ascending lowest range value.
 func (rng *IPAddressSeqRange) Subtract(other *IPAddressSeqRange) []*IPAddressSeqRange {
 	return rng.init().subtract(other.init())
@@ -1024,8 +1009,7 @@ func newSeqRange(first, other *IPAddress) *IPAddressSeqRange {
 }
 
 func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
-	//ranges = ranges.clone();
-	// null entries are automatic joins
+	// nil entries are automatic joins
 	joinedCount := 0
 	rangesLen := len(ranges)
 	for i, j := 0, rangesLen-1; i <= j; i++ {
@@ -1044,12 +1028,10 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 	}
 	rangesLen = rangesLen - joinedCount
 	ranges = ranges[:rangesLen]
-	//fmt.Printf("following nil replacement: %v\n", ranges)
 	joinedCount = 0
 	sort.Slice(ranges, func(i, j int) bool {
 		return LowValueComparator.CompareRanges(ranges[i], ranges[j]) < 0
 	})
-	//fmt.Printf("following sort: %v\n", ranges)
 	for i := 0; i < rangesLen; i++ {
 		rng := ranges[i]
 		if rng == nil {
@@ -1060,10 +1042,8 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 		for j := i + 1; j < rangesLen; j++ {
 			rng2 := ranges[j]
 			nextLower := rng2.GetLower()
-			//fmt.Printf("comparing: %v and %v\n", currentUpper, nextLower)
 			doJoin := compareLowIPAddressValues(currentUpper, nextLower) >= 0
 			if !doJoin {
-				//fmt.Printf("comparing incremented: %v and %v\n", currentUpper.increment(1), nextLower)
 				doJoin = currentUpper.increment(1).equals(nextLower)
 				isMultiJoin = true
 			}
@@ -1083,10 +1063,8 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 		}
 		if didJoin {
 			ranges[i] = newSeqRangeUnchecked(currentLower, currentUpper, isMultiJoin)
-			//fmt.Printf("new joined is %v\n", ranges[i])
 		}
 	}
-	//fmt.Printf("following joins: %v\n", ranges)
 	finalLen := rangesLen - joinedCount
 	for i, j := 0, 0; i < rangesLen; i++ {
 		rng := ranges[i]
@@ -1100,7 +1078,6 @@ func join(ranges []*IPAddressSeqRange) []*IPAddressSeqRange {
 		}
 	}
 	ret := ranges[:finalLen]
-	//fmt.Printf("final: %v\n", ret)
 	return ret
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,11 +18,14 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"math/big"
 	"net"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
+// AddressItem represents all addresses, division groupings, divisions, and sequential ranges.
+// Any address item can be compared to any other.
 type AddressItem interface {
 	GetValue() *big.Int
 	GetUpperValue() *big.Int
@@ -82,6 +85,7 @@ type AddressItem interface {
 	fmt.Formatter
 }
 
+// AddressComponent represents all addresses, address sections, and address segments
 type AddressComponent interface { //AddressSegment and above, AddressSegmentSeries and above
 	TestBit(BitCount) bool
 	IsOneBit(BitCount) bool
@@ -101,6 +105,7 @@ type ipAddressRange interface {
 	GetUpperNetIP() net.IP
 }
 
+// IPAddressRange represents all IPAddress instances and all IPAddress sequential ranges instances
 type IPAddressRange interface { //IPAddress and above, IPAddressSeqRange and above
 	ipAddressRange
 
@@ -146,6 +151,7 @@ type AddressDivisionSeries interface {
 	GetGenericDivision(index int) DivisionType // useful for comparisons
 }
 
+// AddressSegmentSeries serves as a common interface to all address sections and addresses
 type AddressSegmentSeries interface { // Address and above, AddressSection and above, IPAddressSegmentSeries, ExtendedIPSegmentSeries
 	AddressComponent
 
@@ -169,6 +175,7 @@ type AddressSegmentSeries interface { // Address and above, AddressSection and a
 
 var _, _ AddressSegmentSeries = &Address{}, &AddressSection{}
 
+// IPAddressSegmentSeries serves as a common interface to all IP address sections and IP addresses
 type IPAddressSegmentSeries interface { // IPAddress and above, IPAddressSection and above, ExtendedIPSegmentSeries
 	AddressSegmentSeries
 
@@ -307,7 +314,7 @@ type AddressType interface {
 var _, _ AddressType = &Address{}, &MACAddress{}
 
 // IPAddressType represents any IP address, all of which can be represented by the base type IPAddress.
-// This includes IPv4Address, and IPv6Address.
+// This includes IPv4Address and IPv6Address.
 type IPAddressType interface {
 	AddressType
 	ipAddressRange
@@ -321,6 +328,8 @@ var _, _, _ IPAddressType = &IPAddress{},
 	&IPv4Address{},
 	&IPv6Address{}
 
+// IPAddressType represents any IP address sequential range, all of which can be represented by the base type IPAddressSeqRange.
+// This includes IPv4AddressSeqRange and IPv6AddressSeqRange.
 type IPAddressSeqRangeType interface {
 	AddressItem
 	IPAddressRange

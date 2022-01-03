@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package ipaddr
 
 import (
 	"fmt"
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 	"math/big"
 	"sync/atomic"
 	"unsafe"
 
 	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrstr"
 )
 
 const (
@@ -56,9 +56,6 @@ func createAddress(section *AddressSection, zone Zone) *Address {
 			cache:   &addressCache{},
 		},
 	}
-	//if zone != NoZone && section.IsIPv6() {
-	//	res.cache.stringCache = &stringCache{ipv6StringCache:&ipv6StringCache{}}
-	//}
 	return res
 }
 
@@ -82,11 +79,9 @@ type IdentifierStr struct {
 }
 
 type addressCache struct {
-	//ip net.IPAddr // lower converted (cloned when returned)
-
 	addrsCache *addrsCache
 
-	stringCache *stringCache // only used by IPv6 due to zone
+	stringCache *stringCache // only used by IPv6 when there is a zone
 
 	identifierStr *IdentifierStr
 
@@ -210,15 +205,8 @@ func (addr *addressInternal) GetPrefixLenForSingleBlock() PrefixLen {
 	return section.GetPrefixLenForSingleBlock()
 }
 
-//func (addr *addressInternal) CompareSize(other AddressDivisionSeries) int {
 func (addr *addressInternal) compareSize(other AddressType) int {
 	section := addr.section
-	//if section == nil {
-	//	if other.IsMultiple() {
-	//		return -1
-	//	}
-	//	return 0
-	//}
 	if other == nil || other.ToAddressBase() == nil {
 		// our size is 1 or greater, other 0
 		return 1
@@ -361,23 +349,6 @@ func (addr *addressInternal) getDivisionCount() int {
 func (addr *addressInternal) getDivisionsInternal() []*AddressDivision {
 	return addr.section.getDivisionsInternal()
 }
-
-// when boundariesOnly is true, there will be no error
-//func (addr *addressInternal) toZeroHost(boundariesOnly bool) (res *Address, err addrerr.IncompatibleAddressError) {
-//	section, err := addr.section.toZeroHost(boundariesOnly)
-//	if err == nil {
-//		res = addr.checkIdentity(section)
-//	}
-//	return
-//}
-
-//func (addr *addressInternal) toMaxHost() (res *Address, err addrerr.IncompatibleAddressError) {
-//	section, err := addr.section.toMaxHost()
-//	if err == nil {
-//		res = addr.checkIdentity(section)
-//	}
-//	return
-//}
 
 func (addr *addressInternal) toPrefixBlock() *Address {
 	return addr.checkIdentity(addr.section.toPrefixBlock())
@@ -836,66 +807,6 @@ func (addr *addressInternal) format(state fmt.State, verb rune) {
 	section.format(state, verb, addr.zone, addr.isIP())
 }
 
-//func (addr *addressInternal) format(state fmt.State, verb rune) {
-//	if addr.hasNoDivisions() {
-//		state.Write([]byte("0"))
-//		return
-//	}
-//	section := addr.section
-//	if !addr.isIP() && !addr.isMAC() {
-//		section.defaultFormat(state, verb)
-//		return
-//	}
-//	var str, prefix string
-//	var err error
-//	var isNormalized bool
-//
-//	_, hasPrecision := state.Precision()
-//	_, hasWidth := state.Width()
-//	noExtras := !hasPrecision && !hasWidth
-//
-//	xxx
-//
-//	switch verb {
-//	case 's', 'v':
-//		isNormalized = true
-//		str = addr.toString()
-//	case 'x', 'X':
-//		str, err = addr.toHexString(false)
-//	case 'b':
-//		str, err = addr.toBinaryString(false)
-//	case 'o', 'O':
-//		str, err = addr.toOctalString(false)
-//	case 'd':
-//
-//		err = fmt.Errorf("decimal not supported yet")
-//	default:
-//		// unknown format
-//		fmt.Fprintf(state, "%%!%c(address section=%s)", verb, section.toString())
-//		return
-//	}
-//	if err != nil { // coult not produce an octal, binary, hex or decimal string, so use default instead
-//		isNormalized = true
-//		str = addr.toString()
-//	}
-//	if isNormalized {
-//		state.Write([]byte(str))
-//		return
-//	}
-//	section.writeNumberFmt(state, verb, prefix, str)
-//
-//	//xxx see ipAddressSeqRangeInternal for discussion on where this needs to go xxx
-//	//xxx call up to the subs to handle the different verbs, do nothing other than call up xxx
-//	//if sect := grouping.toAddressSection(); sect != nil {
-//	//	return sect.ToNormalizedString()
-//	//}
-//	//return fmt.Sprintf("%v", grouping.initDivs().divisions)
-//}
-
-//func (addr *addressInternal) toCustomString(stringOptions StringOptions) string {
-//	return addr.section.toCustomString(stringOptions, addr.zone)
-//}
-
 var zeroAddr = createAddress(zeroSection, NoZone)
 
 type Address struct {
@@ -965,14 +876,14 @@ func (addr *Address) GetSection() *AddressSection {
 	return addr.init().section
 }
 
-// Gets the subsection from the series starting from the given index
+// GetTrailingSection gets the subsection from the series starting from the given index
 // The first segment is at index 0.
 func (addr *Address) GetTrailingSection(index int) *AddressSection {
 	return addr.GetSection().GetTrailingSection(index)
 }
 
-//// Gets the subsection from the series starting from the given index and ending just before the give endIndex
-//// The first segment is at index 0.
+// GetSubSection gets the subsection from the series starting from the given index and ending just before the give endIndex
+// The first segment is at index 0.
 func (addr *Address) GetSubSection(index, endIndex int) *AddressSection {
 	return addr.GetSection().GetSubSection(index, endIndex)
 }
@@ -1024,7 +935,7 @@ func (addr *Address) TestBit(n BitCount) bool {
 	return addr.init().testBit(n)
 }
 
-// Returns true if the bit in the lower value of this segment at the given index is 1, where index 0 is the most significant bit.
+// IsOneBit returns true if the bit in the lower value of this address at the given index is 1, where index 0 is the most significant bit.
 func (addr *Address) IsOneBit(bitIndex BitCount) bool {
 	return addr.init().isOneBit(bitIndex)
 }
@@ -1069,18 +980,6 @@ func (addr *Address) IncludesMax() bool {
 	return addr.init().section.IncludesMax()
 }
 
-//func (addr *Address) IsZeroHost() bool {
-//	return addr.init().section.IsZeroHost()
-//}
-//
-//func (addr *Address) ToZeroHost() (*Address,addrerr.IncompatibleAddressError) {
-//	return addr.init().toZeroHost(false)
-//}
-
-//func (addr *Address) ToMaxHost() (*Address,addrerr.IncompatibleAddressError) {
-//	return addr.init().toMaxHost()
-//}
-
 func (addr *Address) ToPrefixBlock() *Address {
 	return addr.init().toPrefixBlock()
 }
@@ -1117,7 +1016,7 @@ func (addr *Address) AssignPrefixForSingleBlock() *Address {
 	return addr.init().assignPrefixForSingleBlock()
 }
 
-// Constructs an equivalent address section with the smallest CIDR prefix possible (largest network),
+// AssignMinPrefixForBlock return an equivalent address with the smallest CIDR prefix possible (largest network),
 // such that the range of values are the prefix block for that prefix.
 func (addr *Address) AssignMinPrefixForBlock() *Address {
 	return addr.init().assignMinPrefixForBlock()

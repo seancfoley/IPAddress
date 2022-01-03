@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -77,11 +77,6 @@ func (a *addressError) GetKey() string {
 	return a.key
 }
 
-//type MergedAddressError interface {
-//	AddressError
-//	GetMerged() AddressError
-//}
-
 type mergedError struct {
 	addrerr.AddressError
 	merged []addrerr.AddressError
@@ -90,14 +85,6 @@ type mergedError struct {
 func (a *mergedError) GetMerged() []addrerr.AddressError {
 	return a.merged
 }
-
-//type HostIdentifierError interface {
-//	AddressError
-//}
-//
-//type addrerr.AddressStringError interface {
-//	HostIdentifierError
-//}
 
 type addressStringError struct {
 	addressError
@@ -118,12 +105,6 @@ type addressStringIndexError struct {
 	// byte index location in string of the error
 	index int
 }
-
-//type addrerr.HostNameError interface {
-//	HostIdentifierError
-//
-//	GetAddrError() AddressError //returns the underlying address error, or nil
-//}
 
 type hostNameError struct {
 	addressError
@@ -165,37 +146,13 @@ type hostNameIndexError struct {
 	index int
 }
 
-//typeaddrerr.IncompatibleAddressError interface {
-//	AddressError
-//}
-
 type incompatibleAddressError struct {
 	addressError
 }
 
-//type SizeMismatchError interface {
-//	IncompatibleAddressError
-//}
-
 type sizeMismatchError struct {
 	incompatibleAddressError
 }
-
-//type PositionMismatchError interface {
-//	IncompatibleAddressError
-//}
-
-//type positionMismatchError struct {
-//	section1, section2 *IPAddressSection
-//
-//	addressSegmentIndex1, addressSegmentIndex2 int8
-//
-//	incompatibleAddressError
-//}
-
-//type addrerr.AddressValueError interface {
-//	AddressError
-//}
 
 type addressValueError struct {
 	addressError
@@ -203,14 +160,6 @@ type addressValueError struct {
 	// the value
 	val int
 }
-
-//type addressPositionError struct {
-//	addressValueError
-//}
-//
-//type inconsistentPrefixError struct {
-//	addressValueError
-//}
 
 ///////////////////////////////////////////////
 

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -119,22 +119,6 @@ func (addr WrappedAddress) ToMAC() MACAddressSegmentSeries {
 	return addr.Address.ToMAC()
 }
 
-//func (w WrappedAddress) GetNetworkMask() ExtendedSegmentSeries {
-//	return WrappedAddress{w.Address.GetNetworkMask()}
-//}
-//
-//func (w WrappedAddress) GetHostMask() ExtendedSegmentSeries {
-//	return WrappedAddress{w.Address.GetHostMask()}
-//}
-//
-//func (w WrappedAddress) SequentialBlockIterator() ExtendedSegmentSeriesIterator {
-//	return ipaddressSeriesIterator{w.Address.SequentialBlockIterator()}
-//}
-//
-//func (w WrappedAddress) BlockIterator(segmentCount int) ExtendedSegmentSeriesIterator {
-//	return ipaddressSeriesIterator{w.Address.BlockIterator(segmentCount)}
-//}
-
 func (addr WrappedAddress) Iterator() ExtendedSegmentSeriesIterator {
 	return addressSeriesIterator{addr.Address.Iterator()}
 }
@@ -153,33 +137,9 @@ func (addr WrappedAddress) ToBlock(segmentIndex int, lower, upper SegInt) Extend
 	return WrapAddress(addr.Address.ToBlock(segmentIndex, lower, upper))
 }
 
-//func (w WrappedAddress) ToPrefixBlockLen(bitCount BitCount) ExtendedSegmentSeries {
-//	return WrappedAddress{w.Address.ToPrefixBlockLen(bitCount)}
-//}
-
 func (addr WrappedAddress) ToPrefixBlock() ExtendedSegmentSeries {
 	return WrapAddress(addr.Address.ToPrefixBlock())
 }
-
-//func (w WrappedAddress) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapAddrWithErr(w.Address.ToZeroHostLen(bitCount)) //in Address/Section
-//}
-//
-//func (w WrappedAddress) ToZeroHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapAddrWithErr(w.Address.ToZeroHost()) // in Address/Section/Segment
-//}
-//
-//func (w WrappedAddress) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapAddrWithErr(w.Address.ToMaxHostLen(bitCount))
-//}
-//
-//func (w WrappedAddress) ToMaxHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapAddrWithErr(w.Address.ToMaxHost())
-//}
-//
-//func (w WrappedAddress) ToZeroNetwork() ExtendedSegmentSeries {
-//	return WrappedAddress{w.Address.ToZeroNetwork()} //Address/Section.  ToZeroHost() is in Address/Section/Segment
-//}
 
 func (addr WrappedAddress) Increment(i int64) ExtendedSegmentSeries {
 	return convAddrToIntf(addr.Address.Increment(i))
@@ -212,18 +172,6 @@ func (addr WrappedAddress) AssignMinPrefixForBlock() ExtendedSegmentSeries {
 func (addr WrappedAddress) WithoutPrefixLen() ExtendedSegmentSeries {
 	return WrapAddress(addr.Address.WithoutPrefixLen())
 }
-
-//func (w WrappedAddress) SpanWithPrefixBlocks() []ExtendedSegmentSeries {
-//	return w.Address.spanWithPrefixBlocks()
-//}
-//
-//func (w WrappedAddress) SpanWithSequentialBlocks() []ExtendedSegmentSeries {
-//	return w.Address.spanWithSequentialBlocks()
-//}
-//
-//func (w WrappedAddress) CoverWithPrefixBlock() ExtendedSegmentSeries {
-//	return w.Address.coverSeriesWithPrefixBlock()
-//}
 
 func (addr WrappedAddress) Contains(other ExtendedSegmentSeries) bool {
 	a, ok := other.Unwrap().(AddressType)
@@ -302,22 +250,6 @@ func (section WrappedAddressSection) ToMAC() MACAddressSegmentSeries {
 	return section.AddressSection.ToMAC()
 }
 
-//func (w WrappedAddressSection) GetNetworkMask() ExtendedSegmentSeries {
-//	return WrappedAddressSection{w.AddressSection.GetNetworkMask()}
-//}
-//
-//func (w WrappedAddressSection) GetHostMask() ExtendedSegmentSeries {
-//	return WrappedAddressSection{w.AddressSection.GetHostMask()}
-//}
-//
-//func (w WrappedAddressSection) SequentialBlockIterator() ExtendedSegmentSeriesIterator {
-//	return ipsectionSeriesIterator{w.AddressSection.SequentialBlockIterator()}
-//}
-//
-//func (w WrappedAddressSection) BlockIterator(segmentCount int) ExtendedSegmentSeriesIterator {
-//	return ipsectionSeriesIterator{w.AddressSection.BlockIterator(segmentCount)}
-//}
-
 func (section WrappedAddressSection) Iterator() ExtendedSegmentSeriesIterator {
 	return sectionSeriesIterator{section.AddressSection.Iterator()}
 }
@@ -336,33 +268,9 @@ func (section WrappedAddressSection) ToBlock(segmentIndex int, lower, upper SegI
 	return WrapSection(section.AddressSection.ToBlock(segmentIndex, lower, upper))
 }
 
-//func (w WrappedAddressSection) ToPrefixBlockLen(bitCount BitCount) ExtendedSegmentSeries {
-//	return WrappedAddressSection{w.AddressSection.ToPrefixBlockLen(bitCount)}
-//}
-
 func (section WrappedAddressSection) ToPrefixBlock() ExtendedSegmentSeries {
 	return WrapSection(section.AddressSection.ToPrefixBlock())
 }
-
-//func (w WrappedAddressSection) ToZeroHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapSectWithErr(w.AddressSection.ToZeroHostLen(bitCount))
-//}
-//
-//func (w WrappedAddressSection) ToZeroHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapSectWithErr(w.AddressSection.ToZeroHost())
-//}
-//
-//func (w WrappedAddressSection) ToMaxHostLen(bitCount BitCount) (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapSectWithErr(w.AddressSection.ToMaxHostLen(bitCount))
-//}
-//
-//func (w WrappedAddressSection) ToMaxHost() (ExtendedSegmentSeries,addrerr.IncompatibleAddressError) {
-//	return wrapSectWithErr(w.AddressSection.ToMaxHost())
-//}
-//
-//func (w WrappedAddressSection) ToZeroNetwork() ExtendedSegmentSeries {
-//	return WrappedAddressSection{w.AddressSection.ToZeroNetwork()}
-//}
 
 func (section WrappedAddressSection) Increment(i int64) ExtendedSegmentSeries {
 	return convSectToIntf(section.AddressSection.Increment(i))
@@ -395,18 +303,6 @@ func (section WrappedAddressSection) AssignMinPrefixForBlock() ExtendedSegmentSe
 func (section WrappedAddressSection) WithoutPrefixLen() ExtendedSegmentSeries {
 	return WrapSection(section.AddressSection.WithoutPrefixLen())
 }
-
-//func (w WrappedAddressSection) SpanWithPrefixBlocks() []ExtendedSegmentSeries {
-//	return w.AddressSection.spanWithPrefixBlocks()
-//}
-//
-//func (w WrappedAddressSection) SpanWithSequentialBlocks() []ExtendedSegmentSeries {
-//	return w.AddressSection.spanWithSequentialBlocks()
-//}
-//
-//func (w WrappedAddressSection) CoverWithPrefixBlock() ExtendedSegmentSeries {
-//	return w.AddressSection.coverSeriesWithPrefixBlock()
-//}
 
 func (section WrappedAddressSection) Contains(other ExtendedSegmentSeries) bool {
 	s, ok := other.Unwrap().(AddressSectionType)

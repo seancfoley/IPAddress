@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ func cloneIPv6Sections(sect *IPv6AddressSection, orig []*IPv6AddressSection) []E
 		result[origCount] = WrapIPSection(sect.ToIP())
 	}
 	for i := range orig {
-		result[i] = WrapIPSection(orig[i].ToIP()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPSection(orig[i].ToIP())
 	}
 	return result
 }
@@ -76,7 +76,7 @@ func cloneIPv4Addrs(sect *IPv4Address, orig []*IPv4Address) []ExtendedIPSegmentS
 		result[origCount] = WrapIPAddress(sect.ToIP())
 	}
 	for i := range orig {
-		result[i] = WrapIPAddress(orig[i].ToIP()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPAddress(orig[i].ToIP())
 	}
 	return result
 }
@@ -92,7 +92,7 @@ func cloneIPv6Addrs(sect *IPv6Address, orig []*IPv6Address) []ExtendedIPSegmentS
 		result[origCount] = WrapIPAddress(sect.ToIP())
 	}
 	for i := range orig {
-		result[i] = WrapIPAddress(orig[i].ToIP()) // unlike Java, return types matter with interfaces - https://play.golang.org/p/HZR8FSp42a9 )
+		result[i] = WrapIPAddress(orig[i].ToIP())
 	}
 	return result
 }
@@ -208,35 +208,3 @@ func cloneIPSectsToIPv6Sects(orig []*IPAddressSection) []*IPv6AddressSection {
 	}
 	return result
 }
-
-//func cloneIPSegsToDivs(orig []*IPAddressSegment) []*AddressDivision {
-//	result := make([]*AddressDivision, len(orig))
-//	for i := range result {
-//		result[i] = orig[i].ToDiv()
-//	}
-//	return result
-//}
-//
-//func cloneIPv4SegsToDivs(orig []*IPv4AddressSegment) []*AddressDivision {
-//	result := make([]*AddressDivision, len(orig))
-//	for i := range result {
-//		result[i] = orig[i].ToDiv()
-//	}
-//	return result
-//}
-//
-//func cloneIPv6SegsToDivs(orig []*IPv6AddressSegment) []*AddressDivision {
-//	result := make([]*AddressDivision, len(orig))
-//	for i := range result {
-//		result[i] = orig[i].ToDiv()
-//	}
-//	return result
-//}
-//
-//func cloneMACSegsToDivs(orig []*MACAddressSegment) []*AddressDivision {
-//	result := make([]*AddressDivision, len(orig))
-//	for i := range result {
-//		result[i] = orig[i].ToDiv()
-//	}
-//	return result
-//}

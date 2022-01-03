@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@ var (
 	CountComparator = AddressComparator{countComparator{}}
 
 	// Compare by value first, whether low or high or both
-	HighValueComparator        = AddressComparator{valueComparator{compareHighValue: true}}
-	LowValueComparator         = AddressComparator{valueComparator{}}
+	HighValueComparator = AddressComparator{valueComparator{compareHighValue: true}}
+	LowValueComparator  = AddressComparator{valueComparator{}}
+
+	// With the reverse comparators, ordering with the secondary values (higher or lower) follow a reverse ordering than the primary values (lower or higher)
 	ReverseHighValueComparator = AddressComparator{valueComparator{compareHighValue: true, flipSecond: true}}
 	ReverseLowValueComparator  = AddressComparator{valueComparator{flipSecond: true}}
 )
@@ -343,39 +345,6 @@ func (comp AddressComparator) CompareRanges(one, two IPAddressSeqRangeType) int 
 }
 
 func (comp AddressComparator) Compare(one, two AddressItem) int {
-	// Comparison works as follows:
-	// 1. use type assertion with AddressDivisionSeries, covering all addresses and all groupings, including large
-	// 		if true, we split off to AddressDivisionSeries
-	//		1a check for addresses with AddressType type assertion
-	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use generic compare(Address one, two))
-	//		1b check for addresSections, using type assertion with AddressSectionType (DONE)
-	//			the use mapping to compare address sections (map to type with type switch and ints, then if both same type, use generic compare(AddressSection one, two))
-	//		1c compare division series types
-	//		1d compare division series for general case when 1c types the same
-	//				this checks for both StandardDivGroupingType (DONE), so we can use longs,
-	//				if either not, then we use bytes and AddressDivisionSeries
-	// 2. type assertion for DivisionType, covering all divisions, including large
-	//		2a check for AddressSegmentType with type assertion
-	//			then use a mapping to address types (map to type with type switch and ints, then if both same type, use genetic compare(AddressSegment one, two))
-	//		2b compare division types (ie mapDivision)
-	//		2c check bit diff
-	//		2d check for AddressStandardDivisionwith type assertion
-	//			// then use compareValue on all 4 u64 division values, one low/high, two low/high
-	//		2e  use compareValue on all 4 bigint division values, one low/high, two low/high
-	// 3. Go for IPAddressSeqRange
-	// 4. compare bit counts
-	//
-	// So we need:
-	// AddressDivisionSeries (split off all division groupings including large)
-	// AddressType to convert to Address
-	// AddressSectionType to convert to AddressSection
-	// StandardDivGroupingType (all standard divisons) so we can grab longs when comparing divisions
-	// DivisionType (all divisions including large)
-	// AddressSegmentType to convert to AddressSegment
-	// StandardDivisionType so we can convert to AddressDivision and grab longs when comparing division grouping or divisions
-	// IPAddressSeqRangeType (split off all ranges)
-	// At this point the only possibility is that they are both nil.  If one was non-nil it would have satisifed one of the above if blocks.
-	// In any case, we'll still do the same checks as before, not assuming both are nil, in the event we change the blocks above to cover less cases, or we add more types.
 	if one == nil {
 		if two == nil {
 			return 0

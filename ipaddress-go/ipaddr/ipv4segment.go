@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -520,7 +520,6 @@ func makeSegmentCache() (segmentCacheIPv4 []ipv4SegmentValues) {
 func newIPv4SegmentVal(value IPv4SegInt) *ipv4SegmentValues {
 	if useIPv4SegmentCache {
 		result := &segmentCacheIPv4[value]
-		//checkValuesIPv4(value, value, result)
 		return result
 	}
 	return &ipv4SegmentValues{
@@ -563,14 +562,11 @@ func newIPv4SegmentPrefixedVal(value IPv4SegInt, prefLen PrefixLen) (result *ipv
 				value.upperValue = segi
 				value.prefLen = prefLen
 				value.cache.isSinglePrefBlock = isSinglePrefBlock
-				//value.cache.isSinglePrefBlock = &falseVal xxxxx wrong when prefLen is 8 they are all prefix blocks xxxx
 			}
-			//vals[IPv4BitsPerSegment].cache.isSinglePrefBlock = &trueVal xxxxx wrong when prefLen is 8 they are all prefix blocks xxxx
 			dataLoc := (*unsafe.Pointer)(unsafe.Pointer(&cache[prefixIndex]))
 			atomic.StorePointer(dataLoc, unsafe.Pointer(block))
 		}
 		result = &block.block[value]
-		//checkValuesIPv4(value, value, result) //xxx getting wrong cached answer for value 0 and prefLen 8
 		return result
 	}
 	var isSinglePrefBlock *bool
@@ -642,14 +638,12 @@ func newIPv4SegmentPrefixedValues(value, upperValue IPv4SegInt, prefLen PrefixLe
 					atomic.StorePointer(dataLoc, unsafe.Pointer(block))
 				}
 				result = &block.block[valueIndex]
-				//checkValuesIPv4(value, upperValue, result)
 				return result
 			}
 			if value == 0 {
 				// cache is 0-255 for any prefix length
 				if upperValue == IPv4MaxValuePerSegment {
 					result := &allPrefixedCacheIPv4[segmentPrefixLength]
-					//checkValuesIPv4(value, upperValue, result)
 					return result
 				}
 			}

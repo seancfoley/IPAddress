@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package ipaddr
 
 import (
-	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/seancfoley/ipaddress/ipaddress-go/ipaddr/addrerr"
 )
 
 type ParsedMACAddress struct {
@@ -30,10 +31,6 @@ type ParsedMACAddress struct {
 	address      *MACAddress
 	creationLock sync.Mutex
 }
-
-//func (parseData *ParsedMACAddress) getMACAddressCreator() parsedAddressCreator {
-//	return parseData.originator.GetValidationOptions().GetNetwork().GetMACAddressCreator()
-//}
 
 func (parseData *ParsedMACAddress) getMACAddressParseData() *macAddressParseData {
 	return &parseData.macAddressParseData
@@ -177,7 +174,6 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, addrerr.
 						if count == 0 && newLower == lower {
 							if newUpper != upper {
 								addressParseData.unsetFlag(i, keyStandardRangeStr)
-								//segFlags[addressParseData.STANDARD_RANGE_STR_INDEX] = false;
 							}
 						} else {
 							useStringIndicators = false
@@ -258,10 +254,7 @@ func (parseData *ParsedMACAddress) createSection() (*MACAddressSection, addrerr.
 		}
 		normalizedSegmentIndex++
 	}
-	////		parsedAddressCreator<?, MACAddressSection, ?, MACAddressSegment> addressCreator = creator;
 	return creator.createSectionInternal(segments, isMultiple).ToMAC(), nil
-	//		MACAddressSection result = addressCreator.createSectionInternal(segments);
-	//		return result;
 }
 
 func createSegment(
@@ -306,7 +299,7 @@ func createRangeSegment(
 		result = creator.createRangeSegmentInternal(
 			lower,
 			upper,
-			nil, //prefix length
+			nil,
 			addressString,
 			lower,
 			upper,

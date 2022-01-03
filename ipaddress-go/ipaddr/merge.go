@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,23 +16,9 @@
 
 package ipaddr
 
-import (
-	"sort"
-)
+import "sort"
 
-func getMergedPrefixBlocks(
-	sections []ExtendedIPSegmentSeries,
-	//sequentialBlockIterator func(AddressSegmentSeries) ExtendedIPSegmentSeriesIterator,
-	//prefixBlockSpanner func(AddressSegmentSeries) []AddressSegmentSeries,
-	//prefBlock func(AddressSegmentSeries, BitCount) AddressSegmentSeries
-) []ExtendedIPSegmentSeries {
-	//func getMergedPrefixBlocks(
-	//	sections []AddressSegmentSeries,
-	//	sequentialBlockIterator func(AddressSegmentSeries) ExtendedIPSegmentSeriesIterator,
-	//	prefixBlockSpanner func(AddressSegmentSeries) []AddressSegmentSeries,
-	//	prefBlock func(AddressSegmentSeries, BitCount) AddressSegmentSeries) []AddressSegmentSeries {
-	//ArrayList<IPAddressSegmentSeries> list = new ArrayList<>(sections.length << 3);
-	//singleElement, list := organizeSequentially(sections, sequentialBlockIterator, prefixBlockSpanner)
+func getMergedPrefixBlocks(sections []ExtendedIPSegmentSeries) []ExtendedIPSegmentSeries {
 	singleElement, list := organizeSequentially(sections)
 	if singleElement {
 		return list
@@ -182,17 +168,12 @@ top:
 	return list
 }
 
-//protected static List<IPAddressSegmentSeries>
 func getMergedSequentialBlocks(sections []ExtendedIPSegmentSeries) []ExtendedIPSegmentSeries {
-	//ArrayList<IPAddressSegmentSeries> list = new ArrayList<>(sections.length << 1);
 	singleElement, list := organizeSequentialMerge(sections)
-	//boolean singleElement = organizeSequentialMerge(sections, list);
 	if singleElement {
 		list[0] = list[0].WithoutPrefixLen()
 		return list
 	}
-	//		ValueComparator reverseLowComparator = REVERSE_LOW_COMPARATOR;
-	//		ValueComparator reverseHighComparator = REVERSE_HIGH_COMPARATOR;
 	removedCount := 0
 	j := len(list) - 1
 	i := j - 1
@@ -258,7 +239,6 @@ top:
 		// The one with the earlier range segment can only contain the other, there cannot be overlap.
 		// eg 1.a-b.*.* and 1.2.3.* overlap in range segment 2 must have a <= 2 <= b and that means 1.a-b.*.* contains 1.2.3.*
 		if ithRangeSegmentIndex != jthRangeSegmentIndex {
-			//if(rangeSegmentIndex != otherRangeSegmentIndex) {
 			j = i
 			i--
 			jthRangeSegmentIndex = ithRangeSegmentIndex
@@ -275,7 +255,6 @@ top:
 		if rangeItemUpperValue < otherRangeItemValue && rangeItemUpperValue+1 != otherRangeItemValue {
 			j = i
 			i--
-			//jthRangeSegmentIndex = ithRangeSegmentIndex;
 			ithRangeSegmentIndex = -1
 			continue
 		}
@@ -293,19 +272,6 @@ top:
 				continue top
 			}
 		}
-		// calls public R createSequentialBlockSection(IPAddressSegmentSeries series, int index, int lowerVal, int upperVal) {
-		// which coies segments til the ith, then uses the given range, then has full-range segs after
-		// since we are working with existing segments, we can just derive from them,
-		// but we do need to do it differently for section vs address so needs to be a function on ExtendedIPSegmentSeries
-		// We use toPrefixBlock for the prefix version
-		// takes: series, segment index to change, lower and upper values at that index
-		// both merge here and split use the same one!  yay
-		// call it toBlock
-		//IPAddressSegmentSeries joinedItem = seriesCreator.apply(
-		//	item,
-		//		ithRangeSegmentIndex,
-		//		rangeSegment.getSegmentValue(),
-		//		Math.max(rangeItemUpperValue, otherRangeSegment.getUpperSegmentValue()));
 		upper := rangeItemUpperValue
 		otherUpper := otherRangeSegment.GetUpperSegmentValue()
 		if otherUpper > upper {
@@ -347,11 +313,6 @@ top:
 			list[k] = list[l].WithoutPrefixLen()
 		}
 		list = list[:newSize]
-		// last := len(list)
-		//for(removedCount > 0) {
-		//	removedCount--
-		//	list.remove(--last);
-		//}
 	} else {
 		for n := 0; n < len(list); n++ {
 			list[n] = list[n].WithoutPrefixLen()
@@ -360,16 +321,7 @@ top:
 	return list
 }
 
-//func organizeSequentially(
-//	sections []AddressSegmentSeries,
-//	sequentialBlockIterator func(AddressSegmentSeries) ExtendedIPSegmentSeriesIterator,
-//	prefixBlockSpanner func(AddressSegmentSeries) []AddressSegmentSeries) (singleElement bool, list []AddressSegmentSeries) {
-func organizeSequentially(
-	sections []ExtendedIPSegmentSeries,
-	//sequentialBlockIterator func(AddressSegmentSeries) ExtendedIPSegmentSeriesIterator,
-	//prefixBlockSpanner func(AddressSegmentSeries) []AddressSegmentSeries)
-) (singleElement bool, list []ExtendedIPSegmentSeries) {
-	//List<IPAddressSegmentSeries> sequentialList = null;
+func organizeSequentially(sections []ExtendedIPSegmentSeries) (singleElement bool, list []ExtendedIPSegmentSeries) {
 	var sequentialList []ExtendedIPSegmentSeries
 	length := len(sections)
 	for i := 0; i < length; i++ {

@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -452,10 +452,6 @@ func (parseData *addressParseData) isInferredUpperBoundary(segmentIndex int) boo
 	return parseData.getFlag(segmentIndex, keyInferredUpperBoundary)
 }
 
-//func NewIPAddressParseData(str string) *ipAddressParseData {
-//	return &ipAddressParseData{addressParseData: addressParseData{str: str}}
-//}
-
 type ipAddressParseData struct {
 	addressParseData
 
@@ -538,10 +534,6 @@ func (parseData *ipAddressParseData) getQualifier() *parsedHostIdentifierStringQ
 	return &parseData.qualifier
 }
 
-//func (parseData *ipAddressParseData) setQualifier(val *parsedHostIdentifierStringQualifier) {
-//	parseData.qualifier = val
-//}
-
 func (parseData *ipAddressParseData) getQualifierIndex() int {
 	return parseData.qualifierIndex
 }
@@ -611,10 +603,6 @@ func (parseData *ipAddressParseData) isProvidingMixedIPv6() bool {
 func (parseData *ipAddressParseData) setMixedParsedAddress(val *parsedIPAddress) {
 	parseData.mixedParsedAddress = val
 }
-
-//func NewMACAddressParseData(str string) *macAddressParseData {
-//	return &macAddressParseData{addressParseData: addressParseData{str: str}}
-//}
 
 type macFormat *byte
 

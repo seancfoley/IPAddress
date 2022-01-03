@@ -1,5 +1,5 @@
 //
-// Copyright 2020-2021 Sean C Foley
+// Copyright 2020-2022 Sean C Foley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -305,8 +305,6 @@ func getSegmentsBitCount(bitsPerSegment BitCount, segmentCount int) BitCount {
 //	return true;
 //}
 
-//const zerosOnly = true // whether prefix subnets must be all zeros (and not some zeros followed by full range)
-
 type subnetOption int
 
 const (
@@ -347,7 +345,6 @@ func isPrefixSubnet(
 	prefixedSegment := getHostSegmentIndex(prefLen, bytesPerSegment, bitsPerSegment)
 	i := prefixedSegment
 	if i < segmentCount {
-		//zero := PrefixBitCount{}
 		zero := PrefixBitCount(0)
 		segmentPrefixLength := getPrefixedSegmentPrefixLength(bitsPerSegment, prefLen, i)
 		for {
@@ -426,7 +423,6 @@ func isPrefixSubnet(
 				}
 			}
 			segmentPrefixLength = &zero
-			//segmentPrefixLength = &PrefixBitCount{}
 			i++
 			if i >= segmentCount {
 				break
