@@ -76,38 +76,38 @@ type ipAddrStringCache struct {
 // You can control all of the supported formats using an IPAddressStringParametersBuilder to build a parameters instance of IPAddressStringParameters.
 // When no IPAddressStringParameters is supplied, a default instance of IPAddressStringParameters is used that is generally permissive.
 //
-// Supported formats:
+// Supported Formats
 //
 // Both IPv4 and IPv6 are supported.
 //
 // Subnets are supported:
 //
-// • wildcards '*' and ranges '-' (for example 1.*.2-3.4), useful for working with subnets
+//  • wildcards '*' and ranges '-' (for example 1.*.2-3.4), useful for working with subnets
 //
-// • the wildcard '*' can span multiple segments, so you can represent all addresses with '*', all IPv4 with '*.*', or all IPv6 with '*:*'
+//  • the wildcard '*' can span multiple segments, so you can represent all addresses with '*', all IPv4 with '*.*', or all IPv6 with '*:*'
 //
-// • SQL wildcards '%' and '_', although '%' is considered an SQL wildcard only when it is not considered an IPv6 zone indicator
+//  • SQL wildcards '%' and '_', although '%' is considered an SQL wildcard only when it is not considered an IPv6 zone indicator
 //
-// • CIDR network prefix length addresses, like 1.2.0.0/16, which is equivalent to 1.2.*.* (all-zero hosts are the full subnet, non-zero hosts are single addresses)
+//  • CIDR network prefix length addresses, like 1.2.0.0/16, which is equivalent to 1.2.*.* (all-zero hosts are the full subnet, non-zero hosts are single addresses)
 //
-// • address/mask pairs, in which the mask is applied to the address, like 1.2.3.4/255.255.0.0, which is also equivalent to 1.2.*.*
+//  • address/mask pairs, in which the mask is applied to the address, like 1.2.3.4/255.255.0.0, which is also equivalent to 1.2.*.*
 //
 //
 // You can combine these variations, such as 1.*.2-3.4/255.255.255.0
 //
 // IPv6 is fully supported:
 //
-// • IPv6 addresses like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+//  • IPv6 addresses like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
 //
-// • IPv6 zones or scope identifiers, like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%zone
+//  • IPv6 zones or scope identifiers, like ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff%zone
 //
-// • IPv6 mixed addresses are supported, which are addresses for which the last two IPv6 segments are represented as IPv4, like ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255
+//  • IPv6 mixed addresses are supported, which are addresses for which the last two IPv6 segments are represented as IPv4, like ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255
 //
-// • IPv6 compressed addresses like ::1
+//  • IPv6 compressed addresses like ::1
 //
-// • A single value of 32 hex digits like 00aa00bb00cc00dd00ee00ff00aa00bb with or without a preceding hex delimiter 0x
+//  • A single value of 32 hex digits like 00aa00bb00cc00dd00ee00ff00aa00bb with or without a preceding hex delimiter 0x
 //
-// • Binary, preceded by 0b, either with binary segments that comprise all 16 bits like ::0b0000111100001111 or a single segment address of 0b followed by 128 binary bits.
+//  • Binary, preceded by 0b, either with binary segments that comprise all 16 bits like ::0b0000111100001111 or a single segment address of 0b followed by 128 binary bits.
 //
 //
 // All of the above subnet variations work for IPv6, whether network prefix lengths, masks, ranges or wildcards.
@@ -116,17 +116,17 @@ type ipAddrStringCache struct {
 // This class support all address formats of the C routine inet_pton and the Java method java.net.InetAddress.getByName.
 // This class supports all IPv4 address formats of the C routine inet_aton as follows:
 //
-// • IPv4 hex: 0x1.0x2.0x3.0x4 (0x prefix)
+//  • IPv4 hex: 0x1.0x2.0x3.0x4 (0x prefix)
 //
-// • IPv4 octal: 01.02.03.0234.  Note this clashes with the same address interpreted as dotted decimal
+//  • IPv4 octal: 01.02.03.0234.  Note this clashes with the same address interpreted as dotted decimal
 //
-// • 3-part IPv4: 1.2.3 (which is interpreted as 1.2.0.3 (ie the third part covers the last two)
+//  • 3-part IPv4: 1.2.3 (which is interpreted as 1.2.0.3 (ie the third part covers the last two)
 //
-// • 2-part IPv4: 1.2 (which is interpreted as 1.0.0.2 (ie the 2nd part covers the last 3)
+//  • 2-part IPv4: 1.2 (which is interpreted as 1.0.0.2 (ie the 2nd part covers the last 3)
 //
-// • 1-part IPv4: 1 (which is interpreted as 0.0.0.1 (ie the number represents all 4 segments, and can be any number of digits less than the 32 digits which would be interpreted as IPv6)
+//  • 1-part IPv4: 1 (which is interpreted as 0.0.0.1 (ie the number represents all 4 segments, and can be any number of digits less than the 32 digits which would be interpreted as IPv6)
 //
-// • hex or octal variants of 1, 2, and 3 part, such as 0xffffffff (which is interpreted as 255.255.255.255)
+//  • hex or octal variants of 1, 2, and 3 part, such as 0xffffffff (which is interpreted as 255.255.255.255)
 //
 // Also supported are binary segments of a 0b followed by binary digits like 0b1.0b1010.2.3, or a single segment address of 0b followed by all 32 bits.
 //
@@ -139,12 +139,12 @@ type ipAddrStringCache struct {
 // This behaviour can be controlled by IPAddressStringParametersBuilder.GetIPv4AddressParametersBuilder and
 // IPv4AddressStringParametersBuilder.allowLeadingZeros(boolean)
 //
-// Some additional formats:
+// Some Additional Formats:
 //
-// • empty strings are interpreted as the zero-address or the loopback
+//  • empty strings are interpreted as the zero-address or the loopback
 //
-// • as noted previously, the single wildcard address "*" represents all addresses both ipv4 and ipv6,
-// although you need to give it some help when converting to IPAddress by specifying the IP version in {@link #getAddress(IPVersion)} or {@link #toAddress(IPVersion)}</li>
+//  • as noted previously, the single wildcard address "*" represents all addresses both ipv4 and ipv6,
+// although you need to give it some help when converting to IPAddress by specifying the IP version in GetVersionedAddress(IPVersion) or ToVersionedAddress(IPVersion).
 //
 // If you have an address in which segments have been delimited with commas, such as "1,2.3.4,5.6", you can parse this with ParseDelimitedSegments(string)
 // which gives an iterator of strings.  For "1,2.3.4,5.6" you will iterate through "1.3.4.6", "1.3.5.6", "2.3.4.6" and "2.3.5.6".
@@ -159,27 +159,27 @@ type ipAddrStringCache struct {
 //
 // There are a few exceptions, cases in which the version is unknown or ambiguous, for which GetAddress() returns nil:
 //
-// • strings which do not represent valid addresses (eg "bla")
+//  • strings which do not represent valid addresses (eg "bla")
 //
-// • the "all" address "*" which represents all IPv4 and IPv6 addresses.  For this string you can provide the IPv4/IPv6 version to GetVersionedAddress() to get an address representing either all IPv4 or all IPv6 addresses.
+//  • the "all" address "*" which represents all IPv4 and IPv6 addresses.  For this string you can provide the IPv4/IPv6 version to GetVersionedAddress() to get an address representing either all IPv4 or all IPv6 addresses.
 //
-// • empty string "" is interpreted as the zero-address, or optionally the default loopback address.  You can provide the ipv4/ipv6 version to GetVersionedAddress() to get the version of your choice.
+//  • empty string "" is interpreted as the zero-address, or optionally the default loopback address.  You can provide the ipv4/ipv6 version to GetVersionedAddress() to get the version of your choice.
 //
 //
-// The other exception is a subnet in which the range of values in a segment of the subnet are not sequential, for which toAddress() returns  IncompatibleAddressError because there is no single IPAddress value, there would be many.
+// The other exception is a subnet in which the range of values in a segment of the subnet are not sequential, for which ToAddress() returns  IncompatibleAddressError because there is no single IPAddress value, there would be many.
 // An IPAddress instance requires that all segments can be represented as a range of values.
 //
 // There are only two unusual circumstances when this can occur:
 //
-// • using masks on subnets specified with wildcard or range characters causing non-sequential segments such as the final IPv4 segment of 0.0.0.* with mask 0.0.0.128,
-//this example translating to the two addresses 0.0.0.0 and 0.0.0.128, so the last IPv4 segment cannot be represented as a sequential range of values.</li>
+//  • using masks on subnets specified with wildcard or range characters causing non-sequential segments such as the final IPv4 segment of 0.0.0.* with mask 0.0.0.128,
+//  this example translating to the two addresses 0.0.0.0 and 0.0.0.128, so the last IPv4 segment cannot be represented as a sequential range of values.
 //
-// • using wildcards or range characters in the IPv4 section of an IPv6 mixed address causing non-sequential segments such as the last IPv6 segment of ::ffff:0.0.*.0,
-// this example translating to the addresses ::ffff:0:100, ::ffff:0:200, , ::ffff:0:300, ..., so the last IPv6 segment cannot be represented as a sequential range of values.</li>
+//  • using wildcards or range characters in the IPv4 section of an IPv6 mixed address causing non-sequential segments such as the last IPv6 segment of ::ffff:0.0.*.0,
+//  this example translating to the addresses ::ffff:0:100, ::ffff:0:200, , ::ffff:0:300, ..., so the last IPv6 segment cannot be represented as a sequential range of values.
 //
 // These exceptions do not occur with non-subnets (ie individual addresses), nor can they occur with standard CIDR prefix-based subnets.
 //
-// This class is thread-safe.  In fact, IPAddressString objects are immutable.
+// This class is goroutine/thread-safe.  In fact, IPAddressString objects are immutable.
 // An IPAddressString object represents a single IP address representation that cannot be changed after construction.
 // Some of the derived state is created upon demand and cached, such as the derived IPAddress instances.
 //
@@ -383,7 +383,7 @@ func (addrStr *IPAddressString) GetVersionedAddress(version IPVersion) *IPAddres
 
 // ToVersionedAddress Produces the IPAddress of the specified address version corresponding to this IPAddressString.
 //
-// In most cases the string indicates the address version and calling {@link #toAddress()} is sufficient, with a few exceptions.
+// In most cases the string indicates the address version and calling ToAddress() is sufficient, with a few exceptions.
 //
 // When this object represents only a network prefix length,
 // specifying the address version allows the conversion to take place to the associated mask for that prefix length.
