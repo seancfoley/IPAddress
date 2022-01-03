@@ -872,8 +872,3 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 //			return grouping;
 //		}
 //	}
-
-// TODO NEXT progress
-//
-// - go over the java to-dos as some might make sense in golang too
-// - figure out whether you go for a separate repo or not - YES
