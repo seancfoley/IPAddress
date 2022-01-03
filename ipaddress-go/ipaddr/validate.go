@@ -2175,20 +2175,21 @@ func parseHostNameQualifier(
 	return
 }
 
-//TODO maybe I want to keep this?  Maybe make it similar to ValidatePrefixLenStr, returning a Zone and taking a string as arg
-//// ValidateZone returns the index of the first invalid character of the zone, or -1 if the zone is valid
-//func ValidateZone(zone Zone) int {
-//	for i := 0; i < len(zone); i++ {
-//		c := zone[i]
-//		if c == PrefixLenSeparator {
-//			return i
-//		}
-//		if c == IPv6SegmentSeparator {
-//			return i
-//		}
-//	}
-//	return -1
-//}
+// ValidateZone returns an error if the zone is invalid
+func ValidateZoneStr(zoneStr string) (zone Zone, err addrerr.AddressStringError) {
+	for i := 0; i < len(zoneStr); i++ {
+		c := zone[i]
+		if c == PrefixLenSeparator {
+			err = &addressStringIndexError{addressStringError{addressError{str: zoneStr, key: "ipaddress.error.invalid.zone"}}, i}
+			return
+		}
+		if c == IPv6SegmentSeparator {
+			err = &addressStringIndexError{addressStringError{addressError{str: zoneStr, key: "ipaddress.error.invalid.zone"}}, i}
+			return
+		}
+	}
+	return Zone(zoneStr), nil
+}
 
 func isReserved(c byte) bool {
 	isUnreserved :=

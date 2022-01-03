@@ -288,6 +288,18 @@ func main() {
 		fmt.Printf("%v ", rangiter.Next())
 	}
 
+	addrStrIPv6Pref1 := ipaddr.NewIPAddressString("1:2:3:4::")
+	addrStrIPv6Pref2 := ipaddr.NewIPAddressString("1:2:4:1::")
+	rng2 := addrStrIPv6Pref1.GetAddress().ToIPv6().SpanWithRange(addrStrIPv6Pref2.GetAddress().ToIPv6())
+	rangeres := rng.Join(rng)
+	fmt.Printf("\n\njoined ranges: %v\n", rangeres)
+	rangeres2 := rng.ToIP().Join(rng2.ToIP())
+	fmt.Printf("\n\njoined ranges: %v\n", rangeres2)
+	rangeres3 := rng2.Join(rng2)
+	fmt.Printf("\n\njoined ranges: %v\n", rangeres3)
+	rangeres4 := rng2.ToIP().Join(rng.ToIP())
+	fmt.Printf("\n\njoined ranges: %v\n", rangeres4)
+
 	addrStrPref3 := ipaddr.NewIPAddressString("1-4::1/125")
 	addrIter := addrStrPref3.GetAddress().PrefixBlockIterator()
 	fmt.Printf("\naddress pref block iterator:\n")

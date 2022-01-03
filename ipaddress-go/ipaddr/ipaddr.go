@@ -1796,8 +1796,8 @@ func NewIPAddressFromValueProvider(valueProvider IPAddressValueProvider) *IPAddr
 	return nil
 }
 
-// AddrsMatch checks if the two slices share the same list of addresses in any order, using address equality.
-// The function can handle duplicates and nil addresses, which are both ignored.
+// AddrsMatchUnordered checks if the two slices share the same list of addresses in any order, using address equality.
+// The function can handle duplicates and nil addresses, both of which are ignored.
 func AddrsMatchUnordered(addrs1, addrs2 []*IPAddress) (result bool) {
 	len1 := len(addrs1)
 	len2 := len(addrs2)
@@ -1818,7 +1818,7 @@ func AddrsMatchUnordered(addrs1, addrs2 []*IPAddress) (result bool) {
 	return
 }
 
-// AddrsMatch checks if the two slices share the same ordered list of addresses using address equality.
+// AddrsMatchOrdered checks if the two slices share the same ordered list of addresses using address equality.
 func AddrsMatchOrdered(addrs1, addrs2 []*IPAddress) (result bool) {
 	len1 := len(addrs1)
 	len2 := len(addrs2)

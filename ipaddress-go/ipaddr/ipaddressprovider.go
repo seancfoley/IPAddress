@@ -876,8 +876,4 @@ func (all *allCreator) containsProviderFunc(otherProvider ipAddressProvider, fun
 // TODO NEXT progress
 //
 // - go over the java to-dos as some might make sense in golang too
-// - clean up
-// - the TODOs in ipv4 and ipv6 sequential range
-// - the 1 TODO in the validator code
-
-// TODO figure out whether you go for a separate repo or not
+// - figure out whether you go for a separate repo or not - YES

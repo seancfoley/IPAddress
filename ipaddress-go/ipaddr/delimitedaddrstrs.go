@@ -21,6 +21,7 @@ import "strings"
 const SegmentValueDelimiter = ','
 
 // CountDelimitedAddresses will count the possible combinations, given a string with comma delimiters separating segment elements.
+// It is a counterpart to ParseDelimitedSegments.
 //
 // For example, given "1,2.3.4,5.6" this method will return 4 for the possible combinations: "1.3.4.6", "1.3.5.6", "2.3.4.6" and "2.3.5.6"
 func CountDelimitedAddresses(str string) int {
@@ -58,6 +59,7 @@ func isDelimitedBoundary(c byte) bool {
 // Another example: "1-2,3.4.5.6" will iterate through "1-2.4.5.6" and "1-3.4.5.6".
 //
 // This method will not validate strings.  Each string produced can be validated using an instance of IPAddressString.
+// Use CountDelimitedAddresses for the count of elements in the iterator.
 func ParseDelimitedSegments(str string) StringIterator {
 	var parts [][]string
 	var lastSegmentStartIndex, lastPartIndex, lastDelimiterIndex int

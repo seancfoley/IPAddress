@@ -250,15 +250,16 @@ func (rng *IPv6AddressSeqRange) SpanWithSequentialBlocks() []*IPv6Address {
 	return rng.GetLower().SpanWithSequentialBlocksTo(rng.GetUpper())
 }
 
-//TODO look into whether this should be taking IPAddressSeqRange, doesn't look like I handle other versions at all, I think I must have gotten distracted here, I think the arg should be ipv6
-
 // Join joins the given ranges into the fewest number of ranges.
 // The returned array will be sorted by ascending lowest range value.
-func (rng *IPv6AddressSeqRange) Join(ranges ...*IPAddressSeqRange) []*IPv6AddressSeqRange {
+func (rng *IPv6AddressSeqRange) Join(ranges ...*IPv6AddressSeqRange) []*IPv6AddressSeqRange {
 	origLen := len(ranges)
-	ranges = append(make([]*IPAddressSeqRange, 0, origLen+1), ranges...)
-	ranges[origLen] = rng.ToIP()
-	return cloneToIPv6SeqRange(join(ranges))
+	ranges2 := make([]*IPAddressSeqRange, 0, origLen+1)
+	for _, rng := range ranges {
+		ranges2 = append(ranges2, rng.ToIP())
+	}
+	ranges2 = append(ranges2, rng.ToIP())
+	return cloneToIPv6SeqRange(join(ranges2))
 }
 
 // JoinTo joins this range to the other.  If this range overlaps with the given range,
