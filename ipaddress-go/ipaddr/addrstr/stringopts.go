@@ -124,10 +124,10 @@ type StringOptions interface {
 	GetRadix() int
 
 	// separates the divisions of the address, typically ':' or '.', but also can be null for no separator
-	// the default is a space, unless built using a MACSize, IPv6 or IPv4 options builder in which case the separator is ':' for MACSize and IPv6 wand '.' for IPv4
+	// the default is a space, unless built using a MAC, IPv6 or IPv4 options builder in which case the separator is ':' for MAC and IPv6 and '.' for IPv4
 	GetSeparator() byte
 
-	// default is false, no separator, unless built using a MACSize, IPv6 or IPv4 options builder in which case there is a default separator
+	// default is false, no separator, unless built using a MAC, IPv6 or IPv4 options builder in which case there is a default separator
 	HasSeparator() bool
 
 	GetAddressLabel() string

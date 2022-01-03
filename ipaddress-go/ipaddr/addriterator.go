@@ -185,7 +185,7 @@ func (iter ipv6IPAddressIterator) Next() *IPv6Address {
 	return iter.IPAddressIterator.Next().ToIPv6()
 }
 
-// MACAddressIterator iterates through MACSize addresses, subnets and ranges
+// MACAddressIterator iterates through MAC addresses, subnets and ranges
 type MACAddressIterator interface {
 	HasNext
 	Next() *MACAddress

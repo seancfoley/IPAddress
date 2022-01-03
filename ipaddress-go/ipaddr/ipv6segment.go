@@ -348,7 +348,7 @@ func (seg *IPv6AddressSegment) WithoutPrefixLen() *IPv6AddressSegment {
 // If a segment does not fit into the array because the segment index in the array is out of bounds of the array,
 // then it is not copied.
 //
-// Used to create both IPv4 and MACSize segments
+// Used to create both IPv4 and MAC segments
 func (seg *IPv6AddressSegment) visitSplitSegments(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) addrerr.IncompatibleAddressError {
 	if seg.isMultiple() {
 		return seg.visitSplitSegmentsMultiple(creator)
@@ -380,7 +380,7 @@ func (seg *IPv6AddressSegment) splitSegValues() (highLower, highUpper, lowLower,
 	return
 }
 
-// Used to create both IPv4 and MACSize segments
+// Used to create both IPv4 and MAC segments
 func (seg *IPv6AddressSegment) visitSplitSegmentsMultiple(creator func(index int, value, upperValue SegInt, prefLen PrefixLen)) addrerr.IncompatibleAddressError {
 	myPrefix := seg.GetSegmentPrefixLen()
 	bitSizeSplit := BitCount(IPv6BitsPerSegment >> 1)

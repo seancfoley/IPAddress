@@ -284,19 +284,19 @@ func NewIPv6AddressFromPrefixedZonedRange(vals, upperVals IPv6SegmentValueProvid
 
 // NewIPv6AddressFromMACSection constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address and an IPv6 address 64-bit prefix.
 //
-// If the supplied MACSize address section is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
+// If the supplied MAC address section is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
 // with the ff-fe section in the middle.
 //
-// If the supplied MACSize address section is a 6 byte MACSize-48 or EUI-48, then the ff-fe pattern will be inserted when converting to IPv6.
+// If the supplied MAC address section is a 6 byte MAC-48 or EUI-48, then the ff-fe pattern will be inserted when converting to IPv6.
 //
-// The constructor will toggle the MACSize U/L (universal/local) bit as required with EUI-64.
+// The constructor will toggle the MAC U/L (universal/local) bit as required with EUI-64.
 //
 // The IPv6 address section must be at least 8 bytes.
 //
-// Any prefix length in the MACSize address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
+// Any prefix length in the MAC address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
-// The error is either an addrerr.AddressValueError for sections that are of insufficient segment count,
-// oraddrerr.IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
+// The error is either an AddressValueError for sections that are of insufficient segment count,
+// or IncompatibleAddressError when attempting to join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, addrerr.IncompatibleAddressError) {
 	zone := prefix.GetZone()
 	zoneStr := NoZone
@@ -326,19 +326,19 @@ func newIPv6AddressFromMAC(prefixSection *IPv6AddressSection, suffix *MACAddress
 
 // NewIPv6AddressFromMACSection constructs an IPv6 address from a modified EUI-64 (Extended Unique Identifier) address section and an IPv6 address section network prefix.
 //
-// If the supplied MACSize address section is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
+// If the supplied MAC address section is an 8 byte EUI-64, then it must match the required EUI-64 format of xx-xx-ff-fe-xx-xx
 // with the ff-fe section in the middle.
 //
-// If the supplied MACSize address section is a 6 byte MACSize-48 or EUI-48, then the ff-fe pattern will be inserted when converting to IPv6.
+// If the supplied MAC address section is a 6 byte MAC-48 or EUI-48, then the ff-fe pattern will be inserted when converting to IPv6.
 //
-// The constructor will toggle the MACSize U/L (universal/local) bit as required with EUI-64.
+// The constructor will toggle the MAC U/L (universal/local) bit as required with EUI-64.
 //
 // The IPv6 address section must be at least 8 bytes.
 //
-// Any prefix length in the MACSize address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
+// Any prefix length in the MAC address is ignored, while a prefix length in the IPv6 address is preserved but only up to the first 4 segments.
 //
-// The error is either an addrerr.AddressValueError for sections that are of insufficient segment count,
-// oraddrerr.IncompatibleAddressError when attempting to join two MACSize segments, at least one with ranged values, into an equivalent IPV6 segment range.
+// The error is either an AddressValueError for sections that are of insufficient segment count,
+// or IncompatibleAddressError when attempting to join two MAC segments, at least one with ranged values, into an equivalent IPV6 segment range.
 func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, addrerr.AddressError) {
 	return newIPv6AddressFromZonedMAC(prefix, suffix, NoZone)
 }
@@ -1238,7 +1238,7 @@ func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, addrerr.Incompatible
 	return newMACAddress(sect), nil
 }
 
-//prefix length in this section is ignored when converting to MACSize
+//prefix length in this section is ignored when converting to MAC
 func (addr *IPv6Address) toEUISegments(extended bool) ([]*AddressDivision, addrerr.IncompatibleAddressError) {
 	seg1 := addr.GetSegment(5)
 	seg2 := addr.GetSegment(6)

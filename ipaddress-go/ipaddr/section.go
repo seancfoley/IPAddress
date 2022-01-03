@@ -159,7 +159,7 @@ func (section *addressSectionInternal) initMultAndPrefLen() {
 			//Across an address prefixes are:
 			//IPv6: (null):...:(null):(1 to 16):(0):...:(0)
 			//or IPv4: ...(null).(1 to 8).(0)...
-			//For MACSize, all segs have nil prefix since prefix is not segment-level
+			//For MAC, all segs have nil prefix since prefix is not segment-level
 			segPrefix := segment.getDivisionPrefixLength()
 			if previousSegmentPrefix == nil {
 				if segPrefix != nil {
