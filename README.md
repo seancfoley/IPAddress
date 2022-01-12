@@ -14,13 +14,13 @@ Java library for handling IP addresses and subnets, both IPv4 and IPv6
 - OSGI bundle since version 5.3.1: com.github.seancfoley.ipaddress
 
 
-As a [Java](https://www.oracle.com/java/) library, it is also interoperable with [Kotlin](https://kotlinlang.org/), [Scala](https://scala-lang.org/), [Groovy](http://www.groovy-lang.org/) and [Clojure](https://clojure.org/).  
+As a [Java](https://www.oracle.com/java/) library, it is also interoperable with [Kotlin](https://kotlinlang.org/), [Scala](https://scala-lang.org/), [Groovy](http://www.groovy-lang.org/) and [Clojure](https://clojure.org/)
 
-Available as a [Go](https://go.dev/) library from the [ipaddress-go repository](https://github.com/seancfoley/ipaddress-go).
+Available as a [Go](https://go.dev/) library from the [ipaddress-go repository](https://github.com/seancfoley/ipaddress-go)
 
-[Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs).
+[Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
 
-[Make your IPv4 App work with IPv6](https://seancfoley.github.io/IPAddress/ipaddress.html#make-your-ipv4-app-work-with-ipv6).
+[Make your IPv4 App work with IPv6](https://seancfoley.github.io/IPAddress/ipaddress.html#make-your-ipv4-app-work-with-ipv6)
 
 Version | Notes         |
 ------- | ------------- |
