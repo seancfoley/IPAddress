@@ -1,7 +1,7 @@
 [IPAddress](https://seancfoley.github.io/IPAddress/)
 ==============
 
-**Java library for handling IP addresses and subnets, both IPv4 and IPv6**
+**Java and Go libraries for handling IP addresses and subnets, both IPv4 and IPv6**
 
 by Sean C Foley
 
@@ -15,7 +15,7 @@ by Sean C Foley
 
 [Supported IP Address Parsing Formats](#supported-ip-address-parsing-formats)
 
-[Core classes](#core-classes)
+[Core Types](#core-types)
 
 [Parse String Representation of IP Address or Host Name](#parse-string-representation-of-ip-address-or-host-name)
 
@@ -60,7 +60,7 @@ by Sean C Foley
 &#8203;
 ## Benefits of this Library
 
-The library was intended to satisfy the following primary goals:
+The IPAddress library was intended to satisfy the following primary goals:
 
   - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) for an extensive list)
 
@@ -96,9 +96,7 @@ The library was intended to satisfy the following primary goals:
   - **Allow control over which formats are allowed when parsing**,
     whether IPv4/6, or subnets, or inet\_aton formats, and so on.
 
-  - **Produce all common address strings of different formats for a
-    given IPv4 or IPv6 address and produce collections of such
-    strings**  
+  - **Produce all common address strings of different formats for a given IPv4 or IPv6 address and produce collections of such strings**  
     Some addresses can have hundreds of thousands of potential string
     representations (when you consider hex capitalization, ipv6
     compression, and leading zeros, the various IPv4 and IPv6 formats,
@@ -121,8 +119,7 @@ The library was intended to satisfy the following primary goals:
     version.
 
   - **Thread-safety and immutability**. The core types (host names,
-    address strings, addresses, address sections, address segments, address ranges) are all immutable (like java.lang.String or java.lang.Integer
-    instances). They do not change their underlying value. For
+    address strings, addresses, address sections, address segments, address ranges) are all immutable. They do not change their underlying value. For
     multi-threaded apps this is valuable.
 
   - **Address modifications**, such as altering prefix lengths, masking,
@@ -141,15 +138,14 @@ The library was intended to satisfy the following primary goals:
 
   - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals
 
-  - **Integrate with the java primitive types and the standard java
-    classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.
+  - **Integrate with the standard types.  For Java, this includes the primitive types and the standard classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  **For Go, this includes the primitive types and the Go SDK types** `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, and `big.Int`.
 
   - **Making address manipulations easy**, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
 
 &#8203;
 ## Code Examples
 
-This document provides in-depth and extensive documentation for the library, and includes some code snippets.  However, for common use-cases, you may wish to go straight to the wiki <a href="https://github.com/seancfoley/IPAddress/wiki/Code-Examples" target="_blank">code examples which cover a wide breadth of common use-cases</a>.  The code examples are focused more on covering common use-cases and operations, while this document is focused more on covering all areas in more detail with smaller code snippets.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
+This document provides in-depth and extensive documentation for the library, and includes some code snippets.  However, for common use-cases, you may wish to go straight to the <a href="https://github.com/seancfoley/IPAddress/wiki/Code-Examples" target="_blank">Java code examples</a> or <a href="https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples" target="_blank">Go code examples</a> which cover a wide breadth of common use-cases.  The code examples are focused more on covering common use-cases and operations, while this document is focused more on covering all areas in more detail with smaller code snippets.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
 
 &#8203;
 ## Supported IP Address Parsing Formats
@@ -212,13 +208,13 @@ For a more detailed list or formats parsed, some examples are below, or
 see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html).
 
 &#8203;
-## Core classes
+## Core Types
 
-The core classes are **HostName**, **IPAddressString**, and
-**MACAddressString** along with the **Address** base class and its
-subclasses **IPAddress, IPv4Address**, **IPv6Address**, and
-**MACAddress**, as well as the sequential address class
-**IPAddressSeqRange** and its subclasses **IPv4AddressSeqRange** and
+The core types are **HostName**, **IPAddressString**, and
+**MACAddressString** along with the **Address** base type and its
+subtypes **IPAddress, IPv4Address**, **IPv6Address**, and
+**MACAddress**, as well as the sequential address type
+**IPAddressSeqRange** and its subtypes **IPv4AddressSeqRange** and
 **IPv6AddressSeqRange**. If you have a textual representation of an IP
 address, then start with `HostName` or `IPAddressString`. If you have
 numeric bytes or integers, then start with `IPV4Address`, `IPV6Address` or
