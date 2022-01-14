@@ -11,6 +11,8 @@ by Sean C Foley
 
 [Benefits of this Library](#benefits-of-this-library)
 
+[Java versus Golang Feature Matrix](#java-versus-golang-feature-matrix)
+
 [Code Examples](#code-examples)
 
 [Supported IP Address Parsing Formats](#supported-ip-address-parsing-formats)
@@ -141,6 +143,51 @@ The IPAddress library was intended to satisfy the following primary goals:
   - **Integrate with the standard types.  For Java, this includes the primitive types and the standard classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  **For Go, this includes the primitive types and the Go SDK types** `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, and `big.Int`.
 
   - **Making address manipulations easy**, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
+
+&#8203;
+## Java Versus Golang Feature Matrix
+
+The basic goals remain the same for both Java and Go libraries.  The Go library, being the newer library, does not quite match the feature set of the Java library.  Here is a summary.
+
+| Feature | Java  | Golang |
+| --- | --- | --- |
+| Core types (IP/MAC strings, IPv4/v6/MAC addresses, sequential ranges, host names, base types for the like) |   ✅ | ✅ |
+| Core types are immutable |  ✅ | ✅ |
+| Rich type system for addresses, address sections, address segments, address divisions, address division groupings, and address ranges |  ✅ | ✅ |
+| Comparison of instances of all such types |  ✅ | ✅ |
+| Subnet containment checks |  ✅ | ✅ |
+| Sequential range containment checks |   ✅ | ✅ |
+| Merging subnets |  ✅ | ✅ |
+| Merging sequential ranges |  ✅ | ✅ |
+| Spanning subnets with CIDR blocks |  ✅ | ✅ |
+| Spanning sequential ranges with CIDR blocks |  ✅ | ✅ |
+| Spanning subnets with sequential blocks |  ✅ | ✅ |
+| Spanning sequential ranges with sequential blocks |  ✅ | ✅ |
+| Conversion to/from MAC from/to IPv6 Addresses |  ✅ | ✅ |
+| Conversion to/from IPv4 from/to IPv6 Addresses |  ✅ | ✅ |
+| Subnet iterators |  ✅ | ✅ |
+| Sequential range iterators |  ✅ | ✅ |
+| Subnet prefix iterators |  ✅ | ✅ |
+| Sequential range prefix iterators |  ✅ | ✅ |
+| Parsing many address and subnet formats |  ✅ | ✅ |
+| String generation of many address and subnet formats |  ✅ | ✅ |
+| IPv4/v6/MAC address increment/decrement |  ✅ | ✅ |
+| Masking, reversing, subtracting, intersecting, joining operations |  ✅ | ✅ |
+| Prefix length operations |  ✅ | ✅ |
+| Framework of address interfaces for polymorphic code |  ✅ | ✅ |
+| Parse IP strings directly to sequential ranges | ✅ | ✅  |
+| Parse IP strings directly to division groupings | ✅ | Coming |
+| Address tries | ✅ | Coming |
+| Associative address tries | ✅ | Coming |
+| Maps and sets backed by tries | ✅ | Coming |
+| Large divisions > 64 bits | ✅ | Coming |
+| Base 85 IPv6 address parsing and string generation | ✅ | Coming |
+| UNC host name and DNS string parsing | ✅ | Coming |
+| String collections | ✅ |  |
+| SQL string matching | ✅ |  |
+| Spliterators | ✅ |  |
+| Streams | ✅ |  |
+| Serialization | ✅  |  |
 
 &#8203;
 ## Code Examples
