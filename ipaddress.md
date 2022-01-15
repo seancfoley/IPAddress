@@ -147,7 +147,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 &#8203;
 ## Java Versus Golang Feature Matrix
 
-The basic goals remain the same for both Java and Go libraries.  The Go library, being the newer library, does not quite match the feature set of the Java library.  Here is a summary.
+The basic goals remain the same for both Java and Go libraries.  The Go library, being the newer library, does not quite match the feature set of the Java library.  Also note that this documentation is being updated to reflect the differences and provide more Golang examples. This matrix is a summary of the feature differences.
 
 | Feature | Java  | Golang |
 | --- | --- | --- |
