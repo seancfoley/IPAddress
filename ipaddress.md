@@ -180,7 +180,6 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Address tries | ✅ | Coming |
 | Associative address tries | ✅ | Coming |
 | Maps and sets backed by tries | ✅ | Coming |
-| Large divisions > 64 bits | ✅ | Coming |
 | Base 85 IPv6 address parsing and string generation | ✅ | Coming |
 | UNC host name and DNS string parsing | ✅ | Coming |
 | String collections | ✅ |  |
