@@ -178,7 +178,7 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Parse IP strings directly to sequential ranges | ✅ | ✅  |
 | Address tries | ✅ |  ✅ |
 | Associative address tries | ✅ |  ✅ |
-| Integration with standard libary maps and collections | ✅ | ✅  |
+| Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to division groupings | ✅ | Coming |
 | Base 85 IPv6 address parsing and string generation | ✅ | Coming |
 | UNC host name and DNS string parsing | ✅ | Coming |
