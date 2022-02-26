@@ -183,9 +183,7 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Base 85 IPv6 address parsing and string generation | ✅ | Coming |
 | UNC host name and DNS string parsing | ✅ | Coming |
 | String collections | ✅ |  |
-| SQL string matching | ✅ |  |
-| Spliterators | ✅ |  |
-| Streams | ✅ |  |
+| Spliterators and Streams | ✅ |  |
 | Serialization | ✅  |  |
 
 &#8203;
