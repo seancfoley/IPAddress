@@ -175,14 +175,12 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Masking, reversing, subtracting, intersecting, joining operations |  ✅ | ✅ |
 | Prefix length operations |  ✅ | ✅ |
 | Framework of address interfaces for polymorphic code |  ✅ | ✅ |
-| Parse IP strings directly to sequential ranges | ✅ | ✅  |
 | Address tries | ✅ |  ✅ |
 | Associative address tries | ✅ |  ✅ |
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | Parse IP strings directly to division groupings | ✅ | Coming |
-| Base 85 IPv6 address parsing and string generation | ✅ | Coming |
-| UNC host name and DNS string parsing | ✅ | Coming |
+| UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | Coming |
 | String collections | ✅ |  |
 | Spliterators and Streams | ✅ |  |
 | Serialization | ✅  |  |
