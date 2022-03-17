@@ -245,7 +245,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		return result;
 	}
 
-	// note: only to be used when you already know the total size fits into a long
+	// note: only to be used when you already know the total size fits into a long, and you know that the count of each segment fits into an int
 	protected static <R extends AddressSection, S extends AddressSegment> long longPrefixCount(R section, int prefixLength) {
 		int bitsPerSegment = section.getBitsPerSegment();
 		int bytesPerSegment = section.getBytesPerSegment();
@@ -257,19 +257,20 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 				int segmentPrefixLength = getPrefixedSegmentPrefixLength(bitsPerSegment, prefixLength, i);
 				return AddressDivision.getPrefixValueCount(section.getSegment(i), segmentPrefixLength);
 			}
-			return section.getSegment(i).getValueCount();
+			AddressSegment segment = section.getSegment(i);
+			int valueCount = (segment.getUpperSegmentValue() - segment.getSegmentValue()) + 1;
+			return valueCount;
 		}, networkSegmentIndex + 1);
 	}
 
-	// note: only to be used when you already know the total size fits into a long
+	// note: only to be used when you already know the total size fits into a long, and you know that the count of each segment fits into an int
 	protected static <R extends AddressSection, S extends AddressSegment> long longCount(R section, int segCount) {
-		long result = getLongCount(i -> section.getSegment(i).getValueCount(), segCount);
+		long result = getLongCount(i -> {
+			AddressSegment segment = section.getSegment(i);
+			int valueCount = (segment.getUpperSegmentValue() - segment.getSegmentValue()) + 1;
+			return valueCount;
+		}, segCount);
 		return result;
-	}
-
-	// note: only to be used when you already know the total size fits into a long
-	protected static <R extends AddressSection, S extends AddressSegment> long longCount(R section) {//TODD do we use this?
-		return longCount(section, section.getSegmentCount());
 	}
 
 	protected static Integer getPrefixedSegmentPrefixLength(int bitsPerSegment, int prefixLength, int segmentIndex) {
@@ -1364,7 +1365,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		S newSegments[] = addrCreator.createSegmentArray(segCount);
 		for(int i = segCount - 1; i >= 0; i--) {
 			AddressSegment seg = section.getSegment(i);
-			int segRange = seg.getValueCount();
+			long segRange = (seg.getUpperSegmentValue() - seg.getSegmentValue()) + 1L;
 			long revolutions = increment / segRange;
 			int remainder = (int) (increment % segRange);
 			S newSegment = addrCreator.createSegment(seg.getSegmentValue() + remainder);

@@ -195,7 +195,7 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	 * Returns a visual representation of the tree with one node per line, with or without the non-added keys.
 	 */
 	public String toString(boolean withNonAddedKeys) {
-		return getRoot().toTreeString(true, true);
+		return getRoot().toTreeString(withNonAddedKeys, true);
 	}
 
 	/**

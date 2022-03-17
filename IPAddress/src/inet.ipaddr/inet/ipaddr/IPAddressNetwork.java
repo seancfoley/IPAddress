@@ -462,8 +462,8 @@ public abstract class IPAddressNetwork<
 					int bitsPerSegment = IPAddress.getBitsPerSegment(version);
 					int bytesPerSegment = IPAddress.getBytesPerSegment(version);
 					int prefix = bits;
-					S onesSegment = segProducer.apply(onesSubnet, 1);
-					S zerosSegment = segProducer.apply(zerosSubnet, 1);
+					S onesSegment = segProducer.apply(onesSubnet, 0);
+					S zerosSegment = segProducer.apply(zerosSubnet, 0);
 					IPAddressCreator<T, ?, ?, S, ?> creator = getAddressCreator();
 					
 					ArrayList<S> segmentList = new ArrayList<S>(segmentCount);

@@ -30,7 +30,7 @@ import inet.ipaddr.IPAddress.IPVersion;
  * @author sfoley
  *
  */
-public class ParsedHostIdentifierStringQualifier implements Serializable {
+public class ParsedHostIdentifierStringQualifier implements Serializable, Cloneable {
 
 	private static final long serialVersionUID = 4L;
 
@@ -113,7 +113,9 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 			networkPrefixLength = other.networkPrefixLength;
 		}
 		if(mask == null) {
-			mask = other.mask;
+			if(other.mask != null) {
+				mask = other.mask;
+			}
 		} else if(other.mask != null) {
 			mergedMask = getMaskLower().mask(other.getMaskLower());
 		}
@@ -173,6 +175,15 @@ public class ParsedHostIdentifierStringQualifier implements Serializable {
 			return IPVersion.IPV6;
 		}
 		return null;
+	}
+
+	@Override
+	protected ParsedHostIdentifierStringQualifier clone() {
+		try {
+			return (ParsedHostIdentifierStringQualifier) super.clone();
+		} catch (CloneNotSupportedException e) {
+			return null;
+		}
 	}
 
 	@Override

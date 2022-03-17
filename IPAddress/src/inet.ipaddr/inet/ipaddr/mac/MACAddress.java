@@ -570,6 +570,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 					prefLength += MACAddress.BITS_PER_SEGMENT << 1; //two segments
 				}
 				resultSection.assignPrefixLength(prefLength);
+				return creator.createAddress(resultSection);
 			}
 			return creator.createAddressInternal(segs);
 		} else {

@@ -51,11 +51,6 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  */
 public interface AddressSegment extends AddressComponent, AddressGenericDivision {
 	/**
-	 * @return the same value as {@link #getCount()} as an integer
-	 */
-	int getValueCount();
-
-	/**
 	 * returns the lower value
 	 */
 	int getSegmentValue();

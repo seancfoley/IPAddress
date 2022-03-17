@@ -202,7 +202,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	private final HostIdentifierString originator;
 	
 	private TranslatedResult<?,?> values;
-	private Boolean skipContains;
 	private Masker maskers[];
 	private Masker mixedMaskers[];
 
@@ -1517,33 +1516,34 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	// skips contains checking for addresses already parsed - 
 	// so this is not a case of unusual string formatting, because this is not for comparing strings,
 	// but more a case of whether the parsing data structures are easy to use or not
-	private boolean skipContains() {
-		Boolean result = skipContains;
-		if(result != null) {
-			return result;
-		}
+	private boolean skipContains(boolean skipMixed) {
 		AddressParseData parseData = getAddressParseData();
 		int segmentCount = parseData.getSegmentCount();
 		
 		// first we must excluded cases where the segments line up differently than standard, although we do not exclude ipv6 compressed
 		if(isProvidingIPv4()) {
 			if(segmentCount != IPv4Address.SEGMENT_COUNT) { // accounts for is_inet_aton_joined, singleSegment and wildcard segments
-				skipContains = Boolean.TRUE;
 				return true;
 			}
 		} else {
-			if(isProvidingMixedIPv6() || (segmentCount != IPv6Address.SEGMENT_COUNT && !isCompressed())) { // accounts for single segment and wildcard segments
-				skipContains = Boolean.TRUE;
+			int expectedSegmentCount;
+			if(isProvidingMixedIPv6()) {
+				if(skipMixed) {
+					return true;
+				}
+				expectedSegmentCount = IPv6Address.SEGMENT_COUNT - 2;
+			} else {
+				expectedSegmentCount = IPv6Address.SEGMENT_COUNT;
+			}
+			if(segmentCount != expectedSegmentCount && !isCompressed()) { // accounts for single segment and wildcard segments
 				return true;
 			}
 		}
 		// exclude non-standard masks which will modify segment values from their parsed values
 		IPAddress mask = getProviderMask();
 		if(mask != null && mask.getBlockMaskPrefixLength(true) == null) { // handles non-standard masks
-			skipContains = Boolean.TRUE;
 			return true;
 		}
-		skipContains = Boolean.FALSE;
 		return false;
 	}
 
@@ -1554,7 +1554,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(segmentData == null) {
 			return null;
 		}
-		if(skipContains()) {
+		if(skipContains(true)) {
 			return null;
 		}
 		if(has_inet_aton_value || hasIPv4LeadingZeros || isBinary) {
@@ -1578,7 +1578,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 	public Boolean prefixContains(String other) {
 		Boolean b = prefixEquals(other);
 		if(b != null && b.booleanValue()) {
-			return true;
+			return b;
 		}
 		return null;
 	}
@@ -1590,7 +1590,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(segmentData == null) {
 			return null;
 		}
-		if(skipContains()) {
+		if(skipContains(true)) {
 			return null;
 		}
 		if(has_inet_aton_value || hasIPv4LeadingZeros || isBinary) {
@@ -2106,7 +2106,9 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(segmentData == null || otherSegmentData == null) {
 			return null;
 		}
-		if(skipContains() || other.skipContains()) { // this excludes mixed addresses, amongst others
+		Integer pref = getProviderNetworkPrefixLength();
+		boolean skipMixed = !networkOnly || pref == null || pref > (IPv6Address.MIXED_ORIGINAL_SEGMENT_COUNT << 4);
+		if(skipContains(skipMixed) || other.skipContains(skipMixed)) { // this excludes mixed addresses, amongst others
 			return null;
 		}
 		IPVersion ipVersion = getProviderIPVersion();
@@ -2140,7 +2142,6 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		PrefixConfiguration prefConf = network.getPrefixConfiguration();
 		boolean zeroHostsAreSubnets = prefConf.zeroHostsAreSubnets();
 		boolean allPrefixedAddressesAreSubnets = prefConf.allPrefixedAddressesAreSubnets();
-		Integer pref = getProviderNetworkPrefixLength();
 		Integer otherPref = other.getProviderNetworkPrefixLength();
 		int networkSegIndex, hostSegIndex, endIndex, otherHostAllSegIndex, hostAllSegIndex;
 		endIndex = segmentCount;
@@ -2414,13 +2415,10 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 						Masker masker = maskers[i];
 						if(masker == null) {
 							long maxValue = (bits == Integer.SIZE) ? 0xffffffffL : ~(~0 << bits);
-							masker = maskRange(lower, upper, divMask, maxValue);
-							if(!masker.isSequential()) {
-								if(finalResult.maskException == null) {
-									finalResult.maskException = new IncompatibleAddressException(lower, upper, divMask, "ipaddress.error.maskMismatch");
-								}
-							}
-							maskers[i] = masker;
+							maskers[i] = masker = maskRange(lower, upper, divMask, maxValue);
+						}
+						if(!masker.isSequential() && finalResult.maskException == null) {
+							finalResult.maskException = new IncompatibleAddressException(lower, upper, divMask, "ipaddress.error.maskMismatch");
 						}
 						maskedLower = masker.getMaskedLower(lower, divMask);
 						maskedUpper = masker.getMaskedUpper(upper, divMask);
@@ -2518,9 +2516,9 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				int maskInt = mask.getSegment(normalizedSegmentIndex).getSegmentValue();
 				if(masker == null) {
 					maskers[i] = masker = maskRange(lower, upper, maskInt, creator.getMaxValuePerSegment());
-					if(!masker.isSequential() && finalResult.maskException == null) {
-						finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
-					}
+				}
+				if(!masker.isSequential() && finalResult.maskException == null) {
+					finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
 				}
 				lower = (int) masker.getMaskedLower(lower, maskInt);
 				upper = (int) masker.getMaskedUpper(upper, maskInt);
@@ -2784,22 +2782,19 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 								if(masker == null) {
 									// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
 									long extendedMaxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << (bits - Long.SIZE));
-									masker = maskExtendedRange(
+									maskers[i] = masker = maskExtendedRange(
 											lower, lowerHighBytes, 
 											upper, upperHighBytes, 
 											maskVal, extendedMaskVal, 
 											0xffffffffffffffffL, extendedMaxValue);
-									if(!masker.isSequential()) {
-										if(finalResult.maskException == null) {
-											int byteCount = (missingSegmentCount + 1) * IPv6Address.BYTES_PER_SEGMENT;
-											finalResult.maskException = new IncompatibleAddressException(
-												new BigInteger(1, toBytesSizeAdjusted(lower, lowerHighBytes, byteCount)).toString(), 
-												new BigInteger(1, toBytesSizeAdjusted(upper, upperHighBytes, byteCount)).toString(), 
-												new BigInteger(1, toBytesSizeAdjusted(maskVal, extendedMaskVal, byteCount)).toString(),
-												"ipaddress.error.maskMismatch");
-										}
-									}
-									maskers[i] = masker;
+								}
+								if(!masker.isSequential() && finalResult.maskException == null) {
+									int byteCount = (missingSegmentCount + 1) * IPv6Address.BYTES_PER_SEGMENT;
+									finalResult.maskException = new IncompatibleAddressException(
+										new BigInteger(1, toBytesSizeAdjusted(lower, lowerHighBytes, byteCount)).toString(), 
+										new BigInteger(1, toBytesSizeAdjusted(upper, upperHighBytes, byteCount)).toString(), 
+										new BigInteger(1, toBytesSizeAdjusted(maskVal, extendedMaskVal, byteCount)).toString(),
+										"ipaddress.error.maskMismatch");
 								}
 								maskedLowerHighBytes = masker.getExtendedMaskedLower(lowerHighBytes, extendedMaskVal);
 								maskedUpperHighBytes = masker.getExtendedMaskedUpper(upperHighBytes, extendedMaskVal);
@@ -2815,13 +2810,10 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 								if(masker == null) {
 									// shift must be 6 bits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
 									long maxValue = bits == Long.SIZE ? 0xffffffffffffffffL : ~(~0L << bits);
-									masker = maskRange(lower, upper, maskVal, maxValue);
-									if(!masker.isSequential()) {
-										if(finalResult.maskException == null) {
-											finalResult.maskException = new IncompatibleAddressException(lower, upper, maskVal, "ipaddress.error.maskMismatch");
-										}
-									}
-									maskers[i] = masker;
+									maskers[i] = masker = maskRange(lower, upper, maskVal, maxValue);
+								}
+								if(!masker.isSequential() && finalResult.maskException == null) {
+									finalResult.maskException = new IncompatibleAddressException(lower, upper, maskVal, "ipaddress.error.maskMismatch");
 								}
 								maskedLowerHighBytes = maskedUpperHighBytes = 0;
 								maskedLower = masker.getMaskedLower(lower, maskVal);
@@ -2945,9 +2937,9 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				int maskInt = mask.getSegment(normalizedSegmentIndex).getSegmentValue();
 				if(masker == null) {
 					maskers[i] = masker = maskRange(lower, upper, maskInt, creator.getMaxValuePerSegment());
-					if(!masker.isSequential() && finalResult.maskException == null) {
-						finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
-					}
+				}
+				if(!masker.isSequential() && finalResult.maskException == null) {
+					finalResult.maskException = new IncompatibleAddressException(lower, upper, maskInt, "ipaddress.error.maskMismatch");
 				}
 				lower = (int) masker.getMaskedLower(lower, maskInt);
 				upper = (int) masker.getMaskedUpper(upper, maskInt);
@@ -3049,18 +3041,18 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					Masker masker = mixedMaskers[m];
 					if(masker == null) {
 						mixedMaskers[m] = masker = maskRange(oneLower, oneUpper, shiftedMask, IPv4Address.MAX_VALUE_PER_SEGMENT);
-						if(!masker.isSequential() && finalResult.maskException == null) {
-							finalResult.maskException = new IncompatibleAddressException(oneLower, oneUpper, shiftedMask, "ipaddress.error.maskMismatch");
-						}
+					}
+					if(!masker.isSequential() && finalResult.maskException == null) {
+						finalResult.maskException = new IncompatibleAddressException(oneLower, oneUpper, shiftedMask, "ipaddress.error.maskMismatch");
 					}
 					oneLower = (int) masker.getMaskedLower(oneLower, shiftedMask);
 					oneUpper = (int) masker.getMaskedUpper(oneUpper, shiftedMask);
 					masker = mixedMaskers[m + 1];
 					if(masker == null) {
 						mixedMaskers[m + 1] = masker = maskRange(twoLower, twoUpper, maskInt, IPv4Address.MAX_VALUE_PER_SEGMENT);
-						if(!masker.isSequential() && finalResult.maskException == null) {
-							finalResult.maskException = new IncompatibleAddressException(twoLower, twoUpper, maskInt, "ipaddress.error.maskMismatch");
-						}
+					}
+					if(!masker.isSequential() && finalResult.maskException == null) {
+						finalResult.maskException = new IncompatibleAddressException(twoLower, twoUpper, maskInt, "ipaddress.error.maskMismatch");
 					}
 					twoLower = (int) masker.getMaskedLower(twoLower, maskInt);
 					twoUpper = (int) masker.getMaskedUpper(twoUpper, maskInt);

@@ -247,9 +247,15 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	public abstract IPAddressSegment toHostSegment(Integer segmentPrefixLength);
 	
 	protected <S extends IPAddressSegment> S toHostSegment(Integer segmentPrefixLength, AddressSegmentCreator<S> creator) {
+		// We need to use Masker:
+		// For example, ipv4 0-4, masking with prefix length 7, should become 0-1, not 0-0
+		// So you cannot do a straight mask of 0 and 4.
 		int mask = (segmentPrefixLength == null) ? 0 : getSegmentHostMask(segmentPrefixLength);
-		int newLower = getSegmentValue() & mask;
-		int newUpper = getUpperSegmentValue() & mask;
+		int lower = getSegmentValue();
+		int upper = getUpperSegmentValue();
+		Masker masker = maskRange(lower, upper, mask, getMaxValue());
+		int newLower = (int) masker.getMaskedLower(lower, mask);
+		int newUpper = (int) masker.getMaskedUpper(upper, mask);
 		if(newLower != newUpper) {
 			return creator.createSegment(newLower, newUpper, null);
 		}
@@ -506,7 +512,9 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		return super.matchesWithMask(lowerValue, upperValue, mask);
 	}
 	
-	@Override
+	/**
+	 * @return the same value as {@link #getCount()} as an integer
+	 */
 	public int getValueCount() {
 		return getUpperSegmentValue() - getSegmentValue() + 1;
 	}
@@ -521,14 +529,9 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	public int getPrefixValueCount() {
 		Integer prefixLength = getSegmentPrefixLength();
 		if(prefixLength == null) {
-			return getValueCount();
+			return (int) getValueCount();
 		}
 		return getPrefixValueCount(this, prefixLength);
-	}
-	
-	@Override
-	public long getDivisionValueCount() {
-		return getValueCount();
 	}
 	
 	protected int highByte() {

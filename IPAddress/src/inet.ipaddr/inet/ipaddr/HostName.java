@@ -66,7 +66,9 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	
 	/* Generally permissive, settings are the default constants in HostNameParameters */
 	public static final HostNameParameters DEFAULT_VALIDATION_OPTIONS = new HostNameParameters.Builder().toParams();
-	
+
+	private static final HostNameParameters DEFAULT_SOCKET_ADDR_VALIDATION_OPTIONS = DEFAULT_VALIDATION_OPTIONS.toBuilder().expectPort(true).toParams();
+
 	/* the original host in string format */
 	private final String host;
 	
@@ -114,12 +116,21 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 	 */
 	public HostName(InetSocketAddress inetSocketAddr) {
 		if(!inetSocketAddr.isUnresolved()) {
+			// we take the resolved addresses from the socket address, even though in here we might have gotten more
 			resolvedAddresses = new IPAddress[] {toIPAddress(inetSocketAddr.getAddress(), IPAddressString.DEFAULT_VALIDATION_OPTIONS)};
 		}
-		// we will parse and normalize as usual
-		// there is no way to know if we are getting a host name string here or an ip address literal without parsing it ourselves
-		host = inetSocketAddr.getHostString().trim() + PORT_SEPARATOR + inetSocketAddr.getPort();
-		validationOptions = DEFAULT_VALIDATION_OPTIONS;
+		// We will parse and normalize as usual.
+		// There is no way to know if we are getting a 
+		// host name string here or an ip address literal without parsing it ourselves.
+		// This is true even when the socket address is resolved, 
+		// we have no way of knowing if it started as an ip address literal or not,
+		// without parsing the original string.
+		int port = inetSocketAddr.getPort();
+		String hostStr = inetSocketAddr.getHostString().trim();
+		StringBuilder builder = new StringBuilder(hostStr.length() + 6); // 1 ':' and max 5 for port, largest being 65535
+		toNormalizedString(port, builder.append(hostStr));
+		host = builder.toString();
+		validationOptions = DEFAULT_SOCKET_ADDR_VALIDATION_OPTIONS; // we need exportPort to be true in the validation options so ::1:8080 is interpreted as ::1 with port 8080 and not IPv6 ::1:8080
 	}
 
 	/**

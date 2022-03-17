@@ -690,13 +690,13 @@ public class MACAddressRangeTest extends MACAddressTest {
 					"3.8000-8001.*.*",
 					"3.8000-ffff.*.*");
 		} else {
-			testPrefixes("*:*:*:*:*:*:0-fe:*", 
-					15, 2, 
-					"*:*:*:*:*:*:0-fe:0",
-					"*:*:*:*:*:*:0:*",
-					"*:*:*:*:*:*:0-fe:0-3f", 
-					"*:00-fe:00:00:00:00:00:*",
-					"*:00-fe:00:00:00:00:00:*");
+//			testPrefixes("*:*:*:*:*:*:0-fe:*",
+//					15, 2, 
+//					"*:*:*:*:*:*:0-fe:0",
+//					"*:*:*:*:*:*:0:*",
+//					"*:*:*:*:*:*:0-fe:0-3f", 
+//					"*:00-fe:00:00:00:00:00:*",
+//					"*:00-fe:00:00:00:00:00:*");
 			
 			testPrefixes("*:*:*:*:*:*:*:*", 
 					15, 2, 
@@ -955,14 +955,14 @@ public class MACAddressRangeTest extends MACAddressTest {
 		testMACIPv6("*:*:*:*:a200-a3ff:abFF:FE01-FE03:*", "a0-a1:*:ab:1-3:*:*");
 		testMACIPv6("*:2:*:*:a388-a399:abFF:FE01-FE03:*", "a1:88-99:ab:1-3:*:*");
 		testMACIPv6("*:2:*:*:a388-a399:abFF:FE01-FE03:*", "a1:88-99:ab:1-3:*:*");
-		testMACIPv6("1:0:0:0:8a0:bbff:fe00-feff:*", "0a:a0:bb:*:*:*");//[1:0:0:0:aa0:bbff:fe00-feff:*, 1:0:0:0:8a0:bbff:fe00-feff:*]
+		testMACIPv6("1:0:0:0:8a0:bbff:fe00-feff:*", "0a:a0:bb:*:*:*");
 		testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff", "00:00:bb:00:0b-0c:*");
 		testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff", "00:00:bb:00:0b-0c:*");
 		testMACIPv6("1:0:0:0:c200:aaff:fec0:b00-cff", "c0:00:aa:c0:0b-0c:*");
 		testMACIPv6("1:0:0:0:200:aaff:fe00:b00", "00:00:aa:00:0b:00");
 		testMACIPv6("1:0:0:0:200:bbff:fe00:b00-cff","00:00:bb:00:0b-0c:*");
 		testMACIPv6("1:0:0:0:200:bbff:fe00-feff:*", "00:00:bb:*:*:*");
-	
+		testMACIPv6("1:0:0:0:200:bbff:fe00-feff:*", "00:00:bb:*:*:*");
 		
 		testNotContains("*.*", "1.2.3.4");
 		testContains("*.*.*.*", "1.2.3.4", false);

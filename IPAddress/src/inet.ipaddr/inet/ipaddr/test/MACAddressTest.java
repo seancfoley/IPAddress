@@ -665,7 +665,8 @@ public class MACAddressTest extends TestBase {
 										} else {
 											m = macAddr;
 										}
-										for(int i = 0; i <= m.getSegmentCount(); i++) {
+										for(int i = 0; i <= m.getSegmentCount(); i+=2) { // keep the pairings together, otherwise when we have *:* it gets converted to *:x for some single value x, which cannot be joined into a single segment
+										//for(int i = 0; i <= m.getSegmentCount(); i++) {
 											MACAddressSection backSec = m.getSection(i, m.getSegmentCount());
 											MACAddressSection frontSec = m.getSection(0, i);
 											

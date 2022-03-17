@@ -28,7 +28,6 @@ import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IncompatibleAddressException;
-import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.format.validate.ParsedIPAddress;
 import inet.ipaddr.format.validate.ParsedIPAddress.BitwiseOrer;
@@ -155,32 +154,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	@Override
 	public BigInteger getUpperValue() {
 		return BigInteger.valueOf(getUpperDivisionValue());
-	}
-	
-	public long getDivisionValueCount() {
-		return getUpperDivisionValue() - getDivisionValue() + 1;
-	}
-	
-	@Override
-	public BigInteger getPrefixCount(int divisionPrefixLength) {
-		return BigInteger.valueOf(getDivisionPrefixCount(divisionPrefixLength));
-	}
-	
-	public long getDivisionPrefixCount(int divisionPrefixLength) {
-		if(divisionPrefixLength < 0) {
-			throw new PrefixLenException(this, divisionPrefixLength);
-		}
-		int bitCount = getBitCount();
-		if(bitCount <= divisionPrefixLength) {
-			return getDivisionValueCount();
-		}
-		int shiftAdjustment = bitCount - divisionPrefixLength;
-		return (getUpperDivisionValue() >>> shiftAdjustment) - (getDivisionValue() >>> shiftAdjustment) + 1;
-	}
-	
-	@Override
-	public BigInteger getCount() {
-		return BigInteger.valueOf(getDivisionValueCount());
 	}
 	
 	static boolean testRange(long lowerValue, long upperValue, long finalUpperValue, long networkMask, long hostMask) {
@@ -1339,11 +1312,18 @@ public abstract class AddressDivision extends AddressDivisionBase {
 					prefixMask |= ~(allOnes << (bitCount - newSegmentPrefixLength));
 				}
 			} else {
-				//we know newSegmentPrefixLength != null
+				// we know newSegmentPrefixLength != null
 				prefixMask = allOnes << (bitCount - newSegmentPrefixLength);
 			}
-			newLower = original.getSegmentValue() & prefixMask;
-			newUpper = original.getUpperSegmentValue() & prefixMask;
+			int value = original.getSegmentValue();
+			int upperValue = original.getUpperSegmentValue();
+			long maxValue = ~(~0L << original.getBitCount());
+			Masker masker = maskRange(value, upperValue, prefixMask, maxValue);
+			if(!masker.isSequential()) {
+				throw new IncompatibleAddressException(original, "ipaddress.error.maskMismatch");
+			}
+			newLower = (int) masker.getMaskedLower(value, prefixMask);
+			newUpper = (int) masker.getMaskedUpper(upperValue, prefixMask);
 		} else {
 			newLower = original.getSegmentValue();
 			newUpper = original.getUpperSegmentValue();
@@ -1351,30 +1331,124 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		return creator.createSegment(newLower, newUpper, newSegmentPrefixLength);
 	}
 	
+	// Consider the case of reversing the bits of a range
+	// Any range that can be successfully reversed must span all bits (otherwise after flipping you'd have a range in which the lower bit is constant, which is impossible in any contiguous range)
+	// So that means at least one value has 0xxxx and another has 1xxxx (using 5 bits for our example). This means you must have the values 01111 and 10000 since the range is contiguous.
+	// But reversing a range twice results in the original again, meaning the reversed must also be reversible, so the reversed also has 01111 and 10000.
+	// So this means both the original and the reversed also have those two patterns flipped, which are 00001 and 11110.
+	// So this means both ranges must span from at most 1 to at least 11110.
+	// However, the two remaining values, 0 and 11111, are optional, as they are boundary value and remain themselves when reversed, and hence have no effect on whether the reversed range is contiguous.
+	// So the only reversible ranges are 0-11111, 0-11110, 1-11110, and 1-11111.
+
+	//-----------------------
+	// Consider the case of reversing each of the bytes of a range.
+	//
+	// You can apply your argument to the top multiple byte.
+	// which means it is 0 or 1 to 254 or 255.
+	// Suppose there is another byte to follow
+	// If you take the upper byte range, and you hold it constant, then reversing the next byte applies the same argument to that byte.  
+	// And so the lower byte must span from at most 1 to at least 11111110.
+	// This argument holds when holding the upper byte constant at any value.
+	// So the lower byte must span from at most 1 to at least 111111110 for any value.
+	// So you have x 00000001-x 111111110 and y 00000001-y 111111110 and so on.
+	
+	// But all the bytes form a range, so you must also have the values in-between.
+	// So that means you have 1 00000001 to 1 111111110 to 10 111111110 to 11 111111110 all the way to x 11111110, where x is at least 11111110.
+	// In all cases, the upper byte lower value is at most 1, and 1 < 10000000.
+	// That means you always have 10000000 00000000.
+	// So you have the reverse as well (as argued above, for any value we also have the reverse).
+	// So you always have 00000001 00000000.
+	//
+	// In other words, if the upper byte has lower 0, then the full bytes lower must be at most 0 00000001
+	// Otherwise, when the upper byte has lower 1, the the full bytes lower is at most 1 00000000.
+	//
+	// In other words, if any upper byte has lower value 1, then all lower values to follow are 0.
+	// If all upper bytes have lower value 0, then the next byte is permitted to have lower value 1.
+	// In summary, any upper byte having lower of 1 forces the remaining lower values to be 0.
+	// WHen the upper bytes are all zero, and thus the lower is at most 0 0 0 0 1, 
+	// then the only remaining lower value is 0 0 0 0 0.  This reverses to itself, so it is optional.
+	//
+	// The same argument applies to upper boundaries.
+	//
+	// You need to check each byte in order.  Single valued do not matter.  First time you hit multi-valued byte x,
+	// It must have lower value 0 or 1.  It must have upper value max or max - 1.
+	// The following byte must be multiple of course.  
+	// If the lower value of x is 0, then the next byte can have lower value 0 or 1.
+	// Otherwise, the next byte and all bytes to follow must have lower value 0.
+	// Same applies to the upper boundary. 
+	// So you keep track as you go whether lower value can be 1 (if not then 0), and whether upper value can be max - 1 (if not then max).
+	
+		
+	//-----------------------
+	// Consider the case of reversing the bytes of a range.
+	// Any range that can be successfully reversed must span all bits
+	// (otherwise after flipping you'd have a range in which a lower bit is constant, which is impossible in any contiguous range)
+	// So that means at least one value has 0xxxxx and another has 1xxxxx (we use 6 bits for our example, and we assume each byte has 3 bits).
+	// This means you must have the values 011111 and 100000 since the range is contiguous.
+	// But reversing a range twice results in the original again, meaning the reversed must also be reversible, so the reversed also has 011111 and 100000.
+
+	// So this means both the original and the reversed also have those two bytes in each flipped, which are 111011 and 000100.
+	// So the range must have 000100, 011111, 100000, 111011, so it must be at least 000100 to 111011.
+	// So what if the range does not have 000001?  then the reversed range cannot have 001000, the byte-reversed address.
+	// But we know it spans 000100 to 111011. So the original must have 000001.
+	// What if it does not have 111110?  Then the reversed cannot have 110111, the byte-reversed address.
+	// But we know it ranges from 000100 to 111011.  So the original must have 111110.
+	// So it must range from 000001 to 111110.  The only remaining values in question are 000000 and 111111.
+	// But once again, the two remaining values are optional, because they byte-reverse to themselves.
+	// So for the byte-reverse case, we have the same potential ranges as in the bit-reverse case: 0-111111, 0-111110, 1-111110, and 1-111111
+	
+	protected static <S extends AddressSegment> boolean isReversibleRangePerByte(S seg) {
+		int byteCount = seg.getByteCount();
+		int bitCount = seg.getBitCount();
+		int val = seg.getSegmentValue();
+		int upperVal = seg.getUpperSegmentValue();
+		for(int i = 1; i <= byteCount; i++) {
+			int bitShift = i << 3;
+			int shift = bitCount - bitShift;
+			int byteVal = 0xff & (val >> shift);
+			int upperByteVal = 0xff & (upperVal >> shift);
+			if(byteVal != upperByteVal) {
+				if(byteVal > 1 || upperByteVal < 254) {
+					return false;
+				}
+				if(++i <= byteCount) {
+					boolean lowerIsZero = byteVal == 1;
+					boolean upperIsMax = upperByteVal == 254;
+					do {
+						bitShift = i<<3;
+						shift = bitCount - bitShift;
+						byteVal = 0xff & (val >> shift);
+						upperByteVal = 0xff & (upperVal >> shift);
+						if(lowerIsZero) {
+							if(byteVal != 0) {
+								return false;
+							}
+						} else {
+							if(byteVal > 1) {
+								return false;
+							}
+							lowerIsZero = byteVal == 1;
+						}
+						if(upperIsMax) {
+							if(upperByteVal != 255) {
+								return false;
+							}
+						} else {
+							if(upperByteVal < 254) {
+								return false;
+							}
+							upperIsMax = upperByteVal == 254;
+						}
+						i++;
+					} while(i <= byteCount);
+				}
+				return true;
+			}
+		}
+		return true;
+	}
+	
 	protected static <S extends AddressSegment> boolean isReversibleRange(S segment) {
-		//consider the case of reversing the bits or a range
-		//Any range that can be successfully reversed must span all bits (otherwise after flipping you'd have a range in which the lower bit is constant, which is impossible in any contiguous range)
-		//So that means at least one value has 0xxxx and another has 1xxxx (using 5 bits for our example). This means you must have the values 01111 and 10000 since the range is contiguous.
-		//But reversing a range twice results in the original again, meaning the reversed must also be reversible, so the reversed also has 01111 and 10000.
-		//So this means both the original and the reversed also have those two patterns flipped, which are 00001 and 11110.
-		//So this means both ranges must span from at most 1 to at least 11110.  
-		//However, the two remaining values, 0 and 11111, are optional, as they are boundary value and remain themselves when reversed, and hence have no effect on whether the reversed range is contiguous.
-		//So the only reversible ranges are 0-11111, 0-11110, 1-11110, and 1-11111.
-		
-		//-----------------------
-		//Consider the case of reversing the bytes of a range.
-		//Any range that can be successfully reversed must span all bits 
-		//(otherwise after flipping you'd have a range in which a lower bit is constant, which is impossible in any contiguous range)
-		//So that means at least one value has 0xxxxx and another has 1xxxxx (we use 6 bits for our example, and we assume each byte has 3 bits). 
-		//This means you must have the values 011111 and 100000 since the range is contiguous.
-		//But reversing a range twice results in the original again, meaning the reversed must also be reversible, so the reversed also has 011111 and 100000.
-		
-		//So this means both the original and the reversed also have those two patterns flipped, which are 111011 and 000100.
-		//So the range must have 000100, 011111, 100000, 111011, so it must be at least 000100 to 111011.
-		//So what if the range does not have 000001?  then the reversed range cannot have 001000, the reversed address.  But we know it spans 000100 to 111011.
-		//So the original must have 000001.  
-		//What if it does not have 111110?  Then the reversed cannot have 110111.  But we know it ranges from 000100 to 111011.  So the original must have 111110.
-		//But once again, the two remaining values are optional, so we have the same potential ranges: 0-111111, 0-111110, 1-111110, and 1-111111
 		return segment.getSegmentValue() <= 1 && segment.getUpperSegmentValue() >= segment.getMaxSegmentValue() - 1;
 	}
 }

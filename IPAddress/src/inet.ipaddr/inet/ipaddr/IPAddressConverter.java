@@ -58,7 +58,7 @@ public interface IPAddressConverter extends IPv6AddressConverter, IPv4AddressCon
 		@Override
 		public boolean isIPv4Convertible(IPAddress address) {
 			//using IPv4-mapped matches java.net behaviour.
-			return address.isIPv4() || (!address.toIPv6().hasZone() && address.toIPv6().isIPv4Mapped());
+			return address.isIPv4() || address.toIPv6().isIPv4Mapped();
 		}
 
 		@Override

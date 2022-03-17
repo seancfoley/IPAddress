@@ -1061,6 +1061,13 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	private static IPv6AddressSegment join(IPv6AddressCreator creator, MACAddressSegment macSegment0, MACAddressSegment macSegment1, boolean flip, Integer prefixLength) {
+		if(macSegment0.isMultiple()) { // TODO reinstate, a test is failing now that I added this, but I need this
+			// if the high segment has a range, the low segment must match the full range, 
+			// otherwise it is not possible to create an equivalent range when joining
+			if(!macSegment1.isFullRange()) {
+				throw new IncompatibleAddressException(macSegment0, macSegment1, "ipaddress.error.invalidMACIPv6Range");
+			}
+		}
 		int lower0 = macSegment0.getSegmentValue();
 		int upper0 = macSegment0.getUpperSegmentValue();
 		if(flip) {
@@ -2168,17 +2175,28 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	/**
 	 * Converts the lowest value of this address and the associated zone to an Inet6Address. 
-	 * <p> 
+	 * <p>
+	 * Address with a zone should check for null.
+	 * <p>
 	 * This will return null if this IPv6 Address has a zone (available from {@link #getIPv6Zone()}),
 	 * that zone references a network interface ({@link IPv6Zone#referencesInterface} is true) 
 	 * and that network interface (from {@link IPv6Zone#getAssociatedIntf()}) is an IPv4-only interface,
 	 * or that interface is not entirely link-local and this address is link-local, 
 	 * or that interface is not entirely site-local and this address is site-local.
 	 * <p>
-	 * In those 3 cases, {@link Inet6Address#getByAddress(String, byte[], NetworkInterface)} will throw UnknownHostException 
-	 * when constructed with the same network interface, 
-	 * ie <code>Inet6Address.getByAddress(null, this.getBytes(), this.getIPv6Zone().getAssociatedIntf())</code> will throw UnknownHostException
+	 * This will return null if this IPv6 Address has a zone (available from {@link #getIPv6Zone()}) and:
+	 * <ul>
+	 * <li>the zone is a scoped id and the address is a global IPv6 address.</li>
+	 * <li>the zone specifies an interface that does not exist on this host.</li>
+	 * <li>the zone specifies an interface that is IPv4 only.</li>
+	 * <li>the zone specifies an interface that is not entirely link-local and this address is link-local.</li>
+	 * <li>the zone specifies an interface that is not entirely site-local and this address is site-local.</li>
+	 * </ul>
+	 * In those cases, the corresponding Java SDK methods such as {@link Inet6Address#getByAddress(String, byte[], NetworkInterface)} 
+	 * will throw UnknownHostException when constructed with the same network interface.
 	 * <p>
+	 * If this address is IPv4-mapped, then any associated zone will be discarded, 
+	 * because it is not possible to create an IPv4-mapped Inet6Address with a zone.
 	 */
 	@Override
 	public Inet6Address toInetAddress() {
@@ -2200,9 +2218,9 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	protected Inet6Address toInetAddressImpl() {
-		InetAddress result;
+		Inet6Address result;
+		byte bytes[] = getSection().getBytesInternal();
 		try {
-			byte bytes[] = getSection().getBytesInternal();
 			if(hasZone()) {
 				if(zone.referencesScopeId()) {
 					result = Inet6Address.getByAddress(null, bytes, zone.getAssociatedScopeId());
@@ -2219,15 +2237,22 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 					// Note that this call to getLower() assumes we want the lower address.  
 					// Since toUpperInetAddress calls getUpper().toInetAddress, this works.
 					IPv6Address adjusted = getLower().withoutPrefixLength();
-					result = InetAddress.getByName(adjusted.toNormalizedString());
+					InetAddress resultIP = InetAddress.getByName(adjusted.toNormalizedString());
+					if(resultIP instanceof Inet6Address) {
+						result = (Inet6Address) resultIP;
+					} else {
+						// the InetAddress code is throwing away the interface name because the address is IPv4-mapped
+						// so the only way to get an IPv6 address, any address at all in fact, requires that we throw it away
+						result = Inet6Address.getByAddress(null, bytes, null);
+					}
 				}
 			} else {
-				result = InetAddress.getByAddress(bytes);
+				result = Inet6Address.getByAddress(null, bytes, null);
 			}
 		} catch(UnknownHostException e) {
 			result = null;
 		}
-		return (Inet6Address) result;
+		return result;
 	}
 	
 	@Override

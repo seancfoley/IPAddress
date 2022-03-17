@@ -2413,12 +2413,15 @@ public class Validator implements HostIdentifierStringValidator {
 			final int index,
 			final int endIndex,
 			final IPVersion ipVersion) throws AddressStringException {
+		if(index == endIndex && !validationOptions.getIPv6Parameters().allowEmptyZone) { 
+			throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", index);
+		}
 		for(int i = index; i < endIndex; i++) {
 			char c = fullAddr.charAt(i);
 			if(c == IPAddress.PREFIX_LEN_SEPARATOR) {
-//				if(i == index) {//TODO add an option and check for empty zone (i == endIndex), up til now we allowed it, then I added this block
-//					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", i);
-//				}
+				if(i == index && !validationOptions.getIPv6Parameters().allowEmptyZone) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", index);
+				}
 				CharSequence zone = fullAddr.subSequence(index, i);
 				return parsePrefix(fullAddr, zone, validationOptions, null, addressIsEmpty, i + 1, endIndex, ipVersion);
 			} else if(c == IPv6Address.SEGMENT_SEPARATOR) {
@@ -2435,8 +2438,11 @@ public class Validator implements HostIdentifierStringValidator {
 			final int index,
 			final int endIndex,
 			final IPVersion ipVersion) throws AddressStringException {
+		if(index == endIndex && !validationOptions.getIPv6Parameters().allowEmptyZone) { 
+			throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", index);
+		}
 		StringBuilder result = null;
-		for(int i = index; i < endIndex; i++) {//TODO add an option and check for empty zone (i == endIndex), up til now we allowed it
+		for(int i = index; i < endIndex; i++) {
 			char c = fullAddr.charAt(i);
 			//we are in here when we have a square bracketed host like [::1]
 			//not if we have a HostName with no brackets
@@ -2456,6 +2462,9 @@ public class Validator implements HostIdentifierStringValidator {
 				c = (char) (charArray[fullAddr.charAt(++i)] << 4);
 				c |= charArray[fullAddr.charAt(++i)];
 			} else if(c == IPAddress.PREFIX_LEN_SEPARATOR) {
+				if(i == index && !validationOptions.getIPv6Parameters().allowEmptyZone) {
+					throw new AddressStringException(fullAddr, "ipaddress.error.invalid.zone", index);
+				}
 				CharSequence zone = result != null ? result : fullAddr.subSequence(index, i);
 				return parsePrefix(fullAddr, zone, validationOptions, null, addressIsEmpty, i + 1, endIndex, ipVersion);
 			} else if(isReserved(c)) {
@@ -3052,11 +3061,13 @@ public class Validator implements HostIdentifierStringValidator {
 		final String str = fromHost.toString();
 		HostNameParameters validationOptions = fromHost.getValidationOptions();
 		int addrLen = str.length();
-		if(addrLen > MAX_HOST_LENGTH) {
-			throw new HostNameException(str, "ipaddress.host.error.invalid.length");
+		if(addrLen > MAX_HOST_LENGTH) { 
+			if(addrLen > MAX_HOST_LENGTH + 1 || str.charAt(MAX_HOST_LENGTH) != HostName.LABEL_SEPARATOR) {
+				throw new HostNameException(str, "ipaddress.host.error.invalid.length");
+			}
 		}
 		int index, lastSeparatorIndex, qualifierIndex, isSpecialOnlyIndex;
-		boolean segmentUppercase, isNotNormalized, squareBracketed, isAllDigits, isPossiblyIPv6, isPossiblyIPv4, tryIPv6, tryIPv4, isPrefixed, hasPortOrService, addressIsEmpty;
+		boolean segmentUppercase, isNotNormalized, squareBracketed, isAllDigits, isPossiblyIPv6, isPossiblyIPv4, tryIPv6, tryIPv4, isPrefixed, hasPortOrService, hostIsEmpty;
 		isSpecialOnlyIndex = qualifierIndex = index = lastSeparatorIndex = -1;
 		int labelCount = 0;
 		int maxLocalLabels = 6;//should be at least 4 to avoid the array for ipv4 addresses
@@ -3065,7 +3076,7 @@ public class Validator implements HostIdentifierStringValidator {
 		int sep0, sep1, sep2, sep3, sep4, sep5;
 		boolean upper0, upper1, upper2, upper3, upper4, upper5;
 		
-		segmentUppercase = isNotNormalized = squareBracketed = tryIPv6 = tryIPv4 = isPrefixed = hasPortOrService = addressIsEmpty = false;
+		segmentUppercase = isNotNormalized = squareBracketed = tryIPv6 = tryIPv4 = isPrefixed = hasPortOrService = hostIsEmpty = false;
 		isAllDigits = isPossiblyIPv6 = isPossiblyIPv4 = true;
 		sep0 = sep1 = sep2 = sep3 = sep4 = sep5 = -1;
 		upper0 = upper1 = upper2 = upper3 = upper4 = upper5 = false;
@@ -3075,7 +3086,7 @@ public class Validator implements HostIdentifierStringValidator {
 			//grab the character to evaluate
 			if(index == addrLen) {
 				if(index == 0) {
-					addressIsEmpty = true;
+					hostIsEmpty = true;
 					break;
 				}
 				boolean segmentCountMatchesIPv4 = 
@@ -3132,54 +3143,59 @@ public class Validator implements HostIdentifierStringValidator {
 					throw new HostNameException(str, "ipaddress.error.segment.too.long");
 				}
 				if(len == 0) {
-					throw new HostNameException(str, "ipaddress.host.error.segment.too.short");
-				}
-				if(labelCount < maxLocalLabels) {
-					if(labelCount < 3) {
-						if(labelCount == 0) {
-							sep0 = index;
-							upper0 = segmentUppercase;
-						} else if(labelCount == 1) {
-							sep1 = index;
-							upper1 = segmentUppercase;
-						} else {
-							sep2 = index;
-							upper2 = segmentUppercase;
-						}
-					} else {
-						if(labelCount == 3) {
-							sep3 = index;
-							upper3 = segmentUppercase;
-						} else if(labelCount == 4) {
-							sep4 = index;
-							upper4 = segmentUppercase;
-						} else {
-							sep5 = index;
-							upper5 = segmentUppercase;
-						}
-					}
-					labelCount++;
-				} else if(labelCount == maxLocalLabels) {
-					separatorIndices = new int[MAX_HOST_SEGMENTS + 1];
-					separatorIndices[labelCount] = index;
-					if(validationOptions.normalizeToLowercase) {
-						normalizedFlags = new boolean[MAX_HOST_SEGMENTS + 1];
-						normalizedFlags[labelCount] = !segmentUppercase;
-						isNotNormalized |= segmentUppercase;
-					}
-					labelCount++;	
+					if(index < addrLen) {
+						throw new HostNameException(str, "ipaddress.host.error.segment.too.short");
+					} // else the name had a trailing period, so we are the unnamed DNS root 
+					isPossiblyIPv4 = false;
+					isNotNormalized = true;
 				} else {
-					separatorIndices[labelCount] = index;
-					if(normalizedFlags != null) {
-						normalizedFlags[labelCount] = !segmentUppercase;
-						isNotNormalized |= segmentUppercase;
+					if(labelCount < maxLocalLabels) {
+						if(labelCount < 3) {
+							if(labelCount == 0) {
+								sep0 = index;
+								upper0 = segmentUppercase;
+							} else if(labelCount == 1) {
+								sep1 = index;
+								upper1 = segmentUppercase;
+							} else {
+								sep2 = index;
+								upper2 = segmentUppercase;
+							}
+						} else {
+							if(labelCount == 3) {
+								sep3 = index;
+								upper3 = segmentUppercase;
+							} else if(labelCount == 4) {
+								sep4 = index;
+								upper4 = segmentUppercase;
+							} else {
+								sep5 = index;
+								upper5 = segmentUppercase;
+							}
+						}
+						labelCount++;
+					} else if(labelCount == maxLocalLabels) {
+						separatorIndices = new int[MAX_HOST_SEGMENTS + 1];
+						separatorIndices[labelCount] = index;
+						if(validationOptions.normalizeToLowercase) {
+							normalizedFlags = new boolean[MAX_HOST_SEGMENTS + 1];
+							normalizedFlags[labelCount] = !segmentUppercase;
+							isNotNormalized |= segmentUppercase;
+						}
+						labelCount++;	
+					} else {
+						separatorIndices[labelCount] = index;
+						if(normalizedFlags != null) {
+							normalizedFlags[labelCount] = !segmentUppercase;
+							isNotNormalized |= segmentUppercase;
+						}
+						if(++labelCount > MAX_HOST_SEGMENTS) {
+							throw new HostNameException(str, "ipaddress.host.error.too.many.segments");
+						}
 					}
-					if(++labelCount > MAX_HOST_SEGMENTS) {
-						throw new HostNameException(str, "ipaddress.host.error.too.many.segments");
-					}
+					segmentUppercase = false;//this is per segment so reset it
 				}
 				lastSeparatorIndex = index;
-				segmentUppercase = false;//this is per segment so reset it
 				isPossiblyIPv6 &= (index == addrLen);//A '.' means not ipv6 (if we see ':' we jump out of loop so mixed address not possible), but for single segment we end up here even without a '.' character in the string
 			} else if(currentChar == '_') {//this is not supported in host names but is supported in domain names, see discussion in Host class
 				isAllDigits = false;
@@ -3353,6 +3369,8 @@ public class Validator implements HostIdentifierStringValidator {
 								} else {
 									// if there are two prefix lengths, we choose the smaller (larger network)
 									// if two masks, we combine them (if both network masks, this is the same as choosing smaller prefix)
+									// We need to clone because merging changes the qualifier, and we may be using a cached qualifier
+									addrQualifier = addrQualifier.clone();
 									addrQualifier.merge(parsedHostQualifier);
 								}
 								// note it makes no sense to indicate a port or service with a prefix
@@ -3489,12 +3507,12 @@ public class Validator implements HostIdentifierStringValidator {
 							validationOptions,
 							isPrefixed,
 							hasPortOrService,
-							addressIsEmpty,
+							hostIsEmpty,
 							qualifierIndex,
 							str.length(),
 							null);
 			ParsedHost parsedHost;
-			if(addressIsEmpty) {
+			if(hostIsEmpty) {
 				if(!validationOptions.allowEmpty) {
 					throw new HostNameException(str, "ipaddress.host.error.empty");
 				}

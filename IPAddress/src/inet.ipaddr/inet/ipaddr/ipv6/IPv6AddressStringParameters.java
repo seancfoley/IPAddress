@@ -38,6 +38,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 
 	public static final boolean DEFAULT_ALLOW_MIXED = true;
 	public static final boolean DEFAULT_ALLOW_ZONE = true;
+	public static final boolean DEFAULT_ALLOW_EMPTY_ZONE = true;
 	public static final boolean DEFAULT_ALLOW_BASE85 = true;
 	
 	/**
@@ -51,6 +52,12 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 	 * @see #DEFAULT_ALLOW_ZONE
 	 */
 	public final boolean allowZone;
+	
+	/**
+	 * Allows the '%' character to be followed by no zone or scope identifier
+	 * @see #DEFAULT_ALLOW_EMPTY_ZONE
+	 */
+	public final boolean allowEmptyZone;
 	
 	public final boolean allowBase85;
 	
@@ -91,6 +98,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 				allowMixed,
 				mixedOptions,
 				allowZone,
+				true, /* backwards compatibility to retain legacy behaviour, which allowed empty zones */
 				allowBase85,
 				rangeOptions,
 				allowWildcardedSeparator,
@@ -124,6 +132,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 			boolean allowMixed,
 			IPAddressStringParameters mixedOptions,
 			boolean allowZone,
+			boolean allowEmptyZone,
 			boolean allowBase85,
 			RangeParameters rangeOptions,
 			boolean allowWildcardedSeparator,
@@ -133,6 +142,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 		super(allowBinary, allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlmitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.allowMixed = allowMixed;
 		this.allowZone = allowZone;
+		this.allowEmptyZone = allowEmptyZone;
 		this.allowBase85 = allowBase85;
 		this.embeddedIPv4Options = mixedOptions;
 		this.network = network;
@@ -146,6 +156,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 		Builder builder = new Builder();
 		builder.allowMixed = allowMixed;
 		builder.allowZone = allowZone;
+		builder.allowEmptyZone = allowEmptyZone;
 		builder.allowBase85 = allowBase85;
 		builder.network = network;
 		if(!isMixed) {
@@ -157,17 +168,36 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 	public static class Builder extends IPAddressStringFormatParameters.BuilderBase {
 		private boolean allowMixed = DEFAULT_ALLOW_MIXED;
 		private boolean allowZone = DEFAULT_ALLOW_ZONE;
+		private boolean allowEmptyZone = DEFAULT_ALLOW_EMPTY_ZONE;
 		private boolean allowBase85 = DEFAULT_ALLOW_BASE85;
 		private IPAddressStringParameters.Builder embeddedIPv4OptionsBuilder;
 		private IPv6AddressNetwork network;
 		
-		//Note we need to have an ipv6 builder here to avoid using the default ipv6 options object which is also 
-		//static and which are reference this static field, so we must avoid the circular dependency
-		//But we don't need default ipv6 options anyway, we don't support ipv6 in the mixed section at all
-		//and in fact it makes no sense that you might think there was ipv6 there anyway
-		static private IPAddressStringParameters DEFAULT_MIXED_OPTS = new IPAddressStringParameters.Builder().
-				allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).
-				getIPv6AddressParametersBuilder().allowMixed(false).getParentBuilder().toParams();
+		// We cannot use an IPAddressStringParameters builder because the IPAddressStringParameters builder depends on this builder,
+		// using this builder for the IPv6 options, and for which this field would then be null.
+		// We cannot create the reverse dependency.
+		// Nor can this use an IPv6AddressStringParameters builder, ourselves, that is a direct reverse dependency,
+		// which has the same problems.
+		static private IPAddressStringParameters DEFAULT_MIXED_OPTS = 
+				new IPAddressStringParameters(/* allowEmpty */ false, /* allowAll */ false,/* allowSingleSegment */ false, 
+						/* emptyIsLoopback */ false, 
+						/* allowPrefix */ false, /* allowMask */ false, /* allowPrefixOnly */ false, 
+						/* allowIPv4 */ true, /* allowIPv6 */ false, 
+						new IPv4AddressStringParameters.Builder().toParams(), 
+						new IPv6AddressStringParameters(
+								/* allowLeadingZeros */ false,
+								/* allowPrefixLengthLeadingZeros */ false,
+								/* allowUnlimitedLeadingZeros */ false,
+								/* allowMixed */ false,
+								/* mixedOptions */ null,
+								/* allowZone */ true,
+								/* allowEmptyZone */ false,
+								/* allowBase85 */ false,
+								/* rangeOptions */ DEFAULT_RANGE_OPTIONS,
+								/* allowWildcardedSeparator */ false,
+								/* allowPrefixesBeyondAddressSize */ false,
+								/* allowBinary */ false,
+								/* network */ null));
 		
 		public Builder() {}
 		
@@ -177,12 +207,18 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 		}
 		
 		public Builder allowZone(boolean allow) {
-			//we must decide whether to treat the % character as a zone when parsing the mixed part
+			//we must decide whether to treat the % character as a zone when parsing the mixed part.
 			//if considered zone, then the zone character is actually part of the encompassing ipv6 address
 			//otherwise, the zone character is an sql wildcard that is part of the mixed address
 			//So whether we consider the % character a zone must match the same setting for the encompassing address
 			getEmbeddedIPv4ParametersBuilder().getIPv6AddressParametersBuilder().allowZone = allow;
 			allowZone = allow;
+			return this;
+		}
+		
+		public Builder allowEmptyZone(boolean allow) {
+			getEmbeddedIPv4ParametersBuilder().getIPv6AddressParametersBuilder().allowEmptyZone = allow;
+			allowEmptyZone = allow;
 			return this;
 		}
 		
@@ -228,6 +264,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 				embeddedIPv4OptionsBuilder = new IPAddressStringParameters.Builder().
 						allowEmpty(false).allowPrefix(false).allowMask(false).allowPrefixOnly(false).allowAll(false).allowIPv6(false);
 				embeddedIPv4OptionsBuilder.getIPv6AddressParametersBuilder().allowZone = allowZone;
+				embeddedIPv4OptionsBuilder.getIPv6AddressParametersBuilder().allowEmptyZone = allowEmptyZone;
 			}
 			setMixedParentInst(this, embeddedIPv4OptionsBuilder.getIPv4AddressParametersBuilder());
 			return embeddedIPv4OptionsBuilder;
@@ -305,6 +342,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 					allowMixed,
 					mixedOptions,
 					allowZone,
+					allowEmptyZone,
 					allowBase85,
 					rangeOptions,
 					allowWildcardedSeparator,
@@ -347,7 +385,10 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 				if(result == 0) {
 					result = Boolean.compare(allowZone, o.allowZone);
 					if(result == 0) {
-						result = Boolean.compare(allowBase85, o.allowBase85);
+						result = Boolean.compare(allowEmptyZone, o.allowEmptyZone);
+						if(result == 0) {
+							result = Boolean.compare(allowBase85, o.allowBase85);
+						}
 					}
 				}
 			}
@@ -364,6 +405,7 @@ public class IPv6AddressStringParameters extends IPAddressStringFormatParameters
 				return Objects.equals(embeddedIPv4Options.getIPv4Parameters(), other.embeddedIPv4Options.getIPv4Parameters())
 					&& allowMixed == other.allowMixed
 					&& allowZone == other.allowZone
+					&& allowEmptyZone == other.allowEmptyZone
 					&& allowBase85 == other.allowBase85;
 			}
 		}

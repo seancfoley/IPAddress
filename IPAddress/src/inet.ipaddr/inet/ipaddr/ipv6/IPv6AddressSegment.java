@@ -183,14 +183,14 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	@Override
 	public IPv6AddressSegment reverseBits(boolean perByte) {
 		if(isMultiple()) {
-			if(isReversibleRange(this)) {
-				if(isPrefixed()) {
-					AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
-					return creator.createSegment(getSegmentValue(), getUpperSegmentValue(), null);
-				}
-				return this;
+			if(perByte ? !isReversibleRangePerByte(this) : !isReversibleRange(this)) { // the per-byte case is new
+				throw new IncompatibleAddressException(this, "ipaddress.error.reverseRange");
 			}
-			throw new IncompatibleAddressException(this, "ipaddress.error.reverseRange");
+			if(isPrefixed()) {
+				AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
+				return creator.createSegment(getSegmentValue(), getUpperSegmentValue(), null);
+			}
+			return this;
 		}
 		AddressSegmentCreator<IPv6AddressSegment> creator = getSegmentCreator();
 		int oldVal = getSegmentValue();
@@ -408,19 +408,28 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	private <S extends AddressSegment> void getSplitSegmentsMultiple(S segs[], int index, AddressSegmentCreator<S> creator) {
 		Integer myPrefix = getSegmentPrefixLength();
 		int bitSizeSplit = IPv6Address.BITS_PER_SEGMENT >>> 1;
+		int val = getSegmentValue();
+		int upperVal = getUpperSegmentValue();
+		int highLower = highByte(val);
+		int highUpper = highByte(upperVal);
+		int lowLower = lowByte(val);
+		int lowUpper = lowByte(upperVal);
+		boolean highIsMult = highLower != highUpper;
+		if(highIsMult) {
+			// low values must be full range to be able to split this
+			if(lowLower != 0 || lowUpper != ~(~0 << bitSizeSplit)) {
+				throw new IncompatibleAddressException(this, "ipaddress.error.splitSeg");
+			}
+		}
 		if(index >= 0 && index < segs.length) {
-			int highLower = highByte(getSegmentValue());
-			int highUpper = highByte(getUpperSegmentValue());
 			Integer highPrefixBits = getSplitSegmentPrefix(bitSizeSplit, myPrefix, 0);
-			if(highLower == highUpper) {
-				segs[index] = creator.createSegment(highLower, highPrefixBits);
-			} else {
+			if(highIsMult) {
 				segs[index] = creator.createSegment(highLower, highUpper, highPrefixBits);
+			} else {
+				segs[index] = creator.createSegment(highLower, highPrefixBits);
 			}
 		}
 		if(++index >= 0 && index < segs.length) {
-			int lowLower = lowByte(getSegmentValue());
-			int lowUpper = lowByte(getUpperSegmentValue());
 			Integer lowPrefixBits = getSplitSegmentPrefix(bitSizeSplit, myPrefix, 1);
 			if(lowLower == lowUpper) {
 				segs[index] = creator.createSegment(lowLower, lowPrefixBits);

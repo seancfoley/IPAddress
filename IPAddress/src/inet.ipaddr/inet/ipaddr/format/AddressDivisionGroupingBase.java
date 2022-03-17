@@ -408,21 +408,26 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	 */
 	@Override
 	public Integer getPrefixLengthForSingleBlock() {
-		int count = getDivisionCount();
-		int totalPrefix = 0;
-		for(int i = 0; i < count; i++) {
-			AddressDivisionBase div = getDivision(i);
-			Integer divPrefix = div.getPrefixLengthForSingleBlock();
-			if(divPrefix == null) {
-				return null;
-			}
-			totalPrefix += divPrefix;
-			if(divPrefix < div.getBitCount()) {
-				//remaining segments must be full range or we return null
-				for(i++; i < count; i++) {
-					AddressDivisionBase laterDiv = getDivision(i);
-					if(!laterDiv.isFullRange()) {
-						return null;
+		int totalPrefix;
+		if(!isMultiple()) {
+			totalPrefix = getBitCount();
+		} else {
+			int count = getDivisionCount();
+			totalPrefix = 0;
+			for(int i = 0; i < count; i++) {
+				AddressDivisionBase div = getDivision(i);
+				Integer divPrefix = div.getPrefixLengthForSingleBlock();
+				if(divPrefix == null) {
+					return null;
+				}
+				totalPrefix += divPrefix;
+				if(divPrefix < div.getBitCount()) {
+					//remaining segments must be full range or we return null
+					for(i++; i < count; i++) {
+						AddressDivisionBase laterDiv = getDivision(i);
+						if(!laterDiv.isFullRange()) {
+							return null;
+						}
 					}
 				}
 			}
@@ -431,28 +436,33 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	}
 	
 	protected static Integer getPrefixLengthForSingleBlock(IPAddressDivisionSeries series) {
-		int count = series.getDivisionCount();
-		int totalPrefix = 0;
-		boolean isAutoSubnets = series.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
-		for(int i = 0; i < count; i++) {
-			IPAddressGenericDivision div = series.getDivision(i);
-			Integer divPrefix = div.getPrefixLengthForSingleBlock();
-			if(divPrefix == null) {
-				return null;
-			}
-			totalPrefix += divPrefix;
-			if(isAutoSubnets && div.isPrefixed()) {
-				return cacheBits(totalPrefix);
-			}
-			if(divPrefix < div.getBitCount()) {
-				//remaining divisions must be full range or we return null
-				for(i++; i < count; i++) {
-					IPAddressGenericDivision laterDiv = series.getDivision(i);
-					if(!laterDiv.isFullRange()) {
-						return null;
-					}
-					if(isAutoSubnets && laterDiv.isPrefixed()) {
-						return cacheBits(totalPrefix);
+		int totalPrefix;
+		if(!series.isMultiple()) {
+			totalPrefix = series.getBitCount();
+		} else {
+			int count = series.getDivisionCount();
+			totalPrefix = 0;
+			boolean isAutoSubnets = series.getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets();
+			for(int i = 0; i < count; i++) {
+				IPAddressGenericDivision div = series.getDivision(i);
+				Integer divPrefix = div.getPrefixLengthForSingleBlock();
+				if(divPrefix == null) {
+					return null;
+				}
+				totalPrefix += divPrefix;
+				if(isAutoSubnets && div.isPrefixed()) {
+					return cacheBits(totalPrefix);
+				}
+				if(divPrefix < div.getBitCount()) {
+					//remaining divisions must be full range or we return null
+					for(i++; i < count; i++) {
+						IPAddressGenericDivision laterDiv = series.getDivision(i);
+						if(!laterDiv.isFullRange()) {
+							return null;
+						}
+						if(isAutoSubnets && laterDiv.isPrefixed()) {
+							return cacheBits(totalPrefix);
+						}
 					}
 				}
 			}

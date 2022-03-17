@@ -1223,50 +1223,43 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			UnaryOperator<T> prefixAdder,
 			UnaryOperator<T> prefixRemover,
 			IntFunction<T[]> arrayProducer) {
-		T[] result = checkPrefixBlockContainment(first, other, prefixAdder, arrayProducer);
+		T result = checkPrefixBlockContainment(first, other, prefixAdder);
 		if(result != null) {
-			return result;
+			T resultArray[] = arrayProducer.apply(1);
+			resultArray[0] = result;
+			return resultArray;
 		}
 		List<IPAddressSegmentSeries> blocks = 
 				IPAddressSection.applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, (orig, one, two) -> IPAddressSection.splitIntoPrefixBlocks(one, two));
 		return blocks.toArray(arrayProducer.apply(blocks.size()));
 	}
 	
-	private static <T extends IPAddress> T[] checkPrefixBlockContainment(
+	private static <T extends IPAddress> T checkPrefixBlockContainment(
 			T first,
 			T other,
-			UnaryOperator<T> prefixAdder,
-			IntFunction<T[]> arrayProducer) {
+			UnaryOperator<T> prefixAdder) {
 		if(first.contains(other)) {
-			return checkPrefixBlockFormat(first, other, true, prefixAdder, arrayProducer);
+			return checkPrefixBlockFormat(first, other, true, prefixAdder);
 		} else if(other.contains(first)) {
-			return checkPrefixBlockFormat(other, first, false, prefixAdder, arrayProducer);
+			return checkPrefixBlockFormat(other, first, false, prefixAdder);
 		}
 		return null;
 	}
 	
-	static <T extends IPAddressSegmentSeries> T[] checkPrefixBlockFormat(
+	static <T extends IPAddressSegmentSeries> T checkPrefixBlockFormat(
 			T container,
 			T contained,
 			boolean checkEqual,
-			UnaryOperator<T> prefixAdder,
-			IntFunction<T[]> arrayProducer) {
+			UnaryOperator<T> prefixAdder) {
 		T result = null;
-		if(container.isPrefixed()) {
-			if(container.isSinglePrefixBlock()) {
-				result = container;
-			}
-		} else if(checkEqual && contained.isPrefixed() && container.equals(contained) && contained.isSinglePrefixBlock()) {
+		if(container.isPrefixed() && container.isSinglePrefixBlock()) {
+			result = container;
+		} else if(checkEqual && contained.isPrefixed() && container.isMore(contained) == 0 && contained.isSinglePrefixBlock()) {
 			result = contained;
 		} else {
-			result = prefixAdder.apply(container); // returns null if cannot be a prefix block
+			result = prefixAdder.apply(container); // the functor is assignPrefixForSingleBlock, which returns null if cannot be a prefix block
 		}
-		if(result != null) {
-			T resultArray[] = arrayProducer.apply(1);
-			resultArray[0] = result;
-			return resultArray;
-		}
-		return null;
+		return result;
 	}
 	
 	protected static <T extends IPAddress, S extends IPAddressSegment> T[] getSpanningSequentialBlocks(

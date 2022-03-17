@@ -2901,8 +2901,7 @@ public class IPAddressTest extends TestBase {
 		testRangeExtendImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
 		testRangeExtendImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
 	}
-	
-	@SuppressWarnings("deprecation")
+
 	void testRangeExtendImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr, addr2;
 		IPAddressSeqRange range, range2;
@@ -2951,8 +2950,7 @@ public class IPAddressTest extends TestBase {
 		testRangeJoinImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
 		testRangeJoinImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
 	}
-	
-	@SuppressWarnings("deprecation")
+
 	void testRangeJoinImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
@@ -2982,8 +2980,7 @@ public class IPAddressTest extends TestBase {
 		testRangeIntersectImpl(lower1, higher1, lower2, higher2, resultLower, resultHigher);
 		testRangeIntersectImpl(lower2, higher2, lower1, higher1, resultHigher, resultLower);
 	}
-	
-	@SuppressWarnings("deprecation")
+
 	void testRangeIntersectImpl(String lower1, String higher1, String lower2, String higher2, String resultLower, String resultHigher) {
 		IPAddress addr = createAddress(lower1).getAddress();
 		IPAddress addr2 = createAddress(higher1).getAddress();
@@ -3009,7 +3006,6 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	@SuppressWarnings("deprecation")
 	void testRangeSubtract(String lower1, String higher1, String lower2, String higher2, 
 			String ...resultPairs) {
 		IPAddress addr = createAddress(lower1).getAddress();
@@ -3990,7 +3986,16 @@ public class IPAddressTest extends TestBase {
 		byte bytes[] = toBytesSizeAdjusted(val, extended, 16);
 		return new BigInteger(1, bytes);
 	}
-	
+
+	void testIPv4Mapped(String str, boolean expected) {
+		IPAddressString addrStr = new IPAddressString(str);
+		if(addrStr.isIPv4Mapped() != expected) {
+			addFailure(new Failure("invalid IPv4-mapped result " + !expected, addrStr));
+		} else if(addrStr.getAddress().toIPv6().isIPv4Mapped() != expected) {
+			addFailure(new Failure("invalid IPv4-mapped result " + !expected, addrStr));
+		}
+	}
+
 	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
 	boolean isLenient() {
 		return false;
@@ -4005,7 +4010,17 @@ public class IPAddressTest extends TestBase {
 		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
 		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
 		boolean isAutoSubnets = !isNoAutoSubnets;
-		
+
+		testIPv4Mapped("::ffff:c0a8:0a14", true);
+		testIPv4Mapped("0:0:0:0:0:ffff:c0a8:0a14", true);
+		testIPv4Mapped("::ffff:1.2.3.4", true);
+		testIPv4Mapped("0:0:0:0:0:ffff:1.2.3.4", true);
+
+		testIPv4Mapped("::1:ffff:c0a8:0a14", false);
+		testIPv4Mapped("0:0:0:0:1:ffff:c0a8:0a14", false);
+		testIPv4Mapped("::1:ffff:1.2.3.4", false);
+		testIPv4Mapped("0:0:0:0:1:ffff:1.2.3.4", false);		
+
 		testEquivalentPrefix("1.2.3.4", 32);
 		if(isNoAutoSubnets) {
 			testEquivalentPrefix("0.0.0.0/1", 32);

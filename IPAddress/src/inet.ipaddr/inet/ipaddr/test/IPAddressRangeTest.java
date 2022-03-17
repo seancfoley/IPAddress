@@ -452,7 +452,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 			AddressSegment seg = val.getSegment(i);
 			if(i == 0 || !seg.equals(lastSeg)) {
 				Function<AddressSegment, AddressComponentRangeSpliterator<?,? extends AddressItem>> funct = segm -> segm.spliterator();
-				int segCount = seg.getValueCount();
+				// below works for ipv4/6/mac but would not work for 32 bit segments
+				int segCount = (seg.getUpperSegmentValue() - seg.getSegmentValue()) + 1;
 				Set<AddressItem> segmentSet = testSpliterate(testBase, seg, 0, segCount, funct);
 				testSpliterate(testBase, seg, 1, segCount, funct);
 				testSpliterate(testBase, seg, 8, segCount, funct);
@@ -880,8 +881,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		IPAddressString w2 = createAddress(high);
 		testRangeCount(this, w, w2, number);
 	}
-	
-	@SuppressWarnings("deprecation")
+
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, BigInteger number) {
 		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getCount();
@@ -890,8 +890,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		testBase.incrementTestCount();
 	}
-	
-	@SuppressWarnings("deprecation")
+
 	static void testRangeCount(TestBase testBase, IPAddressString w, IPAddressString high, long number) {
 		if(!testBase.fullTest && number > COUNT_LIMIT) {
 			return;
@@ -942,7 +941,6 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangePrefixCount(this, w, w2, prefixLength, number);
 	}
 	
-	@SuppressWarnings("deprecation")
 	static void testRangePrefixCount(TestBase testBase, IPAddressString w, IPAddressString high, int prefixLength, long number) {
 		if(!testBase.fullTest && number > COUNT_LIMIT) {
 			return;
@@ -3424,7 +3422,12 @@ public class IPAddressRangeTest extends IPAddressTest {
 	void runTest() {
 		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
 		boolean isNoAutoSubnets = prefixConfiguration.prefixedSubnetsAreExplicit();
-		
+
+		testIPv4Mapped("::0-1:ffff:c0a8:0a14", false);
+		testIPv4Mapped("0:0:0:0:0-1:ffff:c0a8:0a14", false);
+		testIPv4Mapped("::0-1:ffff:1.2.3.4", false);
+		testIPv4Mapped("0:0:0:0:0-1:ffff:1.2.3.4", false);
+
 		if(isNoAutoSubnets) {
 			testEquivalentPrefix("128-255.*.*.*/1", 1);
 			testEquivalentPrefix("1.2-3.*.*/15", 15);

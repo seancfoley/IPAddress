@@ -301,7 +301,10 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				maxValue = getMaxValue(bitCount);
 			}
 			digs = getDigitCount(maxValue, BigInteger.valueOf(radix));
-			maxDigitMap.put(key, digs);
+			@SuppressWarnings("unchecked")
+			TreeMap<Long, Integer> newMaxDigitMap = (TreeMap<Long, Integer>) maxDigitMap.clone();
+			newMaxDigitMap.put(key, digs);
+			maxDigitMap = newMaxDigitMap;
 		}
 		return digs;
 	}
@@ -340,7 +343,10 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		Integer digs = maxDigitMap.get(key);
 		if(digs == null) {
 			digs = AddressDivisionGroupingBase.cacheBits(getDigitCount(maxValue, radix));
-			maxDigitMap.put(key, digs);
+			@SuppressWarnings("unchecked")
+			TreeMap<Long, Integer> newMaxDigitMap = (TreeMap<Long, Integer>) maxDigitMap.clone();
+			newMaxDigitMap.put(key, digs);
+			maxDigitMap = newMaxDigitMap;
 		}
 		return digs;
 	}
@@ -407,7 +413,10 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				BigInteger halfPower = getRadixPower(radix, (power - 1) >> 1);
 				result = halfPower.multiply(halfPower).multiply(radix);
 			}
-			radixPowerMap.put(key, result);
+			@SuppressWarnings("unchecked")
+			TreeMap<Long, BigInteger> newRadixPowerMap = (TreeMap<Long, BigInteger>) radixPowerMap.clone();
+			newRadixPowerMap.put(key, result);
+			radixPowerMap = newRadixPowerMap;
 		}
 		return result;
 	}
@@ -1071,7 +1080,6 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		}
 		int radix = params.getRadix();
 		int leadingZeroCount = params.getLeadingZeros(segmentIndex);
-		leadingZeroCount = adjustLowerLeadingZeroCount(leadingZeroCount, radix);
 		if(leadingZeroCount != 0) {
 			if(appendable == null) {
 				if(leadingZeroCount < 0) {

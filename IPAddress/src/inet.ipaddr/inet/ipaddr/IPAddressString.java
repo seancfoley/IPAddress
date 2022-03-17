@@ -188,6 +188,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 */
 	public static final IPAddressStringParameters DEFAULT_VALIDATION_OPTIONS = new IPAddressStringParameters.Builder().toParams();
 
+	private static final IPAddressString ipv4MappedPrefix = new IPAddressString("::ffff:0:0/96");
+
 	final IPAddressStringParameters validationOptions;
 	
 	/* the full original string address */
@@ -350,7 +352,15 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	public boolean isIPv6() {
 		return isValid() && addressProvider.isProvidingIPv6();
 	}
-	
+
+	/**
+	 * Returns true if the address is an IPv6 IPv4-mapped address.
+	 * @return
+	 */
+	public boolean isIPv4Mapped() {
+		return isIPv6() && ipv4MappedPrefix.prefixEquals(this);
+	}
+
 	/**
 	 * If this address string represents an IPv6 address, returns whether the lower 4 bytes were represented as IPv4
 	 * @return
@@ -601,7 +611,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(other == this && !isPrefixOnly()) {
 			return true;
 		}
-		isValid();
+		if(!isValid()) {
+			return false;
+		}
 		if(other.addressProvider.isUninitialized()) { // other not yet validated - if other is validated no need for this quick contains
 			// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
 			Boolean directResult = addressProvider.prefixEquals(other.fullAddr);
@@ -618,8 +630,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			if(thisAddress != null) {
 				IPAddress otherAddress = other.getAddress();
 				if(otherAddress != null) {
-					Integer prefixLength = getNetworkPrefixLength(); // this returns null if not valid
-					return (prefixLength == null || prefixLength <= otherAddress.getBitCount()) && thisAddress.prefixEquals(otherAddress);
+					return thisAddress.prefixEquals(otherAddress);
 				}
 			}
 			// one or both addresses are null, so there is no prefix to speak of
@@ -644,7 +655,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		if(other == this && !isPrefixOnly()) {
 			return true;
 		}
-		isValid();
+		if(!isValid()) {
+			return false;
+		}
 		if(other.addressProvider.isUninitialized()) { // other not yet validated - if other is validated no need for this quick contains
 			// do the quick check that uses only the String of the other, matching til the end of the prefix length, for performance
 			Boolean directResult = addressProvider.prefixContains(other.fullAddr);
@@ -660,9 +673,8 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			IPAddress thisAddress = getAddress();
 			if(thisAddress != null) {
 				IPAddress otherAddress = other.getAddress();
-				Integer prefixLength = getNetworkPrefixLength(); // this returns null if not valid
 				if(otherAddress != null) {
-					return (prefixLength == null || prefixLength <= otherAddress.getBitCount()) && thisAddress.prefixContains(otherAddress);
+					return thisAddress.prefixContains(otherAddress);
 				}
 			}
 			// one or both addresses are null, so there is no prefix to speak of

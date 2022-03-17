@@ -534,6 +534,10 @@ public class HostTest extends TestBase {
 		hostTest(true, "abc.com/1::");
 		hostTest(true, "abc.com/32");
 		
+		hostTest(true, "abc.com.");
+		hostTest(true, "abc.com./32");
+		
+		
 		hostTest(false, "[1.2.3.4");
 		hostTest(false, "[1:2:3:4:5:6:7:8");
 		hostTest(true,"[a::b:c:d:1.2.3.4]");//square brackets can enclose ipv6 in host names but not addresses
@@ -681,20 +685,37 @@ public class HostTest extends TestBase {
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5"); //252 chars, 127 segments
-		
-		hostTest(false, "a.8." +	
-				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
-				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
-				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
-				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
-				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."); //252 chars, 127 segments, extra dot at end
-		
+
 		hostTest(false, ".a.7." +	
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5"); //252 chars, 127 segments, extra dot at front
+
+		boolean allowTrailingDot2 = true; 
+		
+		hostTest(allowTrailingDot2, "222" +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678f."); //not all number, 253 chars with trailing dot
+		
+		hostTest(allowTrailingDot2, "a.8." +	
+				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
+				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
+				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
+				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
+				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5."); //252 chars, 127 segments, extra dot at end
+		
+		hostTest(false, "222" +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678." +
+				"0123456789012345678901234567890123456789012345678.."); // double trailing dot
+		
 		
 		hostTest(false, "a.6." +	
 				"1.1.1.1.1.2.2.2.2.2.3.3.3.3.3.4.4.4.4.4.5.5.5.5.5." +
@@ -708,13 +729,21 @@ public class HostTest extends TestBase {
 		hostTest(true, "a:b:c:d:e:f:a:b");
 		
 		hostTest(false, ".as.b.com");//starts with dot
-		hostTest(false, "as.b.com.");//ends with dot
-		hostTest(false, "aas.b.com.");//starts and ends with dot
-		hostTest(false, "as..b.com");//double dot
-		hostTest(false, "as.b..com");//double dot
-		hostTest(false, "..as.b.com");//starts with dots
-		hostTest(false, "as.b.com..");//ends with dots	
 		
+//		hostTest(false, "as.b.com.");//ends with dot
+//		hostTest(false, "aas.b.com.");//starts and ends with dot
+//		hostTest(false, "as..b.com");//double dot
+//		hostTest(false, "as.b..com");//double dot
+//		hostTest(false, "..as.b.com");//starts with dots
+//		hostTest(false, "as.b.com..");//ends with dots	
+		
+		boolean allowTrailingDot1 = true;
+		hostTest(allowTrailingDot1, "as.b.com.");// ends with dot
+		hostTest(false, ".as.b.com."); // starts and ends with dot
+		hostTest(false, "as..b.com"); // double dot
+		hostTest(false, "as.b..com"); // double dot
+		hostTest(false, "..as.b.com"); // starts with dots
+		hostTest(false, "as.b.com.."); // ends with dots	
 		
 		testHostAddress("aa-bb-cc-dd-ee-ff-aaaa-bbbb.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", null, null);
 		testHostAddress("aa-bb-cc-dd-ee-ff-aaaa-bbbbseth0.ipv6-literal.net", "aa:bb:cc:dd:ee:ff:aaaa:bbbb", "aa:bb:cc:dd:ee:ff:aaaa:bbbb%eth0", null, "eth0");

@@ -1159,15 +1159,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return null;
 	}
 
-	private static <R extends IPAddressSection> R[] checkPrefixBlockContainment(
+	private static <R extends IPAddressSection> R checkPrefixBlockContainment(
 			R first,
 			R other,
-			UnaryOperator<R> prefixAdder,
-			IntFunction<R[]> arrayProducer) {
+			UnaryOperator<R> prefixAdder) {
 		if(first.contains(other)) {
-			return IPAddress.checkPrefixBlockFormat(first, other, true, prefixAdder, arrayProducer);
+			return IPAddress.checkPrefixBlockFormat(first, other, true, prefixAdder);
 		} else if(other.contains(first)) {
-			return IPAddress.checkPrefixBlockFormat(other, first, false, prefixAdder, arrayProducer);
+			return IPAddress.checkPrefixBlockFormat(other, first, false, prefixAdder);
 		}
 		return null;
 	}
@@ -1187,13 +1186,15 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			UnaryOperator<R> prefixRemover,
 			IntFunction<R[]> arrayProducer) {
 		first.checkSectionCount(other);
-		R[] result = checkPrefixBlockContainment(first, other, prefixAdder, arrayProducer);
+		R result = checkPrefixBlockContainment(first, other, prefixAdder);
 		if(result != null) {
-			return result;
+			R resultArray[] = arrayProducer.apply(1);
+			resultArray[0] = result;
+			return resultArray;
 		}
 		List<IPAddressSegmentSeries> blocks = applyOperatorToLowerUpper(first, other, getLower, getUpper, comparator, prefixRemover, (orig, lower, upper) -> IPAddressSection.splitIntoPrefixBlocks(lower, upper));
-		result = blocks.toArray(arrayProducer.apply(blocks.size()));
-		return result;
+		R resultArray[] = blocks.toArray(arrayProducer.apply(blocks.size()));
+		return resultArray;
 	}
 	
 	protected static <R extends IPAddressSection, S extends IPAddressSegment> R[] getSpanningSequentialBlocks(
@@ -2068,7 +2069,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	@Override
 	public IPAddressSection getNetworkMask() {
 		Integer prefLen = getNetworkPrefixLength();
-		return getNetwork().getHostMask(prefLen == null ? getBitCount() : getNetworkPrefixLength()).getSection(0, getSegmentCount());
+		return getNetwork().getNetworkMask(prefLen == null ? getBitCount() : getNetworkPrefixLength()).getSection(0, getSegmentCount());
 	}
 
 	/**
@@ -2082,17 +2083,18 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 */
 	@Override
 	public IPAddressSection assignPrefixForSingleBlock() {
-		if(!isMultiple()) {
-			return this;
-		}
 		Integer newPrefix = getPrefixLengthForSingleBlock();
 		if(newPrefix == null) {
 			return null;
 		}
 		IPAddressSection result = setPrefixLength(newPrefix, false);
-		result.hasNoPrefixCache();
-		result.prefixCache.cachedIsSinglePrefixBlock = true;
-		result.prefixCache.cachedEquivalentPrefix = newPrefix;
+		if(result != this) { // otherwise these are already set
+			result.hasNoPrefixCache();
+			PrefixCache cache = result.prefixCache;
+			cache.cachedIsSinglePrefixBlock = true;
+			cache.cachedEquivalentPrefix = newPrefix;
+			cache.cachedMinPrefix = newPrefix;
+		}
 		return result;
 	}
 	

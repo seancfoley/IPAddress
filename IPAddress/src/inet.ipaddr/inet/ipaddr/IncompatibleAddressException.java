@@ -51,7 +51,7 @@ public class IncompatibleAddressException extends RuntimeException {
 	static String getMessage(String key) {
 		return AddressStringException.getMessage(key);
 	}
-	
+
 	public IncompatibleAddressException(AddressItem one, String key) {
 		super(one + ", " + errorMessage + " " + getMessage(key));
 	}

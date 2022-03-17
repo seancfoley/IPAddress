@@ -461,15 +461,15 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 								oneTotalBitCount -= oneBitCount;
 								oneByteCount -= count;
 								while(count-- > 0) {
-									oneValue = (oneValue << Byte.SIZE) | oneBytes[++oneByteIndex];
+									oneValue = (oneValue << Byte.SIZE) | oneBytes[oneByteIndex++];
 								}
 							} else {
 								int shortCount = oneByteCount - 1;
 								int lastBitsCount = oneTotalBitCount - (shortCount << 3);
 								while(shortCount-- > 0) {
-									oneValue = (oneValue << Byte.SIZE) | oneBytes[++oneByteIndex];
+									oneValue = (oneValue << Byte.SIZE) | oneBytes[oneByteIndex++];
 								}
-								oneValue = (oneValue << lastBitsCount) | (oneBytes[++oneByteIndex] >>> (Byte.SIZE - lastBitsCount));
+								oneValue = (oneValue << lastBitsCount) | (oneBytes[oneByteIndex++] >>> (Byte.SIZE - lastBitsCount));
 								oneBitCount = oneTotalBitCount;
 								oneTotalBitCount = oneByteCount = 0;
 							}
@@ -490,15 +490,15 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 								twoTotalBitCount -= twoBitCount;
 								twoByteCount -= count;
 								while(count-- > 0) {
-									twoValue = (twoValue << Byte.SIZE) | oneBytes[++twoByteIndex];
+									twoValue = (twoValue << Byte.SIZE) | oneBytes[twoByteIndex++];
 								}
 							} else {
 								int shortCount = twoByteCount - 1;
 								int lastBitsCount = twoTotalBitCount - (shortCount << 3);
 								while(shortCount-- > 0) {
-									twoValue = (twoValue << Byte.SIZE) | oneBytes[++twoByteIndex];
+									twoValue = (twoValue << Byte.SIZE) | oneBytes[twoByteIndex++];
 								}
-								twoValue = (twoValue << lastBitsCount) | (oneBytes[++twoByteIndex] >>> (Byte.SIZE - lastBitsCount));
+								twoValue = (twoValue << lastBitsCount) | (oneBytes[twoByteIndex++] >>> (Byte.SIZE - lastBitsCount));
 								twoBitCount = twoTotalBitCount;
 								twoTotalBitCount = twoByteCount = 0;
 							}
@@ -710,8 +710,8 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							oneTotalBitCount -= oneBitCount;
 							oneByteCount -= count;
 							while(count-- > 0) {
-								byte upperByte = oneUpperBytes[++oneByteIndex];
-								byte lowerByte = oneLowerBytes[oneByteIndex];
+								byte upperByte = oneUpperBytes[oneByteIndex];
+								byte lowerByte = oneLowerBytes[oneByteIndex++];
 								oneUpper = (oneUpper << Byte.SIZE) | upperByte;
 								oneLower = (oneLower << Byte.SIZE) | lowerByte;
 							}
@@ -719,13 +719,13 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							int shortCount = oneByteCount - 1;
 							int lastBitsCount = oneTotalBitCount - (shortCount << 3);
 							while(shortCount-- > 0) {
-								byte upperByte = oneUpperBytes[++oneByteIndex];
-								byte lowerByte = oneLowerBytes[oneByteIndex];
+								byte upperByte = oneUpperBytes[oneByteIndex];
+								byte lowerByte = oneLowerBytes[oneByteIndex++];
 								oneUpper = (oneUpper << Byte.SIZE) | upperByte;
 								oneLower = (oneLower << Byte.SIZE) | lowerByte;
 							}
-							byte upperByte = oneUpperBytes[++oneByteIndex];
-							byte lowerByte = oneLowerBytes[oneByteIndex];
+							byte upperByte = oneUpperBytes[oneByteIndex];
+							byte lowerByte = oneLowerBytes[oneByteIndex++];
 							oneUpper = (oneUpper << lastBitsCount) | (upperByte >>> (Byte.SIZE - lastBitsCount));
 							oneLower = (oneLower << lastBitsCount) | (lowerByte >>> (Byte.SIZE - lastBitsCount));
 							oneBitCount = oneTotalBitCount;
@@ -750,8 +750,8 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							twoTotalBitCount -= twoBitCount;
 							twoByteCount -= count;
 							while(count-- > 0) {
-								byte upperByte = twoUpperBytes[++twoByteIndex];
-								byte lowerByte = twoLowerBytes[twoByteIndex];
+								byte upperByte = twoUpperBytes[twoByteIndex];
+								byte lowerByte = twoLowerBytes[twoByteIndex++];
 								twoUpper = (twoUpper << Byte.SIZE) | upperByte;
 								twoLower = (twoLower << Byte.SIZE) | lowerByte;
 							}
@@ -759,13 +759,13 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 							int shortCount = twoByteCount - 1;
 							int lastBitsCount = twoTotalBitCount - (shortCount << 3);
 							while(shortCount-- > 0) {
-								byte upperByte = twoUpperBytes[++twoByteIndex];
-								byte lowerByte = twoLowerBytes[twoByteIndex];
+								byte upperByte = twoUpperBytes[twoByteIndex];
+								byte lowerByte = twoLowerBytes[twoByteIndex++];
 								twoUpper = (twoUpper << Byte.SIZE) | upperByte;
 								twoLower = (twoLower << Byte.SIZE) | lowerByte;
 							}
-							byte upperByte = twoUpperBytes[++twoByteIndex];
-							byte lowerByte = twoLowerBytes[twoByteIndex];
+							byte upperByte = twoUpperBytes[twoByteIndex];
+							byte lowerByte = twoLowerBytes[twoByteIndex++];
 							twoUpper = (twoUpper << lastBitsCount) | (upperByte >>> (Byte.SIZE - lastBitsCount));
 							twoLower = (twoLower << lastBitsCount) | (lowerByte >>> (Byte.SIZE - lastBitsCount));
 							twoBitCount = twoTotalBitCount;

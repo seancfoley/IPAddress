@@ -113,7 +113,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	transient IPv4StringCache stringCache;
 	
 	private transient SectionCache<IPv4AddressSection> sectionCache;
-	private transient int cachedLowerVal = -1;
+	private transient Integer cachedLowerVal;
 	
 	/**
 	 * Constructs a single segment section.
@@ -537,39 +537,35 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		return upperIntValue() & 0xffffffffL;
 	}
 	
+	private int calcValue(boolean lower) {
+		int segCount = getSegmentCount();
+		int result = 0;
+		if(segCount != 0) {
+			result = getSegment(0).getSegmentValue();
+			if(segCount != 1) {
+				int bitsPerSegment = getBitsPerSegment();
+				for(int i = 1; i < segCount; i++) {
+					IPv4AddressSegment seg = getSegment(i);
+					result = (result << bitsPerSegment) | 
+							(lower ? seg.getSegmentValue() : seg.getUpperSegmentValue());
+				}
+			}
+		}
+		return result;
+	}
+	
 	private int getIntValue(boolean lower) {
 		int result = 0;
 		if(lower) {
-			int cachedInt = this.cachedLowerVal;
-			if(cachedInt == -1) {
-				int segCount = getSegmentCount();
-				if(segCount != 0) {
-					result = getSegment(0).getSegmentValue();
-					if(segCount != 1) {
-						int bitsPerSegment = getBitsPerSegment();
-						for(int i = 1; i < segCount; i++) {
-							IPv4AddressSegment seg = getSegment(i);
-							result = (result << bitsPerSegment) | seg.getSegmentValue();
-						}
-					}
-					
-				}
+			Integer cachedInt = this.cachedLowerVal;
+			if(cachedInt == null) {
+				result = calcValue(true);
 				this.cachedLowerVal = result;
 			} else {
 				result = cachedInt;
 			}
 		} else {
-			int segCount = getSegmentCount();
-			if(segCount != 0) {
-				result = getSegment(0).getSegmentValue();
-				if(segCount != 1) {
-					int bitsPerSegment = getBitsPerSegment();
-					for(int i = 1; i < segCount; i++) {
-						IPv4AddressSegment seg = getSegment(i);
-						result = (result << bitsPerSegment) | seg.getUpperSegmentValue();
-					}
-				}
-			}
+			result = calcValue(false);
 		}
 		return result;
 	}
@@ -1697,8 +1693,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			}
 			return resultNoPrefix.setPrefixLength(0).getSection(0, getSegmentCount());
 		}
-		if(includesZeroHost() && isSingleNetwork()) {
-			return getLower(); // cached
+		if(includesMaxHost() && isSingleNetwork()) {
+			return getUpper(); // cached
 		}
 		return createMaxHost();
 	}
