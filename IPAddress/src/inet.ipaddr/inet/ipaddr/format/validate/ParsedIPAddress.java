@@ -2115,16 +2115,16 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		if(!ipVersion.equals(other.getProviderIPVersion())) {
 			return Boolean.FALSE;
 		}
-		int segmentCount = parseData.getSegmentCount();
-		int otherSegmentCount = otherParseData.getSegmentCount();
 		int max;
 		IPAddressNetwork<? extends IPAddress, ?, ?, ?, ?> network;
 		boolean compressedAlready, otherCompressedAlready;
-		int expectedSegCount, bitsPerSegment, bytesPerSegment;
+		int expectedSegCount, expectedOtherSegCount, bitsPerSegment, bytesPerSegment;
 		IPAddressStringParameters options = getParameters();
+		int segmentCount = parseData.getSegmentCount();
+		int otherSegmentCount = otherParseData.getSegmentCount();
 		if(isProvidingIPv4()) {
 			max = IPv4Address.MAX_VALUE_PER_SEGMENT;
-			expectedSegCount = IPv4Address.SEGMENT_COUNT;
+			expectedSegCount = expectedOtherSegCount = IPv4Address.SEGMENT_COUNT;
 			bitsPerSegment = IPv4Address.BITS_PER_SEGMENT;
 			bytesPerSegment = IPv4Address.BYTES_PER_SEGMENT;
 			network = options.getIPv4Parameters().getNetwork();
@@ -2132,12 +2132,18 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			otherCompressedAlready = true;
 		} else {
 			max = IPv6Address.MAX_VALUE_PER_SEGMENT;
-			expectedSegCount = IPv6Address.SEGMENT_COUNT;
+			expectedSegCount = expectedOtherSegCount = IPv6Address.SEGMENT_COUNT;
+			if(isProvidingMixedIPv6()) {
+				expectedSegCount -= 2;
+			}
+			if(other.isProvidingMixedIPv6()) {
+				expectedOtherSegCount -= 2;
+			}
 			bitsPerSegment = IPv6Address.BITS_PER_SEGMENT;
 			bytesPerSegment = IPv6Address.BYTES_PER_SEGMENT;
 			network = options.getIPv6Parameters().getNetwork();
 			compressedAlready = expectedSegCount == segmentCount;
-			otherCompressedAlready = expectedSegCount == otherSegmentCount;
+			otherCompressedAlready = expectedOtherSegCount == otherSegmentCount;
 		}
 		PrefixConfiguration prefConf = network.getPrefixConfiguration();
 		boolean zeroHostsAreSubnets = prefConf.zeroHostsAreSubnets();
@@ -2150,7 +2156,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		Integer adjustedOtherPref = null;
 		if(pref == null) {
 			networkOnly = false;
-			hostAllSegIndex = otherHostAllSegIndex = hostSegIndex = expectedSegCount;
+			hostAllSegIndex = hostSegIndex = expectedSegCount;
+			otherHostAllSegIndex = expectedOtherSegCount;
 			networkSegIndex = hostSegIndex - 1;
 		} else if(networkOnly) {
 			hostAllSegIndex = otherHostAllSegIndex = hostSegIndex = ParsedAddressGrouping.getHostSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
@@ -2159,7 +2166,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			// this allows us to compare entire segments for prefixEquals, ignoring the host values
 			adjustedOtherPref = pref;
 		} else {
-			otherHostAllSegIndex = expectedSegCount;
+			otherHostAllSegIndex = expectedOtherSegCount;
 			hostSegIndex = ParsedAddressGrouping.getHostSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
 			networkSegIndex = ParsedAddressGrouping.getNetworkSegmentIndex(pref, bytesPerSegment, bitsPerSegment);
 			if(allPrefixedAddressesAreSubnets || 
@@ -2174,11 +2181,16 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 			}
 		}
 		// Now determine if the other is a prefix block subnet, and if so, adjust otherHostAllSegIndex
-		if(otherPref != null && (adjustedOtherPref == null || otherPref < adjustedOtherPref)) {
-			int otherHostIndex = ParsedAddressGrouping.getHostSegmentIndex(otherPref, bytesPerSegment, bitsPerSegment);
-			if(otherHostIndex < otherHostAllSegIndex &&
-					(allPrefixedAddressesAreSubnets || (zeroHostsAreSubnets && other.isPrefixSubnet(otherPref, network, otherSegmentData)))) {
-				otherHostAllSegIndex = otherHostIndex;
+		if(otherPref != null) {
+			int otherPrefLen = otherPref.intValue();
+			if (adjustedOtherPref == null || otherPrefLen < adjustedOtherPref) {
+				int otherHostIndex = ParsedAddressGrouping.getHostSegmentIndex(otherPrefLen, bytesPerSegment, bitsPerSegment);
+				if(otherHostIndex < otherHostAllSegIndex &&
+						(allPrefixedAddressesAreSubnets || (zeroHostsAreSubnets && other.isPrefixSubnet(otherPrefLen, network, otherSegmentData)))) {
+					otherHostAllSegIndex = otherHostIndex;
+				}
+			} else {
+				otherPref = adjustedOtherPref;
 			}
 		} else {
 			otherPref = adjustedOtherPref;
@@ -2198,8 +2210,8 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 		    	lower = getValue(i, AddressParseData.KEY_LOWER, segmentData);
 		    	upper = getValue(i, AddressParseData.KEY_UPPER, segmentData);
 		    }
-		    if(normalizedCount >= hostAllSegIndex) {
-		    	Integer segPrefLength = ParsedAddressGrouping.getSegmentPrefixLength(bitsPerSegment, pref, normalizedCount);
+		    if(normalizedCount >= hostAllSegIndex) { // we've reached the prefixed segment
+			   	Integer segPrefLength = ParsedAddressGrouping.getSegmentPrefixLength(bitsPerSegment, pref, normalizedCount);
 				lower &= network.getSegmentNetworkMask(segPrefLength);
 				upper |= network.getSegmentHostMask(segPrefLength);
 			}
@@ -2214,7 +2226,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					otherLower = getValue(j, AddressParseData.KEY_LOWER, otherSegmentData);
 					otherUpper = getValue(j, AddressParseData.KEY_UPPER, otherSegmentData);
 				}
-				if(normalizedCount == otherHostAllSegIndex) {
+				if(normalizedCount == otherHostAllSegIndex) { // we've reached the prefixed segment
 					Integer segPrefLength = ParsedAddressGrouping.getSegmentPrefixLength(bitsPerSegment, otherPref, normalizedCount);
 					otherLower &= network.getSegmentNetworkMask(segPrefLength);
 					otherUpper |= network.getSegmentHostMask(segPrefLength);
@@ -2244,7 +2256,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 					}
 				} else if(other.isCompressed(j, otherSegmentData)) {
 					j++;
-					otherCompressedCount = expectedSegCount - otherSegmentCount;
+					otherCompressedCount = expectedOtherSegCount - otherSegmentCount;
 				} else {
 					j++;
 				}
