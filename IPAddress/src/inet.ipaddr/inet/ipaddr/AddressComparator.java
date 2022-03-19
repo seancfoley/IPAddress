@@ -490,15 +490,15 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 								twoTotalBitCount -= twoBitCount;
 								twoByteCount -= count;
 								while(count-- > 0) {
-									twoValue = (twoValue << Byte.SIZE) | oneBytes[twoByteIndex++];
+									twoValue = (twoValue << Byte.SIZE) | twoBytes[twoByteIndex++];
 								}
 							} else {
 								int shortCount = twoByteCount - 1;
 								int lastBitsCount = twoTotalBitCount - (shortCount << 3);
 								while(shortCount-- > 0) {
-									twoValue = (twoValue << Byte.SIZE) | oneBytes[twoByteIndex++];
+									twoValue = (twoValue << Byte.SIZE) | twoBytes[twoByteIndex++];
 								}
-								twoValue = (twoValue << lastBitsCount) | (oneBytes[twoByteIndex++] >>> (Byte.SIZE - lastBitsCount));
+								twoValue = (twoValue << lastBitsCount) | (twoBytes[twoByteIndex++] >>> (Byte.SIZE - lastBitsCount));
 								twoBitCount = twoTotalBitCount;
 								twoTotalBitCount = twoByteCount = 0;
 							}
