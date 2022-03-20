@@ -680,7 +680,7 @@ public abstract class IPAddressNetwork<
 		}
 		
 		private IPAddress from(byte bytes[], int byteStartIndex, int byteEndIndex, Integer prefixLength, CharSequence zone) {
-			if(bytes.length < IPv6Address.BYTE_COUNT) {
+			if(byteEndIndex - byteStartIndex < IPv6Address.BYTE_COUNT) {
 				return getIPv4Creator().createAddress(bytes, byteStartIndex, byteEndIndex, prefixLength);
 			}
 			return getIPv6Creator().createAddress(bytes, byteStartIndex, byteEndIndex, prefixLength, zone);

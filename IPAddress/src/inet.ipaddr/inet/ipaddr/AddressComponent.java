@@ -56,7 +56,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
 // | MACAddressSegment
 // IPAddressDivision
 // | | |
-// | | IPAddressBitsDivision (currently used for dividing by mutiples of 3 bits for octal)
+// | | IPAddressBitsDivision (currently used for dividing by multiples of 3 bits for octal)
 // | IPAddressJoinedSegments (for joining segments together)
 // | |
 // | IPv4JoinedSegments (currently used for inet_aton style of joining segments together)
