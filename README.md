@@ -10,7 +10,7 @@ Java library for handling IP addresses and subnets, both IPv4 and IPv6
 [In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress), in [Apache Archiva on Wikimedia](https://archiva.wikimedia.org/#artifact/com.github.seancfoley/ipaddress)
 - Maven group id: com.github.seancfoley
 - Maven artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
-- Maven versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.3.3/jar) 
+- Maven versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.3.3/jar), 5.3.4 coming
 - Latest Maven version: [![Maven Central](https://img.shields.io/maven-central/v/com.github.seancfoley/ipaddress.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.github.seancfoley%22%20AND%20a:%22ipaddress%22)
 - OSGI bundle since version 5.3.1: com.github.seancfoley.ipaddress
 
