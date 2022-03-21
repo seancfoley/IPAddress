@@ -57,18 +57,21 @@ NOTE: Currently we've had to separate javadoc creation from the creation of dist
 see notes in build.xml for the reason.
 You need the project at compile level 9 with a jre >= 9 (last time used 11).
 a. Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
+Make sure you choose a non-plugin JDK.  It can be a Mac OS VM if you want.  It needs to use the tools.jar for the doclet.
 b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  
 Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-2. Use build.xml to first "create javadoc"
+2. Use build.xml to first "create javadoc" running in separate Java 8 JRE.  If any javadoc errors, fix them and retry.
 
-3. Use build.xml to "create dist jar"
+3. Use build.xml to "create dist jar" running in jre >= 9 same as workspace.
 
 4. Replace the checked-in file IPAddress.jar with the dist jar created.
 
 5. Commit and push the changes (build.xml and IPAddress.jar).
 
-6. Create the release using the github releases button on the releases page, 
+6. Edit the readme.md of the branch you are releasing from (the latest version), as well as on master if not the same.
+
+7. Create the release using the github releases button on the releases page, 
 which allows you to select the branch.
 This creates the tag as well (but does not create a branch).  The tags have the format vx.x.x
 Add the dist jar from (2) to the release.  
@@ -99,17 +102,6 @@ Use your sonatype user/pw.
 It may take about 10 minutes.
 
 12. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
-
-D Bintray
-
-13. bintray - create version using the button, then add date and version number 5.3.1 (description can be skipped)
-Then go to the version (eg https://bintray.com/seancfoley/ipaddress/com.github.seancfoley%3Aipaddress/5.3.2), 
-select upload files at the top
-com/github/seancfoley/ipaddress/5.3.1 is target folder
-select pom, javadoc, source, main jar
-Probably best to just grab from maven central
-upload them, save, then publish
-https://www.jfrog.com/confluence/display/BT/Manually+Uploading+Files+to+a+Version
 
 
 

@@ -51,12 +51,16 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  */
 public interface AddressSegment extends AddressComponent, AddressGenericDivision {
 	/**
+	 * Returns the count of values in this address segment.
+	 * 
 	 * @return the same value as {@link #getCount()} as an integer
 	 */
 	int getValueCount();
 
 	/**
-	 * @return the same value as {@link #getPrefixCount()} as an integer
+	 * Returns the count of prefix values in this address segment for the given prefix bit count.
+	 * 
+	 * @return the count of values
 	 */
 	int getPrefixValueCount(int segmentPrefixLength);
 	
