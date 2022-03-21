@@ -261,27 +261,28 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	default int getMinPrefixLengthForBlock() {
 		int result = getBitCount();
 		BigInteger lower = getValue(), upper = getUpperValue();
-		//TODO check for single value first
-		int longBits = Long.SIZE;
-		do {
-			long low = lower.longValue();
-			int lowerZeros = Long.numberOfTrailingZeros(low);
-			if(lowerZeros == 0) {
-				break;
-			}
-			long up = upper.longValue();
-			int upperOnes = Long.numberOfTrailingZeros(~up);
-			if(upperOnes == 0) {
-				break;
-			}
-			int prefixedBitCount = Math.min(lowerZeros, upperOnes);
-			result -= prefixedBitCount;
-			if(prefixedBitCount < longBits) {
-				break;
-			}
-			lower = lower.shiftRight(longBits);
-			upper = upper.shiftRight(longBits);
-		} while(!upper.equals(BigInteger.ZERO));
+		if(!lower.equals(upper)) {
+			int longBits = Long.SIZE;
+			do {
+				long low = lower.longValue();
+				int lowerZeros = Long.numberOfTrailingZeros(low);
+				if(lowerZeros == 0) {
+					break;
+				}
+				long up = upper.longValue();
+				int upperOnes = Long.numberOfTrailingZeros(~up);
+				if(upperOnes == 0) {
+					break;
+				}
+				int prefixedBitCount = Math.min(lowerZeros, upperOnes);
+				result -= prefixedBitCount;
+				if(prefixedBitCount < longBits) {
+					break;
+				}
+				lower = lower.shiftRight(longBits);
+				upper = upper.shiftRight(longBits);
+			} while(!upper.equals(BigInteger.ZERO));
+		}
 		return result;
 	}
 	

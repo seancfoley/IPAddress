@@ -395,7 +395,7 @@ public interface IPAddressProvider extends Serializable {
 		return new CachedAddressProvider(address, hostAddress);
 	}
 	
-	static  class CachedAddressProvider implements IPAddressProvider {
+	static class CachedAddressProvider implements IPAddressProvider {
 		private static final long serialVersionUID = 4L;
 		CachedIPAddresses<?> values;
 		
@@ -526,25 +526,7 @@ public interface IPAddressProvider extends Serializable {
 	
 		abstract IPAddress createVersionedAddress(IPVersion version);
 	}
-	
-	//TODO add a parameers preferVersion so that you always have a version for all VersionedAddressCreator
-	// The default will be IPv6 unless system property java.net.preferIPv4Stack exiss and is true
-	// and so then u must move adjustedVersion to VersionedAddressCreator and you must change
-	// Loopback, AllCreator, MAskCreator to always favor a version
-	// For loopback this means that when emptyIsLoopback set, we always have a version and a mask
-	//		but we still  have "empty" too when emptyIsLoopback is false
-	//		and for this we may deviate from Go, we may defer to the Java loopback default and not use the prefer version
-	// For MAskCreator this means we always have a mask.  Eliminate Prefix-only from eveyywhere, inlcuding IPAddressString.
-	// For all creator, is zoned or prefixed we now always have a result.  If not, ie just *, then it is ALL addresses as before.
-	// See the golang code for details.  The two will match, mostly, althouth java has a preferred loopback so maybe not completely
-	//https://docs.oracle.com/javase/8/docs/technotes/guides/net/ipv6_guide/index.html
-	//TODO another idea is that for all of them, we consider prefix length < 32 to be IPv4, >= 32 IPv6
-	
-	//TODO anotehr idea: in validator, if parsing a really long string, do not save the segment substrings?
-	// or maybe that is when you should (bcause you hae a long string of many addresses?  Really, you are thinking of cases like parsing files
-	// and then the lines which are strings are never garbage collected
-	// But wait, you don't even know the full string size, only when indexes passed in, which we never do from IPAddressString
-	
+
 	static abstract class AdjustedAddressCreator extends VersionedAddressCreator {
 		private static final long serialVersionUID = 4L;
 		protected final IPVersion adjustedVersion;

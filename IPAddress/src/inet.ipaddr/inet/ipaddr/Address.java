@@ -28,6 +28,7 @@ import inet.ipaddr.AddressComparator.ValueComparator;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv4.IPv4AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
+import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressNetwork;
 
 //TODO I think you need an isIPAddress or isIPv4/6() in here and maybe toIPAddress(), to allow others to avoid casting
@@ -252,6 +253,42 @@ public abstract class Address implements AddressSegmentSeries {
 	@Override
 	public boolean isPrefixed() {
 		return getSection().isPrefixed();
+	}
+	
+	/**
+	 * Returns whether this address is an IP address
+	 * 
+	 * @return whether this address is an IP address
+	 */
+	public boolean isIPAddress() {
+		return false;
+	}
+	
+	/**
+	 * Returns whether this address is a MAC address
+	 * 
+	 * @return whether this address is a MAC address
+	 */
+	public boolean isMACAddress() {
+		return false;
+	}
+	
+	/**
+	 * If this address is an IP address, returns that {@link IPAddress}.  Otherwise, returns null.
+	 * 
+	 * @return the IP address
+	 */
+	public IPAddress toIPAddress() {
+		return null;
+	}
+	
+	/**
+	 * If this address is a MAC address, returns that {@link MACAddress}.  Otherwise, returns null.
+	 * 
+	 * @return the MAC address
+	 */
+	public MACAddress toMACAddress() {
+		return null;
 	}
 	
 	/**

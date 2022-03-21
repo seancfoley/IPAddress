@@ -31,8 +31,8 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.format.standard.AddressDivisionGrouping;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions;
-import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
@@ -54,9 +54,9 @@ import inet.ipaddr.mac.MACAddressSection.MACAddressCache;
  *
  */
 public class MACAddress extends Address implements Iterable<MACAddress> {
-	
+
 	private static final long serialVersionUID = 4L;
-	
+
 	public static final char COLON_SEGMENT_SEPARATOR = ':';
 	public static final char DASH_SEGMENT_SEPARATOR = '-';
 	public static final char SPACE_SEGMENT_SEPARATOR = ' ';
@@ -80,9 +80,9 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public static final int MAX_VALUE_PER_DOTTED_SEGMENT = 0xffff;
 	public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT = 3;
 	public static final int ORGANIZATIONAL_UNIQUE_IDENTIFIER_BIT_COUNT = ORGANIZATIONAL_UNIQUE_IDENTIFIER_SEGMENT_COUNT * BITS_PER_SEGMENT;
-	
+
 	transient MACAddressCache sectionCache;
-	
+
 	/**
 	 * Constructs a MAC address.
 	 * @param segments the address segments
@@ -94,7 +94,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 			throw new AddressValueException("ipaddress.error.mac.invalid.segment.count", segCount);
 		}
 	}
-	
+
 	/**
 	 * Constructs a MAC address.
 	 * @param section the address segments
@@ -216,6 +216,16 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	
 	public boolean isExtended() {
 		return getSection().isExtended();
+	}
+
+	@Override
+	public boolean isMACAddress() {
+		return true;
+	}
+	
+	@Override
+	public MACAddress toMACAddress() {
+		return this;
 	}
 	
 	public boolean isAllAddresses() {

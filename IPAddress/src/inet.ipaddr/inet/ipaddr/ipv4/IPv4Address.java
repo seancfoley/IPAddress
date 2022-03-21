@@ -339,11 +339,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public boolean isIPv6() {
-		return false;
-	}
-	
-	@Override
 	public IPv4Address toIPv4() {
 		return this;
 	}
@@ -383,7 +378,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	 */
 	@Override
 	public boolean isIPv6Convertible() {
-		//TODO make the converter come from the network, like in golang
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
 		return conv.isIPv6Convertible(this);
 	}

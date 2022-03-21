@@ -72,8 +72,12 @@ public abstract class AddressDivision extends AddressDivisionBase {
 
 	@Override
 	public int getMinPrefixLengthForBlock() {
-		//TODO check for single value and/or full range first
 		int result = getBitCount();
+		if(!isMultiple()) {
+			return result;
+		} else if(isFullRange()) {
+			return 0;
+		}
 		int lowerZeros = Long.numberOfTrailingZeros(getDivisionValue());
 		if(lowerZeros != 0) {
 			int upperOnes = Long.numberOfTrailingZeros(~getUpperDivisionValue());
