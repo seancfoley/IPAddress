@@ -665,8 +665,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 				}
 				IPAddress nextLower = range2.getLower();
 				if(compareLowValues(currentUpper, nextLower) >= 0
-						|| currentUpper.increment(1).equals(nextLower)) {
-					//join them
+						|| (currentUpper.getIPVersion().equals(nextLower.getIPVersion()) && currentUpper.increment(1).equals(nextLower))) {
+					// join them
 					IPAddress nextUpper = range2.getUpper();
 					if(compareLowValues(currentUpper, nextUpper) < 0) {
 						currentUpper = nextUpper;
@@ -790,13 +790,15 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		IPAddress upper = getUpper();
 		int lowerComp = compareLowValues(lower, otherLower);
 		if(!overlaps(other)) {
-			if(lowerComp >= 0) {
-				if(otherUpper.increment(1).equals(lower)) {
-					return create(otherLower, upper);
-				}
-			} else {
-				if(upper.increment(1).equals(otherLower)) {
-					return create(lower, otherUpper);
+			if(lower.getIPVersion().equals(otherLower.getIPVersion())) {
+				if(lowerComp >= 0) {
+					if(otherUpper.increment(1).equals(lower)) {
+						return create(otherLower, upper);
+					}
+				} else {
+					if(upper.increment(1).equals(otherLower)) {
+						return create(lower, otherUpper);
+					}
 				}
 			}
 			return null;
