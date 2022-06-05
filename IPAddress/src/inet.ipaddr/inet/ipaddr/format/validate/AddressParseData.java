@@ -456,9 +456,7 @@ class AddressParseData implements Serializable {
 		return getFlag(index, KEY_INFERRED_UPPER_BOUNDARY);
 	}
 
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
+	void toString(StringBuilder builder) {
 		CharSequence str = getString();
 		builder.append("address string: ").append(str).append('\n');
 		int addressEndIndex = getAddressEndIndex();
@@ -533,6 +531,12 @@ class AddressParseData implements Serializable {
 		} else if (isAll()) {
 			builder.append("is all addresses").append('\n');
 		}
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		toString(builder);
 		return builder.toString();
 	}
 }
@@ -700,7 +704,7 @@ class IPAddressParseData extends AddressParseData {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(getAddressParseData());
+		toString(builder);
 		builder.append("ip version: ").append(getProviderIPVersion());
 		if(isProvidingIPv6()) {
 			if(isProvidingMixedIPv6()) {
@@ -829,7 +833,7 @@ class MACAddressParseData extends AddressParseData {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(getAddressParseData());
+		toString(builder);
 		if(isDoubleSegment()) {
 			builder.append("is double segment").append('\n');
 		}
