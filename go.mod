@@ -27,5 +27,10 @@ retract v5.2.0+incompatible
 retract v5.1.0+incompatible
 retract v5.0.2+incompatible
 retract v5.0.1+incompatible
-retract [v0.0.0-00000000000000-000000000000, v5.1.0-retracted]
+retract [v0.0.0-00000000000000-000000000000, v5.4.1]
+retract [v0.0.0-00000000000000-000000000000, v5.4.1-retracted]
 retract v5.1.0-retracted
+retract v5.4.0-retracted
+retract v5.4.1-retracted
+
+
