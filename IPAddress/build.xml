@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="5.3.3"/>
+	<property name="version" value="5.3.4"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -10,7 +10,7 @@
 	<property name="jarExtension" value=".jar"/>
 	<property name="module" value="/inet.ipaddr" />
 	<property name="src_location" value="${rootOffset}/src${module}" />
-	<property name="jdk_src_location" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_231.jdk/Contents/Home/src.zip" />
+	<property name="jdk_src_location" value="/Library/Java/JavaVirtualMachines/jdk1.8.0_311.jdk/Contents/Home/src.zip" />
 	<property name="jdk_link" value="https://docs.oracle.com/javase/8/docs/api/" />
 	<property name="bin_location" value="${rootOffset}/bin" />
 	<property name="rootPackage" value="inet.ipaddr"/>
