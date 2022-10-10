@@ -39,7 +39,7 @@ by Sean C Foley
 
 [MAC Address Operations](#mac-address-operations)
 
-[IPv6 – MAC Address Integration](#ipv6--mac-address-integration)
+[IPv6 – MAC Address Integration](#ipv6-mac-address-integration)
 
 [Address Framework](#address-framework)
 
@@ -179,8 +179,8 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Associative address tries | ✅ |  ✅ |
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
+| UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
 | Parse IP strings directly to division groupings | ✅ | Coming |
-| UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | Coming |
 | String collections | ✅ |  |
 | Spliterators and Streams | ✅ |  |
 | Serialization | ✅  |  |
