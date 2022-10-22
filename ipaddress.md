@@ -181,6 +181,7 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
 | Parse IP strings directly to division groupings | ✅ | Coming |
+| Prefix Block Allocator | Coming | ✅ | 
 | String collections | ✅ |  |
 | Spliterators and Streams | ✅ |  |
 | Serialization | ✅  |  |
