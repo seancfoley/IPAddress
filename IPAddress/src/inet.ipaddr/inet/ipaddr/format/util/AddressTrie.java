@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Function;
@@ -1712,6 +1711,22 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return node;
 	}
 
+	static abstract class SubNodesMapping<E extends Address, N extends SubNodesMapping<E, N>> {
+		// subNodes is the list of direct and indirect added sub-nodes in the original trie
+		ArrayList<AssociativeTrieNode<E, N>> subNodes;
+		
+		abstract Object getUnderlyingValue();
+	}
+	
+	protected static class SubNodesMappingBasic<E extends Address> extends SubNodesMapping<E, SubNodesMappingBasic<E>> {
+		
+		@Override
+		Object getUnderlyingValue() {
+			return null;
+		}
+	}
+	
+	
 	/**
 	 * Provides an associative trie in which the root and each added node are mapped to a list of their respective direct added nodes.
 	 * This trie provides an alternative non-binary tree structure of the added nodes.
@@ -1720,7 +1735,71 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 *
 	 * @return
 	 */
-	public abstract AssociativeAddressTrie<E, ? extends List<? extends AssociativeTrieNode<E, ?>>> constructAddedNodesTree();
+	public abstract AddedTreeBase<E, ? extends SubNodesMapping<E, ? extends SubNodesMapping<E, ?>>> constructAddedNodesTree(); 
+
+	/**
+	* Constructs a trie in which added nodes are mapped to their list of added sub-nodes.
+	* This trie provides an alternative non-binary tree structure of the added nodes.
+	* It is used by ToAddedNodesTreeString to produce a string showing the alternative structure.
+	* If there are no non-added nodes in this trie, 
+	* then the alternative tree structure provided by this method is the same as the original trie.
+	* 
+	* @return
+	*/
+	protected void contructAddedTree(AssociativeAddressTrie<E, SubNodesMappingBasic<E>> emptyTrie) {
+		emptyTrie.addTrie(absoluteRoot()); // does not add values
+		
+		CachingIterator<? extends AssociativeTrieNode<E, SubNodesMappingBasic<E>>, E, 
+				AssociativeTrieNode<E, SubNodesMappingBasic<E>>> cachingIterator =
+				emptyTrie.containingFirstAllNodeIterator(true);
+		
+		while(cachingIterator.hasNext()) {
+			AssociativeTrieNode<E, SubNodesMappingBasic<E>> newNext = cachingIterator.next(), parent;
+			
+			// populate the values from the original trie into the new trie
+			newNext.setValue(new SubNodesMappingBasic<E>());
+			
+			// cache this node with its sub-nodes
+			cachingIterator.cacheWithLowerSubNode(newNext);
+			cachingIterator.cacheWithUpperSubNode(newNext);
+			
+			// the cached object is our parent
+			if(newNext.isAdded()) {
+				parent = cachingIterator.getCached();
+				if(parent != null) {
+					// find added parent, or the root if no added parent
+					// this part would be tricky if we accounted for the bounds,
+					// maybe we'd have to filter on the bounds, and also look for the sub-root
+					while(!parent.isAdded()) {
+						AssociativeTrieNode<E, SubNodesMappingBasic<E>> parentParent = parent.getParent();
+						if(parentParent == null) {
+							break;
+						}
+						parent = parentParent;
+					}
+					// store ourselves with that added parent or root
+					SubNodesMappingBasic<E> mappedNodes = parent.getValue();
+					ArrayList<AssociativeTrieNode<E, SubNodesMappingBasic<E>>> addedSubs = mappedNodes.subNodes;
+					if(addedSubs == null) {
+						addedSubs = new ArrayList<AssociativeTrieNode<E, SubNodesMappingBasic<E>>>(newNext.size() - 1);
+						mappedNodes.subNodes = addedSubs;
+					}
+					addedSubs.add(newNext);
+				} // else root
+			}
+		}
+		SubNodesMappingBasic<E> value = emptyTrie.getRoot().getValue();
+		if(value != null && value.subNodes != null) {
+			value.subNodes.trimToSize();
+		}
+		Iterator<? extends AssociativeTrieNode<E, SubNodesMappingBasic<E>>> iter = emptyTrie.allNodeIterator(true);
+		while(iter.hasNext()) {
+			SubNodesMappingBasic<E> list = iter.next().getValue();
+			if(list != null && list.subNodes != null) {
+				list.subNodes.trimToSize();
+			}
+		}
+	}
 
 	/**
 	 * Provides a flattened version of the trie showing only the contained added nodes and their containment structure, which is non-binary.
@@ -1730,44 +1809,49 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 * 
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")
-	public String toAddedNodesTreeString() {
-		AssociativeAddressTrie<E, ? extends List<? extends AssociativeTrieNode<E, ?>>> addedTree = constructAddedNodesTree();
+	public abstract String toAddedNodesTreeString();
+	
+	protected static <E extends Address, N extends SubNodesMapping<E, N>> String toAddedNodesTreeString(AssociativeAddressTrie<E, N> addedTree) {
+		AssociativeTrieNode<E, N> root = addedTree.absoluteRoot();
+		return toAddedNodesTreeString(root);
+	}
+	
+	protected static <E extends Address, N extends SubNodesMapping<E, N>> String toAddedNodesTreeString(AssociativeTrieNode<E, N> root) {
+
 		class IndentsNode {
 			Indents indents;
-			AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>> node;
-			
-			IndentsNode(Indents indents, AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>> node) {
+			AssociativeTrieNode<E, N> node;
+
+			IndentsNode(Indents indents, AssociativeTrieNode<E, N> node) {
 				this.indents = indents;
 				this.node = node;
 			}
 		}
 		
 		Deque<IndentsNode> stack = null;
-		AssociativeTrieNode<E, ? extends List<? extends AssociativeTrieNode<E, ?>>> root = addedTree.absoluteRoot();
 		StringBuilder builder = new StringBuilder();
 		builder.append('\n');
-		AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>> nextNode = (AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>>) root;
+		AssociativeTrieNode<E, N> nextNode = root;
 		String nodeIndent = "", subNodeIndent = "";
 		IndentsNode nextItem;
 		while(true) {
-			builder.append(nodeIndent).
-				append(nextNode.isAdded() ? BinaryTreeNode.ADDED_NODE_CIRCLE : BinaryTreeNode.NON_ADDED_NODE_CIRCLE).
-				append(' ').append(nextNode.getKey()).append('\n');
-			List<AssociativeTrieNode<E, ?>> nextNodes = nextNode.getValue();
+			SubNodesMapping<E, N> nextNodeList = nextNode.getValue();
+			TrieNode.toNodeString(builder.append(nodeIndent), nextNode.isAdded(), nextNode.getKey(), nextNodeList.getUnderlyingValue()).append('\n');
+
+			ArrayList<AssociativeTrieNode<E, N>> nextNodes = nextNodeList.subNodes;
+
 			if(nextNodes != null && nextNodes.size() > 0) {
 				
-				AssociativeTrieNode<E, ?> nNode;
-				AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>> next;
-				
+				AssociativeTrieNode<E, N> nNode, next;
+
 				int i = nextNodes.size() - 1;
 				Indents lastIndents = new Indents(
 						subNodeIndent + BinaryTreeNode.RIGHT_ELBOW,
 						subNodeIndent + BinaryTreeNode.BELOW_ELBOWS);
 				nNode = nextNodes.get(i);
-				next = (AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>>) nNode;
+				next = nNode;
 				if(stack == null) {
-					stack = new ArrayDeque<>(addedTree.size());
+					stack = new ArrayDeque<>(root.size());
 				}
 				stack.addFirst(new IndentsNode(lastIndents, next));
 				if(nextNodes.size() > 1) {
@@ -1776,7 +1860,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 							subNodeIndent + BinaryTreeNode.IN_BETWEEN_ELBOWS);
 					for(--i; i >= 0; i--) {
 						nNode = nextNodes.get(i);
-						next = (AssociativeTrieNode<E, List<AssociativeTrieNode<E, ?>>>) nNode;
+						next = nNode;
 						stack.addFirst(new IndentsNode(firstIndents, next));
 					}
 				}
@@ -1794,61 +1878,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			subNodeIndent = nextIndents.subNodeInd;
 		}
 		return builder.toString();
-	}
-
-	/**
-	* Constructs a trie in which added nodes are mapped to their list of added sub-nodes.
-	* 
-	* @return
-	*/
-	@SuppressWarnings("unchecked")
-	protected void contructAddedTree(AssociativeAddressTrie<E, ? extends List<? extends AssociativeTrieNode<E, ?>>> emptyTrie) {
-		emptyTrie.addTrie(absoluteRoot());
-		CachingIterator<? extends AssociativeTrieNode<E, ? extends List<? extends AssociativeTrieNode<E, ?>>>, E,
-				AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>>> iterator = 
-					emptyTrie.containingFirstAllNodeIterator(true);
-		while(iterator.hasNext()) {
-			AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>> next = (AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>>) iterator.next(), parent;
-			// cache this node with its sub-nodes
-			iterator.cacheWithLowerSubNode(next);
-			iterator.cacheWithUpperSubNode(next);
-			
-			// the cached object is our parent
-			if(next.isAdded()) {
-				parent = iterator.getCached();
-				if(parent != null) {
-					// find added parent, or the root if no added parent
-					// this part would be tricky if we accounted for the bounds,
-					// maybe we'd have to filter on the bounds, and also look for the sub-root
-					while(!parent.isAdded()) {
-						AssociativeTrieNode<E, List<? extends AssociativeTrieNode<E, ?>>> parentParent = parent.getParent();
-						if(parentParent == null) {
-							break;
-						}
-						parent = parentParent;
-					}
-					// store ourselves with that added parent or root
-					List<AssociativeTrieNode<E, ?>> addedSubs = (List<AssociativeTrieNode<E, ?>>) parent.getValue();
-					if(addedSubs == null) {
-						addedSubs = new ArrayList<AssociativeTrieNode<E, ?>>(next.size() - 1);
-						parent.setValue(addedSubs);
-					}
-					addedSubs.add(next);
-				} // else root
-			}
-		}
-		Iterator<? extends AssociativeTrieNode<E, ? extends List<? extends TrieNode<E>>>> iter = emptyTrie.allNodeIterator(true);
-		AssociativeTrieNode<E, ? extends List<? extends TrieNode<E>>> root = emptyTrie.absoluteRoot();
-		List<? extends TrieNode<E>> list = root.getValue();
-		if(list != null) {
-			((ArrayList<? extends TrieNode<E>>) list).trimToSize();
-		}
-		while(iter.hasNext()) {
-			list = iter.next().getValue();
-			if(list != null) {
-				((ArrayList<? extends TrieNode<E>>) list).trimToSize();
-			}
-		}
 	}
 
 	TrieNode<E> addNode(OpResult<E> result, TrieNode<E> fromNode, TrieNode<E> nodeToAdd, boolean withValues) {

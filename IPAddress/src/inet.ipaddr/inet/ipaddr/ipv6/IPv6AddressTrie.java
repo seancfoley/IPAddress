@@ -18,16 +18,13 @@
 package inet.ipaddr.ipv6;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Spliterator;
 
 import inet.ipaddr.IPAddressString;
+import inet.ipaddr.format.util.AddedTree;
 import inet.ipaddr.format.util.AddressTrie;
-import inet.ipaddr.format.util.AssociativeAddressTrie;
-import inet.ipaddr.format.util.AssociativeAddressTrie.AssociativeTrieNode;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
-import inet.ipaddr.ipv6.IPv6AddressAssociativeTrie.IPv6AssociativeTrieNode;
 
 
 /**
@@ -454,12 +451,17 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 		return (IPv6AddressTrie) super.clone();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public AssociativeAddressTrie<IPv6Address, List<IPv6AssociativeTrieNode<?>>> constructAddedNodesTree() {
-		IPv6AddressAssociativeTrie<List<AssociativeTrieNode<IPv6Address, ?>>> trie = new IPv6AddressAssociativeTrie<>();
+	public AddedTree<IPv6Address> constructAddedNodesTree() {
+		IPv6AddressAssociativeTrie<SubNodesMappingBasic<IPv6Address>> trie = new IPv6AddressAssociativeTrie<SubNodesMappingBasic<IPv6Address>>();
 		contructAddedTree(trie);
-		IPv6AddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<IPv6Address, ?>>> ret = trie;
-		return (AssociativeAddressTrie<IPv6Address, List<IPv6AssociativeTrieNode<?>>>) ret;
+		return new AddedTree<IPv6Address>(trie);
+	}
+
+	@Override
+	public String toAddedNodesTreeString() {
+		IPv6AddressAssociativeTrie<SubNodesMappingBasic<IPv6Address>> trie = new IPv6AddressAssociativeTrie<SubNodesMappingBasic<IPv6Address>>();
+		contructAddedTree(trie);
+		return toAddedNodesTreeString(trie);
 	}
 }

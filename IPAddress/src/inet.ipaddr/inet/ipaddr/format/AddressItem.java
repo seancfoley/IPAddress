@@ -313,4 +313,37 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 		}
 		return null;
 	}
+
+	/**
+	 * Returns the total number of values when ranging across the given number of host bits. 
+	 * This is the reverse of {@link #getBitsForCount(long)}.
+	 * 
+	 * A bitCount of zero or less returns zero.
+	 * 
+	 * @param bitCount
+	 */
+	public static BigInteger getBlockSize(int bitCount) {
+		return BigInteger.ONE.shiftLeft(bitCount);
+	}
+	
+	/**
+	 * BitsForCount returns the number of bits required outside the prefix length 
+	 * for a single prefix block to span at least as many addresses as the given count. 
+	 * Mathematically, it is the ceiling of the base 2 logarithm of the given count. 
+	 * A count of zero or less than zero returns null.
+	 * 
+	 * See {@link #getBlockSize(int)} for the reverse direction.
+	 * 
+	 * @param count
+	 */
+	public static Integer getBitsForCount(long count) {
+		if(count <= 0) {
+			return null;
+		}
+		int logBase2 = (Long.SIZE - 1) - Long.numberOfLeadingZeros(count);
+		if((~(-1L << logBase2) & count) != 0) {
+			logBase2++;
+		}
+		return logBase2;
+	}
 }

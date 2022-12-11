@@ -17,6 +17,7 @@
  */
 package inet.ipaddr.format.util;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -409,20 +410,10 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 				setValue(((AssociativeTrieNode<K,V>) replacement).getValue());
 			}
 		}
-
+		
 		@Override
-		String getNodeIdentifier() {
-			String label = super.getNodeIdentifier();
-			String middle = " = ";
-			V value = getValue();
-			int valueLen;
-			if(value instanceof CharSequence) {
-				valueLen = ((CharSequence) value).length();
-			} else {
-				valueLen = 50;
-			}
-			StringBuilder builder = new StringBuilder(label.length() + middle.length() + valueLen);
-			return builder.append(label).append(middle).append(value).toString();
+		public String toString() {
+			return toNodeString(new StringBuilder(80), isAdded(), getKey(), getValue()).toString();
 		}
 	}
 
@@ -488,6 +479,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	public AssociativeTrieNode<K, V> addNode(K addr) {
 		return (AssociativeTrieNode<K, V>) super.addNode(addr);
 	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	TrieNode<K> addNode(OpResult<K> result, TrieNode<K> fromNode, TrieNode<K> nodeToAdd, boolean withValues) {
@@ -496,6 +488,90 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			result.newValue = node.getValue();
 		}
 		return super.addNode(result, fromNode, nodeToAdd, withValues);
+	}
+
+	@Override
+	public abstract AssociativeAddedTree<K, V> constructAddedNodesTree();
+
+	protected static class SubNodesMappingAssociative<E extends Address, V> extends SubNodesMapping<E, SubNodesMappingAssociative<E, V>> {
+		 V value;
+
+		@Override
+		Object getUnderlyingValue() {
+			return value;
+		}
+	}
+
+	/**
+	* Constructs a trie in which added nodes are mapped to their list of added sub-nodes.
+	* This trie provides an alternative non-binary tree structure of the added nodes.
+	* It is used by ToAddedNodesTreeString to produce a string showing the alternative structure.
+	* If there are no non-added nodes in this trie, 
+	* then the alternative tree structure provided by this method is the same as the original trie.
+	* 
+	* @return
+	*/
+	protected void contructAssociativeAddedTree(AssociativeAddressTrie<K, SubNodesMappingAssociative<K,V>> emptyTrie) {
+		emptyTrie.addTrie(absoluteRoot()); // does not add values
+		
+		CachingIterator<? extends AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>>, K, 
+				AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>>> cachingIterator =
+			emptyTrie.containingFirstAllNodeIterator(true);
+		
+		Iterator<? extends AssociativeTrieNode<K, V>> thisIterator = containingFirstAllNodeIterator(true);
+		
+		//System.out.println("starting iteration");
+		while(cachingIterator.hasNext()) {
+			AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>> newNext = cachingIterator.next(), parent;
+			AssociativeTrieNode<K, V> thisNext = thisIterator.next();
+			//System.out.println("iterated on " + thisNext + " and " + newNext);
+			
+			SubNodesMappingAssociative<K,V> mapping = new SubNodesMappingAssociative<K,V>();
+			mapping.value = thisNext.getValue();
+			
+			// populate the values from the original trie into the new trie
+			newNext.setValue(mapping);
+			
+			// cache this node with its sub-nodes
+			cachingIterator.cacheWithLowerSubNode(newNext);
+			cachingIterator.cacheWithUpperSubNode(newNext);
+			
+			// the cached object is our parent
+			if(newNext.isAdded()) {
+				parent = cachingIterator.getCached();
+				if(parent != null) {
+					// find added parent, or the root if no added parent
+					// this part would be tricky if we accounted for the bounds,
+					// maybe we'd have to filter on the bounds, and also look for the sub-root
+					while(!parent.isAdded()) {
+						AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>> parentParent = parent.getParent();
+						if(parentParent == null) {
+							break;
+						}
+						parent = parentParent;
+					}
+					// store ourselves with that added parent or root
+					SubNodesMappingAssociative<K, V> mappedNodes = parent.getValue();
+					ArrayList<AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>>> addedSubs = mappedNodes.subNodes;
+					if(addedSubs == null) {
+						addedSubs = new ArrayList<AssociativeTrieNode<K, SubNodesMappingAssociative<K,V>>>(newNext.size() - 1);
+						mappedNodes.subNodes = addedSubs;
+					}
+					addedSubs.add(newNext);
+				} // else root
+			}
+		}
+		SubNodesMappingAssociative<K, V> value = emptyTrie.getRoot().getValue();
+		if(value != null && value.subNodes != null) {
+			value.subNodes.trimToSize();
+		}
+		Iterator<? extends AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>>> iter = emptyTrie.allNodeIterator(true);
+		while(iter.hasNext()) {
+			SubNodesMappingAssociative<K, V> list = iter.next().getValue();
+			if(list != null && list.subNodes != null) {
+				list.subNodes.trimToSize();
+			}
+		}
 	}
 
 	@SuppressWarnings("unchecked")

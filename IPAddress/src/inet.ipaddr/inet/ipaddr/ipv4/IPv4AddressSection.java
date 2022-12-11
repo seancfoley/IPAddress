@@ -541,7 +541,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		int segCount = getSegmentCount();
 		int result = 0;
 		if(segCount != 0) {
-			result = getSegment(0).getSegmentValue();
+			IPv4AddressSegment first = getSegment(0);
+			result = lower ? first.getSegmentValue() : first.getUpperSegmentValue();
 			if(segCount != 1) {
 				int bitsPerSegment = getBitsPerSegment();
 				for(int i = 1; i < segCount; i++) {

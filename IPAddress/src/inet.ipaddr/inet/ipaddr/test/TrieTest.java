@@ -42,11 +42,15 @@ import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
+import inet.ipaddr.format.util.AddedTree;
+import inet.ipaddr.format.util.AddedTree.AddedTreeNode;
 import inet.ipaddr.format.util.AddressTrie;
 import inet.ipaddr.format.util.AddressTrie.TrieNode;
 import inet.ipaddr.format.util.AddressTrieMap;
 import inet.ipaddr.format.util.AddressTrieMap.EntrySet;
 import inet.ipaddr.format.util.AddressTrieSet;
+import inet.ipaddr.format.util.AssociativeAddedTree;
+import inet.ipaddr.format.util.AssociativeAddedTree.AssociativeAddedTreeNode;
 import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.AssociativeAddressTrie.AssociativeTrieNode;
 import inet.ipaddr.format.util.BinaryTreeNode;
@@ -92,16 +96,21 @@ public class TrieTest extends TestBase {
 		String addrs[];
 		String treeString;
 		String addedNodeString;
+		String treeToIndexString;
+		String addedNodeToIndexString;
 		
-		Strings(String addrs[], String treeString, String addedNodeString) {
+		Strings(String addrs[], String treeString, String addedNodeString, String treeToIndexString, String addedNodeToIndexString) {
 			this.addrs = addrs;
 			this.treeString = treeString;
+			this.treeToIndexString = treeToIndexString;
 			this.addedNodeString = addedNodeString;
+			this.addedNodeToIndexString = addedNodeToIndexString;
 		}
 	}
 	
 	Strings one = new Strings(
-			new String[] {"1::ffff:2:3:5",
+		new String[] {
+			"1::ffff:2:3:5",
 			"1::ffff:2:3:4",
 			"1::ffff:2:3:6",
 			"1::ffff:2:3:12",
@@ -115,85 +124,212 @@ public class TrieTest extends TestBase {
 			"bb::ffff:2:3:42",
 			"bb::ffff:2:3:43", 
 		},
-"\n" +	
-"○ ::/0 (13)\n" +
-"└─○ ::/8 (13)\n" +
-"  ├─○ 1::/64 (7)\n" +
-"  │ ├─○ 1::ff:aa:3:0/123 (2)\n" +
-"  │ │ ├─● 1::ff:aa:3:4 (1)\n" +
-"  │ │ └─● 1::ff:aa:3:12 (1)\n" +
-"  │ └─○ 1::ffff:0:0:0/88 (5)\n" +
-"  │   ├─○ 1::ffff:2:3:0/123 (4)\n" +
-"  │   │ ├─○ 1::ffff:2:3:4/126 (3)\n" +
-"  │   │ │ ├─○ 1::ffff:2:3:4/127 (2)\n" +
-"  │   │ │ │ ├─● 1::ffff:2:3:4 (1)\n" +
-"  │   │ │ │ └─● 1::ffff:2:3:5 (1)\n" +
-"  │   │ │ └─● 1::ffff:2:3:6 (1)\n" +
-"  │   │ └─● 1::ffff:2:3:12 (1)\n" +
-"  │   └─● 1::ffff:aa:3:4 (1)\n" +
-"  └─○ bb::ffff:2:3:0/121 (6)\n" +
-"    ├─○ bb::ffff:2:3:0/122 (4)\n" +
-"    │ ├─○ bb::ffff:2:3:0/123 (2)\n" +
-"    │ │ ├─● bb::ffff:2:3:6 (1)\n" +
-"    │ │ └─● bb::ffff:2:3:12 (1)\n" +
-"    │ └─○ bb::ffff:2:3:20/123 (2)\n" +
-"    │   ├─● bb::ffff:2:3:22 (1)\n" +
-"    │   └─● bb::ffff:2:3:32 (1)\n" +
-"    └─○ bb::ffff:2:3:42/127 (2)\n" +
-"      ├─● bb::ffff:2:3:42 (1)\n" +
-"      └─● bb::ffff:2:3:43 (1)\n",
+		
+		"\n" +	
+		"○ ::/0 (13)\n" +
+		"└─○ ::/8 (13)\n" +
+		"  ├─○ 1::/64 (7)\n" +
+		"  │ ├─○ 1::ff:aa:3:0/123 (2)\n" +
+		"  │ │ ├─● 1::ff:aa:3:4 (1)\n" +
+		"  │ │ └─● 1::ff:aa:3:12 (1)\n" +
+		"  │ └─○ 1::ffff:0:0:0/88 (5)\n" +
+		"  │   ├─○ 1::ffff:2:3:0/123 (4)\n" +
+		"  │   │ ├─○ 1::ffff:2:3:4/126 (3)\n" +
+		"  │   │ │ ├─○ 1::ffff:2:3:4/127 (2)\n" +
+		"  │   │ │ │ ├─● 1::ffff:2:3:4 (1)\n" +
+		"  │   │ │ │ └─● 1::ffff:2:3:5 (1)\n" +
+		"  │   │ │ └─● 1::ffff:2:3:6 (1)\n" +
+		"  │   │ └─● 1::ffff:2:3:12 (1)\n" +
+		"  │   └─● 1::ffff:aa:3:4 (1)\n" +
+		"  └─○ bb::ffff:2:3:0/121 (6)\n" +
+		"    ├─○ bb::ffff:2:3:0/122 (4)\n" +
+		"    │ ├─○ bb::ffff:2:3:0/123 (2)\n" +
+		"    │ │ ├─● bb::ffff:2:3:6 (1)\n" +
+		"    │ │ └─● bb::ffff:2:3:12 (1)\n" +
+		"    │ └─○ bb::ffff:2:3:20/123 (2)\n" +
+		"    │   ├─● bb::ffff:2:3:22 (1)\n" +
+		"    │   └─● bb::ffff:2:3:32 (1)\n" +
+		"    └─○ bb::ffff:2:3:42/127 (2)\n" +
+		"      ├─● bb::ffff:2:3:42 (1)\n" +
+		"      └─● bb::ffff:2:3:43 (1)\n",
 
-"\n" +	
-"○ ::/0\n" +
-"├─● 1::ff:aa:3:4\n" +
-"├─● 1::ff:aa:3:12\n" +
-"├─● 1::ffff:2:3:4\n" +
-"├─● 1::ffff:2:3:5\n" +
-"├─● 1::ffff:2:3:6\n" +
-"├─● 1::ffff:2:3:12\n" +
-"├─● 1::ffff:aa:3:4\n" +
-"├─● bb::ffff:2:3:6\n" +
-"├─● bb::ffff:2:3:12\n" +
-"├─● bb::ffff:2:3:22\n" +
-"├─● bb::ffff:2:3:32\n" +
-"├─● bb::ffff:2:3:42\n" +
-"└─● bb::ffff:2:3:43\n");
+		"\n" +	
+		"○ ::/0\n" +
+		"├─● 1::ff:aa:3:4\n" +
+		"├─● 1::ff:aa:3:12\n" +
+		"├─● 1::ffff:2:3:4\n" +
+		"├─● 1::ffff:2:3:5\n" +
+		"├─● 1::ffff:2:3:6\n" +
+		"├─● 1::ffff:2:3:12\n" +
+		"├─● 1::ffff:aa:3:4\n" +
+		"├─● bb::ffff:2:3:6\n" +
+		"├─● bb::ffff:2:3:12\n" +
+		"├─● bb::ffff:2:3:22\n" +
+		"├─● bb::ffff:2:3:32\n" +
+		"├─● bb::ffff:2:3:42\n" +
+		"└─● bb::ffff:2:3:43\n",
+		
+		"\n" +
+		"○ ::/0 (13)\n" +
+		"└─○ ::/8 (13)\n" +
+		"  ├─○ 1::/64 (7)\n" +
+		"  │ ├─○ 1::ff:aa:3:0/123 (2)\n" +
+		"  │ │ ├─● 1::ff:aa:3:4 = 5 (1)\n" +
+		"  │ │ └─● 1::ff:aa:3:12 = 6 (1)\n" +
+		"  │ └─○ 1::ffff:0:0:0/88 (5)\n" +
+		"  │   ├─○ 1::ffff:2:3:0/123 (4)\n" +
+		"  │   │ ├─○ 1::ffff:2:3:4/126 (3)\n" +
+		"  │   │ │ ├─○ 1::ffff:2:3:4/127 (2)\n" +
+		"  │   │ │ │ ├─● 1::ffff:2:3:4 = 1 (1)\n" +
+		"  │   │ │ │ └─● 1::ffff:2:3:5 = 0 (1)\n" +
+		"  │   │ │ └─● 1::ffff:2:3:6 = 2 (1)\n" +
+		"  │   │ └─● 1::ffff:2:3:12 = 3 (1)\n" +
+		"  │   └─● 1::ffff:aa:3:4 = 4 (1)\n" +
+		"  └─○ bb::ffff:2:3:0/121 (6)\n" +
+		"    ├─○ bb::ffff:2:3:0/122 (4)\n" +
+		"    │ ├─○ bb::ffff:2:3:0/123 (2)\n" +
+		"    │ │ ├─● bb::ffff:2:3:6 = 7 (1)\n" +
+		"    │ │ └─● bb::ffff:2:3:12 = 8 (1)\n" +
+		"    │ └─○ bb::ffff:2:3:20/123 (2)\n" +
+		"    │   ├─● bb::ffff:2:3:22 = 9 (1)\n" +
+		"    │   └─● bb::ffff:2:3:32 = 10 (1)\n" +
+		"    └─○ bb::ffff:2:3:42/127 (2)\n" +
+		"      ├─● bb::ffff:2:3:42 = 11 (1)\n" +
+		"      └─● bb::ffff:2:3:43 = 12 (1)\n",
+		
+		"\n" +
+		"○ ::/0\n" +
+		"├─● 1::ff:aa:3:4 = 5\n" +
+		"├─● 1::ff:aa:3:12 = 6\n" +
+		"├─● 1::ffff:2:3:4 = 1\n" +
+		"├─● 1::ffff:2:3:5 = 0\n" +
+		"├─● 1::ffff:2:3:6 = 2\n" +
+		"├─● 1::ffff:2:3:12 = 3\n" +
+		"├─● 1::ffff:aa:3:4 = 4\n" +
+		"├─● bb::ffff:2:3:6 = 7\n" +
+		"├─● bb::ffff:2:3:12 = 8\n" +
+		"├─● bb::ffff:2:3:22 = 9\n" +
+		"├─● bb::ffff:2:3:32 = 10\n" +
+		"├─● bb::ffff:2:3:42 = 11\n" +
+		"└─● bb::ffff:2:3:43 = 12\n");
 
 
 	Strings two = new Strings(
-			new String[] {"ff80::/8",
-				"ff80:8000::/16",
-				"ff80:8000::/24",
-				"ff80:8000::/32",
-				"ff80:8000:c000::/34",
-				"ff80:8000:c800::/36",
-				"ff80:8000:cc00::/38",
-				"ff80:8000:cc00::/40",
-			},
-"\n" +
-"○ ::/0 (8)\n" +
-"└─○ ff80::/16 (8)\n" +
-"  ├─● ff80:: (1)\n" +
-"  └─● ff80:8000::/24 (7)\n" +
-"    └─● ff80:8000::/32 (6)\n" +
-"      ├─● ff80:8000:: (1)\n" +
-"      └─● ff80:8000:c000::/34 (4)\n" +
-"        └─○ ff80:8000:c800::/37 (3)\n" +
-"          ├─● ff80:8000:c800:: (1)\n" +
-"          └─● ff80:8000:cc00::/38 (2)\n" +
-"            └─● ff80:8000:cc00::/40 (1)\n",
+		new String[] {
+			"ff80::/8",
+			"ff80:8000::/16",
+			"ff80:8000::/24",
+			"ff80:8000::/32",
+			"ff80:8000:c000::/34",
+			"ff80:8000:c800::/36",
+			"ff80:8000:cc00::/38",
+			"ff80:8000:cc00::/40",
+		},
+		"\n" +
+		"○ ::/0 (8)\n" +
+		"└─○ ff80::/16 (8)\n" +
+		"  ├─● ff80:: (1)\n" +
+		"  └─● ff80:8000::/24 (7)\n" +
+		"    └─● ff80:8000::/32 (6)\n" +
+		"      ├─● ff80:8000:: (1)\n" +
+		"      └─● ff80:8000:c000::/34 (4)\n" +
+		"        └─○ ff80:8000:c800::/37 (3)\n" +
+		"          ├─● ff80:8000:c800:: (1)\n" +
+		"          └─● ff80:8000:cc00::/38 (2)\n" +
+		"            └─● ff80:8000:cc00::/40 (1)\n",
 
-"\n" +	
-"○ ::/0\n" +
-"├─● ff80::\n" +
-"└─● ff80:8000::/24\n" +
-"  └─● ff80:8000::/32\n" +
-"    ├─● ff80:8000::\n" +
-"    └─● ff80:8000:c000::/34\n" +
-"      ├─● ff80:8000:c800::\n" +
-"      └─● ff80:8000:cc00::/38\n" +
-"        └─● ff80:8000:cc00::/40\n");
+		"\n" +	
+		"○ ::/0\n" +
+		"├─● ff80::\n" +
+		"└─● ff80:8000::/24\n" +
+		"  └─● ff80:8000::/32\n" +
+		"    ├─● ff80:8000::\n" +
+		"    └─● ff80:8000:c000::/34\n" +
+		"      ├─● ff80:8000:c800::\n" +
+		"      └─● ff80:8000:cc00::/38\n" +
+		"        └─● ff80:8000:cc00::/40\n",
+		
+		"\n" +
+		"○ ::/0 (8)\n" +
+		"└─○ ff80::/16 (8)\n" +
+		"  ├─● ff80:: = 0 (1)\n" +
+		"  └─● ff80:8000::/24 = 2 (7)\n" +
+		"    └─● ff80:8000::/32 = 3 (6)\n" +
+		"      ├─● ff80:8000:: = 1 (1)\n" +
+		"      └─● ff80:8000:c000::/34 = 4 (4)\n" +
+		"        └─○ ff80:8000:c800::/37 (3)\n" +
+		"          ├─● ff80:8000:c800:: = 5 (1)\n" +
+		"          └─● ff80:8000:cc00::/38 = 6 (2)\n" +
+		"            └─● ff80:8000:cc00::/40 = 7 (1)\n",
+		
+		"\n" +
+		"○ ::/0\n" +
+		"├─● ff80:: = 0\n" +
+		"└─● ff80:8000::/24 = 2\n" +
+		"  └─● ff80:8000::/32 = 3\n" +
+		"    ├─● ff80:8000:: = 1\n" +
+		"    └─● ff80:8000:c000::/34 = 4\n" +
+		"      ├─● ff80:8000:c800:: = 5\n" +
+		"      └─● ff80:8000:cc00::/38 = 6\n" +
+		"        └─● ff80:8000:cc00::/40 = 7\n");
 
+	Strings three = new Strings(
+		new String[] {
+			"192.168.10.0/24",
+			"192.168.10.0/26",
+			"192.168.10.64/27",
+			"192.168.10.96/27",
+			"192.168.10.128/30",
+			"192.168.10.132/30",
+			"192.168.10.136/30",
+		},
+		"\n" +
+		"○ 0.0.0.0/0 (7)\n" +
+		"└─● 192.168.10.0/24 (7)\n" +
+		"  ├─○ 192.168.10.0/25 (3)\n" +
+		"  │ ├─● 192.168.10.0/26 (1)\n" +
+		"  │ └─○ 192.168.10.64/26 (2)\n" +
+		"  │   ├─● 192.168.10.64/27 (1)\n" +
+		"  │   └─● 192.168.10.96/27 (1)\n" +
+		"  └─○ 192.168.10.128/28 (3)\n" +
+		"    ├─○ 192.168.10.128/29 (2)\n" +
+		"    │ ├─● 192.168.10.128/30 (1)\n" +
+		"    │ └─● 192.168.10.132/30 (1)\n" +
+		"    └─● 192.168.10.136/30 (1)\n",
+		
+		"\n" +
+		"○ 0.0.0.0/0\n" +
+		"└─● 192.168.10.0/24\n" +
+		"  ├─● 192.168.10.0/26\n" +
+		"  ├─● 192.168.10.64/27\n" +
+		"  ├─● 192.168.10.96/27\n" +
+		"  ├─● 192.168.10.128/30\n" +
+		"  ├─● 192.168.10.132/30\n" +
+		"  └─● 192.168.10.136/30\n",
+		
+		"\n" +
+		"○ 0.0.0.0/0 (7)\n" +
+		"└─● 192.168.10.0/24 = 0 (7)\n" +
+		"  ├─○ 192.168.10.0/25 (3)\n" +
+		"  │ ├─● 192.168.10.0/26 = 1 (1)\n" +
+		"  │ └─○ 192.168.10.64/26 (2)\n" +
+		"  │   ├─● 192.168.10.64/27 = 2 (1)\n" +
+		"  │   └─● 192.168.10.96/27 = 3 (1)\n" +
+		"  └─○ 192.168.10.128/28 (3)\n" +
+		"    ├─○ 192.168.10.128/29 (2)\n" +
+		"    │ ├─● 192.168.10.128/30 = 4 (1)\n" +
+		"    │ └─● 192.168.10.132/30 = 5 (1)\n" +
+		"    └─● 192.168.10.136/30 = 6 (1)\n",
+		
+		"\n" +
+		"○ 0.0.0.0/0\n" +
+		"└─● 192.168.10.0/24 = 0\n" +
+		"  ├─● 192.168.10.0/26 = 1\n" +
+		"  ├─● 192.168.10.64/27 = 2\n" +
+		"  ├─● 192.168.10.96/27 = 3\n" +
+		"  ├─● 192.168.10.128/30 = 4\n" +
+		"  ├─● 192.168.10.132/30 = 5\n" +
+		"  └─● 192.168.10.136/30 = 6\n");
 
 	static String testIPAddressTries[][] = {{
 				"1.2.3.4",
@@ -309,7 +445,7 @@ public class TrieTest extends TestBase {
 	};
 	
 	
-	void testString(Strings strs) {
+	void testIPv6Strings(Strings strs) {
 		IPv6AddressTrie ipv6Tree = new IPv6AddressTrie();
 		createSampleTree(ipv6Tree, strs.addrs);
 		String treeStr = ipv6Tree.toString();
@@ -320,6 +456,167 @@ public class TrieTest extends TestBase {
 		if(!addedString.contentEquals(strs.addedNodeString)) {
 			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeString, ipv6Tree);
 		}
+		AddedTree<IPv6Address> addedT = ipv6Tree.constructAddedNodesTree();
+		addedString = addedT.toString();
+		if(!addedString.contentEquals(strs.addedNodeString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeString, ipv6Tree);
+		}
+		
+		AddedTreeNode<IPv6Address> troot = addedT.getRoot();
+		class TCounter {
+			int count = 0;
+			void count(AddedTreeNode<IPv6Address> node) {
+				count++;
+				AddedTreeNode<IPv6Address>[] subNodes = node.getSubNodes();
+				if(subNodes == null) {
+					return;
+				}
+				for(AddedTreeNode<IPv6Address> daNode : subNodes) {
+					count(daNode);
+				}
+			}
+		}
+		TCounter tcounter = new TCounter();
+		if(!troot.isAdded()) {
+			tcounter.count--;
+		}
+		tcounter.count(troot);
+		if(tcounter.count != ipv6Tree.size()) {
+			addFailure("trie count is wrong, got " + tcounter.count + " instead of expected " + ipv6Tree.size(), ipv6Tree);
+		}
+		
+		IPv6AddressAssociativeTrie<Integer> assocTrie = new IPv6AddressAssociativeTrie<Integer>();
+		for(int i = 0; i < strs.addrs.length; i++) {
+			IPAddressString addressStr = createAddress(strs.addrs[i]);
+			IPv6Address address = addressStr.getAddress().toIPv6();
+			assocTrie.put(address, i);
+		}
+		treeStr = assocTrie.toString();
+		if(!treeStr.contentEquals(strs.treeToIndexString)) {
+			addFailure("trie string not right, got " + treeStr + " instead of expected " + strs.treeToIndexString, ipv6Tree);
+		}
+		addedString = assocTrie.toAddedNodesTreeString();
+		if(!addedString.contentEquals(strs.addedNodeToIndexString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeToIndexString, ipv6Tree);
+		}
+		AssociativeAddedTree<IPv6Address, Integer> addedTree = assocTrie.constructAddedNodesTree();
+		addedString = addedTree.toString();
+		if(!addedString.contentEquals(strs.addedNodeToIndexString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeToIndexString, ipv6Tree);
+		}
+		
+		AssociativeAddedTreeNode<IPv6Address, Integer> root = addedTree.getRoot();
+		class Counter {
+			int count = 0;
+			void count(AssociativeAddedTreeNode<IPv6Address, Integer> node) {
+				count++;
+				AssociativeAddedTreeNode<IPv6Address, Integer>[] subNodes = node.getSubNodes();
+				if(subNodes == null) {
+					return;
+				}
+				for(AssociativeAddedTreeNode<IPv6Address, Integer> daNode : subNodes) {
+					count(daNode);
+				}
+			}
+		}
+		Counter counter = new Counter();
+		if(!root.isAdded()) {
+			counter.count--;
+		}
+		counter.count(root);
+		if(counter.count != assocTrie.size()) {
+			addFailure("trie count is wrong, got " + counter.count + " instead of expected " + assocTrie.size(), ipv6Tree);
+		}
+		
+		incrementTestCount();
+	}
+	
+	void testIPv4Strings(Strings strs) {
+		IPv4AddressTrie ipv4Tree = new IPv4AddressTrie();
+		createSampleTree(ipv4Tree, strs.addrs);
+		String treeStr = ipv4Tree.toString();
+		if(!treeStr.contentEquals(strs.treeString)) {
+			addFailure("trie string not right, got " + treeStr + " instead of expected " + strs.treeString, ipv4Tree);
+		}
+		String addedString = ipv4Tree.toAddedNodesTreeString();
+		if(!addedString.contentEquals(strs.addedNodeString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeString, ipv4Tree);
+		}
+		AddedTree<IPv4Address> addedT = ipv4Tree.constructAddedNodesTree();
+		addedString = addedT.toString();
+		if(!addedString.contentEquals(strs.addedNodeString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeString, ipv4Tree);
+		}
+		
+		
+		AddedTreeNode<IPv4Address> troot = addedT.getRoot();
+		class TCounter {
+			int count = 0;
+			void count(AddedTreeNode<IPv4Address> node) {
+				count++;
+				AddedTreeNode<IPv4Address>[] subNodes = node.getSubNodes();
+				if(subNodes == null) {
+					return;
+				}
+				for(AddedTreeNode<IPv4Address> daNode : subNodes) {
+					count(daNode);
+				}
+			}
+		}
+		TCounter tcounter = new TCounter();
+		if(!troot.isAdded()) {
+			tcounter.count--;
+		}
+		tcounter.count(troot);
+		if(tcounter.count != ipv4Tree.size()) {
+			addFailure("trie count is wrong, got " + tcounter.count + " instead of expected " + ipv4Tree.size(), ipv4Tree);
+		}
+
+		
+		IPv4AddressAssociativeTrie<Integer> assocTrie = new IPv4AddressAssociativeTrie<Integer>();
+		for(int i = 0; i < strs.addrs.length; i++) {
+			IPAddressString addressStr = createAddress(strs.addrs[i]);
+			IPv4Address address = addressStr.getAddress().toIPv4();
+			assocTrie.put(address, i);
+		}
+		treeStr = assocTrie.toString();
+		if(!treeStr.contentEquals(strs.treeToIndexString)) {
+			addFailure("trie string not right, got " + treeStr + " instead of expected " + strs.treeToIndexString, ipv4Tree);
+		}
+		addedString = assocTrie.toAddedNodesTreeString();
+		if(!addedString.contentEquals(strs.addedNodeToIndexString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeToIndexString, ipv4Tree);
+		}
+		AssociativeAddedTree<IPv4Address, Integer> addedTree = assocTrie.constructAddedNodesTree();
+		addedString = addedTree.toString();
+		if(!addedString.contentEquals(strs.addedNodeToIndexString)) {
+			addFailure("trie string not right, got " + addedString + " instead of expected " + strs.addedNodeToIndexString, ipv4Tree);
+		}
+		
+		AssociativeAddedTreeNode<IPv4Address, Integer> root = addedTree.getRoot();
+		class Counter {
+			int count = 0;
+			void count(AssociativeAddedTreeNode<IPv4Address, Integer> node) {
+				count++;
+				AssociativeAddedTreeNode<IPv4Address, Integer>[] subNodes = node.getSubNodes();
+				if(subNodes == null) {
+					return;
+				}
+				for(AssociativeAddedTreeNode<IPv4Address, Integer> daNode : subNodes) {
+					count(daNode);
+				}
+			}
+		}
+		Counter counter = new Counter();
+		if(!root.isAdded()) {
+			counter.count--;
+		}
+		counter.count(root);
+		if(counter.count != assocTrie.size()) {
+			addFailure("trie count is wrong, got " + counter.count + " instead of expected " + assocTrie.size(), ipv4Tree);
+		}
+		
+		incrementTestCount();
 	}
 	
 	static void testRemove(TestBase testBase, String addrs[]) {
@@ -2120,7 +2417,6 @@ public class TrieTest extends TestBase {
 		testContainment(orderedAddrs, set);
 	}
 
-	@SuppressWarnings("unchecked")
 	<R extends AddressTrie<T>, T extends Address> void testContainment(
 			T address, List<T> ordered, NavigableSet<T> set) {
 		ArrayList<T> containing = new ArrayList<T>();
@@ -2717,7 +3013,6 @@ public class TrieTest extends TestBase {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private <R extends AddressTrie<T>, T extends Address> void testBoundedClone(NavigableSet<T> set) {
 		// when cloning, the bounds are removed and the out-of-bounds nodes are trimmed from the trie
 		AddressTrie<T> newTrie;
@@ -2913,7 +3208,6 @@ public class TrieTest extends TestBase {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	<T extends Address, V> void testSetEdges(
 			NavigableSet<T> set, 
 			List<T> ordered, 
@@ -3483,8 +3777,9 @@ public class TrieTest extends TestBase {
 		IPAddress addr = createAddress("::").getAddress();
 		PrefixConfiguration prefCon = addr.getNetwork().getPrefixConfiguration();
 		if(prefCon.zeroHostsAreSubnets()) {
-			testString(one);
-			testString(two);
+			testIPv6Strings(one);
+			testIPv6Strings(two);
+			testIPv4Strings(three);
 		}
 		
 		// try deleting the root

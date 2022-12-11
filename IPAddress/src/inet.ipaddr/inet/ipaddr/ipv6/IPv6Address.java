@@ -2258,7 +2258,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	public IPv6AddressSeqRange toSequentialRange() {
-		return new IPv6AddressSeqRange(getLower(), getUpper());
+		IPv6Address thiz = removeZone().withoutPrefixLength();
+		return new IPv6AddressSeqRange(thiz.getLower(), thiz.getUpper(), true);
 	}
 	
 	@Override
