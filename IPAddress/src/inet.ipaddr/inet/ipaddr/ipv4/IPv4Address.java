@@ -1063,7 +1063,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4AddressSeqRange toSequentialRange() {
-		return new IPv4AddressSeqRange(getLower(), getUpper());
+		IPv4Address thiz = withoutPrefixLength();
+		return new IPv4AddressSeqRange(thiz.getLower(), thiz.getUpper(), true);
 	}
 
 	@Override

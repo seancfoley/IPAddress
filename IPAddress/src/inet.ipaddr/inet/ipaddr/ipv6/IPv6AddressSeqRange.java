@@ -49,6 +49,10 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
 	private static final IPv6AddressSeqRange EMPTY[] = {};
 	
+	IPv6AddressSeqRange(IPv6Address first, IPv6Address second, boolean preSet) {
+		super(first, second, preSet);
+	}
+
 	public IPv6AddressSeqRange(IPv6Address first, IPv6Address second) {
 		super(
 			first,

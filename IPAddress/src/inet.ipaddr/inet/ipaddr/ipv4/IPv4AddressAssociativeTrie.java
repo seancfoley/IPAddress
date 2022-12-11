@@ -18,11 +18,11 @@
 package inet.ipaddr.ipv4;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Spliterator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import inet.ipaddr.format.util.AssociativeAddedTree;
 import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
@@ -474,12 +474,17 @@ public class IPv4AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv4Ad
 		return (IPv4AddressAssociativeTrie<V>) super.clone();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public AssociativeAddressTrie<IPv4Address, List<IPv4AssociativeTrieNode<?>>> constructAddedNodesTree() {
-		IPv4AddressAssociativeTrie<List<AssociativeTrieNode<IPv4Address, ?>>> trie = new IPv4AddressAssociativeTrie<>();
-		contructAddedTree(trie);
-		IPv4AddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<IPv4Address, ?>>> ret = trie;
-		return (AssociativeAddressTrie<IPv4Address, List<IPv4AssociativeTrieNode<?>>>) ret;
+	public AssociativeAddedTree<IPv4Address, V> constructAddedNodesTree() {
+		IPv4AddressAssociativeTrie<SubNodesMappingAssociative<IPv4Address, V>> trie = new IPv4AddressAssociativeTrie<SubNodesMappingAssociative<IPv4Address, V>>();
+		contructAssociativeAddedTree(trie);
+		return new AssociativeAddedTree<IPv4Address, V>(trie);
+	}
+
+	@Override
+	public String toAddedNodesTreeString() {
+		IPv4AddressAssociativeTrie<SubNodesMappingAssociative<IPv4Address, V>> trie = new IPv4AddressAssociativeTrie<SubNodesMappingAssociative<IPv4Address, V>>();
+		contructAssociativeAddedTree(trie);
+		return toAddedNodesTreeString(trie);
 	}
 }

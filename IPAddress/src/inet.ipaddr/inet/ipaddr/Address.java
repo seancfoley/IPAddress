@@ -19,7 +19,9 @@
 package inet.ipaddr;
 
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -625,4 +627,66 @@ public abstract class Address implements AddressSegmentSeries {
 	@Deprecated
 	@Override
 	public abstract Address applyPrefixLength(int networkPrefixLength);
+	
+	/** 
+	 * Checks if the two arrays share the same list of addresses, subnets, or address collections, in any order, using address equality.
+	 * The function can handle duplicates, ignoring them.
+	 * @param addrs1
+	 * @param addrs2
+	 * @return
+	 */
+	public static boolean matchUnordered(Address addrs1[], Address addrs2[]) {
+		int len1 = addrs1 == null ? 0 : addrs1.length;
+		int len2 = addrs2 == null ? 0 : addrs2.length;
+		boolean sameLen = len1 == len2;
+		boolean result;
+		if(len1 == 0 || len2 == 0) {
+			result = sameLen;
+		} else if(len1 == 1 && sameLen) {
+			result = addrs1[0].equals(addrs2[0]);
+		} else if(len1 == 2 && sameLen) {
+			if(addrs1[0].equals(addrs2[0])) {
+				result = addrs1[1].equals(addrs2[1]);
+			} else if(result = addrs1[0].equals(addrs2[1])) {
+				result = addrs1[1].equals(addrs2[0]);
+			}
+		} else {
+			result = Objects.equals(asSet(addrs1), asSet(addrs2));
+		}
+		return result;
+	}
+	
+	private static HashSet<Address> asSet(Address addrs[])  {
+		int addrLen = addrs.length;
+		if(addrLen > 0) {
+			HashSet<Address> result = new HashSet<>();
+			for(int i = 0; i < addrs.length; i++) {
+				Address addr = addrs[i];
+				result.add(addr);
+			}
+			return result;
+		}
+		return null;
+	}
+	
+	/**
+	 * Checks if the two arrays share the same ordered list of addresses, subnets, or address collections, using address equality.
+	 * Duplicates are allowed, but must match their counterpart in the other array with each occurrence.
+	 * @param addrs1
+	 * @param addrs2
+	 * @return
+	 */
+	public static boolean matchOrdered(Address addrs1[], Address addrs2[]) {
+		int len1 = addrs1 == null ? 0 : addrs1.length;
+		int len2 = addrs2 == null ? 0 : addrs2.length;
+		if(len1 != len2) {
+			return false;
+		}
+		for(int i = 0; i < addrs1.length; i++) {
+			if(!addrs1[i].equals(addrs2[i])) {
+				return false;
+			}
+		}
+		return true;
+	}
 }

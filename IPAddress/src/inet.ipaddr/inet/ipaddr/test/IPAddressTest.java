@@ -55,7 +55,10 @@ import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
 import inet.ipaddr.IncompatibleAddressException;
+import inet.ipaddr.PrefixBlockAllocator;
+import inet.ipaddr.PrefixBlockAllocator.AllocatedBlock;
 import inet.ipaddr.PrefixLenException;
+import inet.ipaddr.format.AddressItem;
 import inet.ipaddr.format.IPAddressDivisionSeries;
 import inet.ipaddr.format.IPAddressGenericDivision;
 import inet.ipaddr.format.large.IPAddressLargeDivision;
@@ -3993,6 +3996,136 @@ public class IPAddressTest extends TestBase {
 			addFailure(new Failure("invalid IPv4-mapped result " + !expected, addrStr));
 		} else if(addrStr.getAddress().toIPv6().isIPv4Mapped() != expected) {
 			addFailure(new Failure("invalid IPv4-mapped result " + !expected, addrStr));
+		}
+	}
+
+	void testAllocator(String blocksStrs[], long sizes[], int reservedCount, ExpectedBlock expected[]) {
+		IPAddress blocks[] = new IPAddress[blocksStrs.length];
+		for(int i = 0; i < blocksStrs.length; i++) {
+			blocks[i] = createAddress(blocksStrs[i]).getAddress();
+		}
+		PrefixBlockAllocator<IPAddress> alloc = new PrefixBlockAllocator<IPAddress>();
+		testAllocator(alloc, blocks, sizes, reservedCount, expected);
+		if(alloc.getVersion().isIPv4()) {
+			PrefixBlockAllocator<IPv4Address> allocv4 = new PrefixBlockAllocator<>();
+			IPv4Address blcks[] = Arrays.stream(blocks).map(addr -> addr.toIPv4()).toArray(IPv4Address[]::new);
+			testAllocator(allocv4, blcks, sizes, reservedCount, expected);
+		} else if(alloc.getVersion().isIPv6()) {
+			PrefixBlockAllocator<IPv6Address> allocv6 = new PrefixBlockAllocator<>();
+			IPv6Address blcks[] = Arrays.stream(blocks).map(addr -> addr.toIPv6()).toArray(IPv6Address[]::new);
+			testAllocator(allocv6, blcks, sizes, reservedCount, expected);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	<E extends IPAddress> void testAllocator(PrefixBlockAllocator<E> alloc, E blocks[], long sizes[], int reservedCount, ExpectedBlock expected[]) {
+		alloc.addAvailable(blocks);
+		alloc.setReserved(reservedCount);
+		AllocatedBlock<E>[] allocatedBlocks = alloc.allocateSizes(sizes);
+		for(int i = 0; i < allocatedBlocks.length; i++) {
+			AllocatedBlock<E> ab = allocatedBlocks[i];
+			if(expected == null || expected.length <= i) {
+				continue; // note we will fail on the length check below
+			}
+			IPAddress expectedAddr = createAddress(expected[i].addr).getAddress();
+			if(!ab.block.equals(expectedAddr)) {
+				addFailure(new Failure("mismatch: " + ab.block + " with expected address " + expectedAddr, expectedAddr));
+			}
+			if(!ab.blockSize.equals(BigInteger.valueOf(expected[i].count))) {
+				addFailure(new Failure("mismatch: " + ab.blockSize + " with expected count " + expected[i].count, expectedAddr));
+			}
+			if(reservedCount >= 0 && ab.blockSize.compareTo(ab.getCount()) > 0) {
+				addFailure(new Failure("mismatch: " + ab.blockSize + " with count " + ab.getCount(), expectedAddr));
+			}
+			//if reservedCount <= 0 && ab.GetSize().Cmp(ab.GetCount()) < 0 {
+			//	t.addFailure(newAddressItemFailure(fmt.Sprint("mismatch: ", ab.GetSize(), " with count 2 ", ab.GetCount()), expectedAddr))
+			//}
+			if(!expectedAddr.getCount().equals(ab.getCount())) {
+				addFailure(new Failure("mismatch: " + ab.blockSize + " with count " + ab.getCount(), expectedAddr));
+			}
+			if(ab.reservedCount != reservedCount) {
+				addFailure(new Failure("mismatch: " + ab.reservedCount + " with expected reserved count " + reservedCount, expectedAddr));
+			}
+		}
+		if(allocatedBlocks.length != expected.length) {
+			addFailure(new Failure("mismatch blocks length: " + allocatedBlocks.length + " with " + expected.length, (AddressItem) null));
+		}
+		for(AllocatedBlock<E> allocated :  allocatedBlocks) {
+			alloc.addAvailable(allocated.block);
+		}
+		if(!IPAddress.matchUnordered(blocks, alloc.getAvailable())) {
+			addFailure(new Failure("mismatch blocks: " + blocks + " with " + alloc.getAvailable(), (AddressItem) null));
+		}
+		incrementTestCount();
+	}
+
+	void testAllocator(String blocksStrs[], int bitLengths[], ExpectedBlock expected[]) {
+		IPAddress blocks[] = new IPAddress[blocksStrs.length];
+		for(int i = 0; i < blocksStrs.length; i++) {
+			blocks[i] = createAddress(blocksStrs[i]).getAddress();
+		}
+		PrefixBlockAllocator<IPAddress> alloc = new PrefixBlockAllocator<IPAddress>();
+		testAllocator(alloc, blocks, bitLengths, expected);
+		if(alloc.getVersion().isIPv4()) {
+			PrefixBlockAllocator<IPv4Address> allocv4 = new PrefixBlockAllocator<>();
+			IPv4Address blcks[] = Arrays.stream(blocks).map(addr -> addr.toIPv4()).toArray(IPv4Address[]::new);
+			testAllocator(allocv4, blcks, bitLengths, expected);
+		} else if(alloc.getVersion().isIPv6()) {
+			PrefixBlockAllocator<IPv6Address> allocv6 = new PrefixBlockAllocator<>();
+			IPv6Address blcks[] = Arrays.stream(blocks).map(addr -> addr.toIPv6()).toArray(IPv6Address[]::new);
+			testAllocator(allocv6, blcks, bitLengths, expected);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	<E extends IPAddress> void testAllocator(PrefixBlockAllocator<E> alloc, E blocks[], int bitLengths[], ExpectedBlock expected[]) {
+		alloc.addAvailable(blocks);
+		AllocatedBlock<E>[] allocatedBlocks = alloc.allocateMultiBitLens(bitLengths);
+		for(int i = 0; i < allocatedBlocks.length; i++) {
+			AllocatedBlock<E> ab = allocatedBlocks[i];
+			if(expected == null || expected.length <= i) {
+				continue; // note we will fail on the length check below
+			}
+			IPAddress expectedAddr = createAddress(expected[i].addr).getAddress();
+			if(!ab.block.equals(expectedAddr)) {
+				addFailure(new Failure("mismatch: " + ab.block + " with expected address " + expectedAddr, expectedAddr));
+			}
+			if(!ab.blockSize.equals(BigInteger.valueOf(expected[i].count))) {
+				addFailure(new Failure("mismatch: " + ab.blockSize + " with expected count " + expected[i].count, expectedAddr));
+			}
+			if(ab.blockSize.compareTo(ab.getCount()) > 0) {
+				addFailure(new Failure("mismatch: " + ab.blockSize + " with count " + ab.getCount(), expectedAddr));
+			}
+			//if reservedCount <= 0 && ab.GetSize().Cmp(ab.GetCount()) < 0 {
+			//	t.addFailure(newAddressItemFailure(fmt.Sprint("mismatch: ", ab.GetSize(), " with count 2 ", ab.GetCount()), expectedAddr))
+			//}
+			if(!expectedAddr.getCount().equals(ab.getCount())) {
+				addFailure(new Failure("mismatch: " + ab.blockSize + " with count " + ab.getCount(), expectedAddr));
+			}
+			if(ab.reservedCount != 0) {
+				addFailure(new Failure("mismatch: " + ab.reservedCount + " with expected reserved count " + 0, expectedAddr));
+			}
+		}
+		if(allocatedBlocks.length != expected.length) {
+			addFailure(new Failure("mismatch blocks length: " + allocatedBlocks.length + " with " + expected.length, (AddressItem) null));
+		}
+		for(AllocatedBlock<E> allocated :  allocatedBlocks) {
+			alloc.addAvailable(allocated.block);
+		}
+		if(!IPAddress.matchUnordered(blocks, alloc.getAvailable())) {
+			addFailure(new Failure("mismatch blocks: " + blocks + " with " + alloc.getAvailable(), (AddressItem) null));
+		}
+		incrementTestCount();
+	}
+
+	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
+	static class ExpectedBlock {
+		int count;
+		String addr;
+		
+		ExpectedBlock(int count, String addr) {
+			this.count = count;
+			this.addr = addr;
 		}
 	}
 

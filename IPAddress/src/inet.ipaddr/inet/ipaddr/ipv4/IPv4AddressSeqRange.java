@@ -48,6 +48,10 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 
 	private static final IPv4AddressSeqRange EMPTY[] = {};
 		
+	IPv4AddressSeqRange(IPv4Address first, IPv4Address second, boolean preSet) {
+		super(first, second, preSet);
+	}
+	
 	public IPv4AddressSeqRange(IPv4Address first, IPv4Address second) {
 		super(
 			first,

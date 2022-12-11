@@ -2357,11 +2357,15 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	 */
 	@Override
 	public String toString() {
-		return (isAdded() ? ADDED_NODE_CIRCLE + ' ' : NON_ADDED_NODE_CIRCLE + ' ') + getNodeIdentifier();
+		return toNodeString(new StringBuilder(50), isAdded(), getKey(),  null).toString();
 	}
 
-	String getNodeIdentifier() {
-		return String.valueOf(getKey());
+	static <E, V> StringBuilder toNodeString(StringBuilder builder, boolean isAdded, E key, V value) {
+		builder.append(isAdded ? ADDED_NODE_CIRCLE: NON_ADDED_NODE_CIRCLE).append(' ').append(key);
+		if(value != null) {
+			builder.append(" = ").append(value);
+		}
+		return builder;
 	}
 
 	/**
@@ -2403,7 +2407,6 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 		BinaryTreeNode<E> rootClone = cloneTreeNode(changeTracker);
 		BinaryTreeNode<E> clonedNode = rootClone;
 		SubNodeCachingIterator<E, ?> iterator = (SubNodeCachingIterator<E, ?>) clonedNode.containingFirstAllNodeIterator(true);
-		//Iterator<? extends BinaryTreeNode<E>> iterator = (Iterator<? extends BinaryTreeNode<E>>) clonedNode.containingFirstAllNodeIterator(true);
 		boolean recalculateSize = false;
 		do {
 			BinaryTreeNode<E> lower = clonedNode.getLowerSubNode();

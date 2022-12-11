@@ -63,11 +63,17 @@ import inet.ipaddr.format.validate.ParsedAddressGrouping;
 public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	private static final long serialVersionUID = 1L;
-	
+	public static final String DEFAULT_RANGE_SEPARATOR = " -> ";
+
 	protected final IPAddress lower, upper;
 	
 	private transient BigInteger count;
 	private transient int hashCode;
+
+	protected <T extends IPAddress> IPAddressSeqRange(T first, T second, boolean preSet) {
+		lower = first;
+		upper = second;
+	}
 
 	protected <T extends IPAddress> IPAddressSeqRange(
 			T first, 
@@ -257,11 +263,6 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			    	orig = null;
 			    	return result;
 			    }
-			
-			    @Override
-				public void remove() {
-			    	throw new UnsupportedOperationException();
-			    }
 			};
 		}
 		return new Iterator<IPAddressSeqRange>() {
@@ -298,11 +299,6 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		    	}
 		    	return next.toSequentialRange();
 		    }
-		
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
-		    }
 		};
 	}
 
@@ -318,9 +314,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 
 	/**
-	 * Splits a sequential range into two
+	 * Splits a sequential range into two.
 	 * <p>
-	 * Returns false if it cannot be done
+	 * Returns false if it cannot be done.
 	 * 
 	 * @param beingSplit
 	 * @param transformer
@@ -451,7 +447,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			int networkSegmentIndex,
 			int hostSegmentIndex,
 			SegFunction<S, Iterator<S>> prefixedSegIteratorProducer) {
-		int divCount = lower.getDivisionCount();
+		int divCount = lower.getSegmentCount();
 		
 		// at any given point in time, this list provides an iterator for the segment at each index
 		ArrayList<Supplier<Iterator<S>>> segIteratorProducerList = new ArrayList<Supplier<Iterator<S>>>(divCount);
@@ -575,11 +571,17 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			);
 	}
 	
+	/**
+	 * Returns the lowest address in the sequential range, the one with the lowest numeric value
+	 */
 	@Override
 	public IPAddress getLower() {
 		return lower;
 	}
 	
+	/**
+	 * Returns the highest address in the sequential range, the one with the highest numeric value
+	 */
 	@Override
 	public IPAddress getUpper() {
 		return upper;
@@ -589,20 +591,31 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		Function<IPAddress, String> stringer = IPAddress::toNormalizedString;
 		return toString(stringer, separator, stringer);
 	}
-	
+
+	/**
+	 * Produces a normalized string for the address range.
+	 * It has the format "lower -> upper" where lower and upper are the normalized strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
+	 */
 	@Override
 	public String toNormalizedString() {
-		return toNormalizedString(" -> ");
+		return toNormalizedString(DEFAULT_RANGE_SEPARATOR);
 	}
-	
+
+	/**
+	 * Produces a canonical string for the address range with the given separator string.
+	 */
 	public String toCanonicalString(String separator) {
 		Function<IPAddress, String> stringer = IPAddress::toCanonicalString;
 		return toString(stringer, separator, stringer);
 	}
-	
+
+	/**
+	 * Produces a canonical string for the address range.
+	 * It has the format "lower -> upper" where lower and upper are the canonical strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
+	 */
 	@Override
 	public String toCanonicalString() {
-		return toCanonicalString(" -> ");
+		return toCanonicalString(DEFAULT_RANGE_SEPARATOR);
 	}
 	
 	public String toString(Function<? super IPAddress, String> lowerStringer, String separator, Function<? super IPAddress, String> upperStringer) {
@@ -614,6 +627,10 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		return toCanonicalString();
 	}
 
+	/**
+	 * Returns the minimal-size prefix block that covers all the addresses in this range.
+	 * The resulting block will have a larger count than this, unless this range already directly corresponds to a prefix block.
+	 */
 	@Override
 	public abstract IPAddress coverWithPrefixBlock();
 	
@@ -652,7 +669,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		Arrays.sort(ranges, 0, len, Address.ADDRESS_LOW_VALUE_COMPARATOR);
 		for(int i = 0; i < len; i++) {
 			IPAddressSeqRange range = ranges[i];
-			if(range == null) {
+			if(range == null) { // as we join two array items, we set the upper array element to null
 				continue;
 			}
 			IPAddress currentLower = range.getLower();
@@ -667,13 +684,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 				if(compareLowValues(currentUpper, nextLower) >= 0
 						|| currentUpper.increment(1).equals(nextLower)) {
 					//join them
+					joinedCount++;
 					IPAddress nextUpper = range2.getUpper();
 					if(compareLowValues(currentUpper, nextUpper) < 0) {
 						currentUpper = nextUpper;
 					}
 					ranges[j] = null;
 					didJoin = true;
-					joinedCount++;
 				} else break;
 			}
 			if(didJoin) {
@@ -723,7 +740,14 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean contains(IPAddressSeqRange other) {
 		return containsRange(other);
 	}
-	
+
+	/**
+	 * Returns whether the address or subnet represents a range of values that are sequential.
+	 * <p>
+	 * IP address sequential ranges are sequential by definition, so this returns true.
+	 * 
+	 * @return true
+	 */
 	@Override
 	public boolean isSequential() {
 		return true;
@@ -738,7 +762,11 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return res;
 	}
-	
+
+	/**
+	 * Returns whether the given sequential address range is equal to this sequential address range.
+ 	 * Two sequential address ranges are equal if their lower and upper range boundaries are equal.
+	 */
 	@Override
 	public boolean equals(Object o) {
 		if(o instanceof IPAddressSeqRange) {
@@ -774,11 +802,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 	
 	/**
+	 * Joins two ranges if they are contiguous ranges.
+	 * 
 	 * If this range overlaps with the given range,
 	 * or if the highest value of the lower range is one below the lowest value of the higher range,
 	 * then the two are joined into a new larger range that is returned.
 	 * <p>
-	 * Otherwise null is returned.
+	 * Otherwise, null is returned.
 	 * 
 	 * @param other
 	 * @return
@@ -873,10 +903,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 				int comp = compareLowValues(upper, otherLower);
 				if(comp < 0) { // l u ol ou
 					return createSingle();
-				} else if(comp == 0) { // l u == ol ou
-					return createSingle(lower, upper.increment(-1));
 				}
-				return createSingle(lower, otherLower.increment(-1)); // l ol u ou 
+				return createSingle(lower, otherLower.increment(-1)); // l ol u ou  (includes l u == ol ou)
 			}
 		} else if(compareLowValues(otherUpper, upper) >= 0) { // ol l u ou
 			return createEmpty();
@@ -884,10 +912,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			int comp = compareLowValues(otherUpper, lower);
 			if(comp < 0) {
 				return createSingle(); // ol ou l u
-			} else if(comp == 0) {
-				return createSingle(lower.increment(1), upper); // ol ou == l u
 			}
-			return createSingle(otherUpper.increment(1), upper); // ol l ou u    
+			return createSingle(otherUpper.increment(1), upper); // ol l ou u (includes  ol ou == l u)  
 		}
 	}
 	
@@ -1005,21 +1031,33 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		return getUpper().getValue();
 	}
 
+	/**
+	 * Returns whether this sequential range spans from the zero address to itself.
+	 */
 	@Override
 	public boolean isZero() {
 		return includesZero() && !isMultiple();
 	}
 
+	/**
+	 * Returns whether this sequential range's lower value is the zero address.
+	 */
 	@Override
 	public boolean includesZero() {
 		return getLower().isZero();
 	}
 
+	/**
+	 * Returns whether this sequential range spans from the highest address, the address whose bits are all ones, to itself.
+	 */
 	@Override
 	public boolean isMax() {
 		return includesMax() && !isMultiple();
 	}
 
+	/**
+	 * Returns whether this sequential range's upper value is the highest address, the address whose bits are all ones.
+	 */
 	@Override
 	public boolean includesMax() {
 		return getUpper().isMax();

@@ -18,11 +18,11 @@
 package inet.ipaddr.mac;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Spliterator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import inet.ipaddr.format.util.AssociativeAddedTree;
 import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
@@ -487,12 +487,17 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 		return (MACAddressAssociativeTrie<V>) super.clone();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public AssociativeAddressTrie<MACAddress, List<MACAssociativeTrieNode<?>>> constructAddedNodesTree() {
-		MACAddressAssociativeTrie<List<AssociativeTrieNode<MACAddress, ?>>> trie = new MACAddressAssociativeTrie<>();
-		contructAddedTree(trie);
-		MACAddressAssociativeTrie<? extends List<? extends AssociativeTrieNode<MACAddress, ?>>> ret = trie;
-		return (AssociativeAddressTrie<MACAddress, List<MACAssociativeTrieNode<?>>>) ret;
+	public AssociativeAddedTree<MACAddress, V> constructAddedNodesTree() {
+		MACAddressAssociativeTrie<SubNodesMappingAssociative<MACAddress, V>> trie = new MACAddressAssociativeTrie<SubNodesMappingAssociative<MACAddress, V>>();
+		contructAssociativeAddedTree(trie);
+		return new AssociativeAddedTree<MACAddress, V>(trie);
+	}
+
+	@Override
+	public String toAddedNodesTreeString() {
+		MACAddressAssociativeTrie<SubNodesMappingAssociative<MACAddress, V>> trie = new MACAddressAssociativeTrie<SubNodesMappingAssociative<MACAddress, V>>();
+		contructAssociativeAddedTree(trie);
+		return toAddedNodesTreeString(trie);
 	}
 }
