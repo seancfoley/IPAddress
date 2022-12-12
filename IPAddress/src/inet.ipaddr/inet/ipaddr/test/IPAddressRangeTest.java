@@ -5780,10 +5780,10 @@ public class IPAddressRangeTest extends IPAddressTest {
 				null, null,
 				"1.2.3.255", "1.2.4.1",
 				"1.2.4.2", "255.255.255.255",
-				"::"
+				"::", "::2",
 		}, new String[] {
 				"1.2.3.4", "255.255.255.255",
-				"::"
+				"::", "::2",
 		});
 		testRangeJoin(new String[] {
 				"1.2.3.4", "1.2.3.255",
