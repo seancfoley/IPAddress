@@ -64,6 +64,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	private static final long serialVersionUID = 1L;
 	public static final String DEFAULT_RANGE_SEPARATOR = " -> ";
+	private static final IPAddressSeqRange EMPTY_RANGES[] = new IPAddressSeqRange[0];
 
 	protected final IPAddress lower, upper;
 	
@@ -652,6 +653,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * @return
 	 */
 	public static IPAddressSeqRange[] join(IPAddressSeqRange... ranges) {
+		if(ranges.length == 0) {
+			return EMPTY_RANGES;
+		}
 		ranges = ranges.clone();
 		// null entries are automatic joins
 		int joinedCount = 0;
@@ -699,6 +703,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		if(joinedCount == 0) {
 			return ranges;
+		}
+		if(ranges.length == joinedCount) {
+			return EMPTY_RANGES;
 		}
 		IPAddressSeqRange joined[] = new IPAddressSeqRange[ranges.length - joinedCount];
 		if(joined.length > 0) {
