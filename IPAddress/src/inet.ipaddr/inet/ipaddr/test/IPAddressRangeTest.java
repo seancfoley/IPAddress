@@ -5720,24 +5720,6 @@ public class IPAddressRangeTest extends IPAddressTest {
 
 		testSpanAndMerge("1.2.3.0", "1.2.3.*", 1, new String[] {"1.2.3.*/24"}, 1, new String[] {"1.2.3.*/24"});//rangeCount
 		
-		/*
-		 testRangeCount("1.2.3.4", "1.2.3.4", 1);
-		testRangeCount("1.2.3.4", "1.2.3.5", 2);
-		testRangeCount("1.2.3.4", "1.2.3.6", 3);
-		testRangeCount("1.2.3.255", "1.2.4.1", 3);
-		testRangeCount("1.2.3.254", "1.2.4.0", 3);
-		testRangeCount("1.2.3.254", "1.3.4.0", 3 + 256 * 256);//on the slow side, generating 180k+ addresses
-		testRangeCount("0.0.0.0", "255.255.255.255", BigInteger.valueOf(256L * 256L * 256L * 256L));
-		testRangeCount("0.0.0.0", "255.253.255.255", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 255L + 1));
-		testRangeCount("2.0.1.0", "255.253.255.252", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 252L).subtract(BigInteger.valueOf(2 * 16777216L + 256L)).add(BigInteger.ONE));
-		
-		testRangeCount("::1:2:3:4", "::1:2:3:4", 1);
-		testRangeCount("::1:2:3:4", "::1:2:3:5", 2);
-		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
-		testRangeCount("::1:2:3:ffff", "::1:2:4:1", 3);
-		testRangeCount("::1:2:3:fffe", "::1:2:4:0", 3);
-		 */
-		
 		testRangeJoin(new String[0], new String[0]);
 		testRangeJoin(new String[] {
 				null, null,
