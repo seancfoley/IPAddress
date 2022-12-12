@@ -5837,6 +5837,35 @@ public class IPAddressRangeTest extends IPAddressTest {
 				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
 		});
 		
+		testRangeJoin(new String[] {
+				null, null,
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				null, null,
+				"::", "::2",
+				null, null,
+				"::", "::1",
+				null, null,
+				"1.2.4.2", "255.255.255.255",
+				null, null,
+				null, null,
+				"1.2.3.255", "1.2.4.1",
+				"::1:2:3:6", "::1:2:3:6",
+				null, null,
+				"::1:2:3:4", "::1:2:3:5",
+				null, null,
+				"::1:2:3:4", "::1:2:3:4",
+				"1.2.3.4", "1.2.3.255",
+				null, null,
+				"0.0.0.0", "0.0.0.1",
+				null, null,
+		}, new String[] {
+				"0.0.0.0", "0.0.0.1",
+				"1.2.3.4", "255.255.255.255",
+				"::", "::2",
+				"::1:2:3:4", "::1:2:3:6",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		});
+		
 		testRangeCount("::1:2:3:4", "::1:2:3:4", 1);
 		testRangeCount("::1:2:3:4", "::1:2:3:5", 2);
 		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
