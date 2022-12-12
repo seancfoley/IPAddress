@@ -642,7 +642,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	/**
 	 * Joins the given ranges into the fewest number of ranges.
-	 * The returned array will be sorted by ascending lowest range value. 
+	 * This method can handle null ranges, which are ignored.
+	 * The returned array will never be null and will be sorted by ascending lowest range value. 
 	 * 
 	 * @param ranges
 	 * @return
@@ -667,23 +668,18 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		int len = ranges.length - joinedCount;
 		Arrays.sort(ranges, 0, len, Address.ADDRESS_LOW_VALUE_COMPARATOR);
-		for(int i = 0; i < len; i++) {
+		for(int i = 0; i < len; ) {
 			IPAddressSeqRange range = ranges[i];
-			if(range == null) { // as we join two array items, we set the upper array element to null
-				continue;
-			}
 			IPAddress currentLower = range.getLower();
 			IPAddress currentUpper = range.getUpper();
 			boolean didJoin = false;
-			for(int j = i + 1; j < ranges.length; j++) {
+			int j = i + 1;
+			for(; j < len; j++) {
 				IPAddressSeqRange range2 = ranges[j];
-				if(range2 == null) {
-					continue;
-				}
 				IPAddress nextLower = range2.getLower();
 				if(compareLowValues(currentUpper, nextLower) >= 0
-						|| currentUpper.increment(1).equals(nextLower)) {
-					//join them
+						|| (currentUpper.getIPVersion().equals(nextLower.getIPVersion()) && currentUpper.increment(1).equals(nextLower))) {
+					// join them
 					joinedCount++;
 					IPAddress nextUpper = range2.getUpper();
 					if(compareLowValues(currentUpper, nextUpper) < 0) {
@@ -696,19 +692,22 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(didJoin) {
 				ranges[i] = range.create(currentLower, currentUpper);
 			}
+			i = j;
 		}
 		if(joinedCount == 0) {
 			return ranges;
 		}
 		IPAddressSeqRange joined[] = new IPAddressSeqRange[ranges.length - joinedCount];
-		for(int i = 0, j = 0; i < ranges.length; i++) {
-			IPAddressSeqRange range = ranges[i];
-			if(range == null) {
-				continue;
-			}
-			joined[j++] = range;
-			if(j >= joined.length) {
-				break;
+		if(joined.length > 0) {
+			for(int i = 0, j = 0; ; i++) {
+				IPAddressSeqRange range = ranges[i];
+				if(range == null) {
+					continue;
+				}
+				joined[j++] = range;
+				if(j >= joined.length) {
+					break;
+				}
 			}
 		}
 		return joined;
