@@ -20,6 +20,7 @@ package inet.ipaddr.test;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1256,6 +1257,38 @@ public class IPAddressRangeTest extends IPAddressTest {
 				base85String,
 				singleHex,
 				singleOctal);
+	}
+	
+	void testRangeJoin(String inputs[], String expected[]) {
+		ArrayList<IPAddressSeqRange> rangeList = new ArrayList<>();
+		for(int i = 1; i < inputs.length; i += 2) {
+			if(inputs[i-1] == null) {
+				rangeList.add(null);
+				continue;
+			}
+			IPAddressString w = createAddress(inputs[i-1]);
+			IPAddressString w2 = createAddress(inputs[i]);
+			IPAddressSeqRange val = w.getAddress().spanWithRange(w2.getAddress());
+			rangeList.add(val);
+		}
+		IPAddressSeqRange[] result = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+		rangeList.clear();
+		for(int i = 1; i < expected.length; i += 2) {
+			IPAddressString w = createAddress(expected[i-1]);
+			IPAddressString w2 = createAddress(expected[i]);
+			IPAddressSeqRange val = w.getAddress().spanWithRange(w2.getAddress());
+			rangeList.add(val);
+		}
+		if(result.length != rangeList.size()) {
+			addFailure(new Failure("failed expected: " + rangeList + " actual: " + Arrays.asList(result), (AddressItem) null));
+		}
+		for(int i = 0; i < result.length; i++) {
+			if(!result[i].equals(rangeList.get(i))) {
+				addFailure(new Failure("failed expected: " + rangeList.get(i) + " actual: " + result[i], result[i]));
+			}
+		}
+		//System.out.println("matched up " + Arrays.asList(result));
+		incrementTestCount();
 	}
 	
 	void testTree(String start, String parents[]) {
@@ -5686,6 +5719,145 @@ public class IPAddressRangeTest extends IPAddressTest {
 				isNoAutoSubnets ? 2 : 1, isNoAutoSubnets ? new String[] {"a:b:c:d:2-f:*:*:*", "a:b:c:d:10::"} : new String[] {"a:b:c:d:2-1f:*:*:*"});//[a:b:c:d:2::/79, a:b:c:d:4::/78, a:b:c:d:8::/77, a:b:c:d:10::/76]
 
 		testSpanAndMerge("1.2.3.0", "1.2.3.*", 1, new String[] {"1.2.3.*/24"}, 1, new String[] {"1.2.3.*/24"});//rangeCount
+		
+		/*
+		 testRangeCount("1.2.3.4", "1.2.3.4", 1);
+		testRangeCount("1.2.3.4", "1.2.3.5", 2);
+		testRangeCount("1.2.3.4", "1.2.3.6", 3);
+		testRangeCount("1.2.3.255", "1.2.4.1", 3);
+		testRangeCount("1.2.3.254", "1.2.4.0", 3);
+		testRangeCount("1.2.3.254", "1.3.4.0", 3 + 256 * 256);//on the slow side, generating 180k+ addresses
+		testRangeCount("0.0.0.0", "255.255.255.255", BigInteger.valueOf(256L * 256L * 256L * 256L));
+		testRangeCount("0.0.0.0", "255.253.255.255", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 255L + 1));
+		testRangeCount("2.0.1.0", "255.253.255.252", BigInteger.valueOf(255 * 16777216L + 253 * 65536L + 255 * 256L + 252L).subtract(BigInteger.valueOf(2 * 16777216L + 256L)).add(BigInteger.ONE));
+		
+		testRangeCount("::1:2:3:4", "::1:2:3:4", 1);
+		testRangeCount("::1:2:3:4", "::1:2:3:5", 2);
+		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
+		testRangeCount("::1:2:3:ffff", "::1:2:4:1", 3);
+		testRangeCount("::1:2:3:fffe", "::1:2:4:0", 3);
+		 */
+		
+		testRangeJoin(new String[0], new String[0]);
+		testRangeJoin(new String[] {
+				null, null,
+		}, new String[0]);
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.5",
+		}, new String[] {
+				"1.2.3.4", "1.2.3.5",
+		});
+		testRangeJoin(new String[] {
+				null, null,
+				null, null,
+		}, new String[0]);
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.5",
+				null, null,
+		}, new String[] {
+				"1.2.3.4", "1.2.3.5",
+		});
+		testRangeJoin(new String[] {
+				null, null,
+				"1.2.3.4", "1.2.3.5",
+		}, new String[] {
+				"1.2.3.4", "1.2.3.5",
+		});
+		testRangeJoin(new String[] {
+				null, null,
+				"1.2.3.4", "1.2.3.5",
+				null, null,
+		}, new String[] {
+				"1.2.3.4", "1.2.3.5",
+		});
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.5",
+				null, null,
+				"1.2.3.255", "1.2.4.1"
+		}, new String[] {
+				"1.2.3.4", "1.2.3.5",
+				"1.2.3.255", "1.2.4.1",
+		});
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.255",
+				null, null,
+				"1.2.3.255", "1.2.4.1"
+		}, new String[] {
+				"1.2.3.4", "1.2.4.1",
+		});
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.255",
+				null, null,
+				"1.2.3.255", "1.2.4.1",
+				"1.2.4.2", "1.5.0.0",
+		}, new String[] {
+				"1.2.3.4", "1.5.0.0",
+		});
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.255",
+				null, null,
+				"1.2.3.255", "1.2.4.1",
+				"1.2.4.2", "255.255.255.255",
+				"::"
+		}, new String[] {
+				"1.2.3.4", "255.255.255.255",
+				"::"
+		});
+		testRangeJoin(new String[] {
+				"1.2.3.4", "1.2.3.255",
+				"1.2.3.255", "1.2.4.1",
+				"1.2.4.2", "255.255.255.255",
+				"::", "::1",
+		}, new String[] {
+				"1.2.3.4", "255.255.255.255",
+				"::", "::1",
+		});
+		testRangeJoin(new String[] {
+				"0.0.0.0", "0.0.0.1",
+				"1.2.3.4", "1.2.3.255",
+				"1.2.3.255", "1.2.4.1",
+				"1.2.4.2", "255.255.255.255",
+				"::", "::1",
+				"::", "::2",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		}, new String[] {
+				"0.0.0.0", "0.0.0.1",
+				"1.2.3.4", "255.255.255.255",
+				"::", "::2",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		});
+		testRangeJoin(new String[] {
+				null, null,
+				"0.0.0.0", "0.0.0.1",
+				null, null,
+				"1.2.3.4", "1.2.3.255",
+				null, null,
+				"::1:2:3:4", "::1:2:3:4",
+				null, null,
+				null, null,
+				"::1:2:3:4", "::1:2:3:5",
+				null, null,
+				"::1:2:3:6", "::1:2:3:6",
+				"1.2.3.255", "1.2.4.1",
+				null, null,
+				"1.2.4.2", "255.255.255.255",
+				"::", "::1",
+				null, null,
+				"::", "::2",
+				null, null,
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+				null, null,
+		}, new String[] {
+				"0.0.0.0", "0.0.0.1",
+				"1.2.3.4", "255.255.255.255",
+				"::", "::2",
+				"::1:2:3:4", "::1:2:3:6",
+				"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+		});
+		
+		testRangeCount("::1:2:3:4", "::1:2:3:4", 1);
+		testRangeCount("::1:2:3:4", "::1:2:3:5", 2);
+		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
 		
 		testLeadingZeroAddr("00-1.1.2.3", true);
 		testLeadingZeroAddr("1.00-1.2.3", true);

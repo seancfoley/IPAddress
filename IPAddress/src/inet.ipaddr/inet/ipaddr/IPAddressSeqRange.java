@@ -645,7 +645,8 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	/**
 	 * Joins the given ranges into the fewest number of ranges.
-	 * The returned array will be sorted by ascending lowest range value. 
+	 * This method can handle null ranges, which are ignored.
+	 * The returned array will never be null and will be sorted by ascending lowest range value. 
 	 * 
 	 * @param ranges
 	 * @return
@@ -670,19 +671,14 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		int len = ranges.length - joinedCount;
 		Arrays.sort(ranges, 0, len, Address.ADDRESS_LOW_VALUE_COMPARATOR);
-		for(int i = 0; i < len; i++) {
+		for(int i = 0; i < len; ) {
 			IPAddressSeqRange range = ranges[i];
-			if(range == null) { // as we join two array items, we set the upper array element to null
-				continue;
-			}
 			IPAddress currentLower = range.getLower();
 			IPAddress currentUpper = range.getUpper();
 			boolean didJoin = false;
-			for(int j = i + 1; j < len; j++) {
+			int j = i + 1;
+			for(; j < len; j++) {
 				IPAddressSeqRange range2 = ranges[j];
-				if(range2 == null) {
-					continue;
-				}
 				IPAddress nextLower = range2.getLower();
 				if(compareLowValues(currentUpper, nextLower) >= 0
 						|| (currentUpper.getIPVersion().equals(nextLower.getIPVersion()) && currentUpper.increment(1).equals(nextLower))) {
@@ -699,24 +695,33 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(didJoin) {
 				ranges[i] = range.create(currentLower, currentUpper);
 			}
+			i = j;
 		}
 		if(joinedCount == 0) {
 			return ranges;
 		}
 		IPAddressSeqRange joined[] = new IPAddressSeqRange[ranges.length - joinedCount];
-		for(int i = 0, j = 0; i < ranges.length; i++) {
-			IPAddressSeqRange range = ranges[i];
-			if(range == null) {
-				continue;
-			}
-			joined[j++] = range;
-			if(j >= joined.length) {
-				break;
+		if(joined.length > 0) {
+			for(int i = 0, j = 0; ; i++) {
+				IPAddressSeqRange range = ranges[i];
+				if(range == null) {
+					continue;
+				}
+				joined[j++] = range;
+				if(j >= joined.length) {
+					break;
+				}
 			}
 		}
 		return joined;
 	}
 	
+	/**
+	 * Returns true if this sequential range overlaps with the given sequential range.
+	 * 
+	 * @param other
+	 * @return
+	 */
 	public boolean overlaps(IPAddressSeqRange other) {
 		return compareLowValues(other.getLower(), getUpper()) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
 	}
@@ -869,24 +874,20 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(upperComp <= 0) { // ol l u ou
 				return other.toSequentialRange();
 			}
-			IPAddress max = otherUpper.getNetwork().getNetworkMask(getBitCount(), false);
-			int versionComp = compareLowValues(lower, max);
-			if(versionComp > 0) { // different versions: ol ou max l u
+			if(!upper.getIPVersion().equals(otherLower.getIPVersion())) {
 				return null;
 			}
-			// ol l ou u
+			// ol l ou u or ol ou l u
 			return create(otherLower, upper);
 		}
 		// lowerComp <= 0
 		if(upperComp >= 0) { // l ol ou u
 			return this;
 		}
-		IPAddress max = upper.getNetwork().getNetworkMask(getBitCount(), false);
-		int versionComp = compareLowValues(otherLower, max);
-		if(versionComp > 0) { // different versions: l u max ol ou
+		if(!lower.getIPVersion().equals(otherUpper.getIPVersion())) {
 			return null;
 		}
-		return create(lower, otherUpper);// l ol u ou
+		return create(lower, otherUpper);// l ol u ou or l u ol ou
 	}
 
 	/**
