@@ -2045,6 +2045,7 @@ public class Validator implements HostIdentifierStringValidator {
 	
 	
 	
+	@Override
 	public int validatePrefix(CharSequence fullAddr, IPVersion version) throws AddressStringException {
 		return validatePrefixLenString(fullAddr, version);
 	}

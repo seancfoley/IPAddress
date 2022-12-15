@@ -4080,7 +4080,7 @@ public class IPAddressTest extends TestBase {
 	@SuppressWarnings("unchecked")
 	<E extends IPAddress> void testAllocator(PrefixBlockAllocator<E> alloc, E blocks[], int bitLengths[], ExpectedBlock expected[]) {
 		alloc.addAvailable(blocks);
-		AllocatedBlock<E>[] allocatedBlocks = alloc.allocateMultiBitLens(bitLengths);
+		AllocatedBlock<E>[] allocatedBlocks = alloc.allocateBitLengths(bitLengths);
 		for(int i = 0; i < allocatedBlocks.length; i++) {
 			AllocatedBlock<E> ab = allocatedBlocks[i];
 			if(expected == null || expected.length <= i) {

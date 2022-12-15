@@ -324,7 +324,7 @@ public class PrefixBlockAllocator<E extends IPAddress> {
 	 * The reserved count is ignored when allocating by bit-length.
 	 */
 	@SuppressWarnings("unchecked")
-	public AllocatedBlock<E>[] allocateMultiBitLens(int ...bitLengths)  {
+	public AllocatedBlock<E>[] allocateBitLengths(int ...bitLengths)  {
 		List<Integer> lengths = new ArrayList<>(bitLengths.length);
 		for(int i = 0; i < bitLengths.length; i++) {
 			lengths.add(bitLengths[i]);
