@@ -49,6 +49,10 @@ Figure out your branching strategy for the release, if applicable, branch if nec
 If your previous release is based on the master branch,
 you will first want to ensure you create a branch for the previous release before you check your new code into master for the new release.
 
+If you create the new branch on github, you might not be able to see it with "git branch -r" or most other git commands.
+Use "git ls-remote --heads origin" to see it.  From there, I believe "refs/heads/<branchname>" is the full branch name and you maybe be able to use that name to track it 
+See https://stackoverflow.com/a/50192006/6801443 and https://intellipaat.com/community/13708/git-list-remote-branches-how-do-i-list-all-remote-branches-in-git-1-7).
+
 B Github
 
 1. Edit the release "version" property in build.xml

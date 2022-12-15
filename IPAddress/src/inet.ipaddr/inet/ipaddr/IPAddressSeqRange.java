@@ -595,7 +595,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	/**
 	 * Produces a normalized string for the address range.
-	 * It has the format "lower -> upper" where lower and upper are the normalized strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
+	 * It has the format "lower -&gt; upper" where lower and upper are the normalized strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
 	 */
 	@Override
 	public String toNormalizedString() {
@@ -612,7 +612,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	
 	/**
 	 * Produces a canonical string for the address range.
-	 * It has the format "lower -> upper" where lower and upper are the canonical strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
+	 * It has the format "lower -&gt; upper" where lower and upper are the canonical strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
 	 */
 	@Override
 	public String toCanonicalString() {
