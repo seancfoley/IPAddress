@@ -506,7 +506,6 @@ public static void main(String[] args) {
   String rangeFormats[] = {
     "ffff:0:0:0:0:0:0-ff:*",
     "ffff::0-ff:*",
-    "ffff::0-ff:*",
     "0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff"
   };
 
@@ -523,7 +522,6 @@ public static void main(String[] args) {
     "[0b1111111111111111::]/104",
     "[=q{+M|w0(OeO5^EGP660]/104",
     "[ffff:0:0:0:0:0:0-ff:*]",
-    "[ffff::0-ff:*]",
     "[ffff::0-ff:*]",
     "[0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff]",
     "*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
@@ -560,7 +558,6 @@ prefixedFormats := []string{
 rangeFormats := []string{
 	"ffff:0:0:0:0:0:0-ff:*",
 	"ffff::0-ff:*",
-	"ffff::0-ff:*",
 	"0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff",
 }
 
@@ -578,7 +575,6 @@ hostFormats := []string{
 	"[=q{+M|w0(OeO5^EGP660]/104",
 	"[ffff:0:0:0:0:0:0-ff:*]",
 	"[ffff::0-ff:*]",
-	"[ffff::0-ff:*]",
 	"[0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff]",
 	"*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
 	"ffff-0-0-0-0-0-0-0.ipv6-literal.net/104",
@@ -586,12 +582,10 @@ hostFormats := []string{
 
 parseHostSubnet(hostFormats)
 ```
-Note that the parsing code is the same for subnets as addresses.  The additional call to assign the prefix corresponding to a single block (`[Aa]ssignPrefixForSingleBlock`) simply ensures a consistent prefix length in the final result.
+Note that the parsing code is the same for subnets as addresses.  The additional call to assign the prefix corresponding to a single block (`assignPrefixForSingleBlock`) simply ensures a consistent prefix length in the final result.
 
 Output from both the Java and Go code:
 ```
-ffff::/104
-ffff::/104
 ffff::/104
 ffff::/104
 ffff::/104
@@ -622,8 +616,8 @@ ffff::/104
 
 The subnet formats allow you to specify ranges of values. However, if
 you wish to parse addresses in which values are delimited, then you can
-use the methods `[Pp]arseDelimitedSegments` and
-`[Cc]ountDelimitedAddresses` of `IPAddressString`. The former method
+use the methods `parseDelimitedSegments` and
+`countDelimitedAddresses` of `IPAddressString`. The former method
 will provide an iterator to traverse through the
 individual addresses, while the latter will provide the number of iterated elements.
 
@@ -640,11 +634,10 @@ just single addresses, or whether you wish to allow different address or subnet 
 
 For IP addresses you can use `IPAddressStringParameters` with `IPAddressString`, and for host names you can use `HostNameParameters` with `HostName`.
 
-Builders are used to construct.  Here is an example constructing host options along with nested address options within the host options:
+Builders are used to construct.  The following example Java code host options along with nested address options within:
 ```java
 HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
-  allowEmpty().
-  setEmptyAsLoopback(false).
+  allowEmpty(false).
   setNormalizeToLowercase(true).
   allowBracketedIPv6(true).
   allowBracketedIPv4(true).
@@ -654,7 +647,6 @@ HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
     setRangeOptions(RangeParameters.WILDCARD_AND_RANGE).
     allow_inet_aton(true).
     allowEmpty(false).
-    setEmptyAsLoopback(false).
     allowAll(false).
     allowPrefixOnly(false).
     getIPv4AddressParametersBuilder().
@@ -665,6 +657,28 @@ HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
     getParentBuilder().
   toParams();
 ```
+This is the equivalent code for Go.  The parameters code for Go exists in a sub-package, the addrstrparam package.
+```go
+var hostOptionsExample = new(addrstrparam.HostNameParamsBuilder).
+	AllowEmpty(false).
+	NormalizeToLowercase(true).
+	AllowBracketedIPv6(true).
+	AllowBracketedIPv4(true).
+	GetIPAddressParamsBuilder().
+		AllowPrefix(true).
+		AllowMask(true).
+		SetRangeParams(addrstrparam.WildcardAndRange).
+		Allow_inet_aton(true).
+		AllowEmpty(false).
+		AllowAll(false).
+		GetIPv4AddressParamsBuilder().
+			AllowPrefixLenLeadingZeros(true).
+			AllowPrefixesBeyondAddressSize(false).
+			AllowWildcardedSeparator(true).
+			GetParentBuilder().
+		GetParentBuilder().
+	ToParams()
+```
 The default options used by the library are permissive and not
 restrictive.
 
@@ -673,11 +687,13 @@ restrictive.
 #### Host Name or Address with Port or Service Name
 
 For an address or host with port or service name, use `HostName`. IPv6
-addresses with ports should appear as [ipv6Address]:port to resolve
+addresses with ports should appear as `[ipv6Address]:port` to resolve
 the ambiguity of the colon separator, consistent with RFC 2732, 3986,
 4038 and other RFCs. However, this library will parse IPv6 addresses
 without the brackets. You can use the “expectPort” setting of
 `HostNameParameters` to resolve ambiguities when the brackets are absent.
+
+Java example code:
 ```java
 HostName hostName = new HostName("[::1]:80");
 System.out.println("host: " + hostName.getHost() + " address: " +
@@ -691,7 +707,21 @@ hostName = new HostName("127.0.0.1:80");
 System.out.println("host: " + hostName.getHost() + " address: "
   + hostName.getAddress() + " port: " + hostName.getPort());
 ```
-Output:
+Go example code:
+```go
+hostName := ipaddr.NewHostName("[::1]:80")
+fmt.Println("host:", hostName.GetHost(), "address:",
+	hostName.GetAddress(), "port:", hostName.GetPort())
+
+hostName = ipaddr.NewHostName("localhost:80")
+fmt.Println("host:", hostName.GetHost(), "port:",
+	hostName.GetPort())
+
+hostName = ipaddr.NewHostName("127.0.0.1:80")
+fmt.Println("host:", hostName.GetHost(), "address:",
+	hostName.GetAddress(), "port:", hostName.GetPort())
+```
+Output from both the Java and Go code:
 ```
 host: ::1 address: ::1 port: 80
 host: localhost port: 80  
@@ -702,10 +732,16 @@ host: 127.0.0.1 address: 127.0.0.1 port: 80
 
 #### IP Version Determination and IPv4/v6 Conversion
 
-With an `IPAddress` or `IPAddressString` object, you can check the version with `isIPv4()` and `isIPv6()` and get the appropriate subclass with
-`toIPv4()` or `toIPv6()`. You can also make use of `isIPv4Convertible()` and `isIPv6Convertible()` to do further conversions if the address is IPv4-mapped, or you can use your own instance of `IPAddressConverter` for some
-other suitable conversion (IPv4-translated, 6to4, 6over4, IPv4
-compatible, or other).
+With an `IPAddress` or `IPAddressString` object, you can check the version with `isIPv4()` and `isIPv6()`. With an `IPAddress`, you can obtain the more specific type corresponding to the IP version, either `IPv4Address` or `IPv6Address`, by calling `toIPv4()` or `toIPv6()`, which will return the more specific type if the original address was constructed as that type.
+Java code:
+```java
+IPv6Address addr6 = new IPAddressString("2001:0db8:85a3:0000:0000:8a2e:0370:7334").getAddress().toIPv6();
+```
+Go code:
+```go
+var addr6 *ipaddr.IPv6Address = ipaddr.NewIPAddressString("2001:0db8:85a3:0000:0000:8a2e:0370:7334").GetAddress().ToIPv6()
+```
+In Java, you can make use of `isIPv4Convertible()` and `isIPv6Convertible()` to do further conversions if the address is IPv4-mapped.  
 ```java
 IPAddressString str = new IPAddressString("::ffff:1.2.3.4");
 if(str.isIPv6()) {
@@ -722,8 +758,15 @@ Output:
 ::ffff:1.2.3.4
 1.2.3.4
 ```
-Should you wish to change the default IPv4/IPv6 conversions from IPv4
+In Java, should you wish to change the default IPv4/IPv6 conversions from IPv4
 mapped to something else, you can override the pair of methods `toIPv4()` and `isIPv4Convertible()` in your own `IPv6Address` subclass and/or the pair of methods `toIPv6()` and `isIPv6Convertible()` in your own `IPv4Address` subclass.
+
+The Go library does not allow for implicit and automatic conversion.  Much like the Go language in general, the code must be more explicit.
+
+In both Go and Java, you can use your own instance of `IPAddressConverter` for some other suitable conversion (IPv4-translated, 6to4, 6over4, IPv4
+compatible, or other).  The wiki code examples provide example code for [Java conversions](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv4-address-fromto-ipv6-address) and [Go conversions](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv4-address-fromto-ipv6-address).
+
+
 
 &#8203;
 
