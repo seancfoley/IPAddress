@@ -63,7 +63,7 @@ by Sean C Foley
 
 The IPAddress library was intended to satisfy the following primary goals:
 
-  - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) for an extensive list)
+  - **Parsing of all host name and ipv4/ipv6 address formats in common usage** plus some additional formats (see below or see [javadoc for the `IPAddressString` class](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or [godoc for the struct `IPAddressString`](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString) for an extensive list)
 
   - **Parsing and representation of subnets**, either those specified by network prefix length or those specified with ranges of segment values. For example, all strings in the list below represent the same IPv4 subnet:
 
@@ -92,7 +92,7 @@ The IPAddress library was intended to satisfy the following primary goals:
   - **Allow the separation of address parsing from host parsing**. In some cases you may have an address, in others you may have a host name, in some cases either one, so this supports all three options
     (for instance, when validating invalid input "1.2.3.a" as an address
     only, it will not be treated as a host with DNS lookup attempted in
-    the way that `InetAddress.getByName` does)
+    the way that Java's `InetAddress.getByName` does)
 
   - **Allow control over which formats are allowed when parsing**,
     whether IPv4/6, or subnets, or inet\_aton formats, and so on.
@@ -113,7 +113,7 @@ The IPAddress library was intended to satisfy the following primary goals:
   - **Integration of IPv4 Address with IPv6** through common address
     conversions
 
-  - **Polymorphism** is a key goal.  The library maintains an address framework of interfaces and abstract classes that allow most library functionality to be independent of address type or version, whether IPv4, IPv6 or MAC.  This allows for code which supports both IPv4 and IPv6 transparently. You can write generic
+  - **Polymorphism** is a key goal.  The library maintains an architecture and an address framework of interfaces that allow most library functionality to be independent of address type or version, whether IPv4, IPv6 or MAC.  This allows for code which supports both IPv4 and IPv6 transparently. You can write generic
     non-version-specific code to validate addresses, connect to
     addresses, produce address strings, mask addresses, etc. You can
     make use of the address framework which is agnostic towards address
@@ -121,7 +121,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 
   - **Thread-safety and immutability**. The core types (host names,
     address strings, addresses, address sections, address segments, address ranges) are all immutable. They do not change their underlying value. For
-    multi-threaded apps this is valuable.
+    concurrency in apps (Java threads, Kotlin coroutines, or Go goroutines) this is valuable.
 
   - **Address modifications**, such as altering prefix lengths, masking,
     splitting into sections and segments, splitting into network and
@@ -146,7 +146,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 &#8203;
 ## Java Versus Golang Feature Matrix
 
-The basic goals remain the same for both Java and Go libraries.  The Go library, is the newer library, matches all of the most useful functionality, and is now very close to matching the entire feature set of the Java library.    Also note that this documentation will be updated over time to reflect the differences in the API due to language structure, and also provide more Golang examples. This matrix is a summary of the feature differences.
+The basic goals remain the same for both Java and Go libraries.  This matrix is a summary of the feature differences.
 
 | Feature | Java  | Golang |
 | --- | --- | --- |
@@ -223,7 +223,8 @@ above, and others:
   - "` `" the empty string is considered the default loopback
 
 For a more detailed list or formats parsed, some examples are below, or
-see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html).
+see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString) for `IPAddressString`.
+
 
 &#8203;
 
@@ -256,9 +257,11 @@ see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/I
 The core types are **HostName**, **IPAddressString**, and
 **MACAddressString** along with the **Address** base type and its
 subtypes **IPAddress, IPv4Address**, **IPv6Address**, and
-**MACAddress**, as well as the sequential address type
-**IPAddressSeqRange** and its associated types **IPv4AddressSeqRange** and
-**IPv6AddressSeqRange**. If you have a textual representation of an IP
+**MACAddress**, as well as the sequential address types
+**IPAddressSeqRange**, **IPv4AddressSeqRange** and
+**IPv6AddressSeqRange**. In Go, the sequential address types are derived from the same generic type.
+
+If you have a textual representation of an IP
 address, then start with `HostName` or `IPAddressString`. If you have
 numeric bytes or integers, then start with `IPV4Address`, `IPV6Address` or
 `MACAddress`. Note that address instances can represent either a single
@@ -360,15 +363,12 @@ host name with labels: [a b com]
 ```
 
 
-
-
-
 &#8203;
 
 #### Format Examples
 
-Many formats are supported. For instance, the address 1:2:3:0:0:6:: can
-be represented many ways as shown.
+Many formats are supported. For instance, the address `1:2:3:0:0:6::` can
+be represented many ways as shown with this Java code:
 ```java
 static void parse(String formats[]) {
   for(String format : formats) {
@@ -382,37 +382,77 @@ static void parseHost(String formats[]) {
   }
 }
 
-public static void main(String[] args) {
-  String formats[] = {
-    "1:2:3:0:0:6::",
-    "1:2:3:0:0:6:0:0",
-    "1:2:3::6:0:0",
-    "0001:0002:0003:0000:0000:0006:0000:0000",
-    "1:2:3::6:0.0.0.0",
-    "1:2:3:0:0:6::",
-    "0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::",
-    "008JQWOV7O(=61h*;$LC",
-    "0x00010002000300000000000600000000"
-  };
-  parse(formats);
+String formats[] = {
+  "1:2:3:0:0:6::",
+  "1:2:3:0:0:6:0:0",
+  "1:2:3::6:0:0",
+  "0001:0002:0003:0000:0000:0006:0000:0000",
+  "1:2:3::6:0.0.0.0",
+  "1:2:3:0:0:6::",
+  "0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::",
+  "008JQWOV7O(=61h*;$LC",
+  "0x00010002000300000000000600000000"
+};
+parse(formats);
 
-  String hostFormats[] = {
-    "[1:2:3:0:0:6::]",
-    "[1:2:3:0:0:6:0:0]",
-    "[1:2:3::6:0:0]",
-    "[0001:0002:0003:0000:0000:0006:0000:0000]",
-    "[1:2:3::6:0.0.0.0]",
-    "[1:2:3:0:0:6::]",
-    "[0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::]",
-    "[008JQWOV7O(=61h*;$LC]",
-    "[0x00010002000300000000000600000000]",
-    "0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
-    "1-2-3-0-0-6-0-0.ipv6-literal.net"
-  };
-  parseHost(hostFormats);
-}
+String hostFormats[] = {
+  "[1:2:3:0:0:6::]",
+  "[1:2:3:0:0:6:0:0]",
+  "[1:2:3::6:0:0]",
+  "[0001:0002:0003:0000:0000:0006:0000:0000]",
+  "[1:2:3::6:0.0.0.0]",
+  "[1:2:3:0:0:6::]",
+  "[0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::]",
+  "[008JQWOV7O(=61h*;$LC]",
+  "[0x00010002000300000000000600000000]",
+  "0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+  "1-2-3-0-0-6-0-0.ipv6-literal.net"
+};
+parseHost(hostFormats);
 ```
-Output:
+or this equivalent Go code:
+```go
+func parse(formats []string) {
+	for _, format := range formats {
+		fmt.Println(ipaddr.NewIPAddressString(format).GetAddress())
+	}
+}
+
+func parseHost(formats []string) {
+	for _, format := range formats {
+		fmt.Println(ipaddr.NewHostName(format).GetAddress())
+	}
+}
+
+formats := []string{
+	"1:2:3:0:0:6::",
+	"1:2:3:0:0:6:0:0",
+	"1:2:3::6:0:0",
+	"0001:0002:0003:0000:0000:0006:0000:0000",
+	"1:2:3::6:0.0.0.0",
+	"1:2:3:0:0:6::",
+	"0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::",
+	"008JQWOV7O(=61h*;$LC",
+	"0x00010002000300000000000600000000",
+}
+parse(formats)
+
+hostFormats := []string{
+	"[1:2:3:0:0:6::]",
+	"[1:2:3:0:0:6:0:0]",
+	"[1:2:3::6:0:0]",
+	"[0001:0002:0003:0000:0000:0006:0000:0000]",
+	"[1:2:3::6:0.0.0.0]",
+	"[1:2:3:0:0:6::]",
+	"[0b0000000000000001:0b0000000000000010:0b0000000000000011:0:0:0b0000000000000110::]",
+	"[008JQWOV7O(=61h*;$LC]",
+	"[0x00010002000300000000000600000000]",
+	"0.0.0.0.0.0.0.0.6.0.0.0.0.0.0.0.0.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.ip6.arpa",
+	"1-2-3-0-0-6-0-0.ipv6-literal.net",
+}
+parseHost(hostFormats)
+```
+Output from both the Java and Go code:
 ```
 1:2:3::6:0:0
 1:2:3::6:0:0
@@ -434,16 +474,18 @@ Output:
 Subnet strings are supported as well, using CIDR prefix notation or
 characters indicating range (‘-‘ for a specific range or ‘\*’ for full-range segments).
 
-For instance, the subnet ffff::/104 can be represented many ways:
+For instance, the subnet ffff::/104 can be represented many ways.
+
+Here is Java code parsing some of those representations:
 ```java
-static void parse(String formats[]) {
+static void parseSubnet(String formats[]) {
   for(String format : formats) {
     System.out.println(new
     IPAddressString(format).getAddress().assignPrefixForSingleBlock());
   }
 }
 
-static void parseHost(String formats[]) {
+static void parseHostSubnet(String formats[]) {
   for(String format : formats) {
     System.out.println(new
       HostName(format).getAddress().assignPrefixForSingleBlock());
@@ -468,9 +510,9 @@ public static void main(String[] args) {
     "0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff"
   };
 
-  parse(prefixedFormats);
+  parseSubnet(prefixedFormats);
 
-  parse(rangeFormats);
+  parseSubnet(rangeFormats);
 
   String hostFormats[] = {
     "[ffff::]/104",
@@ -488,10 +530,65 @@ public static void main(String[] args) {
     "ffff-0-0-0-0-0-0-0.ipv6-literal.net/104"
   };
 
-  parseHost(hostFormats);
+  parseHostSubnet(hostFormats);
 }
 ```
-Output:
+Here is Go code parsing some of those representations:
+```go
+func parseSubnet(formats []string) {
+	for _, format := range formats {
+		fmt.Println(ipaddr.NewIPAddressString(format).GetAddress().AssignPrefixForSingleBlock())
+	}
+}
+
+func parseHostSubnet(formats []string) {
+	for _, format := range formats {
+		fmt.Println(ipaddr.NewHostName(format).GetAddress().AssignPrefixForSingleBlock())
+	}
+}
+
+prefixedFormats := []string{
+	"ffff::/104",
+	"ffff:0:0:0:0:0:0:0/104",
+	"ffff:0000:0000:0000:0000:0000:0000:0000/104",
+	"ffff::/104",
+	"ffff::0.0.0.0/104",
+	"0b1111111111111111::/104",
+	"=q{+M|w0(OeO5^EGP660/104",
+}
+
+rangeFormats := []string{
+	"ffff:0:0:0:0:0:0-ff:*",
+	"ffff::0-ff:*",
+	"ffff::0-ff:*",
+	"0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff",
+}
+
+parseSubnet(prefixedFormats)
+
+parseSubnet(rangeFormats)
+
+hostFormats := []string{
+	"[ffff::]/104",
+	"[ffff:0:0:0:0:0:0:0]/104",
+	"[ffff:0000:0000:0000:0000:0000:0000:0000]/104",
+	"[ffff::]/104",
+	"[ffff::0.0.0.0]/104",
+	"[0b1111111111111111::]/104",
+	"[=q{+M|w0(OeO5^EGP660]/104",
+	"[ffff:0:0:0:0:0:0-ff:*]",
+	"[ffff::0-ff:*]",
+	"[ffff::0-ff:*]",
+	"[0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff]",
+	"*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+	"ffff-0-0-0-0-0-0-0.ipv6-literal.net/104",
+}
+
+parseHostSubnet(hostFormats)
+```
+Note that the parsing code is the same for subnets as addresses.  The additional call to assign the prefix corresponding to a single block (`[Aa]ssignPrefixForSingleBlock`) simply ensures a consistent prefix length in the final result.
+
+Output from both the Java and Go code:
 ```
 ffff::/104
 ffff::/104
@@ -525,31 +622,25 @@ ffff::/104
 
 The subnet formats allow you to specify ranges of values. However, if
 you wish to parse addresses in which values are delimited, then you can
-use the methods `parseDelimitedSegments(String)` and
-`countDelimitedAddresses(String)` in `IPAddressString`. The method
-`parseDelimitedSegments` will provide an iterator to traverse through the
-individual addresses.
+use the methods `[Pp]arseDelimitedSegments` and
+`[Cc]ountDelimitedAddresses` of `IPAddressString`. The former method
+will provide an iterator to traverse through the
+individual addresses, while the latter will provide the number of iterated elements.
 
-For example, given `"1,2.3.4,5.6"` `parseDelimitedSegments` will iterate
-through `"1.3.4.6"`, `"1.3.5.6"`, `"2.3.4.6"` and `"2.3.5.6"`. You can then
-construct `IPAddressString` instances from those individual strings for
-parsing.
+For example, parsing the delimited segments of `"1,2.3.4,5.6"` will iterate
+through `"1.3.4.6"`, `"1.3.5.6"`, `"2.3.4.6"` and `"2.3.5.6"`. You can construct `IPAddressString` instances from each individual string.
 
 &#8203;
 
 #### Address or Host Name Validation Options
 
-Validation options allow you to restrict the allowed formats, whether
+Validation parameters allow you to restrict the permitted string formats, whether
 you wish to support just IPv4 or IPv6, or whether you wish to support
-just single addresses, or whether you wish to allow different variants.
+just single addresses, or whether you wish to allow different address or subnet variants.
 
-For IP addresses, there is the class `IPAddressStringParameters` which can
-be passed into `IPAddressString`, and for host names there is the class
-`HostNameParameters` which can be passed into `HostName`.
+For IP addresses you can use `IPAddressStringParameters` with `IPAddressString`, and for host names you can use `HostNameParameters` with `HostName`.
 
-You constrict validation options using the appropriate builder classes
-that are nested classes in the options classes. Here is an example
-constructing host options along with nested address options within:
+Builders are used to construct.  Here is an example constructing host options along with nested address options within the host options:
 ```java
 HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
   allowEmpty().
@@ -824,46 +915,7 @@ Each network’s associated creator object is accessible from
 
 &#8203;
 
-#### Using your own Address Classes
 
-Users can create their own subclasses of the address and address
-component classes (eg your own subclasses of `IPv6Address`,
-`IPv6AddressSection` and/or `IPv6AddressSegment`).
-
-When doing so, you may wish to use your own network classes as well. To
-do so, you
-
-  - override `getNetwork()`
-
-  - override `getIPv6Network()`, `getIPv4Network()`, and `getMACNetwork()`, if
-    any of those methods exist in the class you are subclassing. Several
-    of those methods may exist in the same class because address
-    components sometimes create components of other address versions or
-    types (eg embedding IPv4 in IPv6, or MAC integration with IPv6).
-
-Once you have done so, your new address classes are using your own
-network classes as well.
-
-When using your own network classes, you can override the method
-`createAddressCreator()` or the method `getAddressCreator()` in
-AddressNetwork, and in so doing provide your own creator objects, in
-which you can override any or all of the creation methods to use your
-own classes.
-
-You can make the string parsing engine use your own address or network
-classes. To do this, your code should create your own string validation
-objects using the builder classes `MACAddressStringParameters.Builder`,
-`IPAddressStringParameters.Builder` and `HostNameParameters.Builder`. With
-`HostNameParameters.Builder` you must get the
-`IPAddressStringParameters.Builder` sub-builder by calling
-`getAddressOptionsBuilder()`. With `IPAddressStringParameters.Builder` you
-must get the IPv4 or IPv6 sub-builder by calling one of
-`getIPv6Parameters()` or `getIPv4Parameters()`. You then call `setNetwork()`
-on the builder or sub-builder objects to supply your own network. The
-initial builder can create your own validation objects with `toParams()`.
-Those validation objects can be supplied to the appropriate constructor
-of `IPAddressString` or `MACAddressString`, and the subsequent string
-parsing with those instances will use the supplied networks.
 
 &#8203;
 ## Prefix Length Handling
