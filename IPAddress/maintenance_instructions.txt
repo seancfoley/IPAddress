@@ -17,7 +17,12 @@ https://github.com/seancfoley/Functional-Doclet-for-Javadoc
 4. In eclipse you switch the IPAddress project to the local gh-pages branch.  Do not commit the javadoc files before doing so.  
 Since those files do not belong to any branch, they will remain in your IPAddress project as you switch branches.
 
-5. Once in gh-pages, you cut and paste the new javadoc files from the uncommitted javadoc folder to the apidocs folder, overwriting the old ones
+5. Once in gh-pages, you cut and paste the new javadoc files from the uncommitted javadoc folder to the apidocs folder, overwriting the old ones.
+From command line: 
+cd ~/git/IPAddress/IPAddress/javadoc
+cp -r * ../apidocs
+
+
 
 6. You commit and push the new contents in the apidocs folder.
 
