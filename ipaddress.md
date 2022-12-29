@@ -57,7 +57,6 @@ by Sean C Foley
 
 [Make your IPv4 App work with IPv6](#make-your-ipv4-app-work-with-ipv6)
 
-[Alternative Options for Prefix Length Handling](#alternative-options-for-prefix-length-handling)
 
 &#8203;
 ## Benefits of this Library
@@ -140,7 +139,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 
   - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals
 
-  - **Integrate with the standard types.  For Java, this includes the primitive types and the standard classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  **For Go, this includes the primitive types and the Go SDK types** `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, and `big.Int`.
+  - **Integrate with the standard types.  For Java, this includes the primitive types and the standard classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  **For Go, this includes the primitive types and the Go SDK types** `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, `net.netip.Addr`, `net.netip.AddrPort`, `net.netip.Prefix`, and `big.Int`.
 
   - **Making address manipulations easy**, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
 
@@ -180,8 +179,8 @@ The basic goals remain the same for both Java and Go libraries.  The Go library,
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
-| Parse IP strings directly to division groupings | ✅ | Coming |
-| Prefix Block Allocator | Coming | ✅ | 
+| Parse IP strings directly to division groupings | ✅ | Future |
+| Prefix Block Allocator | ✅ | ✅ |
 | String collections | ✅ |  |
 | Spliterators and Streams | ✅ |  |
 | Serialization | ✅  |  |
@@ -249,7 +248,7 @@ see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/I
     addresses as 1.0.0.0/8
 
 For a more detailed list or formats parsed, some examples are below, or
-see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html).
+see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or the [godoc for the go type IPAddressString](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString).
 
 &#8203;
 ## Core Types
@@ -258,7 +257,7 @@ The core types are **HostName**, **IPAddressString**, and
 **MACAddressString** along with the **Address** base type and its
 subtypes **IPAddress, IPv4Address**, **IPv6Address**, and
 **MACAddress**, as well as the sequential address type
-**IPAddressSeqRange** and its subtypes **IPv4AddressSeqRange** and
+**IPAddressSeqRange** and its associated types **IPv4AddressSeqRange** and
 **IPv6AddressSeqRange**. If you have a textual representation of an IP
 address, then start with `HostName` or `IPAddressString`. If you have
 numeric bytes or integers, then start with `IPV4Address`, `IPV6Address` or
@@ -269,7 +268,9 @@ have something with a port or service name, then use HostName.
 &#8203;
 ## Parse String Representation of IP Address or Host Name
 
-`IPAddressString` is used to convert. You can use one of `getAddress` or
+`IPAddressString` is used to convert.
+
+With the Java library, you can use one of `getAddress` or
 `toAddress`, the difference being whether parsing errors are handled by
 exception or not.
 ```java
@@ -290,13 +291,11 @@ try {
 ```
 If you have either a host name or an address, you can use HostName:
 ```java
-public static void main(String[] args) {
-  check(new HostName("[::1]"));
-  check(new HostName("*"));
-  check(new HostName("a.b.com"));
-}
+checkHost(new HostName("[::1]"));
+checkHost(new HostName("*"));
+checkHost(new HostName("a.b.com"));
 
-static void check(HostName host) {
+static void checkHost(HostName host) {
   if(host.isAddress()) {
     System.out.println("address: " +
       host.asAddress().toCanonicalString());
@@ -315,6 +314,54 @@ address: ::1
 address string with ambiguous address: *
 host name with labels: [a, b, com]
 ```
+
+Similarly, with the Go library, you can use one of `GetAddress` or
+`ToAddress`, the difference being whether parsing errors are detected by checking for nil or checking an error.
+```go
+address := ipaddr.NewIPAddressString("1.2.3.4").GetAddress()
+if address != nil {
+	//use address here
+}
+```
+or
+```go
+str := "1.2.3.4"
+address, err := ipaddr.NewIPAddressString(str).ToAddress()
+if err != nil {
+	msg := err.Error() //detailed message indicating issue
+} else {
+	//use address here
+}
+```
+If you have either a host name or an address, you can use HostName:
+```go
+checkHost(ipaddr.NewHostName("[::1]"))
+checkHost(ipaddr.NewHostName("*"))
+checkHost(ipaddr.NewHostName("a.b.com"))
+
+func checkHost(host *ipaddr.HostName) {
+	if host.IsAddress() {
+		fmt.Println("address:",
+			host.AsAddress().ToCanonicalString())
+	} else if host.IsAddressString() {
+		fmt.Println("address string with ambiguous address:",
+			host.AsAddressString())
+	} else {
+		fmt.Println("host name with labels:",
+			host.GetNormalizedLabels())
+	}
+}
+```
+Output:
+```
+address: ::1
+address string with ambiguous address: *
+host name with labels: [a b com]
+```
+
+
+
+
 
 &#8203;
 
@@ -2545,7 +2592,7 @@ representation to be part of a URL, use `HostName.toNormalizedString()`.
 ## Sorting and Comparisons
 
 Comparing and sorting can be useful for storing addresses in certain
-types of data structures. All of the core classes implement
+types of data structures. With the Java library, all of the core classes implement
 `java.lang.Comparable`. In fact, any AddressItem is comparable to any other, which covers almost every type in the address framework.  Different representations of the same address or
 subnet are considered equal. Different representations of the same set
 of addresses are considered equal. However, `HostName` instances are not equal to `IPAddressString` instances nor `IPAddress` instances, and instances of `IPAddressString` are not equal to instances of `IPAddress`, not even when representing the same address or subnet.
@@ -2585,271 +2632,3 @@ Start by replacing your IPv4 code with the types and operations in this library.
 When you're ready, use your existing regression tests, ensuring the app still runs as always on IPv4.  Once your existing IPv4 tests all pass, you are already most of the way to supporting IPv6, without having written a single line of IPv6 code.  With some apps, you may even be ready to try it out with IPv6.
 
 &#8203;
-
-## Alternative Options for Prefix Length Handling
-
-This feature is provided primarily for backwards compatibility with versions 3 and earlier.
-
-As indicated in the section on parsing, when constructing an IP address
-with prefix length, you can end up with an individual address or a
-subnet if you provide a network address. This is also true for address
-and address sections constructed from numeric values rather than
-strings. When you specify the network address of a subnet with its
-corresponding prefix length, then the resulting object will be the
-subnet, and not an individual address.
-
-In versions 3 and earlier, prefixed addresses and sections were always
-converted to the subnet block of addresses for that prefix, regardless
-of whether you specified the network address or any other address with a prefix length.
-
-In the current version, there are three options available, the version 3
-legacy behavior, the new default behavior, and a third option:
-
-1.  ***ALL\_PREFIXED\_ADDRESSES\_ARE\_SUBNETS***: An address with a
-    prefix length is always the subnet block for that prefix. This is
-    the legacy behavior, the behaviour for versions 3 and under of this
-    library. An address like 1.2.3.4/16 is equivalent to 1.2.\*.\*/16,
-    and a:&#8203;b:c:d::/64 is equivalent to a:&#8203;b:c:d:\*:\*:\*:\*/64
-
-2.  ***PREFIXED\_ZERO\_HOSTS\_ARE\_SUBNETS:*** An address with a prefix
-    length and a zero-valued host is the subnet block for that prefix.
-    An address with a host value of non-zero is a single address
-    corresponding to a single host. This is the new default behavior for
-    this library since it is a convention with common usage.  
-
-    For example, the IPv4 address 1.2.3.4/16 is just a single address
-    and not a subnet, while 1.2.0.0/16 is the prefix block, it is the
-    subnet 1.2.\*.\*/16.  
-
-    This behavior is akin to the common convention used by many network
-    administrators, many routers and many applications. With IPv4, an
-    address with a host value of zero is known as the network address.
-    It often represents the subnet of all addresses with that same
-    prefix. It is often used for routing. The all-zero address 0.0.0.0
-    is conventionally known as INADDR\_ANY (any address on the local
-    machine), it is the address that returns true for
-    `java.net.Inet4Address.isAnyLocalAddress()`, and when paired with
-    prefix zero it is known as the default route (the route for all
-    addresses).  
-
-    With IPv6, the convention is similar and this option results in the
-    same behaviour. It is a standard convention with IPv6 to denote a
-    subnet like 1:2:3:4::/64, with a zero-valued (and usually
-    compressed) host, and that subnet represents the prefix block all
-    addresses starting with that prefix 1:2:3:4. An address with a host
-    of zero is known as the anycast address. The all-zero address `::`
-    is the value of IN6ADDR\_ANY\_INIT, the analog to the IPv4
-    INADDR\_ANY), and the address that returns true for
-    `java.net.Inet6Address.isAnyLocalAddress()`.
-
-3.  ***EXPLICIT\_SUBNETS***: The third option is the one in which a
-    subnet block derived from a prefix length must be explicitly
-    defined, you must list the range of values explicitly. Any subnet
-    must be explicitly defined, like 1.2.\*.\*/16, while 1.2.0.0/16 is
-    just a single address.
-
-Version 3 and earlier versions of the library provided only the first
-behavior. All three options are available starting with version 4 of
-this library, while the default behavior is the second options listed
-and is most consistent with common conventions used widely for IP
-addresses.
-
-The options above are generally geared towards IP addresses. With MAC
-Addresses prefix lengths are implicit for the most part (and cannot be
-specified as part of an address string explicitly). MAC address prefix
-lengths are discussed in more detail in the section below “MAC Address
-Prefix Lengths” With MAC there is no difference between options 2 and 3
-since there is no analog to the zero-host/network/anycast address. With
-MAC, when using an operation that allows you to supply a prefix, the
-first option above results in addresses that span all values beyond the
-prefix, while options 2 and 3 do not.
-
-&#8203;
-
-#### Configuring Alternative Prefix Length Handling
-
-To choose one of the non-default prefix length handling options, such as
-the legacy option, you make use of the `PrefixConfiguration` enum type and
-the network objects.
-
-Each address version/type (IPv4, IPv6, MAC) has an associated network
-object and each network object has a PrefixConfiguration setting. Prefix
-length has a similar meaning for MAC but with some key differences
-outlined below. By default, all networks use the same setting of
-***PREFIXED\_ZERO\_HOSTS\_ARE\_SUBNETS*** stored in a single static
-field in the AddressNetwork class.
-
-By calling `setPrefixConfiguration` in `AddressNetwork` you can change
-this default setting for all networks. Or, you can call
-setPrefixConfiguration in one or more of `IPv4AddressNetwork`,
-`IPv6AddressNetwork`, or `MACAddressNetwork`, to set each one individually.
-Typically, you would change the setting when the application starts.
-Should you choose to do so at a different point in the application
-lifetime, it should be noted that the behavior is undefined when using
-pre-existing address objects following such a change. It is recommended
-that the prefix length configuration remain constant throughout the
-lifetime of an application, or that existing address objects be
-discarded when the configuration is changed.
-
-If discarding existing address objects, keep in mind that the library
-caches address and address component objects. To discard those cached
-objects you can clear those caches by calling `defaultIpv6Network()`,
-`defaultIpv4Network()`, and `defaultMACNetwork()` to get the default network
-objects and then call `clearCaches()` on each one.
-
-If two applications using the IPAddress library at the same time in the
-same process require conflicting prefix configurations, then one option
-to achieve this is to use different class loaders in the separate apps,
-loading the IPAddress library in separate class loaders. In fact, many
-popular java applications already use class loaders for code separation,
-such as the Eclipse framework which uses them to separate plugins and
-the Apache Tomcat web server which uses them to separate web-apps.
-
-If you cannot load the library in separate class loaders, then another
-option is available to you. This option is to use your own network
-classes. The procedure for using your own network classes is described
-above in the section of this document on networks. The first step us to
-subclass the address and address component classes. The next step is to
-override the key methods for accessing the networks in those classes to
-supply your own network subclasses which will have their own non-default
-configuration. When using your own network classes, you can override the
-`getPrefixConfiguration()` method of `AddressNetwork` to avoid using the
-default configuration setting and use your own. In your network, you
-will also need to override either the `createAddressCreator()` or
-`getAddressCreator()` methods to supply your own address creator subclass
-instance that will create your own address and address component
-classes.
-
-The following example shows how to create an `IPAddressString` that will
-use a customized network class along with customized address component
-classes:
-```java
-static class MyIPv6Address extends IPv6Address {
-
-  public MyIPv6Address(byte[] bytes, Integer prefixLength) {
-    super(bytes, prefixLength);
-  }
-
-  public MyIPv6Address(MyIPv6AddressSection section, CharSequence zone) {
-    super(section, zone);
-  }
-
-  public MyIPv6Address(MyIPv6AddressSection section) {
-    super(section);
-  }
-
-  @Override
-  public IPv6AddressNetwork getNetwork() {
-    return myIPv6Network;
-  }
-}
-
-static class MyIPv6AddressSection extends IPv6AddressSection {
-
-  public MyIPv6AddressSection(byte[] bytes, Integer prefixLength) {
-    super(bytes, prefixLength);
-  }
-
-  public MyIPv6AddressSection(IPv6AddressSegment[] segments,
-      int startIndex, boolean cloneSegments) {
-    super(segments, startIndex, cloneSegments);
-  }
-
-  public MyIPv6AddressSection(IPv6AddressSegment[] segments,
-      Integer prefixLength) {
-    super(segments, prefixLength);
-  }
-
-  @Override
-  public IPv6AddressNetwork getNetwork() {
-    return myIPv6Network;
-  }
-}
-
-static class MyIPv6AddressSegment extends IPv6AddressSegment {
-
-  public MyIPv6AddressSegment(int lower,
-      Integer segmentPrefixLength) {
-    super(lower, segmentPrefixLength);
-  }
-
-  public MyIPv6AddressSegment(int lower, int upper,
-      Integer segmentPrefixLength) {
-    super(lower, upper, segmentPrefixLength);
-  }
-
-  @Override
-  public IPv6AddressNetwork getNetwork() {
-    return myIPv6Network;
-  }
-}
-
-static IPv6AddressNetwork myIPv6Network = new IPv6AddressNetwork() {
-  @Override
-  public PrefixConfiguration getPrefixConfiguration() {
-    return PrefixConfiguration.ALL_PREFIXED_ADDRESSES_ARE_SUBNETS;
-  }
-
-  @Override
-  protected IPv6AddressCreator createAddressCreator() {
-    return new IPv6AddressCreator() {
-      @Override
-      public IPv6AddressSection createSection(byte bytes[],
-          Integer prefix) {
-        return new MyIPv6AddressSection(bytes, prefix);
-      }
-
-      @Override
-      public IPv6AddressSegment createSegment(int value,
-          Integer segmentPrefixLength) {
-        return new MyIPv6AddressSegment(value, segmentPrefixLength);
-      }
-
-      @Override
-      public IPv6AddressSegment createSegment(int lower,
-          int upper, Integer segmentPrefixLength) {
-        return new MyIPv6AddressSegment(lower, upper,
-          segmentPrefixLength);
-      }
-
-      @Override
-      protected IPv6AddressSegment createSegmentInternal(int value,
-          Integer segmentPrefixLength, CharSequence addressStr,
-          int originalVal, boolean isStandardString,
-          int lowerStringStartIndex, int lowerStringEndIndex) {
-        return new MyIPv6AddressSegment(value, segmentPrefixLength);
-      }
-
-      @Override
-      protected IPv6AddressSection
-          createPrefixedSectionInternal(IPv6AddressSegment segments[],
-            Integer prefix) {
-        return new MyIPv6AddressSection(segments, prefix);
-      }
-
-      @Override
-      protected IPv6AddressSection
-          createSectionInternal(IPv6AddressSegment segments[]) {
-        return new MyIPv6AddressSection(segments, 0, false);
-      }
-
-      @Override
-      protected IPv6Address createAddressInternal(
-          IPv6AddressSection section, HostIdentifierString from) {
-        return new MyIPv6Address((MyIPv6AddressSection) section);
-      }
-
-      @Override
-      protected IPv6Address createAddressInternal(
-          IPv6AddressSection section, CharSequence zone,
-          HostIdentifierString from) {
-        return new MyIPv6Address((MyIPv6AddressSection) section, zone);
-      }
-    };
-  }
-};
-
-IPAddressStringParameters params = new IPAddressStringParameters.Builder().
-  getIPv6AddressParametersBuilder().setNetwork(myIPv6Network).getParentBuilder().toParams();
-IPv6Address myAddr = new IPAddressString("1::1/64", params).getAddress().toIPv6();
-```
