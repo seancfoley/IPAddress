@@ -247,7 +247,7 @@ see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/
     addresses as 1.0.0.0/8
 
 For a more detailed list or formats parsed, some examples are below, or
-see the [javadoc for `IPAddressString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or the [godoc for the go type IPAddressString](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString).
+see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString) for the type `IPAddressString`.
 
 &#8203;
 ## Core Types
