@@ -53,8 +53,6 @@ by Sean C Foley
 
 [Sorting and Comparisons](#sorting-and-comparisons)
 
-[Cache Classes](#cache-classes)
-
 [Make your IPv4 App work with IPv6](#make-your-ipv4-app-work-with-ipv6)
 
 
@@ -637,10 +635,10 @@ For IP addresses you can use `IPAddressStringParameters` with `IPAddressString`,
 Builders are used to construct.  The following example Java code host options along with nested address options within:
 ```java
 HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
-  allowEmpty(false).
-  setNormalizeToLowercase(true).
-  allowBracketedIPv6(true).
-  allowBracketedIPv4(true).
+	allowEmpty(false).
+	setNormalizeToLowercase(true).
+	allowBracketedIPv6(true).
+	allowBracketedIPv4(true).
   getAddressOptionsBuilder().
     allowPrefix(true).
     allowMask(true).
@@ -739,7 +737,8 @@ IPv6Address addr6 = new IPAddressString("2001:0db8:85a3:0000:0000:8a2e:0370:7334
 ```
 Go code:
 ```go
-var addr6 *ipaddr.IPv6Address = ipaddr.NewIPAddressString("2001:0db8:85a3:0000:0000:8a2e:0370:7334").GetAddress().ToIPv6()
+var addr6 *ipaddr.IPv6Address
+addr6 = ipaddr.NewIPAddressString("2001:0db8:85a3:0000:0000:8a2e:0370:7334").GetAddress().ToIPv6()
 ```
 In Java, you can make use of `isIPv4Convertible()` and `isIPv6Convertible()` to do further conversions if the address is IPv4-mapped.  
 ```java
@@ -763,32 +762,24 @@ mapped to something else, you can override the pair of methods `toIPv4()` and `i
 
 The Go library does not allow for implicit and automatic conversion.  Much like the Go language in general, the code must be more explicit.
 
-In both Go and Java, you can use your own instance of `IPAddressConverter` for some other suitable conversion (IPv4-translated, 6to4, 6over4, IPv4
-compatible, or other).  The wiki code examples provide example code for [Java conversions](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv4-address-fromto-ipv6-address) and [Go conversions](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv4-address-fromto-ipv6-address).
+In both Go and Java, you can use your own instance of `IPAddressConverter` for some other suitable conversion, such as IPv4-translated, 6to4, 6over4, IPv4-compatible, or other.  The wiki code examples provide example code for [Java conversions](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv4-address-fromto-ipv6-address) and [Go conversions](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv4-address-fromto-ipv6-address) for all of those IPv4/v6 conversion protocols.
 
 
 
 &#8203;
 
-#### Prefixed Addresses and toHostAddress()
+#### Parsing Addresses with Prefix Length
 
 This library will parse CIDR prefix IP addresses such as 10.1.2.3/24.
-On its own, that string can be interpreted both as an individual address, or as a prefix block with prefix 10.1.2.  With other libraries, the ambiguity is resolved by the method, function, or class used for parsing.  However, this library uses the same types and methods for both subnets and individual addresses, which can result in much cleaner and more flexible code.
+That string can be interpreted both as an individual address, or as a prefix block with prefix 10.1.2.  With other libraries, the ambiguity is resolved by the method, function, or type used for parsing.  However, this library uses the same types and methods for both subnets and individual addresses, which can result in much cleaner and more flexible code, but also requires that such ambiguities are resolved differently.
 
-Network addresses (addresses with host that is zero) like 10.1.2.0/24 and a:&#8203;b:c:d::/64 are parsed as the
-prefix block of addresses for the indicated prefix length.  If the host is not zero, like 10.1.2.3/24, then it is parsed as an individual address, an address with an associated prefix length.  This applies to both IPv4 and IPv6.
+Network addresses (addresses with a host that is zero) like 10.1.2.0/24 and a:&#8203;b:c:d::/64 are parsed as the full block of addresses with the indicated prefix - the network prefix remains constant while the host spans all values.  This subnet is called the prefix block.  If the host is not zero, such as with 10.1.2.3/24, then the string is parsed as a single individual address, but with an associated prefix length.  This convention applies to both IPv4 and IPv6.
 
-The same rule applies to strings in which the address is a subnet in which the subnet lower and upper values have zero hosts, like 10.1.2-3.0/24 or 10.1.2.2-6/31.  Both of those examples will become CIDR prefix blocks when parsed, the first with 512 addresses, and the second with 10 addresses.
+The same rule applies to strings in which the address is a subnet in which the subnet lower and upper boundaries have zero hosts, like 10.1.2-3.0/24 or 10.1.2.2-6/31.  Both of those examples will become CIDR prefix blocks when parsed or constructed, the first with 512 addresses, and the second with 10 addresses.
 
-If you have an individual address or a subnet with prefix length and you
-want to get the address instance representing the entire block for that
-prefix, you can call `toPrefixBlock()`. In the reverse direction, given an
-entire block for a prefix, you can get the IPv4 network address or the
-IPv6 anycast address by calling `getLower()`, or you can use `getHostAddress()` or `toHostAddress()` when parsing, to get the address without the prefix.
+When parsing an IPAddress string, you can ignore the presence of a prefix length or mask in the string with `getHostAddress` or `toHostAddress`.  You will get the host address 10.1.2.3 when parsing 10.1.2.3/24. The prefix length remains available by calling `getNetworkPrefixLength` in Java, or `GetNetworkPrefixLen` in Go, on the `IPAddressString` instance.
 
-With `getHostAddress()` or `toHostAddress()` you will get the host address 10.1.2.3 when parsing 10.1.2.3/24. You can also get the prefix length by calling `getNetworkPrefixLength()` on the `IPAddressString` or `IPAddress` instance.
-
-The example code below shows some of these methods in use.  Take note of the count for each string parsed, indicating whether you have a subnet or address.
+The example code below shows some of these methods in use.  Take note of the count for each parsed string, indicating whether it represents a subnet or address.
 ```java
 static void printPrefixedAddresses(String addressStr) {
   IPAddressString ipAddressString = new IPAddressString(addressStr);
@@ -808,7 +799,27 @@ static void printPrefixedAddresses(String addressStr) {
 printPrefixedAddresses("10.1.2.3/24"); // individual address
 printPrefixedAddresses("10.1.2.0/24"); // network
 ```
-Output:
+The equivalent code for Go is:
+```go
+func printPrefixedAddresses(addressStr string) {
+	ipAddressString := ipaddr.NewIPAddressString(addressStr)
+	address := ipAddressString.GetAddress()
+	fmt.Println("count:", address.GetCount())
+	hostAddress := ipAddressString.GetHostAddress()
+	prefixBlock := address.ToPrefixBlock()
+	prefixLength := ipAddressString.GetNetworkPrefixLen()
+	fmt.Println(address)
+	fmt.Println(address.ToCanonicalWildcardString())
+	fmt.Println(hostAddress)
+	fmt.Println(prefixLength)
+	fmt.Println(prefixBlock)
+	fmt.Println()
+}
+
+printPrefixedAddresses("10.1.2.3/24") // individual address
+printPrefixedAddresses("10.1.2.0/24") // network
+```
+Output from both the Java and Go code:
 ```
 count: 1
 10.1.2.3/24
@@ -830,8 +841,8 @@ count: 256
 #### Parse Non-Segmented Addresses – Hex, Octal, IPv6 Base 85, Binary
 
 Typically, the segments or other punctuation identify a string as a host
-name, as an IPv4 address, or as an IPv6 address. The parser will also
-parse single segment values or a range of single segment values.
+name, as an IPv4 address, or as an IPv6 address. The parser also
+parses single segment values, or a range of single segment values.
 
 With non-segmented addresses, ambiguity between IPv4 and IPv6 is
 resolved by the number of digits in the string. The number of digits is
@@ -839,7 +850,9 @@ resolved by the number of digits in the string. The number of digits is
 less for IPv4, which can be octal, hexadecimal, or decimal. For IPv4,
 digits are presumed decimal unless preceded by 0x for hexadecimal or 0
 for octal, as is consistent with the inet_aton routine. For IPv6, 32
-digits are considered hexadecimal and the preceding 0x is optional.
+digits are considered hexadecimal and a preceding 0x is optional.
+
+Here is some Java code parsing single-segment addresses:
 ```java
 IPAddressString ipAddressString = new IPAddressString("4)+k&C#VzJ4br>0wv%Yp"); // base 85
 IPAddress address = ipAddressString.getAddress();
@@ -865,7 +878,33 @@ ipAddressString = new IPAddressString("0b00000001000000100000001100000100"); // 
 address = ipAddressString.getAddress();
 System.out.println(address);
 ```
-Output:
+Here is equivalent Go code parsing the same single-segment addresses:
+```go
+ipAddressString := ipaddr.NewIPAddressString("4)+k&C#VzJ4br>0wv%Yp") // base 85
+address := ipAddressString.GetAddress()
+fmt.Println(address)
+
+ipAddressString = ipaddr.NewIPAddressString("108000000000000000080800200c417a") // hex IPv6
+address = ipAddressString.GetAddress()
+fmt.Println(address)
+
+ipAddressString = ipaddr.NewIPAddressString("0b00010000100000000000000000000000000000000000000000000000000000000000000000001000000010000000000000100000000011000100000101111010") // binary IPv6
+address = ipAddressString.GetAddress()
+fmt.Println(address)
+
+ipAddressString = ipaddr.NewIPAddressString("0x01020304") // hex IPv4
+address = ipAddressString.GetAddress()
+fmt.Println(address)
+
+ipAddressString = ipaddr.NewIPAddressString("000100401404") // octal IPv4
+address = ipAddressString.GetAddress()
+fmt.Println(address)
+
+ipAddressString = ipaddr.NewIPAddressString("0b00000001000000100000001100000100") // binary IPv4
+address = ipAddressString.GetAddress()
+fmt.Println(address)
+```
+Output from both the Java and Go code:
 ```
 1080::8:800:200c:417a
 1080::8:800:200c:417a
@@ -875,7 +914,8 @@ Output:
 1.2.3.4
 ```
 When parsing a range of single-segment values, it might not be possible to represent the range as a series of segments of range values, which is what is needed to be represented by an `IPv6Address` of 8 segment ranges, or an `IPv4Address` of 4 segment ranges.
-However, the string can still be parsed, and the parsed result can be obtained using `toDivisionGrouping`, `getDivisionGrouping`, `getSequentialRange`, or `toSequentialRange`.  The former two methods provide an exact representation of the string divisions, and the latter provides an `IPAddressSeqRange` instance with the range of addresses from the lower to the upper value of the range expressed by the string, from which a series of `IPAddress` instances can be obtained using `spanWithPrefixBlocks` or `spanWithSequentialBlocks`.
+
+However, the string can still be parsed.  In Java, the parsed result can be obtained using `toDivisionGrouping`, `getDivisionGrouping`, providing an exact representation of the string divisions.  In both Java and Go, you can call the method `getSequentialRange` or `toSequentialRange` providing an `IPAddressSeqRange` instance with the range of addresses from the lower to the upper value of the range expressed by the string.  From the range, a series of `IPAddress` instances can be obtained using `spanWithPrefixBlocks` or `spanWithSequentialBlocks`.
 
 &#8203;
 
@@ -883,6 +923,8 @@ However, the string can still be parsed, and the parsed result can be obtained u
 
 A couple of standardized host formats are recognized, namely the reverse
 DNS host format, and the UNC IPv6 literal host format.
+
+Here is a Java code example parsing such strings:
 ```java
 HostName hostName = new HostName("a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa");
 System.out.println(hostName.asAddress());
@@ -893,30 +935,54 @@ System.out.println(hostName.asAddress());
 hostName = new HostName("1080-0-0-0-8-800-200c-417a.ipv6-literal.net");  
 System.out.println(hostName.asAddress());
 ```
-Output:
+Here is the equivalent Go code:
+```go
+hostName := ipaddr.NewHostName("a.7.1.4.c.0.0.2.0.0.8.0.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.0.1.ip6.arpa")
+fmt.Println(hostName.AsAddress())
+
+hostName = ipaddr.NewHostName("4.3.2.1.in-addr.arpa")
+fmt.Println(hostName.AsAddress())
+
+hostName = ipaddr.NewHostName("1080-0-0-0-8-800-200c-417a.ipv6-literal.net")
+fmt.Println(hostName.AsAddress())
+```
+Output from both the Java and Go code:
 ```
 1080::8:800:200c:417a
 1.2.3.4  
 1080::8:800:200c:417a
 ```
-A couple of methods in `HostName` are available as well:
+A couple of methods in `HostName` are available to indicate such strings:
 ```java
 public boolean isUNCIPv6Literal()  
 public boolean isReverseDNS()
 ```
+```go
+func (host *HostName) IsUncIPv6Literal() bool
+func (host *HostName) IsReverseDNS() bool
+```
+
 
 &#8203;
 
 #### Parse IPv6 Zone or Scope ID
 
-The IPv6 zone or scope ID is recognized, denoted by the ‘%’ character.  It can be retrieved by `IPv6Address.getZone()`.
+The IPv6 zone or scope ID is recognized, denoted by the ‘%’ character.  It can be retrieved by the method `getZone` in `IPv6Address`.
+Here is sample Java code:
 ```java
 IPAddress addr = new IPAddressString("::%eth0").getAddress();
 if(addr.isIPv6()) {
   System.out.println(addr.toIPv6().getZone());
 }
 ```
-Output:
+Here is sample Go code to do the same:
+```go
+addr := ipaddr.NewIPAddressString("::%eth0").GetAddress()
+if addr.IsIPv6() {
+	fmt.Println(addr.ToIPv6().GetZone())
+}
+```
+Output from both the Java and Go code:
 ```
 eth0
 ```
@@ -976,6 +1042,11 @@ with prefix length using the methods `assignPrefixForSingleBlock()` or
 `assignMinPrefixForBlock()` in `IPAddress`, or any of the methods that allow
 you to set any given prefix length directly such as
 `setPrefixLength(int)`.
+
+Anytime you have an individual address or a subnet with prefix length, you
+can get the address representing the entire block for that
+prefix using the method `toPrefixBlock`. In the reverse direction, given an entire block for a prefix, you can get the IPv4 network address or the
+IPv6 anycast address by calling `getLower` or by calling `toZeroHost`.
 
 &#8203;
 
@@ -2702,19 +2773,6 @@ The address tries provide their own sorting and comparison, which matches the co
 
 &#8203;
 
-## Cache Classes
-
-The `IPAddressNetwork` class defines `IPAddressStringCache` and
-`HostNameCache`. These cache classes allow you to cache identifier strings
-(hosts and/or addresses). Note that the identifier strings themselves
-will also cache their associated addresses, whether parsed or resolved.
-Also note that addresses cache their associated strings and various
-other objects. Therefore, these cache classes go a long way towards
-allowing you to avoid creating the same objects frequently. These caches
-do quick lookups using either bytes or strings, which can be ideal for
-some applications that handle many addresses or host names.
-
-&#8203;
 
 ## Make your IPv4 App work with IPv6
 
