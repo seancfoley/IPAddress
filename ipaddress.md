@@ -166,8 +166,10 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | Sequential range iterators |  ✅ | ✅ |
 | Subnet prefix iterators |  ✅ | ✅ |
 | Sequential range prefix iterators |  ✅ | ✅ |
+| Spliterator and stream iterator alternatives | ✅ |  |
 | Parsing many address and subnet formats |  ✅ | ✅ |
 | String generation of many address and subnet formats |  ✅ | ✅ |
+| String collections | ✅ |  |
 | IPv4/v6/MAC address increment/decrement |  ✅ | ✅ |
 | Masking, reversing, subtracting, intersecting, joining operations |  ✅ | ✅ |
 | Prefix length operations |  ✅ | ✅ |
@@ -179,14 +181,16 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
 | Parse IP strings directly to division groupings | ✅ | Future |
 | Prefix Block Allocator | ✅ | ✅ |
-| String collections | ✅ |  |
-| Spliterators and Streams | ✅ |  |
 | Serialization | ✅  |  |
+
+
+Note that this document is being expanded to include more Go code examples and references.
 
 &#8203;
 ## Code Examples
 
 This document provides in-depth and extensive documentation for the library, and includes some code snippets.  However, for common use-cases, you may wish to go straight to the <a href="https://github.com/seancfoley/IPAddress/wiki/Code-Examples" target="_blank">Java code examples</a> or <a href="https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples" target="_blank">Go code examples</a> which cover a wide breadth of common use-cases.  The code examples are focused more on covering common use-cases and operations, while this document is focused more on covering all areas in more detail with smaller code snippets.  This document focuses more on one area at a time, while the examples are useful in showing how to combine the functionality to achieve various end results.
+
 
 &#8203;
 ## Supported IP Address Parsing Formats
@@ -257,7 +261,7 @@ The core types are **HostName**, **IPAddressString**, and
 subtypes **IPAddress, IPv4Address**, **IPv6Address**, and
 **MACAddress**, as well as the sequential address types
 **IPAddressSeqRange**, **IPv4AddressSeqRange** and
-**IPv6AddressSeqRange**. In Go, the sequential address types are derived from the same generic type.
+**IPv6AddressSeqRange**. In Go, the sequential address types are aliases derived from the same generic type.
 
 If you have a textual representation of an IP
 address, then start with `HostName` or `IPAddressString`. If you have
@@ -490,44 +494,43 @@ static void parseHostSubnet(String formats[]) {
     }
 }
 
-public static void main(String[] args) {
-  String prefixedFormats[] = {
-    "ffff::/104",
-    "ffff:0:0:0:0:0:0:0/104",
-    "ffff:0000:0000:0000:0000:0000:0000:0000/104",
-    "ffff::/104",
-    "ffff::0.0.0.0/104",
-    "0b1111111111111111::/104",
-    "=q{+M|w0(OeO5^EGP660/104"
-  };
 
-  String rangeFormats[] = {
-    "ffff:0:0:0:0:0:0-ff:*",
-    "ffff::0-ff:*",
-    "0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff"
-  };
+String prefixedFormats[] = {
+  "ffff::/104",
+  "ffff:0:0:0:0:0:0:0/104",
+  "ffff:0000:0000:0000:0000:0000:0000:0000/104",
+  "ffff::/104",
+  "ffff::0.0.0.0/104",
+  "0b1111111111111111::/104",
+  "=q{+M|w0(OeO5^EGP660/104"
+};
 
-  parseSubnet(prefixedFormats);
+String rangeFormats[] = {
+  "ffff:0:0:0:0:0:0-ff:*",
+  "ffff::0-ff:*",
+  "0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff"
+};
 
-  parseSubnet(rangeFormats);
+parseSubnet(prefixedFormats);
 
-  String hostFormats[] = {
-    "[ffff::]/104",
-    "[ffff:0:0:0:0:0:0:0]/104",
-    "[ffff:0000:0000:0000:0000:0000:0000:0000]/104",
-    "[ffff::]/104",
-    "[ffff::0.0.0.0]/104",
-    "[0b1111111111111111::]/104",
-    "[=q{+M|w0(OeO5^EGP660]/104",
-    "[ffff:0:0:0:0:0:0-ff:*]",
-    "[ffff::0-ff:*]",
-    "[0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff]",
-    "*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
-    "ffff-0-0-0-0-0-0-0.ipv6-literal.net/104"
-  };
+parseSubnet(rangeFormats);
 
-  parseHostSubnet(hostFormats);
-}
+String hostFormats[] = {
+  "[ffff::]/104",
+  "[ffff:0:0:0:0:0:0:0]/104",
+  "[ffff:0000:0000:0000:0000:0000:0000:0000]/104",
+  "[ffff::]/104",
+  "[ffff::0.0.0.0]/104",
+  "[0b1111111111111111::]/104",
+  "[=q{+M|w0(OeO5^EGP660]/104",
+  "[ffff:0:0:0:0:0:0-ff:*]",
+  "[ffff::0-ff:*]",
+  "[0xffff0000000000000000000000000000-0xffff0000000000000000000000ffffff]",
+  "*.*.*.*.*.*.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.f.f.f.f.ip6.arpa",
+  "ffff-0-0-0-0-0-0-0.ipv6-literal.net/104"
+};
+
+parseHostSubnet(hostFormats);
 ```
 Here is Go code parsing some of those representations:
 ```go
@@ -990,37 +993,33 @@ eth0
 &#8203;
 ## IP Address and Numeric Values
 
-In addition to the range of string formats that can be parsed to produce ``IPAddress`` instances, you can also obtain instances of ``IPAddress`` from byte arrays, ``java.net.InetAddress``, arrays of address segments, or
-individual integer segment values.
+In addition to the range of string formats that can be parsed to produce `IPAddress` instances, you can also obtain `IPAddress` instances from a large number of numeric formats.   You an obtain instances of `IPAddress` from byte arrays in Java and from byte slices in Go.  You can obtain instances of `IPAddress` from `java.net.InetAddress` or `java.net.InterfaceAddress` in Java and any one of `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `netip.Addr`, or `netip.Prefix` in Go.  You can obtain instances of `IPAddress` from arrays of address segments in Java, or from slices of address segments in Go.  You can obtain instances of `IPAddress` from individual integer segment values using the `SegmentValueProvider` interface.  All of these options are generic to either IPv4 or IPv6 unless you specifically choose the IPv4 or IPv6-specific constructors.  See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddress) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressNetwork.IPAddressGenerator.html) for the full list.
 
-For IPv4 you have the additional option of constructing an address from a 32-bit integer. For IPv6, you have the additional options of constructing from a ``java.math.BigInteger`` and constructing from MAC
-addresses.
+For IPv4 you have the additional option of constructing an address from a 32-bit integer. See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPv4Address) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/ipv4/IPv4Address.html).
 
-Once you have an IPAddress instance, there are methods to convert to bytes, to a ``java.math.BigInteger``, to sections, to subnets or network prefixes, to masks, to ``java.net.InetAddress``, to different string representations, and so on.
+For IPv6, you have the additional options of constructing from MAC address instances, from a `java.math.BigInteger` in Java, or from a `math/big.Int` or a pair of 64-bit unsigned integers in Go.  See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPv6Address) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/ipv6/IPv6Address.html).
 
-When constructing IP addresses or sections, the same rules regarding zero-hosts applies as when parsing from strings.  Network addresses (addresses with host that is zero) like 10.1.2.0/24 and a:&#8203;b:c:d::/64 are constructed as the
-prefix block of addresses for the indicated prefix length.  If the host is not zero, like 10.1.2.3/24, then it is constructed as an individual address, an address with an associated prefix length.  This applies to both IPv4 and IPv6.
+Once you have an IPAddress instance, there are methods to convert to bytes, to sections, to subnets or network prefixes, to masks, to all the same standard-library types from which you can construct an IPAddress instance, to different string representations, and so on.
+
+When constructing IP addresses or sections, you can supply a prefix length, and when you do, the same rules regarding zero-hosts applies as when parsing from strings.  Network addresses (addresses with host that is zero) like 10.1.2.0/24 and a:&#8203;b:c:d::/64 are constructed as the prefix block of addresses with the indicated prefix.  If the host is not zero, like 10.1.2.3/24, then it is constructed as an individual address, an address with an associated prefix length.  This applies to both IPv4 and IPv6.
 
 The same rule applies to subnets where the lower and upper values have zero hosts, like 10.1.2-3.0/24 or 10.1.2.2-6/31.  Both of those examples will become CIDR prefix blocks when constructed.
 
-Should you wish to get the individual address or section with a zero host, you can construct without the prefix length and then apply the prefix length afterwards, or you can use `getLower()` after construction.
+Should you wish to get the individual address or section with a zero host, you can construct without the prefix length and then apply the prefix length afterwards, or you can use `getLower` or `toZeroHost` after construction.
 
 &#8203;
 ## Networks
 
-Each of the different address types (IPv6, IPv4, MAC) has an associated singleton network object. The network objects are used for caching, for
-configuration, and have methods for obtaining masks and loopbacks. Each
-of the network objects have singleton creator objects that are used to
-create addresses, sections, and segments, and those creator objects
-perform caching of these address components for efficient memory usage
-and performance. All internally created address components and addresses
-are created by the creator object, whether by the string parsing engine
-or by address object manipulation.
+Each of the IP address versions have an associated singleton network object. The network objects are used for caching, for
+configuration, or for obtaining masks and loopbacks.
 
-The `defaultIpv6Network()`, `defaultIpv4Network()`, and `defaultMACNetwork()`
-methods in Address provide access to the respective network objects.
-Each network’s associated creator object is accessible from
-`getAddressCreator()`.
+Each of the IP address versions also have an associated "creator" type that can be used to create addresses, sections, and segments, and instances of those types may perform caching of address components for efficient memory usage
+and performance.
+
+In Java, the `defaultIpv6Network()`, `defaultIpv4Network()` in Address provide access to the respective network objects.  There is also a counterpart for MAC, available from the `defaultMACNetwork()` method.
+Each network has an associated creator object accessible from `getAddressCreator()`.
+
+In Go, the network objects are the variables `ipaddr.IPv4Network` and `ipaddr.IPv6Network`.  Use the type [IPAddressCreator](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressCreator) for creator instances.
 
 &#8203;
 
@@ -1034,14 +1033,14 @@ section above on parsing, as well as when directly constructing
 addresses or sections. Addresses and sections store their prefix lengths
 and the prefix is incorporated in numerous address operations as well as
 when producing strings. For instance, an address will provide the
-network section upon calls to `getNetworkSection()` in `IPAddress`, and will
-supply the prefix length when calling `getNetworkPrefixLength()`.
+network section upon calls to the IPAddress method `getNetworkSection`, and will
+supply the prefix length when calling `getNetworkPrefixLength` in Java or `GetNetworkPrefixLen` in Go.
 
 Given an address with no prefix length, you can convert to an address
-with prefix length using the methods `assignPrefixForSingleBlock()` or
-`assignMinPrefixForBlock()` in `IPAddress`, or any of the methods that allow
+with prefix length using the methods `assignPrefixForSingleBlock` or
+`assignMinPrefixForBlock`, or any of the methods that allow
 you to set any given prefix length directly such as
-`setPrefixLength(int)`.
+`setPrefixLength` / `SetPrefixLen` in Java / Go.
 
 Anytime you have an individual address or a subnet with prefix length, you
 can get the address representing the entire block for that
@@ -1052,10 +1051,7 @@ IPv6 anycast address by calling `getLower` or by calling `toZeroHost`.
 
 #### Prefix Length and Equality
 
-In this library, the subnet with prefix length 10.1.2.\*/24 is
-equivalent the non-prefixed address 10.1.2.\* as they both contain the
-same set of addresses.  In other words, when it comes to equality or comparison, the
-prefix length has no effect.
+In this library, the subnet with prefix length 10.1.2.0/24, which can also be written as 10.1.2.\*/24, is equivalent the non-prefixed address 10.1.2.\*, since they both contain the same set of numeric addresses.  In other words, when it comes to equality or comparison, the prefix length has no effect.  Equality is only based on numeric values.
 
 &#8203;
 
