@@ -1307,15 +1307,15 @@ with fewer sequential blocks than prefix blocks.
 
 ## Address Tries
 
-The trie data structure is particularly useful when working with addresses.  For that reason this library includes compact binary address tries (aka compact binary prefix tree or binary radix trie, amongst other names).  Tries provide efficient re**trie**val operations, hence the name *trie*, but what makes them additionally useful for addresses is the fact that prefix tries are organized based on the prefix bits of the keys, which are addresses in this case, mirroring the way that CIDR subnets and addresses are organized by prefix.  So you can use tries for efficient subnet containment checks on many addresses or subnets at once in constant time (such as with a routing table), for efficient lookups, for efficiently dividing and subdividing subnets, for sorting addresses, and for traversing through subnets in different ways.
+The trie data structure is particularly useful when working with addresses.  For that reason this library includes compact binary address tries (aka compact binary prefix tree or binary radix trie, amongst other names).  Tries provide efficient re**trie**val operations, hence the name *trie*, but what makes them additionally useful for addresses is the fact that prefix tries are organized by the bits in the prefix of each key, the keys being addresses in this case, which mirrors the way that CIDR subnets and addresses are organized by prefix.  So you can use tries for efficient subnet containment checks on many addresses or subnets at once in constant time (such as with a routing table). A trie is useful for efficient lookups, for efficiently dividing and subdividing subnets, for sorting addresses, and for traversing through subnets in different ways.
 
-By also associating each trie node with a value, tries can be used for value lookups in which the keys are addresses.
+By associating each trie node with a value, tries can also be used for value lookups in which the keys are addresses.
 
-Tries can also be used as the backing data structures for Java collections framework sets and maps.
+Tries can also be used as the backing data structures for maps and sets.
 
-When handling large numbers of addresses or CIDR prefix blocks, it can be much more efficient to use the trie data structure for common operations, the trie constructed in linear time proportional to the number of addresses, and then offering constant time containment and retrieval operations on all of the contained addresses or subnets at once.
+When handling large numbers of addresses or CIDR prefix blocks, it can be much more efficient to use the trie data structure for common operations on those addresses and blocks, the trie constructed in linear time proportional to the number of addresses, and then offering constant time containment and retrieval operations on all of the contained addresses or subnets at once.
 
-An IPv6 trie constructed and then converted to a string:
+Here is an IPv6 trie constructed and then converted to a string, first in Java:
 ```java
 <T extends AddressTrie<A>, A extends Address> T populateTree(
 			T trie, String addrStrs[], Function<String, A> creator) {
@@ -1342,12 +1342,41 @@ String ipv6Addresses[] = {
 	"bb::ffff:2:3:43",
 };
 IPv6AddressTrie ipv6Trie = populateTree(
-		new IPv6AddressTrie(),
-		ipv6Addresses,
-		str -> new IPAddressString(str).getAddress().toIPv6());
+	new IPv6AddressTrie(),
+	ipv6Addresses,
+	str -> new IPAddressString(str).getAddress().toIPv6());
 System.out.println(ipv6Trie);
 ```
-Output:
+and now here is the code in Go:
+```go
+ipv6Addresses := []string{
+  "1::ffff:2:3:5",
+  "1::ffff:2:3:4",
+  "1::ffff:2:3:6",
+  "1::ffff:2:3:12",
+  "1::ffff:aa:3:4",
+  "1::ff:aa:3:4",
+  "1::ff:aa:3:12",
+  "bb::ffff:2:3:6",
+  "bb::ffff:2:3:12",
+  "bb::ffff:2:3:22",
+  "bb::ffff:2:3:32",
+  "bb::ffff:2:3:42",
+  "bb::ffff:2:3:43",
+}
+ipv6Trie := populateTree(ipv6Addresses)
+fmt.Println(ipv6Trie)
+
+func populateTree(addrStrs []string) ipaddr.Trie[*ipaddr.IPAddress] {
+	trie := ipaddr.Trie[*ipaddr.IPAddress]{}
+	for _, addrStr := range addrStrs {
+  	addr := ipaddr.NewIPAddressString(addrStr).GetAddress()
+  	trie.Add(addr)
+	}
+	return trie
+}
+```
+Output from both the Java and Go code:
 ```
 ○ ::/0 (13)
 └─○ ::/8 (13)
@@ -1376,7 +1405,7 @@ Output:
       ├─● bb::ffff:2:3:42 (1)
       └─● bb::ffff:2:3:43 (1)
 ```
-An IPv4 trie constructed and then converted to a string using the same polymorphic `populateTree` method:
+An IPv4 trie constructed and then converted to a string using the same polymorphic `populateTree` method, first in Java:
 ```java
 String ipv4Addresses[] = {
 	"1.2.3.4",
@@ -1397,7 +1426,25 @@ IPv4AddressTrie ipv4Trie = populateTree(
 		str -> new IPAddressString(str).getAddress().toIPv4());
 System.out.println(ipv4Trie);
 ```
-Output:
+and also in Go:
+```go
+ipv4Addresses := []string{
+	"1.2.3.4",
+	"1.2.3.5",
+	"1.2.3.6",
+	"1.2.3.3",
+	"1.2.3.255",
+	"2.2.3.5",
+	"2.2.3.128",
+	"2.2.3.0/24",
+	"2.2.4.0/24",
+	"2.2.7.0/24",
+	"2.2.4.3",
+}
+ipv4Trie := populateTree(ipv4Addresses)
+fmt.Println(ipv4Trie)
+```
+Output from both the Java and Go code:
 ```
 ○ 0.0.0.0/0 (11)
 └─○ 0.0.0.0/6 (11)
@@ -1419,11 +1466,14 @@ Output:
       │ └─● 2.2.4.3 (1)
       └─● 2.2.7.0/24 (1)
 ```
-A more compact non-binary representation of the same IPv4 trie:
+A more compact non-binary representation of the same IPv4 trie, both Java and Go, respectively:
 ```java
 System.out.println(ipv4Trie.toAddedNodesTreeString());
 ```
-Output:
+```go
+fmt.Println(ipv4Trie.AddedNodesTreeString())
+```
+Output from both the Java and Go code:
 ```
 ○ 0.0.0.0/0
 ├─● 1.2.3.3
@@ -1439,17 +1489,19 @@ Output:
 └─● 2.2.7.0/24
 ```
 
+
+
 &#8203;
 
 #### Partitioning Subnets
 
-An address trie accepts individual addresses or CIDR prefix blocks subnets.  While this covers most use-cases, there are IPAddress instances that cannot be added to a trie as-is.  But any subnet can be subdivided or partitioned in various ways.  
+An address trie stores individual addresses or CIDR prefix blocks subnets.  There are IPAddress instances that cannot be added to a trie as-is, subnets that are not CIDR prefix blocks.  Such subnets can be subdivided or partitioned to addresses or CIDR prefix blocks in various ways.  
 
-The `Partition` class encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used once, so simply create another if that is necessary.
+The `Partition` type encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used only once.  Simply create another whenever that may be necessary.
 
-The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which often results in a smaller number of blocks.
+The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which frequently results in a smaller total number of blocks.
 
-Here we partition an IPv4 subnet with `partitionWithSingleBlockSize` and then check for the partitioned elements in the trie:
+Here we partition an IPv4 subnet with `partitionWithSingleBlockSize` and then check for the partitioned elements in the trie, first in Java:
 ```java
 String addrs = "1.2.1-7.*";
 IPv4AddressTrie trie = new IPv4AddressTrie();
@@ -1459,7 +1511,17 @@ boolean foundThemAll = Partition.partitionWithSingleBlockSize(subnet).predicateF
 System.out.println("all inserted: " + foundThemAll);
 System.out.println(trie);
 ```
-Output:
+Here is the equivalent Go code:
+```go
+addrs := "1.2.1-7.*"
+trie := ipaddr.Trie[*ipaddr.IPAddress]{}
+subnet := ipaddr.NewIPAddressString(addrs).GetAddress()
+ipaddr.PartitionWithSingleBlockSize(subnet).PredicateForEach(trie.Add)
+foundThemAll := ipaddr.PartitionWithSingleBlockSize(subnet).PredicateForEach(trie.Contains)
+fmt.Println("all inserted:", foundThemAll)
+fmt.Println(trie)
+```
+Output from both the Java and Go code:
 ```
 all inserted: true
 
@@ -1478,7 +1540,7 @@ all inserted: true
       ├─● 1.2.6.0/24 (1)
       └─● 1.2.7.0/24 (1)
 ```
-Here we try the other partition method `partitionWithSpanningBlocks``:
+Following that code, we try the other partition method `partitionWithSpanningBlocks` on the same subnet, with Java code:
 ```java
 trie = new IPv4AddressTrie();
 Partition.partitionWithSpanningBlocks(subnet).predicateForEach(trie::add);
@@ -1486,7 +1548,15 @@ foundThemAll = Partition.partitionWithSpanningBlocks(subnet).predicateForEach(tr
 System.out.println("all inserted: " + foundThemAll);
 System.out.println(trie);
 ```
-Output:
+Here we try the other partition method `PartitionWithSpanningBlocks` on the same subnet, with Go code:
+```go
+trie = ipaddr.Trie[*ipaddr.IPAddress]{}
+ipaddr.PartitionWithSpanningBlocks(subnet).PredicateForEach(trie.Add)
+foundThemAll = ipaddr.PartitionWithSpanningBlocks(subnet).PredicateForEach(trie.Contains)
+fmt.Println("all inserted:", foundThemAll)
+fmt.Println(trie)
+```
+Output from both the Java and Go code:
 ```
 all inserted: true
 
@@ -1807,7 +1877,7 @@ Output:
 ```
 207.0.68.0/22
 ```
-Alternatively, you can use the `prefixBlockIterator()` method to get a
+Alternatively, you can use the `prefixBlockIterator` method to get a
 list of subnets when adjusting the prefix:
 ```java
 IPAddress subnet = new
@@ -1827,6 +1897,9 @@ Output:
 192.168.0.0-12/30
 [192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30]
 ```
+Another option is to let the library do the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.
+
+The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) and [Go wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) provide subnetting code examples as well as examples demonstrating how to create or derive CIDR subnets.
 
 &#8203;
 
