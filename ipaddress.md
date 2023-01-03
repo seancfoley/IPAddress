@@ -137,7 +137,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 
   - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals
 
-  - **Integrate with the standard types.  For Java, this includes the primitive types and the standard classes** `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  **For Go, this includes the primitive types and the Go SDK types** `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, `net.netip.Addr`, `net.netip.AddrPort`, `net.netip.Prefix`, and `big.Int`.
+  - **Integrate with standard types.**  For Java, this includes the primitive signed types and the standard library classes `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  For Go, this includes the primitive unsigned types and the Go standard library types `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, `net.netip.Addr`, `net.netip.AddrPort`, `net.netip.Prefix`, and `big.Int`.
 
   - **Making address manipulations easy**, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
 
@@ -234,9 +234,7 @@ see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/
 
   - **CIDR (Classless Inter-Domain Routing) prefix length subnets**  
     Adding the prefix length `/x` creates the address or subnet for that
-    network prefix length, depending upon the configuration for prefix
-    handling. The subnet 1.2.0.0/16 is the set of all addresses starting
-    with 1.2
+    network prefix length.  It will be a subnet if the host for prefix length 'x' is entirely zero.  In other words, he subnet 1.2.0.0/16 is the set of all addresses starting with the 16-bit prefix "1.2".
 
   - **Wildcard `*` `_` and range `-` subnets:**  
     `*` denotes all possible values in one or more segments, so
@@ -247,10 +245,9 @@ see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/
 
   - **Combinations:**
     Applying a prefix length to a subnet simply applies the prefix to
-    every element of the subnet. 1.\*.0.0/16 is the same subnet of
-    addresses as 1.0.0.0/8
+    every element of the subnet. 1.\*.0.0/16 is the same subnet as 1.0.0.0/8.
 
-For a more detailed list or formats parsed, some examples are below, or
+For a more detailed list of formats parsed, some examples are below, or
 see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString) for the type `IPAddressString`.
 
 &#8203;
@@ -1028,30 +1025,30 @@ In Go, the network objects are the variables `ipaddr.IPv4Network` and `ipaddr.IP
 &#8203;
 ## Prefix Length Handling
 
-Prefix lengths are supported both in parsing, as indicated in the
-section above on parsing, as well as when directly constructing
+Prefix lengths in strings are parsed, as indicated in the
+section above on parsing, or can be supplied when directly constructing
 addresses or sections. Addresses and sections store their prefix lengths
-and the prefix is incorporated in numerous address operations as well as
+and the prefix length is incorporated in numerous address operations as well as
 when producing strings. For instance, an address will provide the
-network section upon calls to the IPAddress method `getNetworkSection`, and will
+network section, based upon the prefix length, with calls to the IPAddress method `getNetworkSection`, and will
 supply the prefix length when calling `getNetworkPrefixLength` in Java or `GetNetworkPrefixLen` in Go.
 
 Given an address with no prefix length, you can convert to an address
 with prefix length using the methods `assignPrefixForSingleBlock` or
 `assignMinPrefixForBlock`, or any of the methods that allow
-you to set any given prefix length directly such as
-`setPrefixLength` / `SetPrefixLen` in Java / Go.
+you to set a prefix length directly such as
+`setPrefixLength` / `SetPrefixLen` or `adjustPrefixLength` / `AdjustPrefixLen` in Java / Go.
 
 Anytime you have an individual address or a subnet with prefix length, you
 can get the address representing the entire block for that
-prefix using the method `toPrefixBlock`. In the reverse direction, given an entire block for a prefix, you can get the IPv4 network address or the
+prefix using the method `toPrefixBlock`. This type of subnet can be called a CIDR prefix block, a subnet which spans all the hosts for a specific CIDR prefix.  In the reverse direction, given a CIDR prefix block, you can get the IPv4 network address or the
 IPv6 anycast address by calling `getLower` or by calling `toZeroHost`.
 
 &#8203;
 
 #### Prefix Length and Equality
 
-In this library, the subnet with prefix length 10.1.2.0/24, which can also be written as 10.1.2.\*/24, is equivalent the non-prefixed address 10.1.2.\*, since they both contain the same set of numeric addresses.  In other words, when it comes to equality or comparison, the prefix length has no effect.  Equality is only based on numeric values.
+In this library, the subnet with prefix length 10.1.2.0/24, which can also be written as 10.1.2.\*/24, is equivalent the non-prefixed address 10.1.2.\*, since they both contain the same set of numeric addresses.  In other words, when it comes to equality or comparison, the prefix length has no effect.  Equality and comparison is entirely based on numeric values.
 
 &#8203;
 
@@ -1059,12 +1056,13 @@ In this library, the subnet with prefix length 10.1.2.0/24, which can also be wr
 
 Addresses can be broken up into sections, and reconstituted from
 sections. A section is a series of segments. You can get the section for
-the full address by calling `getSection()`, or you can get subsections by
+the full address by calling `getSection`, or you can get subsections by
 calling one of the variants, either `getSection(int)` or `getSection(int,
-int)`, which return a subsection spanning the given indices. You can also
-get the segments in an address by calling `getSegment(int)` or one of the
-variants of `getSegments`, either on the address or on a section of the
-address.
+int)` in Java, or `GetSubSection` or `GetTrailingSection` in Go.
+These methods return a subsection spanning the given indices. You can also
+get the segments in an address by calling `getSegment` or one of the
+variants of `getSegments` in Java, or one of `GetSegments`, `CopySegments` or `CopySubSegments` in Go,
+either on the address or on a section of the address.
 
 You can also reconstitute an address from a section or array of segments
 using the appropriate address constructor, if your section or array of
@@ -1075,7 +1073,7 @@ segments has the correct number of segments for the address type.
 #### Host and Network Sections of IP Address
 
 Use `getHostSection()` and `getNetworkSection()` to get the host and network
-sections of an IP address as indicated by prefix length.
+sections of an IP address as indicated by prefix length, as shown by this Java code:
 ```java
 IPAddress address = new IPAddressString("1.2.3.4").getAddress();  
 IPAddressSection network = address.getNetworkSection(16, true);  
@@ -1083,7 +1081,15 @@ IPAddressSection host = address.getHostSection(16);
 System.out.println(network.toCanonicalString());  
 System.out.println(host.toCanonicalString());
 ```
-Output:
+This is the equivalent Go code:
+```go
+address := ipaddr.NewIPAddressString("1.2.3.4").GetAddress()
+network := address.GetNetworkSectionLen(16)
+host := address.GetHostSectionLen(16).WithoutPrefixLen()
+fmt.Println(network.ToCanonicalString())
+fmt.Println(host.ToCanonicalString())
+```
+Output from both the Java and Go code:
 ```
 1.2/16
 3.4
@@ -1095,35 +1101,39 @@ available as those available with addresses themselves.
 
 ## IP Address Ranges
 
+#### IPAddress Internal Format
+
 An `IPAddress` or `IPAddressString` instance can represent any individual
-address or any range of addresses in which each segment specifies its
-own range of sequential values. For `IPAddress`, the ranges are specified
-with the canonical number of segments for each address version or type,
+address or any range of addresses in which each segment specifies a
+range of sequential values. An `IPAddress` instance has the canonical number of segments for its address version or type,
 which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 for MAC.
 
-Any prefix block of addresses can be specified this way (a block of
-addresses that includes all the hosts for a given prefix).
+Any CIDR prefix block can be specified in this manner.
 
-An `IPAddressString` can represent any such address string, even those
+An `IPAddressString` can represent any such address string, as well as those
 that do not use the canonical number of segments. However, for ranges
-involving a non-canonical number of segments, converting to an IPAddress
+that do not have the canonical number of segments, converting to an `IPAddress`
 instance is not always possible (for example the IPv4 subnet
 1.2-3.0-1000 cannot be expressed with 4 segments).
+
+#### Sequential Blocks
 
 Not all `IPAddress` subnets are sequential. For instance, 1-2.3.4-5.6 is
 not sequential, since the address 1.3.4.6 is followed in the block by
 1.3.5.6 while the next sequential address 1.3.4.7 is not part of the
-block. A sequential block is one in which the range is sequential. For a
+block. A sequential block is an `IPAddress` subnet in which the range is sequential. For a
 block to be sequential, the first segment with a range of values must be
 followed only by segments that cover all values. For instance,
 1.2.3-4.\* is a sequential block, as well as 1:a-f:\*:\*:\*:\*:\*:\*,
-also writeable as 1:a-f:\*. Any prefix block is sequential and can also
+also writeable as 1:a-f:\*. Any prefix block is sequential.  A prefix block can also
 be expressed without the prefix length. For instance, the prefix block
 1:2:3:4::/64 can be written without the prefix length as 1:2:3:4:\*.
 
 You can convert a non-sequential block to a collection of sequential
 blocks using the `sequentialBlockIterator` method of `IPAddress`. If you
 wish to get the count of sequential blocks, use the method `getSequentialBlockCount`.
+
+This Java and Go code demonstrates the use of the sequential block iterator.
 ```java
 convertNonSequentialBlock("a:b:c:d:1:2-4:3-5:4-6");
 
@@ -1140,7 +1150,23 @@ static void convertNonSequentialBlock(String string) {
   }
 }
 ```
-Output:
+```go
+convertNonSequentialBlock("a:b:c:d:1:2-4:3-5:4-6")
+
+func convertNonSequentialBlock(str string) {
+	addrString := ipaddr.NewIPAddressString(str)
+	addr := addrString.GetAddress()
+	fmt.Println("Initial range block is", addr)
+	sequentialCount := addr.GetSequentialBlockCount()
+	fmt.Println("Sequential range block count is", sequentialCount)
+
+	iterator := addr.SequentialBlockIterator()
+	for iterator.HasNext() {
+		fmt.Println(iterator.Next())
+	}
+}
+```
+Output from both the Java and Go code:
 ```
 Initial range block is a:b:c:d:1:2-4:3-5:4-6
 Sequential range block count is 9
@@ -1154,6 +1180,9 @@ a:b:c:d:1:4:3:4-6
 a:b:c:d:1:4:4:4-6
 a:b:c:d:1:4:5:4-6
 ```
+
+#### Sequential Ranges
+
 Not all sequential address ranges can be described by an instance of
 `IPAddress` or `IPAddressString`. One such example is the range of two IPv4
 addresses from 1.2.3.255 to 1.2.4.0. One option is to represent the
@@ -1161,76 +1190,115 @@ address range with just a single large segment covering the section of
 the address that has a range of values, such as in an instance of
 `IPAddressLargeDivisionGrouping`.
 
-The better option is to use an `IPAddressSeqRange` instance, which
+The more common option is to use an `IPAddressSeqRange` instance, which
 provides a more general representation of address ranges and their
 associated operations. You can represent any sequential range of
-addresses with an `IPAddressSeqRange` instance.
+addresses with an `IPAddressSeqRange` instance.  In Go, `IPAddressSeqRange` is an alias for `SequentialRange[*IPAddress]`.
+
+You can also specify more specific ranges using `IPv4AddressSeqRange` and `IPv6AddressSeqRange`
+if the polymorphism of `IPAddressSeqRange` is not required.  An `IPAddressSeqRange` represents either an IPv4 or IPv6 range, but it cannot represent a mix of IPv4 and IPv6 addresses.
 
 Both `IPAddress` and `IPAddressSeqRange` implement the `IPAddressRange`
 interface. `IPAddressSeqRange` instances cover all ranges of addresses,
-while `IPAddress` instances cover all ranges of segments, including CIDR prefix blocks.
+while `IPAddress` instances cover all ranges of segments within addresses.  
+Individual addresses and CIDR prefix blocks can be represented by either type,
+although `IPAddress` instances are the standard for expressing individual addresses and CIDR prefix blocks.
 
-An `IPAddressSeqRange` instance can be converted to the minimal list of
-sequential blocks or prefix blocks that cover the same range of
-addresses, so that is a couple of ways to go from `IPAddressSeqRange` to
-`IPAddress` instances. To go in the reverse direction from `IPAddress` to
-`IPAddressSeqRange`, you can convert any `IPAddress` sequential block or
-prefix block to an `IPAddressRange` with the method `toSequentialRange`, and
-then you can join any collection of `IPAddressRange` instances with the
-join method in `IPAddressSeqRange`.
+Any `IPAddressSeqRange` instance can be converted to the minimal list of
+`IPAddress` sequential blocks or prefix blocks that cover the exact same range of
+addresses, providing a couple of different ways to go from `IPAddressSeqRange` to
+`IPAddress` instances. To go in the reverse direction, from `IPAddress` to
+`IPAddressSeqRange`, you can start with a sequential block iterator to convert any `IPAddress` instance to a series of `IPAddress` sequential blocks.  Then you can convert each `IPAddress` sequential block to an `IPAddressSeqRange` with the method `toSequentialRange`.
+Finally, to eliminate overlap and obtain a minimal list of `IPAddressSeqRange` instances, you can use the `join` method of `IPAddressSeqRange`.
 
-Here we show a code example of creating a sequential range, breaking it
-up into either prefix blocks or sequential blocks, and then merging
-those blocks to get the original sequential range.
+Here we show code examples of a round-trip from a sequential range to a list of sequential or prefix blocks, and then back again, merging the list of blocks back to the original sequential range.
+
+First we show the process in Java code:
 ```java
-spanAndMerge("2:3:ffff:5::", "2:4:1:5::");
+String address1 = "2:3:ffff:5::", address2 = "2:4:1:5::";
+IPAddressString string1 = new IPAddressString(address1), string2 = new IPAddressString(address2);
+IPAddress addr1 = string1.getAddress(), addr2 = string2.getAddress();
+IPAddressSeqRange range = addr1.spanWithRange(addr2);
+System.out.println("Original sequential range of " +
+	range.getCount() + " addresses: " + range);
 
-static void spanAndMerge(String address1, String address2) {
-  IPAddressString string1 = new IPAddressString(address1);
-  IPAddressString string2 = new IPAddressString(address2);
-  IPAddress addr1 = string1.getAddress();
-  IPAddress addr2 = string2.getAddress();
-  IPAddressSeqRange range = addr1.toSequentialRange(addr2);
-  System.out.println("Original range of size " +
-    range.getCount() + ": " + range);
+spanAndMergeSequentialBlocks(range);
+spanAndMergePrefixBlocks(range);
 
-  IPAddress result[] = range.spanWithPrefixBlocks();
-  System.out.println("Prefix blocks: " + Arrays.asList(result));
+static void spanAndMergePrefixBlocks(IPAddressSeqRange range) {
+	IPAddress result[] = range.spanWithPrefixBlocks();
+	System.out.println("Prefix blocks: " + Arrays.asList(result));
+	List<IPAddressSeqRange> rangeList = new ArrayList<>();
+	for(IPAddress a : result) {
+		rangeList.add(a.toSequentialRange());
+	}
+	mergeBack(rangeList);
+}
 
-  IPAddress result2[] = range.spanWithSequentialBlocks();
-  System.out.println("Sequential blocks: " + Arrays.asList(result2));
+static void spanAndMergeSequentialBlocks(IPAddressSeqRange range) {
+	IPAddress result[] = range.spanWithSequentialBlocks();
+	System.out.println("Sequential blocks: " + Arrays.asList(result));
+	List<IPAddressSeqRange> rangeList = new ArrayList<>();
+	for(IPAddress a : result) {
+		rangeList.add(a.toSequentialRange());
+	}
+	mergeBack(rangeList);
+}
 
-  List<IPAddressSeqRange> rangeList = new ArrayList<>();
-  for(IPAddress a : result) {
-    IPAddressSeqRange r = a.toSequentialRange();
-    rangeList.add(r);
-  }
-  IPAddressSeqRange joined[] = IPAddressSeqRange.join(
-    rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-  System.out.println("Merged prefix blocks back again: " +
-     Arrays.asList(joined));
-  rangeList.clear();
-  for(IPAddress a : result2) {
-    IPAddressSeqRange r = a.toSequentialRange();
-    rangeList.add(r);
-  }
-  joined = IPAddressSeqRange.join(
-    rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
-  System.out.println("Merged sequential blocks back again: " +
-    Arrays.asList(joined));
+static void mergeBack(List<IPAddressSeqRange> rangeList) {
+	IPAddressSeqRange joined[] = IPAddressSeqRange.join(
+		rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+	System.out.println("Merged back again: " + Arrays.asList(joined));
 }
 ```
-Output:
+Now we show the process in Go code:
+```go
+address1, address2 := "2:3:ffff:5::", "2:4:1:5::"
+string1, string2 := ipaddr.NewIPAddressString(address1), ipaddr.NewIPAddressString(address2)
+addr1, addr2 := string1.GetAddress(), string2.GetAddress()
+rng := addr1.SpanWithRange(addr2)
+fmt.Println("Original sequential range of", rng.GetCount(), "addresses:", rng)
+
+spanAndMergeSequentialBlocks(rng)
+spanAndMergePrefixBlocks(rng)
+
+func spanAndMergePrefixBlocks(rng *ipaddr.IPAddressSeqRange) {
+	result := rng.SpanWithPrefixBlocks()
+	fmt.Println("Prefix blocks:", commaDelimit(result))
+	var rangeList []*ipaddr.IPAddressSeqRange
+	for _, a := range result {
+		rangeList = append(rangeList, a.ToSequentialRange())
+	}
+	mergeBack(rangeList)
+}
+
+func spanAndMergeSequentialBlocks(rng *ipaddr.IPAddressSeqRange) {
+	result := rng.SpanWithSequentialBlocks()
+	fmt.Println("Sequential blocks:", commaDelimit(result))
+	var rangeList []*ipaddr.IPAddressSeqRange
+	for _, a := range result {
+		rangeList = append(rangeList, a.ToSequentialRange())
+	}
+	mergeBack(rangeList)
+}
+
+func mergeBack(rangeList []*ipaddr.IPAddressSeqRange) {
+	var rng *ipaddr.IPAddressSeqRange
+	joined := rng.Join(rangeList...)
+	fmt.Println("Merged back again:", joined)
+}
+
+func commaDelimit(slice any) string {
+	return strings.ReplaceAll(fmt.Sprint(slice), " ", ", ")
+}
+```
+Output from both the Java and Go code:
 ```
 Original range of size 2417851639229258349412353: 2:3:ffff:5:: -> 2:4:1:5::
-
-Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61, 2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57, 2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54, 2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51, 2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62, 2:4:1:4::/64, 2:4:1:5::]
-
-Sequential blocks: [2:3:ffff:5-ffff:*:*:*:*, 2:3-4:*:*:*:*:*:*, 2:4:0:*:*:*:*:*, 2:4:1:0-4:*:*:*:*, 2:4:1:5::]
-
-Merged prefix blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
-
-Merged sequential blocks back again: [2:3:ffff:5:: -> 2:4:1:5::]
+Sequential blocks: [2:3:ffff:5-ffff:*:*:*:*, 2:4:0:*:*:*:*:*, 2:4:1:0-4:*:*:*:*, 2:4:1:5::]
+Merged back again: [2:3:ffff:5:: -> 2:4:1:5::]
+Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61, 2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57, 2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54, 2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51, 2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62, 2:4:1:4::/64, 2:4:1:5::/128]
+Merged back again: [2:3:ffff:5:: -> 2:4:1:5::]
 ```
 As you can see in the example above, you can generally describe a range
 with fewer sequential blocks than prefix blocks.
