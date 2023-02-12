@@ -9,6 +9,8 @@ IP address and network manipulations, CIDR, operations, iterations, containment 
 
 [View Javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/)
 
+[View List of Users](https://github.com/seancfoley/IPAddress/wiki)
+
 [In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress)
 - Maven group id: com.github.seancfoley
 - Maven artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
