@@ -137,7 +137,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 
   - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals
 
-  - **Integrate with standard types.**  For Java, this includes the primitive signed types and the standard library classes `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  For Go, this includes the primitive unsigned types and the Go standard library types `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, `net.netip.Addr`, `net.netip.AddrPort`, `net.netip.Prefix`, and `big.Int`.
+  - **Integrate with standard types.**  For Java, this includes the primitive signed types and the standard library classes `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  For Go, this includes the primitive unsigned types and the Go standard library types `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, `net/netip.Addr`, `net/netip.AddrPort`, `net/netip.Prefix`, and `big.Int`.
 
   - **Making address manipulations easy**, so you do not have to worry about longs/ints/shorts/bytes/bits, signed/unsigned, sign extension, ipv4/v6, masking, iterating, and other implementation details.
 
@@ -262,7 +262,7 @@ subtypes **IPAddress, IPv4Address**, **IPv6Address**, and
 
 If you have a textual representation of an IP
 address, then start with `HostName` or `IPAddressString`. If you have
-numeric bytes or integers, then start with `IPV4Address`, `IPV6Address` or
+numeric bytes or integers, then start with `IPv4Address`, `IPv6Address` or
 `MACAddress`. Note that address instances can represent either a single
 address or a subnet. If you have either an address or host name, or you
 have something with a port or service name, then use HostName.
@@ -529,7 +529,7 @@ String hostFormats[] = {
 
 parseHostSubnet(hostFormats);
 ```
-Here is Go code parsing some of those representations:
+Here is Go code parsing the same string representations:
 ```go
 func parseSubnet(formats []string) {
 	for _, format := range formats {
@@ -1010,13 +1010,12 @@ Should you wish to get the individual address or section with a zero host, you c
 Each of the IP address versions have an associated singleton network object. The network objects are used for caching, for
 configuration, or for obtaining masks and loopbacks.
 
-Each of the IP address versions also have an associated "creator" type that can be used to create addresses, sections, and segments, and instances of those types may perform caching of address components for efficient memory usage
-and performance.
+Each of the IP address versions also have an associated "creator" type that can be used to create addresses, sections, and segments, and instances of those types may perform caching of address components for efficient memory usage and performance.
 
-In Java, the `defaultIpv6Network()`, `defaultIpv4Network()` in Address provide access to the respective network objects.  There is also a counterpart for MAC, available from the `defaultMACNetwork()` method.
-Each network has an associated creator object accessible from `getAddressCreator()`.
+In the Java library, the methods `defaultIpv6Network` and `defaultIpv4Network` in Address provide access to the respective network objects.  There is also a counterpart for MAC, available from the `defaultMACNetwork` method.
+Each network has an associated creator object available from the `getAddressCreator` method.
 
-In Go, the network objects are the variables `ipaddr.IPv4Network` and `ipaddr.IPv6Network`.  Use the type [IPAddressCreator](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressCreator) for creator instances.
+In the Go library, the network objects are the package-level variables `ipaddr.IPv4Network` and `ipaddr.IPv6Network`.  Use the type [IPAddressCreator](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressCreator) for creator instances.
 
 &#8203;
 
@@ -1284,7 +1283,7 @@ func spanAndMergeSequentialBlocks(rng *ipaddr.IPAddressSeqRange) {
 
 func mergeBack(rangeList []*ipaddr.IPAddressSeqRange) {
 	var rng *ipaddr.IPAddressSeqRange
-	joined := rng.Join(rangeList...)
+	joined := rng.Join(rangeList...) // can handle nil args, including the receiver
 	fmt.Println("Merged back again:", joined)
 }
 
@@ -1577,6 +1576,18 @@ There are various methods for masking, obtaining subnets, and so on.
 &#8203;
 
 #### Summary of IP Address Operations
+
+Here is a summary, a non-exhaustive list, in no specific order, of
+operations and queries for transforming addresses and subnets.  Many of these methods are available not just for address instances, but also for sections, for sequential ranges, and a few are available for segments as well:
+
+| Java | Go | Description |
+| --- | --- | --- |
+| toPrefixBlock | ToPrefixBlock, ToPrefixBlockLen | Returns the subnet comprising the entire prefix block (all addresses with the same prefix), with either the existing or a given prefix length. |
+assignPrefixForSingleBlock | AssignPrefixForSingleBlock | Provides the equivalent subnet or address with a prefix length, the prefix length being the prefix length that makes the returned subnet a single prefix block.  The resulting subnet or address will span the same range of values as the original, and will thus remain equal to the original.
+getPrefixLengthForSingleBlock | GetPrefixLenForSingleBlock | Returns the prefix length that would make the address or subnet a prefix block with a single prefix.
+isSinglePrefixBlock | IsSinglePrefixBlock | Returns whether the subnet has a prefix length, it has a single prefix for that length, and is the prefix block for that prefix.
+
+
 
 Here is a summary, a non-exhaustive list, in no specific order, of
 operations for transforming addresses and subnets.  Many of these methods are available not just for address instances, but also for sections, for sequential ranges, and a few are available for segments as well:
