@@ -21,7 +21,11 @@ by Sean C Foley
 
 [Parse String Representation of IP Address or Host Name](#parse-string-representation-of-ip-address-or-host-name)
 
-[IP Address and Numeric Values](#ip-address-and-numeric-values)
+[Addresses from Numeric Values](#addresses-from-numeric-values)
+
+[Golang Address Keys](#golang-address-keys)
+
+[Golang Zero Values](#golang-zero-values)
 
 [Networks](#networks)
 
@@ -987,8 +991,9 @@ Output from both the Java and Go code:
 eth0
 ```
 
+
 &#8203;
-## IP Address and Numeric Values
+## Addresses from Numeric Values
 
 In addition to the range of string formats that can be parsed to produce `IPAddress` instances, you can also obtain `IPAddress` instances from a large number of numeric formats.   You an obtain instances of `IPAddress` from byte arrays in Java and from byte slices in Go.  You can obtain instances of `IPAddress` from `java.net.InetAddress` or `java.net.InterfaceAddress` in Java and any one of `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `netip.Addr`, or `netip.Prefix` in Go.  You can obtain instances of `IPAddress` from arrays of address segments in Java, or from slices of address segments in Go.  You can obtain instances of `IPAddress` from individual integer segment values using the `SegmentValueProvider` interface.  All of these options are generic to either IPv4 or IPv6 unless you specifically choose the IPv4 or IPv6-specific constructors.  See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddress) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressNetwork.IPAddressGenerator.html) for the full list.
 
@@ -1003,6 +1008,215 @@ When constructing IP addresses or sections, you can supply a prefix length, and 
 The same rule applies to subnets where the lower and upper values have zero hosts, like 10.1.2-3.0/24 or 10.1.2.2-6/31.  Both of those examples will become CIDR prefix blocks when constructed.
 
 Should you wish to get the individual address or section with a zero host, you can construct without the prefix length and then apply the prefix length afterwards, or you can use `getLower` or `toZeroHost` after construction.
+
+
+&#8203;
+## Golang Address Keys
+
+The Go language has the concept of [comparable types, those types that can be compared with comparison operators](https://go.dev/ref/spec#Comparison_operators).  The core types of this library are not comparable in that manner, although they are all comparable with each other using their Compare methods, or using [one of the library's comparator instances](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#pkg-variables).
+
+Each of the address and range core types provides an associated key type, a value type, that is comparable with comparison operators and usable as keys for the Go built-in map type.  Use the ToKey methods to obtain the corresponding key, and use each key's ToAddress method to get back the corresponding address.
+
+You can see [an example using address keys in the example wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing#use-addresses-or-address-ranges-as-keys-for-go-built-in-maps).
+
+
+&#8203;
+## Golang Zero Values
+
+The following Go code reveals the zero values for the address and sequential range core types, as well as some other related types:
+```go
+strip := func(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "ipaddr.", ""),
+		"github.com/seancfoley/ipaddress-go/", "")
+}
+
+typeName := func(i any) string {
+	return strip(reflect.ValueOf(i).Elem().Type().Name())
+}
+
+interfaceTypeName := func(i any) string {
+	return strip(reflect.TypeOf(i).String())
+}
+
+truncateIndent := func(s, indent string) string {
+	if boundary := len(indent) - (len(s) >> 3); boundary >= 0 {
+		return indent[:boundary] + "\t" // every 8 chars eliminates a tab
+	}
+	return ""
+}
+
+baseIndent := "\t\t\t"
+title := "Address item zero values"
+fmt.Printf("%s%sint\tbits\tcount\tstring\n", title, truncateIndent(title, baseIndent))
+vars := []ipaddr.AddressItem{
+	&ipaddr.Address{}, &ipaddr.IPAddress{},
+	&ipaddr.IPv4Address{}, &ipaddr.IPv6Address{}, &ipaddr.MACAddress{},
+
+	&ipaddr.AddressSection{}, &ipaddr.IPAddressSection{},
+	&ipaddr.IPv4AddressSection{}, &ipaddr.IPv6AddressSection{}, &ipaddr.MACAddressSection{},
+	&ipaddr.EmbeddedIPv6AddressSection{},
+	&ipaddr.AddressDivisionGrouping{}, &ipaddr.IPAddressLargeDivisionGrouping{},
+	&ipaddr.IPv6v4MixedAddressGrouping{},
+
+	&ipaddr.AddressSegment{}, &ipaddr.IPAddressSegment{},
+	&ipaddr.IPv4AddressSegment{}, &ipaddr.IPv6AddressSegment{}, &ipaddr.MACAddressSegment{},
+	&ipaddr.AddressDivision{}, &ipaddr.IPAddressLargeDivision{},
+
+	&ipaddr.IPAddressSeqRange{}, &ipaddr.IPv4AddressSeqRange{}, &ipaddr.IPv6AddressSeqRange{},
+}
+for _, v := range vars {
+	name := typeName(v) + "{}"
+	indent := truncateIndent(name, baseIndent)
+	fmt.Printf("%s%s%v\t%v\t%v\t\"%v\"\n", name, indent, v.GetValue(), v.GetBitCount(), v.GetCount(), v)
+}
+```
+Zero values for versioned address types, like those for IPv4 and IPv6, are the respective zero-valued addresses.  
+
+For other addresses, sections and groupings, those corresponding to no specific type or version, the zero values have no segments nor divisions.  They have a total of zero bits.
+
+Regardless of bit-size, all zero-values have a corresponding integer value of zero.
+
+The zero values for sequential ranges correspond to ranges with both boundaries as the corresponding zero valued address.
+
+Output:
+```
+Address item zero values        int     bits    count   string
+Address{}                       0       0       1       ""
+IPAddress{}                     0       0       1       ""
+IPv4Address{}                   0       32      1       "0.0.0.0"
+IPv6Address{}                   0       128     1       "::"
+MACAddress{}                    0       48      1       "00:00:00:00:00:00"
+AddressSection{}                0       0       1       ""
+IPAddressSection{}              0       0       1       ""
+IPv4AddressSection{}            0       0       1       ""
+IPv6AddressSection{}            0       0       1       ""
+MACAddressSection{}             0       0       1       ""
+EmbeddedIPv6AddressSection{}    0       0       1       ""
+AddressDivisionGrouping{}       0       0       1       ""
+IPAddressLargeDivisionGrouping{}0       0       1       ""
+IPv6v4MixedAddressGrouping{}    0       0       1       ""
+AddressSegment{}                0       0       1       "0x0"
+IPAddressSegment{}              0       0       1       "0x0"
+IPv4AddressSegment{}            0       8       1       "0"
+IPv6AddressSegment{}            0       16      1       "0x0"
+MACAddressSegment{}             0       8       1       "0x0"
+AddressDivision{}               0       0       1       "0x0"
+IPAddressLargeDivision{}        0       0       1       "0x0"
+SequentialRange[*IPAddress]{}   0       0       1       " -> "
+SequentialRange[*IPv4Address]{} 0       32      1       "0.0.0.0 -> 0.0.0.0"
+SequentialRange[*IPv6Address]{} 0       128     1       ":: -> ::"
+```
+Address items allow for producing strings and counts from nil pointers.  Most other methods, methods that require analysis of the internals of those struct types, will panic on nil pointers.  But the String and GetCount methods will return a string indicating nil and a count of zero.
+```go
+title = "Address item nil pointers"
+fmt.Printf("\n%s%scount\tstring\n", title, truncateIndent(title, baseIndent+"\t\t"))
+nilPtrItems := []ipaddr.AddressItem{
+	(*ipaddr.Address)(nil), (*ipaddr.IPAddress)(nil),
+	(*ipaddr.IPv4Address)(nil), (*ipaddr.IPv6Address)(nil), (*ipaddr.MACAddress)(nil),
+
+	(*ipaddr.AddressSection)(nil), (*ipaddr.IPAddressSection)(nil),
+	(*ipaddr.IPv4AddressSection)(nil), (*ipaddr.IPv6AddressSection)(nil), (*ipaddr.MACAddressSection)(nil),
+
+	(*ipaddr.AddressSegment)(nil), (*ipaddr.IPAddressSegment)(nil),
+	(*ipaddr.IPv4AddressSegment)(nil), (*ipaddr.IPv6AddressSegment)(nil), (*ipaddr.MACAddressSegment)(nil),
+
+	(*ipaddr.IPAddressSeqRange)(nil), (*ipaddr.IPv4AddressSeqRange)(nil), (*ipaddr.IPv6AddressSeqRange)(nil),
+}
+for _, v := range nilPtrItems {
+	name := "(" + interfaceTypeName(v) + ")(nil)"
+	indent := truncateIndent(name, baseIndent+"\t\t")
+	fmt.Printf("%s%s%v\t\"%v\"\n", name, indent, v.GetCount(), v)
+}
+```
+Output:
+```
+Address item nil pointers                       count   string
+(*Address)(nil)                                 0       "<nil>"
+(*IPAddress)(nil)                               0       "<nil>"
+(*IPv4Address)(nil)                             0       "<nil>"
+(*IPv6Address)(nil)                             0       "<nil>"
+(*MACAddress)(nil)                              0       "<nil>"
+(*AddressSection)(nil)                          0       "<nil>"
+(*IPAddressSection)(nil)                        0       "<nil>"
+(*IPv4AddressSection)(nil)                      0       "<nil>"
+(*IPv6AddressSection)(nil)                      0       "<nil>"
+(*MACAddressSection)(nil)                       0       "<nil>"
+(*AddressSegment)(nil)                          0       "<nil>"
+(*IPAddressSegment)(nil)                        0       "<nil>"
+(*IPv4AddressSegment)(nil)                      0       "<nil>"
+(*IPv6AddressSegment)(nil)                      0       "<nil>"
+(*MACAddressSegment)(nil)                       0       "<nil>"
+(*SequentialRange[*IPAddress])(nil)             0       "<nil>"
+(*SequentialRange[*IPv4Address])(nil)           0       "<nil>"
+(*SequentialRange[*IPv6Address])(nil)           0       "<nil>"
+```
+The address key value types have zero values matching the zero values of their corresponding address and range types.
+```go
+title = "Address key zero values"
+	fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+	keys := []fmt.Stringer{
+		&ipaddr.AddressKey{}, &ipaddr.IPAddressKey{},
+		&ipaddr.IPv4AddressKey{}, &ipaddr.IPv6AddressKey{}, &ipaddr.MACAddressKey{},
+		&ipaddr.IPAddressSeqRangeKey{}, &ipaddr.IPv4AddressSeqRangeKey{}, &ipaddr.IPv6AddressSeqRangeKey{},
+	}
+	for _, k := range keys {
+		name := typeName(k) + "{}"
+		indent := truncateIndent(name, baseIndent+"\t\t\t")
+		fmt.Printf("%s%s\"%v\"\n", name, indent, k)
+	}
+```
+Output:
+```
+Address key zero values                                 string
+Key[*Address]{}                                         ""
+Key[*IPAddress]{}                                       ""
+IPv4AddressKey{}                                        "0.0.0.0"
+IPv6AddressKey{}                                        "::"
+MACAddressKey{}                                         "00:00:00:00:00:00"
+SequentialRangeKey[*IPAddress]{}                        " -> "
+SequentialRangeKey[*IPv4Address]{}                      "0.0.0.0 -> 0.0.0.0"
+SequentialRangeKey[*IPv6Address]{}                      ":: -> ::"
+```
+The zero values of host identifier strings are empty strings.
+```go
+title = "Host id zero values"
+fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+hostids := []ipaddr.HostIdentifierString{
+  &ipaddr.HostName{}, &ipaddr.IPAddressString{}, &ipaddr.MACAddressString{},
+}
+for _, k := range hostids {
+  name := typeName(k) + "{}"
+  indent := truncateIndent(name, baseIndent+"\t\t\t")
+  fmt.Printf("%s%s\"%v\"\n", name, indent, k)
+}
+```
+Output:
+```
+Host id zero values                                     string
+HostName{}                                              ""
+IPAddressString{}                                       ""
+MACAddressString{}                                      ""
+```
+Like addresses, host identifier strings allow for producing strings from nil pointers.  Most other methods of these types will panic on nil pointers, but the String methods will return a string indicating nil.
+```go
+title = "Host id nil pointers"
+fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+nilPtrIds := []ipaddr.HostIdentifierString{
+  (*ipaddr.HostName)(nil), (*ipaddr.IPAddressString)(nil), (*ipaddr.MACAddressString)(nil),
+}
+for _, v := range nilPtrIds {
+  name := "(" + interfaceTypeName(v) + ")(nil)"
+  indent := truncateIndent(name, baseIndent+"\t\t\t")
+  fmt.Printf("%s%s\"%v\"\n", name, indent, v)
+}
+```
+Output:
+```
+Host id nil pointers                                    string
+(*HostName)(nil)                                        "<nil>"
+(*IPAddressString)(nil)                                 "<nil>"
+(*MACAddressString)(nil)                                "<nil>"
+```
 
 &#8203;
 ## Networks
