@@ -49,8 +49,6 @@ by Sean C Foley
 
 [Conversion to String Representation of Address](#conversion-to-string-representation-of-address)
 
-[Searching Text of Databases for all Addresses in a Subnet](#searching-text-of-databases-for-all-addresses-in-a-subnet)
-
 [Containment and Subnet Membership](#containment-and-subnet-membership)
 
 [DNS Resolution and URLs](#dns-resolution-and-urls)
@@ -3004,76 +3002,6 @@ options)`.
 
 &#8203;
 
-## Searching Text of Databases for all Addresses in a Subnet
-
-Suppose you wanted to search for all addresses from a subnet in a large
-amount of text data. For instance, suppose you wanted to search for all
-addresses in the text from the subnet a:&#8203;b:0:0::/64. You can start a
-representation of just the network prefix section of the address, then
-you can get all such strings for that prefix.
-```java
-IPAddressSection prefix = new IPAddressString("a:b::").getAddress().
-  getNetworkSection(64, false);
-String strings[] = prefix.toStandardStringCollection().toStrings();
-for(String str : strings) {
-  System.out.println(str);
-}
-```
-Output:
-```
-a:b:0:0  
-000a:000b:0000:0000  
-A:B:0:0  
-000A:000B:0000:0000  
-a:b::  
-000a:000b::  
-A:B::  
-000A:000B::
-```
-If you need to be more stringent or less stringent about the address
-formats you wish to search, then you can use
-`toStringCollection(IPStringBuilderOptions options)` with an instance of
-`IPv6StringBuilderOptions`.
-
-Searching for those strings will find the subnet addresses. However, you
-may get a few false positives, like "a:&#8203;b::d:e:f:a:b". To eliminate the
-false positives, you can just emulate in Java the SQL code produced
-below for the SQL database search, using substrings constructed from the
-segment separators.
-
-For a MySQL database search:
-```java
-public static void main(String[] args) {
-  IPAddressSection prefix = new IPAddressString("a:b::").  
-    getAddress().getNetworkSection(64, false);  
-  StringBuilder sql = new StringBuilder("Select rows from table where");  
-  prefix.getStartsWithSQLClause(sql, "column1");  
-  System.out.println(sql);
-}
-```
-Output:
-```sql
-Select rows from table where ((substring_index(column1,':',4) =
-'a:b:0:0') OR ((substring_index(column1,':',3) = 'a:b:') AND (LENGTH
-(column1) - LENGTH(REPLACE(column1, ':', '')) <= 6)))
-```
-For IPv4, another way to search for a subnet like 1.2.0.0/16 would be to
-do an SQL `SELECT` with the SQL wildcard string:
-```java
-public static void main(String[] args) {  
-  String wildcardString = new IPAddressString("1.2.0.0/16").  
-    getAddress().toSQLWildcardString();  
-  System.out.println(wildcardString);
-}
-```
-Output:
-```
-1.2.%.%
-```
-Then your SQL search string would be like:
-```sql
-Select rows from table where column1 like 1.2.%.%
-```
 
 &#8203;
 
