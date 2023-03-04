@@ -1151,17 +1151,17 @@ Address item nil pointers                       count   string
 The address key value types have zero values matching the zero values of their corresponding address and range types.
 ```go
 title = "Address key zero values"
-	fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
-	keys := []fmt.Stringer{
-		&ipaddr.AddressKey{}, &ipaddr.IPAddressKey{},
-		&ipaddr.IPv4AddressKey{}, &ipaddr.IPv6AddressKey{}, &ipaddr.MACAddressKey{},
-		&ipaddr.IPAddressSeqRangeKey{}, &ipaddr.IPv4AddressSeqRangeKey{}, &ipaddr.IPv6AddressSeqRangeKey{},
-	}
-	for _, k := range keys {
-		name := typeName(k) + "{}"
-		indent := truncateIndent(name, baseIndent+"\t\t\t")
-		fmt.Printf("%s%s\"%v\"\n", name, indent, k)
-	}
+fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+keys := []fmt.Stringer{
+	&ipaddr.AddressKey{}, &ipaddr.IPAddressKey{},
+	&ipaddr.IPv4AddressKey{}, &ipaddr.IPv6AddressKey{}, &ipaddr.MACAddressKey{},
+	&ipaddr.IPAddressSeqRangeKey{}, &ipaddr.IPv4AddressSeqRangeKey{}, &ipaddr.IPv6AddressSeqRangeKey{},
+}
+for _, k := range keys {
+	name := typeName(k) + "{}"
+	indent := truncateIndent(name, baseIndent+"\t\t\t")
+	fmt.Printf("%s%s\"%v\"\n", name, indent, k)
+}
 ```
 Output:
 ```
