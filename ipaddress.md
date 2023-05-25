@@ -2049,58 +2049,90 @@ masking and subnetting techniques typical with IPv4 and IPv6 routing.
 
 Subnetting can be accomplished using various address manipulation
 methods. Given a prefixed IP address, you can extend the prefix length
-and insert bits for an extended prefix and new subnet of the previous
-address block, as shown in the following example.
+and insert bits for an extended prefix and new subnet.
 ```java
 int originalPrefix = 18, adjustment = 4;
 IPAddress address = new IPAddressString("207.0.64.0").getAddress();
-IPAddress address2 = address.setPrefixLength(originalPrefix);
-System.out.println(address2);
-IPAddress subnet1 = address2.adjustPrefixLength(adjustment); // extend the prefix length
-System.out.println(subnet1);
-IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
-IPAddress subnet2 =
-  subnet1.bitwiseOrNetwork(prefixExtension,
-    originalPrefix + adjustment); // adjust the extended prefix  
+IPAddress subnet1 = address.toPrefixBlock(originalPrefix);
+System.out.println(subnet1 + " of size " + subnet1.getCount());
+IPAddress subnet2 = subnet1.adjustPrefixLength(adjustment); // extend the prefix length
 System.out.println(subnet2);
+IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
+IPAddress subnet3 =
+		subnet2.bitwiseOrNetwork(prefixExtension,
+		  originalPrefix + adjustment); // adjust the extended prefix  
+System.out.println(subnet3 + " of size " + subnet3.getCount());
 ```
-Output:
+The equivalent Go code is:
+```go
+originalPrefix, adjustment := 18, 4
+address := ipaddr.NewIPAddressString("207.0.64.0").GetAddress()
+subnet1 := address.ToPrefixBlockLen(originalPrefix)
+fmt.Println(subnet1, "of size", subnet1.GetCount())
+subnet2, _ := subnet1.AdjustPrefixLenZeroed(adjustment) // extend the prefix length
+fmt.Println(subnet2)
+prefixExtension := ipaddr.NewIPAddressString("0.0.4.0").GetAddress()
+subnet3, _ := subnet2.BitwiseOr(prefixExtension) // adjust the extended prefix
+fmt.Println(subnet3, "of size", subnet3.GetCount())
 ```
-207.0.64.0/18
+Output for both the Java and Go code:
+```
+207.0.64.0/18 of size 16384
 207.0.64.0/22
-207.0.68.0/22
+207.0.68.0/22 of size 1024
 ```
-Here is the same subnetting operation using segment replacement:
+Here is the same subnetting operation using segment replacement.
 ```java
 IPv4Address address = new IPAddressString("207.0.64.0/18").getAddress().toIPv4();
 IPv4AddressSection replacementSection =
-  new IPAddressString("0.0.68.0/22").getAddress().toIPv4().getSection(2);
+		new IPAddressString("0.0.68.0/22").getAddress().toIPv4().getSection(2);
 IPAddress subnet = new IPv4Address(address.getSection().replace(2, replacementSection));  
-System.out.println(subnet);
+System.out.println(subnet + " of size " + subnet.getCount());
 ```
-Output:
+```go
+address := ipaddr.NewIPAddressString("207.0.64.0/18").GetAddress().ToIPv4()
+replacementSection :=
+	ipaddr.NewIPAddressString("0.0.68.0/22").GetAddress().ToIPv4().GetTrailingSection(2)
+subnet, _ := ipaddr.NewIPv4Address(address.GetSection().Replace(2, replacementSection))
+fmt.Println(subnet, "of size", subnet.GetCount())
 ```
-207.0.68.0/22
+Output for both the Java and Go code:
 ```
-Alternatively, you can use the `prefixBlockIterator` method to get a
+207.0.68.0/22 of size 1024
+```
+Alternatively, you can use the prefix block iterator to get a
 list of subnets when adjusting the prefix:
 ```java
-IPAddress subnet = new
-IPAddressString("192.168.0.0/28").getAddress();
+IPAddress subnet = new IPAddressString("192.168.0.0/28").getAddress();
 IPAddress newSubnets = subnet.setPrefixLength(subnet.getPrefixLength() + 2, false);
 System.out.println(newSubnets);
 
-TreeSet<IPAddress> subnetSet = new TreeSet<IPAddress>();
 Iterator<? extends IPAddress> iterator = newSubnets.prefixBlockIterator();
-while (iterator.hasNext()) {
-  subnetSet.add(iterator.next());
+if (iterator.hasNext()) {
+	System.out.print(iterator.next());
+	while (iterator.hasNext()) {
+		System.out.print(", ");
+		System.out.print(iterator.next());
+	}
 }
-System.out.println(subnetSet);
 ```
-Output:
+```go
+subnet := ipaddr.NewIPAddressString("192.168.0.0/28").GetAddress()
+newSubnets := subnet.SetPrefixLen(subnet.GetPrefixLen().Len() + 2)
+fmt.Println(newSubnets)
+
+iterator := newSubnets.PrefixBlockIterator()
+if iterator.HasNext() {
+	fmt.Print(iterator.Next())
+	for iterator.HasNext() {
+		fmt.Print(", ", iterator.Next())
+	}
+}
+```
+Output for both the Java and Go code:
 ```
 192.168.0.0-12/30
-[192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30]
+192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30
 ```
 Another option is to let the library do the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.
 
