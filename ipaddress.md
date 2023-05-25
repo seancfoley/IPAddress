@@ -1831,7 +1831,7 @@ Many of these operations are available on address sections as well.  You can obt
 | --- | --- | --- |
 | overlaps | Overlaps | Returns whether the given sequential range overlaps with the sequential range. |
 | extend | Extend | Extend extends the sequential range to include all address in the given sequential range, as well as all address in-between the two sequential ranges. |
-| join | Join JoinTo | Given a list of address ranges, merges them into the minimal list of address ranges. |
+| join | Join, JoinTo | Given a list of address ranges, merges them into the minimal list of address ranges. |
 
 &#8203;
 
@@ -1898,65 +1898,111 @@ The following operations involve segment blocks.  Note that a sequential block i
 
 #### Example of Mask and Prefix Length Operations
 
-When applying an operation to a subnet, the operation is applied to
-every member of the subnet, so the result must be something
-representable with sequential segment ranges, otherwise
-`IncompatibleAddressException` will be thrown in Java, or `IncompatibleAddressError` returned in Go. For
-instance, masking the subnet block of 255 addresses 0.0.0.0/24 with
-0.0.0.128 results in the two addresses 0.0.0.0 and 0.0.0.128 which is
-not sequential. However, this will not happen when using standard
-masking and subnetting techniques typical with IPv4 and IPv6 routing.
-
 The following code demonstrates how to get the lowest address in a
-prefixed subnet using any one of three methods: `getLowest`, `mask`, or
-`removePrefixLength`.
+prefixed subnet using any one of three methods: getting the lowest address in the subnet, masking, or converting the host to zero.
 ```java
 String addr = "1.2.3.4";
-IPAddress address = new IPAddressString(addr).getAddress();
 int prefixLength = 16;
-IPAddress maskWithPreLen =
-  new IPAddressString("/" + prefixLength).getAddress(address.getIPVersion());
-IPAddress mask = address.getNetwork().getNetworkMask(16, false);
 
-System.out.println("mask with prefix length " + maskWithPrefLen);
+IPAddress address = new IPAddressString(addr).getAddress();
+IPAddress mask = address.getNetwork().getNetworkMask(prefixLength, false);
 System.out.println("mask " + mask);
 
-IPAddress maskedAddress = address.mask(mask);
-System.out.println("address " + address + " masked " + maskedAddress);
 
-// create the subnet
+// create the prefix block subnet
 
-IPAddress subnet = address.applyPrefixLength(prefixLength).toPrefixBlock();
+IPAddress subnet = address.setPrefixLength(prefixLength).toPrefixBlock();
+System.out.println("subnet " + subnet + " no prefix is " +
+		subnet.withoutPrefixLength());
+
 
 // mask
 
 IPAddress maskedSubnet = subnet.mask(mask);
-System.out.println("subnet " + subnet + " masked " + maskedSubnet);
-System.out.println("equals: " + maskedAddress.equals(maskedSubnet));
+System.out.println("subnet " + subnet + " masked is " + maskedSubnet);
+IPAddress maskedAddress = address.mask(mask);
+System.out.println("address " + address + " masked is " + maskedAddress);
+System.out.println("masked address " + maskedAddress +
+		" equals masked subnet " + maskedSubnet + " is " +
+		maskedAddress.equals(maskedSubnet));
 
-// getLower
+// get the lower address
 
-IPAddress lowestInSubnet = subnet.getLower();
-System.out.println("lowest in subnet " + lowestAddressInSubnet);
-System.out.println("lowest in subnet no prefix " + lowestInSubnet.removePrefixLength(false));
-System.out.println("equals: " + maskedAddress.equals(lowestAddressInSubnet));
+IPAddress lowestAddrInSubnet = subnet.getLower();
+System.out.println("lowest in subnet is " + lowestAddrInSubnet);
+System.out.println("lowest in subnet no prefix is " +
+		lowestAddrInSubnet.withoutPrefixLength());
+System.out.println("masked address " + maskedAddress +
+		" equals lowest address in subnet " + lowestAddrInSubnet +  " is " +
+		maskedAddress.equals(lowestAddrInSubnet));
 
-// removePrefixLength
+// get the zero host
 
-IPAddress prefixRemoved = subnet.removePrefixLength(true);
-System.out.println("prefix removed " + prefixRemoved);
+IPAddress zeroHost = subnet.toZeroHost();
+System.out.println("zero host is " + zeroHost);
+System.out.println("zero host no prefix is " +
+		zeroHost.withoutPrefixLength());
+System.out.println("masked address " + maskedAddress +
+		" equals zero host " + zeroHost +  " is " +
+		maskedAddress.equals(zeroHost));
 ```
-Output:
+Here is the equivalent Go code:
+```go
+addr := "1.2.3.4"
+prefixLength := 16
+
+address := ipaddr.NewIPAddressString(addr).GetAddress()
+mask := address.GetNetwork().GetNetworkMask(prefixLength)
+fmt.Println("mask", mask)
+
+// create the prefix block subnet
+
+subnet := address.SetPrefixLen(prefixLength).ToPrefixBlock()
+fmt.Println("subnet", subnet, "no prefix is", subnet.WithoutPrefixLen())
+
+// mask
+
+maskedSubnet, _ := subnet.Mask(mask)
+maskedSubnet = maskedSubnet.WithoutPrefixLen()
+fmt.Println("subnet", subnet, "masked is", maskedSubnet)
+maskedAddress, _ := address.Mask(mask)
+fmt.Println("address", address, "masked is", maskedAddress)
+fmt.Println("masked address", maskedAddress,
+	"equals masked subnet", maskedSubnet,
+	"is", maskedAddress.Equal(maskedSubnet))
+
+// get the lower address
+
+lowestAddrInSubnet := subnet.GetLower()
+fmt.Println("lowest in subnet is", lowestAddrInSubnet)
+fmt.Println("lowest in subnet no prefix is",
+  lowestAddrInSubnet.WithoutPrefixLen())
+fmt.Println("masked address", maskedAddress,
+	"equals lowest address in subnet", lowestAddrInSubnet,
+	"is", maskedAddress.Equal(lowestAddrInSubnet))
+
+	// get the zero host
+
+zeroHost, _ := subnet.ToZeroHost()
+fmt.Println("zero host is", zeroHost)
+fmt.Println("zero host no prefix is", zeroHost.WithoutPrefixLen())
+fmt.Println("masked address", maskedAddress,
+	"equals zero host", zeroHost,
+	"is", maskedAddress.Equal(zeroHost))
 ```
-mask with prefix length 255.255.0.0/16
+Here is the output from either the Java or Go code:
+```
 mask 255.255.0.0
-address 1.2.3.4 masked 1.2.0.0
-subnet 1.2.0.0/16 masked 1.2.0.0
-equals: true
-lowest in subnet 1.2.0.0/16
-lowest in subnet no prefix 1.2.0.0
-equals: true
-prefix removed 1.2.0.0
+subnet 1.2.0.0/16 no prefix is 1.2.*.*
+subnet 1.2.0.0/16 masked is 1.2.0.0
+address 1.2.3.4 masked is 1.2.0.0
+masked address 1.2.0.0 equals masked subnet 1.2.0.0 is true
+lowest in subnet is 1.2.0.0/16
+lowest in subnet no prefix is 1.2.0.0
+masked address 1.2.0.0 equals lowest address in subnet 1.2.0.0/16 is true
+zero host is 1.2.0.0/16
+zero host no prefix is 1.2.0.0
+masked address 1.2.0.0 equals zero host 1.2.0.0/16 is true
 ```
 
 &#8203;
@@ -1964,20 +2010,38 @@ prefix removed 1.2.0.0
 #### Polymorphism
 
 Simply change the string "1.2.3.4" in the code above to an IPv6 address
-like a:ffff:&#8203;b:c:d::f and the code works all the same.
+like "a:ffff:&#8203;b:c:d::f" and the code works all the same.
 
 Output:
 ```
-mask with prefix length ffff::/16
 mask ffff::
-address a:ffff:b:c:d::f masked a::
-subnet a::/16 masked a::
-equals: true
-lowest in subnet a::/16
-lowest in subnet no prefix a::
-equals: true  
-prefix removed a::
+subnet a::/16 no prefix is a:*:*:*:*:*:*:*
+subnet a::/16 masked is a::
+address a:ffff:b:c:d::f masked is a::
+masked address a:: equals masked subnet a:: is true
+lowest in subnet is a::/16
+lowest in subnet no prefix is a::
+masked address a:: equals lowest address in subnet a::/16 is true
+zero host is a::/16
+zero host no prefix is a::
+masked address a:: equals zero host a::/16 is true
 ```
+
+&#8203;
+
+#### Masking Subnets
+
+When applying an operation to a subnet, the operation is applied to
+every member of the subnet.  In such cases, the result must be something
+representable with sequential segment ranges, otherwise
+`IncompatibleAddressException` will be thrown in Java, or an `IncompatibleAddressError` returned in Go. In other words, each resulting segment must be representable by a single range of values.
+
+For instance, masking the subnet block of 255 addresses 0.0.0.0/24 with
+the mask 0.0.0.128 results in the two addresses 0.0.0.0 and 0.0.0.128, which is
+not a sequential range of values.
+
+Such exceptions or errors will not happen when using standard
+masking and subnetting techniques typical with IPv4 and IPv6 routing.
 
 &#8203;
 
