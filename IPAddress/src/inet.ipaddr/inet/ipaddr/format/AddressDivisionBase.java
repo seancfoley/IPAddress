@@ -310,6 +310,10 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 	
 	protected static BigInteger getMaxValue(int bitCount) {
+		if (bitCount < 0) {
+			throw new IllegalArgumentException("bitCount must be greater or equal to 0");
+		}
+
 		int maxBytes = (bitCount + 7) / 8;
 		int topBits = bitCount % 8;
 		if(topBits == 0) {
@@ -324,6 +328,9 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 	
 	protected static int getDigitCount(BigInteger val, BigInteger radix) {
+		if(val.compareTo(BigInteger.ZERO) == -1) {
+			throw new IllegalArgumentException("radix must be greater than 0");
+		}
 		if(val.equals(BigInteger.ZERO) || val.equals(BigInteger.ONE)) {
 			return 1;
 		}
@@ -352,6 +359,10 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 	
 	public static int getDigitCount(long value, int radix) {
+		if(radix <= 1) {
+			throw new IllegalArgumentException("radix must be greater than 1");
+		}
+
 		int result = 1;
 		if(radix == 16) {
 			while(true) {
