@@ -318,7 +318,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		if(bitCount < 0) {
 			throw new IllegalArgumentException();
 		}
-		int maxBytes = (bitCount + 7) / 8;
+		int maxBytes = (bitCount + 7) >>> 3;
 		byte max[] = new byte[maxBytes];
 		if(maxBytes > 0) {
 			int topBits = bitCount % 8;

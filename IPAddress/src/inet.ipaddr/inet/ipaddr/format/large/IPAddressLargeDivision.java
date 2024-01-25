@@ -101,7 +101,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			bytes = extend(bytes, bitCount);
 			byte upperBytes[] = bytes.clone();
 			int shift = bitCount - prefixLength;
-			int byteShift = (shift + 7) / 8;
+			int byteShift = (shift + 7) >>> 3;
 			int byteIndex = bytes.length - byteShift;
 			int mask = 0xff & (~0 << (((shift - 1) % 8) + 1));
 			if(network.getPrefixConfiguration().allPrefixedAddressesAreSubnets()) {
@@ -162,7 +162,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			upperValueMasked = upperValue = high;
 		} else {
 			int shift = bitCount - prefixLength;
-			int byteShift = (shift + 7) / 8;
+			int byteShift = (shift + 7) >>> 3;
 			int byteIndex = bytes.length - byteShift;
 			int mask = 0xff & (~0 << (((shift - 1) % 8) + 1));
 			int upperByteIndex = upperBytes.length - byteShift;
@@ -246,7 +246,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			return false;
 		}
 		int shift = bitCount - prefix;
-		int byteShift = (shift + 7) / 8;
+		int byteShift = (shift + 7) >>> 3;
 		int byteIndex = bytes.length - byteShift;
 		int mask = 0xff & (~0 << (((shift - 1) % 8) + 1));
 		byte lowerByte = bytes[byteIndex];
@@ -280,7 +280,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 	
 	private static byte[] extend(byte bytes[], int bitCount) {
-		return convert(bytes, (bitCount + 7) / 8, "");
+		return convert(bytes, (bitCount + 7) >>> 3, "");
 	}
 	
 	private static byte[] convert(byte bytes[], int requiredByteCount, String key) {
@@ -354,7 +354,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	protected byte[] getBytesImpl(boolean low) {
-		return convert(low ? getValue().toByteArray() : getUpperValue().toByteArray(), (bitCount + 7) / 8, "");
+		return convert(low ? getValue().toByteArray() : getUpperValue().toByteArray(), (bitCount + 7) >>> 3, "");
 	}
 
 	@Override
