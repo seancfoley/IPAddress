@@ -46,6 +46,7 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.format.large.IPAddressLargeDivision;
+import inet.ipaddr.format.standard.AddressDivision;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6Address.IPv6Zone;
@@ -686,6 +687,158 @@ public class SpecialTypesTest extends TestBase {
 		}
 	}
 	
+	void testInvalidDigitCount(long value, int radix) {
+		try {
+			AddressDivision.getDigitCount(value, radix);
+			addFailure(new Failure("expected exception for radix " + radix));
+		} catch(IllegalArgumentException e) {}
+		
+		try {
+			AddressDivision.getDigitCount(BigInteger.valueOf(value),  BigInteger.valueOf(radix));
+			addFailure(new Failure("expected exception for big radix " + radix));
+		} catch(IllegalArgumentException e) {}
+		
+		incrementTestCount();
+	}
+	
+	void testValidDigitCount(long value, int radix, int expected) {
+		try {
+			int result = AddressDivision.getDigitCount(value, radix);
+			if(result != expected) {
+				addFailure(new Failure("invalid digit count " + result + ", expected " + expected));
+			}
+		} catch(IllegalArgumentException e) {
+			addFailure(new Failure("unexpected exception: " + e));
+		}
+		
+		try {
+			int result = AddressDivision.getDigitCount(BigInteger.valueOf(value),  BigInteger.valueOf(radix));
+			if(result != expected) {
+				addFailure(new Failure("invalid digit count " + result + ", expected " + expected));
+			}
+		} catch(IllegalArgumentException e) {
+			addFailure(new Failure("unexpected exception: " + e));
+		}
+		incrementTestCount();
+	}
+	
+	void testDigitCount() {
+		testValidDigitCount(-100, 2, 7);
+		testValidDigitCount(-20, 2, 5);
+		testValidDigitCount(-2, 2, 2);
+		testValidDigitCount(-1, 2, 1);
+		testValidDigitCount(0, 2, 1);
+		testValidDigitCount(1, 2, 1);
+		testValidDigitCount(2, 2, 2);
+		testValidDigitCount(20, 2, 5);
+		testValidDigitCount(100, 2, 7);
+		
+		testValidDigitCount(-100, 3, 5);
+		testValidDigitCount(-20, 3, 3);
+		testValidDigitCount(-2, 3, 1);
+		testValidDigitCount(-1, 3, 1);
+		testValidDigitCount(0, 3, 1);
+		testValidDigitCount(1, 3, 1);
+		testValidDigitCount(2, 3, 1);
+		testValidDigitCount(20, 3, 3);
+		testValidDigitCount(100, 3, 5);
+		
+		testValidDigitCount(-100, 8, 3);
+		testValidDigitCount(-20, 8, 2);
+		testValidDigitCount(-2, 8, 1);
+		testValidDigitCount(-1, 8, 1);
+		testValidDigitCount(0, 8, 1);
+		testValidDigitCount(1, 8, 1);
+		testValidDigitCount(2, 8, 1);
+		testValidDigitCount(20, 8, 2);
+		testValidDigitCount(100, 8, 3);
+		
+		testValidDigitCount(-100, 10, 3);
+		testValidDigitCount(-20, 10, 2);
+		testValidDigitCount(-2, 10, 1);
+		testValidDigitCount(-1, 10, 1);
+		testValidDigitCount(0, 10, 1);
+		testValidDigitCount(1, 10, 1);
+		testValidDigitCount(2, 10, 1);
+		testValidDigitCount(20, 10, 2);
+		testValidDigitCount(100, 10, 3);
+		
+		testValidDigitCount(-100, 16, 2);
+		testValidDigitCount(-20, 16, 2);
+		testValidDigitCount(-2, 16, 1);
+		testValidDigitCount(-1, 16, 1);
+		testValidDigitCount(0, 16, 1);
+		testValidDigitCount(1, 16, 1);
+		testValidDigitCount(2, 16, 1);
+		testValidDigitCount(20, 16, 2);
+		testValidDigitCount(100, 16, 2);
+		
+		testValidDigitCount(-100, 25, 2);
+		testValidDigitCount(-20, 25, 1);
+		testValidDigitCount(-2, 25, 1);
+		testValidDigitCount(-1, 25, 1);
+		testValidDigitCount(0, 25, 1);
+		testValidDigitCount(1, 25, 1);
+		testValidDigitCount(2, 25, 1);
+		testValidDigitCount(20, 25, 1);
+		testValidDigitCount(100, 25, 2);
+		
+		testValidDigitCount(-100, 85, 2);
+		testValidDigitCount(-20, 85, 1);
+		testValidDigitCount(-2, 85, 1);
+		testValidDigitCount(-1, 85, 1);
+		testValidDigitCount(0, 85, 1);
+		testValidDigitCount(1, 85, 1);
+		testValidDigitCount(2, 85, 1);
+		testValidDigitCount(20, 85, 1);
+		testValidDigitCount(100, 85, 2);		
+		
+		testInvalidDigitCount(-100, -10);
+		testInvalidDigitCount(-20, -10);
+		testInvalidDigitCount(-1, -10);
+		testInvalidDigitCount(0, -10);
+		testInvalidDigitCount(1, -10);
+		testInvalidDigitCount(2, -10);
+		testInvalidDigitCount(20, -10);
+		testInvalidDigitCount(100, -10);
+		
+		testInvalidDigitCount(-100, -1);
+		testInvalidDigitCount(-20, -1);
+		testInvalidDigitCount(-1, -1);
+		testInvalidDigitCount(0, -1);
+		testInvalidDigitCount(1, -1);
+		testInvalidDigitCount(2, -1);
+		testInvalidDigitCount(20, -1);
+		testInvalidDigitCount(100, -1);
+		
+		testInvalidDigitCount(-100, 0);
+		testInvalidDigitCount(-20, 0);
+		testInvalidDigitCount(-1, 0);
+		testInvalidDigitCount(0, 0);
+		testInvalidDigitCount(1, 0);
+		testInvalidDigitCount(2, 0);
+		testInvalidDigitCount(20, 0);
+		testInvalidDigitCount(100, 0);
+		
+		testInvalidDigitCount(-100, 1);
+		testInvalidDigitCount(-20, 1);
+		testInvalidDigitCount(-1, 1);
+		testInvalidDigitCount(0, 1);
+		testInvalidDigitCount(1, 1);
+		testInvalidDigitCount(2, 1);
+		testInvalidDigitCount(20, 1);
+		testInvalidDigitCount(100, 1);
+		
+		testInvalidDigitCount(-100, 86);
+		testInvalidDigitCount(-20, 86);
+		testInvalidDigitCount(-1, 86);
+		testInvalidDigitCount(0, 86);
+		testInvalidDigitCount(1, 86);
+		testInvalidDigitCount(2, 86);
+		testInvalidDigitCount(20, 86);
+		testInvalidDigitCount(100, 86);
+	}
+	
 	@Override
 	void runTest()
 	{
@@ -939,5 +1092,7 @@ public class SpecialTypesTest extends TestBase {
 		testLoopback("1:2:3:4:1:2:3:4", false);
 		
 		testNetworkIntf();
+		
+		testDigitCount();
 	}
 }

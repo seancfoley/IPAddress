@@ -60,7 +60,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	protected transient String cachedString;
 	
 	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix) throws AddressValueException {
-		if(bytes.length == 0 || bitCount == 0) {
+		if(defaultRadix < MIN_RADIX || defaultRadix > MAX_RADIX) {
 			throw new IllegalArgumentException();
 		}
 		maxValue = getMaxValue(bitCount);
@@ -85,6 +85,8 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	public IPAddressLargeDivision(byte bytes[], int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength) throws AddressValueException {
 		if(prefixLength != null && prefixLength < 0) {
 			throw new PrefixLenException(prefixLength);
+		} else if(defaultRadix < MIN_RADIX || defaultRadix > MAX_RADIX) {
+			throw new IllegalArgumentException();
 		}
 		maxValue = getMaxValue(bitCount);
 		this.bitCount = bitCount;
@@ -129,6 +131,8 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			byte bytes[], byte upperBytes[], int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer prefixLength) throws AddressValueException {
 		if(prefixLength != null && prefixLength < 0) {
 			throw new PrefixLenException(prefixLength);
+		} else if(defaultRadix < MIN_RADIX || defaultRadix > MAX_RADIX) {
+			throw new IllegalArgumentException();
 		}
 		bytes = extend(bytes, bitCount);
 		upperBytes = extend(upperBytes, bitCount);
@@ -444,6 +448,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	
 	@Override
 	protected void appendUppercase(CharSequence str, int radix, StringBuilder appendable) {
+		// no radix check required here
 		if(radix > 10 && !isExtendedDigits()) {
 			for(int i = 0; i < str.length(); i++) {
 				char c = str.charAt(i);
@@ -458,10 +463,11 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 	
 	private static String toDefaultString(BigInteger val, BigInteger radix, boolean uppercase, int choppedDigits, int maxDigits) {
-		if(val.equals(BigInteger.ZERO)) {
+		if(radix.compareTo(BIG_MIN_RADIX) < 0 || radix.compareTo(BIG_MAX_RADIX) > 0) {
+			throw new IllegalArgumentException();
+		} else if(val.equals(BigInteger.ZERO)) {
 			return "0";
-		}
-		if(val.equals(BigInteger.ONE)) {
+		} else if(val.equals(BigInteger.ONE)) {
 			return "1";
 		}
 		char dig[] = getDigits(radix.intValue(), uppercase);
@@ -590,12 +596,12 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	protected int getLowerStringLength(int radix) {
-		return getDigitCount(getValue(), defaultRadix);
+		return getDigitCount(getValue(), radix);
 	}
 
 	@Override
 	protected int getUpperStringLength(int radix) {
-		return getDigitCount(getUpperValue(), defaultRadix);
+		return getDigitCount(getUpperValue(), radix);
 	}
 
 	@Override
@@ -737,7 +743,10 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 
 	@Override
 	protected int getRangeDigitCount(int radix) {
-		if(!isMultiple()) {
+		// only reason I need radix checks here is because it is protected
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		} else if(!isMultiple()) {
 			return 0;
 		}
 		BigInteger val = getValue(), upperVal = getUpperValue();
