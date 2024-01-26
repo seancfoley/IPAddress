@@ -1,9 +1,3 @@
-package inet.ipaddr.format.standard;
-
-import inet.ipaddr.AddressValueException;
-import inet.ipaddr.IPAddressNetwork;
-import inet.ipaddr.format.AddressDivisionBase;
-
 /*
  * Copyright 2016-2018 Sean C Foley
  *
@@ -21,6 +15,12 @@ import inet.ipaddr.format.AddressDivisionBase;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package inet.ipaddr.format.standard;
+
+import inet.ipaddr.AddressValueException;
+import inet.ipaddr.IPAddressNetwork;
+import inet.ipaddr.format.AddressDivisionBase;
 
 public class IPAddressBitsDivision extends IPAddressDivision {
 

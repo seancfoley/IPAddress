@@ -66,12 +66,13 @@ NOTE: Currently we've had to separate javadoc creation from the creation of dist
 see notes in build.xml for the reason.
 You need the project at compile level 9 with a jre >= 9 (last time used 11).
 a. Create the javadoc first using Java 8, altering the jdk used by the build.xml ant build run config to be version 8.  
+Make sure you choose a non-plugin JDK.  It can be a Mac OS VM if you want.  It needs to use the tools.jar for the doclet.
 b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  
 Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-2. Use build.xml to first "create javadoc"
+2. Use build.xml to first "create javadoc" running in separate Java 8 JRE.  If any javadoc errors, fix them and retry.
 
-3. Use build.xml to "create dist jar"
+3. Use build.xml to "create dist jar" running in jre >= 9 same as workspace.
 
 4. Replace the checked-in file IPAddress.jar with the dist jar created.
 
@@ -110,6 +111,7 @@ Use your sonatype user/pw.
 It may take about 10 minutes.
 
 13. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
+
 
 
 
