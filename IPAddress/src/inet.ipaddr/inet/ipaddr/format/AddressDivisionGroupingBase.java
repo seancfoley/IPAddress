@@ -63,6 +63,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	private static final long serialVersionUID = 1L;
 	
 	protected static final Integer NO_PREFIX_LENGTH = -1;
+
 	static final BigInteger ALL_ONES = BigInteger.ZERO.not();
 	
 	protected static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
@@ -1061,6 +1062,9 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		}
 		
 		public AddressStringParams(int radix, Character separator, boolean uppercase, char zoneSeparator) {
+			if(radix < AddressDivisionBase.MIN_RADIX || radix > AddressDivisionBase.MAX_RADIX) {
+				throw new IllegalArgumentException();
+			}
 			this.radix = radix;
 			this.separator = separator;
 			this.uppercase = uppercase;
@@ -1439,7 +1443,13 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		
 		public static int getPrefixIndicatorStringLength(IPAddressStringDivisionSeries addr) {
 			if(addr.isPrefixed()) {
-				return AddressDivisionBase.toUnsignedStringLengthFast(addr.getPrefixLength(), 10) + 1;
+				int value = addr.getPrefixLength();
+				if(value < 10) {
+					return 2;
+				} else if(value < 100) {
+					return 3;
+				}
+				return 4;
 			}
 			return 0;
 		}

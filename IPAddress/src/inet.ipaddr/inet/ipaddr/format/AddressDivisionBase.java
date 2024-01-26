@@ -73,7 +73,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		'o', 'p', 'q', 'r', 's', 't',
 		'u', 'v', 'w', 'x', 'y', 'z',
     };
-	
+
 	public static final char[] EXTENDED_DIGITS = {
 		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 
 		'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 
@@ -83,9 +83,14 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		'y', 'z', '!', '#', '$', '%', '&', '(', ')', '*', '+', '-', 
 		';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}', 
 		'~' };
-	
+
+	protected static final int MIN_RADIX = 2, MAX_RADIX = 85;
+
+	protected static final BigInteger BIG_MIN_RADIX = BigInteger.TWO,
+			BIG_MAX_RADIX = BigInteger.valueOf(MAX_RADIX);
+
 	protected static final char[] UPPERCASE_DIGITS = IPAddressLargeDivision.EXTENDED_DIGITS; 
-	
+
 	protected static final char[] DOUBLE_DIGITS_DEC = {
 		'0', '0', '0', '1', '0', '2', '0', '3', '0', '4',
 		'0', '5', '0', '6', '0', '7', '0', '8', '0', '9',
@@ -108,7 +113,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		'9', '0', '9', '1', '9', '2', '9', '3', '9', '4',
 		'9', '5', '9', '6', '9', '7', '9', '8', '9', '9',
 	};
-	
+
 	private static TreeMap<Long, Integer> maxDigitMap = new TreeMap<Long, Integer>();
 
 	private static TreeMap<Long, BigInteger> radixPowerMap = new TreeMap<Long, BigInteger>();
@@ -310,21 +315,29 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 	
 	protected static BigInteger getMaxValue(int bitCount) {
-		int maxBytes = (bitCount + 7) / 8;
-		int topBits = bitCount % 8;
-		if(topBits == 0) {
-			topBits = 8;
+		if(bitCount < 0) {
+			throw new IllegalArgumentException();
 		}
+		int maxBytes = (bitCount + 7) >>> 3;
 		byte max[] = new byte[maxBytes];
-		max[0] = (byte) ~(~0 << topBits);
-		for(int i = 1; i < max.length; i++) {
-			max[i] = ~0;
+		if(maxBytes > 0) {
+			int topBits = bitCount % 8;
+			if(topBits == 0) {
+				topBits = 8;
+			}
+
+			max[0] = (byte) ~(~0 << topBits);
+			for(int i = 1; i < max.length; i++) {
+				max[i] = ~0;
+			}
 		}
 		return new BigInteger(1, max);
 	}
 	
-	protected static int getDigitCount(BigInteger val, BigInteger radix) {
-		if(val.equals(BigInteger.ZERO) || val.equals(BigInteger.ONE)) {
+	public static int getDigitCount(BigInteger val, BigInteger radix) {
+		if(radix.compareTo(BIG_MIN_RADIX) < 0 || radix.compareTo(BIG_MAX_RADIX) > 0) {
+			throw new IllegalArgumentException();
+		} else if(val.equals(BigInteger.ZERO) || val.equals(BigInteger.ONE)) {
 			return 1;
 		}
 		int result = 1;
@@ -342,7 +355,11 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		long key = (((long) radix) << 32) | bitCount;
 		Integer digs = maxDigitMap.get(key);
 		if(digs == null) {
-			digs = AddressDivisionGroupingBase.cacheBits(getDigitCount(maxValue, radix));
+			int digitCount = getDigitCount(bitCount, radix);
+			if(digitCount < 0) {
+				digitCount = getDigitCount(maxValue, radix);
+			}
+			digs = AddressDivisionGroupingBase.cacheBits(digitCount);
 			@SuppressWarnings("unchecked")
 			TreeMap<Long, Integer> newMaxDigitMap = (TreeMap<Long, Integer>) maxDigitMap.clone();
 			newMaxDigitMap.put(key, digs);
@@ -351,44 +368,69 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		return digs;
 	}
 	
+	private static int getDigitCount(int bitCount, int radix) {
+		if(bitCount < 0) {
+			throw new IllegalArgumentException();
+		}
+		switch(radix) {
+		case 16:
+			return (bitCount + 3) >> 2; //every 4 bits is another digit
+		case 8:
+			return (bitCount + 2) / 3; //every 3 bits is another digit
+		case 4:
+			return (bitCount + 1) >> 1; //every 2 bits is another digit
+		case 2:
+			return bitCount; //every bit is another digit
+		case 10:
+			break;
+		default:
+			if(radix < MIN_RADIX || radix > MAX_RADIX) {
+				throw new IllegalArgumentException();
+			}
+		}
+		return -1;
+	}
+	
 	public static int getDigitCount(long value, int radix) {
 		int result = 1;
-		if(radix == 16) {
+		if(radix == 16 && value >= 0) {
 			while(true) {
 				value >>>= 4;
 				if(value == 0) {
-					break;
+					return result;
 				}
 				result++;
 			}
-		} else {
-			if(radix == 10) {
-				if(value < 10) {
-					return 1;
-				} else if(value < 100) {
-					return 2;
-				} else if(value < 1000) {
-					return 3;
-				}
-				value /= 1000;
-				result = 3;//we start with 3 in the loop below
-			} else if(radix == 8) {
-				while(true) {
-					value >>>= 3;
-					if(value == 0) {
-						break;
-					}
-					result++;
-				}
-				return result;
+		} else if(radix == 10 && value > -10) {
+			if(value < 10) {
+				return 1;
+			} else if(value < 100) {
+				return 2;
+			} else if(value < 1000) {
+				return 3;
 			}
+			value /= 1000;
+			result = 3; //we start with 3 in the loop below
+		} else if(radix == 8 && value >= 0) {
 			while(true) {
-				value /= radix;
+				value >>>= 3;
 				if(value == 0) {
 					break;
 				}
 				result++;
 			}
+			return result;
+		} else if(radix == 2 && value > 0) {
+			return Long.SIZE - Long.numberOfLeadingZeros(value);
+		} else if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
+		while(true) {
+			value /= radix;
+			if(value == 0) {
+				break;
+			}
+			result++;
 		}
 		return result;
 	}
@@ -404,7 +446,9 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		long key = (((long) radix.intValue()) << 32) | power;
 		BigInteger result = radixPowerMap.get(key);
 		if(result == null) {
-			if(power == 1) {
+			if(radix.compareTo(BIG_MIN_RADIX) < 0 || radix.compareTo(BIG_MAX_RADIX) > 0) {
+				throw new IllegalArgumentException();
+			} else if(power == 1) {
 				result = radix;
 			} else if((power & 1) == 0) {
 				BigInteger halfPower = getRadixPower(radix, power >> 1);
@@ -637,6 +681,9 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	protected abstract int getRangeDigitCount(int radix);
 	
 	protected static int toUnsignedStringLength(long value, int radix) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
 		int result;
 		if(value > 0xffff || (result = toUnsignedStringLengthFast((int) value, radix)) < 0) {
 			result = toUnsignedStringLengthSlow(value, radix);
@@ -647,15 +694,15 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	private static int toUnsignedStringLengthSlow(long value, int radix) {
 		int count = 1;
 		boolean useInts = value <= Integer.MAX_VALUE;
-		int value2 = useInts ? (int) value : radix;
-		while(value2 >= radix) {
+		int intValue = useInts ? (int) value : radix;
+		while(intValue >= radix) {
 			if(useInts) {
-				value2 /= radix;
+				intValue /= radix;
 			} else {
 				value /= radix;
 				if(value <= Integer.MAX_VALUE) {
 					useInts = true;
-					value2 = (int) value;
+					intValue = (int) value;
 				}
 			}
 			++count;
@@ -663,7 +710,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		return count;
 	}
 	
-	protected static int toUnsignedStringLengthFast(int value, int radix) {
+	private static int toUnsignedStringLengthFast(int value, int radix) {
 		if(value <= 1) {//for values larger than 1, result can be different with different radix (radix is 2 and up)
 			return 1;
 		}
@@ -737,7 +784,9 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 	
 	protected static StringBuilder toUnsignedStringCased(long value, int radix, int choppedDigits, boolean uppercase, StringBuilder appendable) {
-		if(value > 0xffff || !toUnsignedStringFastChopped((int) value, radix, choppedDigits, uppercase, appendable)) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		} else if(value > 0xffff || !toUnsignedStringFastChopped((int) value, radix, choppedDigits, uppercase, appendable)) {
 			toUnsignedStringSlow(value, radix, choppedDigits, uppercase, appendable);
 		}
 		return appendable;
@@ -1397,6 +1446,9 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 			boolean uppercase,
 			boolean maskUpper,
 			StringBuilder appendable) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
 		int prefLen = stringPrefix.length();
 		boolean hasStringPrefix = prefLen > 0;
 		if(appendable == null) {

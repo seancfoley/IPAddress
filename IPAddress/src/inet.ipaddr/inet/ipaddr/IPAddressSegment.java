@@ -18,6 +18,7 @@
 
 package inet.ipaddr;
 
+import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -515,6 +516,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	/**
 	 * @return the same value as {@link #getCount()} as an integer
 	 */
+	@Override
 	public int getValueCount() {
 		return getUpperSegmentValue() - getSegmentValue() + 1;
 	}
@@ -534,6 +536,29 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		return getPrefixValueCount(this, prefixLength);
 	}
 	
+	@Override
+	public BigInteger getCount() {
+		return BigInteger.valueOf(getValueCount());
+	}
+	
+	@Override
+	public BigInteger getPrefixCount(int segmentPrefixLength) {
+		return BigInteger.valueOf(getPrefixValueCount(segmentPrefixLength));
+	}
+	
+	@Override
+	public int getPrefixValueCount(int segmentPrefixLength) {
+		if(segmentPrefixLength < 0) {
+			throw new PrefixLenException(this, segmentPrefixLength);
+		}
+		int bitCount = getBitCount();
+		if(bitCount <= segmentPrefixLength) {
+			return getValueCount();
+		}
+		int shiftAdjustment = bitCount - segmentPrefixLength;
+		return (getUpperSegmentValue() >>> shiftAdjustment) - (getSegmentValue() >>> shiftAdjustment) + 1;
+	}
+
 	protected int highByte() {
 		return highByte(getSegmentValue());
 	}

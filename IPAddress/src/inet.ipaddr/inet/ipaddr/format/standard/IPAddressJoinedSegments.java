@@ -89,7 +89,7 @@ public abstract class IPAddressJoinedSegments extends IPAddressDivision {
 
 	@Override
 	public int getMaxDigitCount() {
-		return getDigitCount(getMaxValue(), getDefaultTextualRadix());
+		return getMaxDigitCount(getDefaultTextualRadix(), getBitCount(), getMaxValue());
 	}
 
 	@Override

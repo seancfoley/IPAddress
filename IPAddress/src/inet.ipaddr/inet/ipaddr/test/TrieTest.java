@@ -331,7 +331,6 @@ public class TrieTest extends TestBase {
 		"  ├─● 192.168.10.132/30 = 5\n" +
 		"  └─● 192.168.10.136/30 = 6\n");
 
-
 	static String testIPAddressTries[][] = {{
 				"1.2.3.4",
 				"1.2.3.5",

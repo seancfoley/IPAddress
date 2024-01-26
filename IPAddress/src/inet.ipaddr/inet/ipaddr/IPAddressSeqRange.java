@@ -44,7 +44,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
 /**
- * This class can be used to represent an arbitrary range of IP addresses.  
+ * This class can be used to represent an arbitrary range of consecutive IP addresses.  
  * <p>
  * Note that the IPAddress and IPAddressString classes allow you to specify a range of values for each segment.
  * That allows you to represent single addresses, any address prefix subnet (eg 1.2.0.0/16 or 1:2:3:4::/64) or any subnet that can be represented with segment ranges (1.2.0-255.* or 1:2:3:4:*), see
@@ -65,7 +65,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	private static final long serialVersionUID = 1L;
 	public static final String DEFAULT_RANGE_SEPARATOR = " -> ";
 	private static final IPAddressSeqRange EMPTY_RANGES[] = new IPAddressSeqRange[0];
-	
+
 	protected final IPAddress lower, upper;
 	
 	private transient BigInteger count;
@@ -231,7 +231,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * Iterates through the range of prefixes in this range instance using the given prefix length.
 	 * <p>
 	 * Since a range between two arbitrary addresses cannot always be represented with a single IPAddress instance,
-	 * the returned iterator iterates through IPAddressRange instances.
+	 * the returned iterator iterates through {@link IPAddressSeqRange} instances.
 	 * <p>
 	 * For instance, if iterating from 1.2.3.4 to 1.2.4.5 with prefix 8, the range shares the same prefix 1,
 	 * but the range cannot be represented by the address 1.2.3-4.4-5 which does not include 1.2.3.255 or 1.2.4.0 both of which are in the original range.
@@ -618,11 +618,14 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public String toCanonicalString() {
 		return toCanonicalString(DEFAULT_RANGE_SEPARATOR);
 	}
-	
+
 	public String toString(Function<? super IPAddress, String> lowerStringer, String separator, Function<? super IPAddress, String> upperStringer) {
 		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
 	}
-	
+
+	/**
+	 * Produces the canonical string for the address, also available from {@link #toCanonicalString()}.
+	 */
 	@Override
 	public String toString() {
 		return toCanonicalString();
@@ -720,6 +723,12 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		return joined;
 	}
 	
+	/**
+	 * Returns true if this sequential range overlaps with the given sequential range.
+	 * 
+	 * @param other
+	 * @return
+	 */
 	public boolean overlaps(IPAddressSeqRange other) {
 		return compareLowValues(other.getLower(), getUpper()) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
 	}
@@ -826,13 +835,15 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		IPAddress upper = getUpper();
 		int lowerComp = compareLowValues(lower, otherLower);
 		if(!overlaps(other)) {
-			if(lowerComp >= 0) {
-				if(otherUpper.increment(1).equals(lower)) {
-					return create(otherLower, upper);
-				}
-			} else {
-				if(upper.increment(1).equals(otherLower)) {
-					return create(lower, otherUpper);
+			if(lower.getIPVersion().equals(otherLower.getIPVersion())) {
+				if(lowerComp >= 0) {
+					if(otherUpper.increment(1).equals(lower)) {
+						return create(otherLower, upper);
+					}
+				} else {
+					if(upper.increment(1).equals(otherLower)) {
+						return create(lower, otherUpper);
+					}
 				}
 			}
 			return null;
@@ -870,24 +881,20 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(upperComp <= 0) { // ol l u ou
 				return other.toSequentialRange();
 			}
-			IPAddress max = otherUpper.getNetwork().getNetworkMask(getBitCount(), false);
-			int versionComp = compareLowValues(lower, max);
-			if(versionComp > 0) { // different versions: ol ou max l u
+			if(!upper.getIPVersion().equals(otherLower.getIPVersion())) {
 				return null;
 			}
-			// ol l ou u
+			// ol l ou u or ol ou l u
 			return create(otherLower, upper);
 		}
 		// lowerComp <= 0
 		if(upperComp >= 0) { // l ol ou u
 			return this;
 		}
-		IPAddress max = upper.getNetwork().getNetworkMask(getBitCount(), false);
-		int versionComp = compareLowValues(otherLower, max);
-		if(versionComp > 0) { // different versions: l u max ol ou
+		if(!lower.getIPVersion().equals(otherUpper.getIPVersion())) {
 			return null;
 		}
-		return create(lower, otherUpper);// l ol u ou
+		return create(lower, otherUpper);// l ol u ou or l u ol ou
 	}
 
 	/**
@@ -910,7 +917,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 				if(comp < 0) { // l u ol ou
 					return createSingle();
 				}
-				return createSingle(lower, otherLower.increment(-1)); // l ol u ou  (includes l u == ol ou)
+				return createSingle(lower, otherLower.increment(-1)); // l ol u ou (includes l u == ol ou)
 			}
 		} else if(compareLowValues(otherUpper, upper) >= 0) { // ol l u ou
 			return createEmpty();
@@ -919,7 +926,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(comp < 0) {
 				return createSingle(); // ol ou l u
 			}
-			return createSingle(otherUpper.increment(1), upper); // ol l ou u (includes  ol ou == l u)  
+			return createSingle(otherUpper.increment(1), upper); // ol l ou u  (includes  ol ou == l u)
 		}
 	}
 	

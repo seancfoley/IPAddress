@@ -479,6 +479,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	public AssociativeTrieNode<K, V> addNode(K addr) {
 		return (AssociativeTrieNode<K, V>) super.addNode(addr);
 	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	TrieNode<K> addNode(OpResult<K> result, TrieNode<K> fromNode, TrieNode<K> nodeToAdd, boolean withValues) {
@@ -488,7 +489,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		}
 		return super.addNode(result, fromNode, nodeToAdd, withValues);
 	}
-	
+
 	@Override
 	public abstract AssociativeAddedTree<K, V> constructAddedNodesTree();
 

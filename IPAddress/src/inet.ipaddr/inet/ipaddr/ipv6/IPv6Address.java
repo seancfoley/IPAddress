@@ -1061,7 +1061,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 	
 	private static IPv6AddressSegment join(IPv6AddressCreator creator, MACAddressSegment macSegment0, MACAddressSegment macSegment1, boolean flip, Integer prefixLength) {
-		if(macSegment0.isMultiple()) { // TODO reinstate, a test is failing now that I added this, but I need this
+		if(macSegment0.isMultiple()) {
 			// if the high segment has a range, the low segment must match the full range, 
 			// otherwise it is not possible to create an equivalent range when joining
 			if(!macSegment1.isFullRange()) {
@@ -1465,11 +1465,6 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address toIPv6() {
 		return this;
-	}
-	
-	@Override
-	public boolean isIPv4() {
-		return false;
 	}
 	
 	@Override

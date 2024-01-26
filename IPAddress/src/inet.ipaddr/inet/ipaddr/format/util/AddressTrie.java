@@ -554,8 +554,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		if(addr.isMax()) {
 			return null;
 		}
-		if(addr instanceof IPAddress) {
-			IPAddress ipaddr = (IPAddress) addr;
+		if(addr.isIPAddress()) {
+			IPAddress ipaddr = addr.toIPAddress();
 			if(addr.isPrefixed()) {
 				return (E) ipaddr.getUpper().setPrefixLength(ipaddr.getPrefixLength() + 1).toZeroHost();
 			}
@@ -589,8 +589,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		if(addr.isZero()) {
 			return null;
 		}
-		if(addr instanceof IPAddress) {
-			IPAddress ipaddr = (IPAddress) addr;
+		if(addr.isIPAddress()) {
+			IPAddress ipaddr = addr.toIPAddress();
 			if(addr.isPrefixed()) {
 				return (E) ipaddr.getLower().setPrefixLength(ipaddr.getPrefixLength() + 1).toMaxHost();
 			}
@@ -1261,7 +1261,13 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		 */
 		@SuppressWarnings("unchecked")
 		private void split(OpResult<E> result, int totalMatchingBits, TrieNode<E> newSubNode) {
-			E newBlock = (E) getKey().setPrefixLength(totalMatchingBits).toPrefixBlock();
+			E key = getKey();
+			E newBlock;
+			if(key.isIPAddress()) {
+				newBlock = (E) key.toIPAddress().toPrefixBlock(totalMatchingBits);
+			} else {
+				newBlock = (E) key.setPrefixLength(totalMatchingBits).toPrefixBlock();
+			}
 			replace(newBlock, result, totalMatchingBits, newSubNode);
 			newSubNode.inserted(result);
 		}
@@ -1803,7 +1809,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 * 
 	 * @return
 	 */
-public abstract String toAddedNodesTreeString();
+	public abstract String toAddedNodesTreeString();
 	
 	protected static <E extends Address, N extends SubNodesMapping<E, N>> String toAddedNodesTreeString(AssociativeAddressTrie<E, N> addedTree) {
 		AssociativeTrieNode<E, N> root = addedTree.absoluteRoot();

@@ -4118,7 +4118,6 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 
-	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
 	static class ExpectedBlock {
 		int count;
 		String addr;
@@ -4133,11 +4132,11 @@ public class IPAddressTest extends TestBase {
 	boolean isLenient() {
 		return false;
 	}
-	
+
 	boolean allowsRange() {
 		return false;
 	}
-	
+
 	@Override
 	void runTest() {
 		boolean allPrefixesAreSubnets = prefixConfiguration.allPrefixedAddressesAreSubnets();
@@ -6679,5 +6678,81 @@ public class IPAddressTest extends TestBase {
 				"3.0.1.3", "3.0.1.3", 
 				new Object[] {3, 0, 1, 3}, 
 				null, true);
+
+		if(isAutoSubnets) {
+			testAllocator(new String[]{"192.168.10.0/24"}, new long[]{50, 30, 20, 2, 2, 2}, 2, new ExpectedBlock[] {
+				new ExpectedBlock(50, "192.168.10.0/26"),
+				new ExpectedBlock(30, "192.168.10.64/27"),
+				new ExpectedBlock(20, "192.168.10.96/27"),
+				new ExpectedBlock(2, "192.168.10.128/30"),
+				new ExpectedBlock(2, "192.168.10.132/30"),
+				new ExpectedBlock(2, "192.168.10.136/30")
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new long[]{60, 12, 12, 28}, 2, new ExpectedBlock[] {
+				new ExpectedBlock(60, "192.168.10.0/26"),
+				new ExpectedBlock(28, "192.168.10.64/27"),
+				new ExpectedBlock(12, "192.168.10.96/28"),
+				new ExpectedBlock(12, "192.168.10.112/28"),
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new long[]{60, 12, 12, 28}, -10, new ExpectedBlock[] {
+				new ExpectedBlock(60, "192.168.10.0/26"),
+				new ExpectedBlock(28, "192.168.10.64/27"),
+				new ExpectedBlock(12, "192.168.10.96/31"),
+				new ExpectedBlock(12, "192.168.10.98/31"),
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new long[]{60, 12, 12, 28}, -15, new ExpectedBlock[] {
+				new ExpectedBlock(60, "192.168.10.0/26"),
+				new ExpectedBlock(28, "192.168.10.64/28")
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new long[]{60, 12, 12, 28}, -30, new ExpectedBlock[] {
+				new ExpectedBlock(60, "192.168.10.0/27")
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new long[]{60, 12, 12, 28}, -60, new ExpectedBlock[]{});
+			testAllocator(new String[]{"1::/64"}, new long[]{17, 3, 12, 4, 50}, 1, new ExpectedBlock[] {
+				new ExpectedBlock(50, "1::/122"),
+				new ExpectedBlock(17, "1::40/123"),
+				new ExpectedBlock(12, "1::60/124"),
+				new ExpectedBlock(4, "1::70/125"),
+				new ExpectedBlock(3, "1::78/126")
+			});
+			
+			
+			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{5, 5, 2, 6, 2, 2}, new ExpectedBlock[] {
+				new ExpectedBlock(64, "192.168.10.0/26"),
+				new ExpectedBlock(32, "192.168.10.64/27"),
+				new ExpectedBlock(32, "192.168.10.96/27"),
+				new ExpectedBlock(4, "192.168.10.128/30"),
+				new ExpectedBlock(4, "192.168.10.132/30"),
+				new ExpectedBlock(4, "192.168.10.136/30")
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{6, 5, 4, 4}, new ExpectedBlock[] {
+				new ExpectedBlock(64, "192.168.10.0/26"),
+				new ExpectedBlock(32, "192.168.10.64/27"),
+				new ExpectedBlock(16, "192.168.10.96/28"),
+				new ExpectedBlock(16, "192.168.10.112/28"),
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{1, 1, 5, 6}, new ExpectedBlock[] {
+				new ExpectedBlock(64, "192.168.10.0/26"),
+				new ExpectedBlock(32, "192.168.10.64/27"),
+				new ExpectedBlock(2, "192.168.10.96/31"),
+				new ExpectedBlock(2, "192.168.10.98/31"),
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{6, 4}, new ExpectedBlock[] {
+				new ExpectedBlock(64, "192.168.10.0/26"),
+				new ExpectedBlock(16, "192.168.10.64/28")
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{5}, new ExpectedBlock[] {
+				new ExpectedBlock(32, "192.168.10.0/27")
+			});
+			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{}, new ExpectedBlock[]{});
+			testAllocator(new String[]{"1::/64"}, new int[]{6, 4, 2, 3, 5}, new ExpectedBlock[] {
+				new ExpectedBlock(64, "1::/122"),
+				new ExpectedBlock(32, "1::40/123"),
+				new ExpectedBlock(16, "1::60/124"),
+				new ExpectedBlock(8, "1::70/125"),
+				new ExpectedBlock(4, "1::78/126")
+			});
+
+		}
 	}
 }

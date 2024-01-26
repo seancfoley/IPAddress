@@ -130,14 +130,13 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 		return MACAddress.defaultMACNetwork();
 	}
 
-	/**
-	 * @return the same value as {@link #getCount()} as an integer
-	 */
+	@Override
 	public int getValueCount() {
 		return getUpperSegmentValue() - getSegmentValue() + 1;
 	}
 
-	int getPrefixValueCount(int segmentPrefixLength) {
+	@Override
+	public int getPrefixValueCount(int segmentPrefixLength) {
 		return getPrefixValueCount(this, segmentPrefixLength);
 	}
 	

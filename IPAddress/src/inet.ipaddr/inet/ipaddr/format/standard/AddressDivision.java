@@ -72,8 +72,12 @@ public abstract class AddressDivision extends AddressDivisionBase {
 
 	@Override
 	public int getMinPrefixLengthForBlock() {
-		//TODO check for single value and/or full range first
 		int result = getBitCount();
+		if(!isMultiple()) {
+			return result;
+		} else if(isFullRange()) {
+			return 0;
+		}
 		int lowerZeros = Long.numberOfTrailingZeros(getDivisionValue());
 		if(lowerZeros != 0) {
 			int upperOnes = Long.numberOfTrailingZeros(~getUpperDivisionValue());
@@ -443,10 +447,9 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	}
 	
 	public boolean hasUppercaseVariations(int radix, boolean lowerOnly) {
-		if(radix <= 1) {
+		if(radix < MIN_RADIX) {
 			throw new IllegalArgumentException();
-		}
-		if(radix <= 10) {
+		} else if(radix <= 10) {
 			return false;
 		}
 		boolean isPowerOfTwo;
@@ -462,7 +465,7 @@ public abstract class AddressDivision extends AddressDivisionBase {
 				isPowerOfTwo = (radix & (radix - 1)) == 0;
 				if(isPowerOfTwo) {
 					shift = Integer.numberOfTrailingZeros(radix);
-					mask = ~(~0L << shift); //allBitSize must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
+					mask = ~(~0L << shift); //shift must be 6 digits at most for this shift to work per the java spec (so it must be less than 2^6 = 64)
 				}
 		}
 		boolean handledUpper = false;
@@ -648,8 +651,7 @@ public abstract class AddressDivision extends AddressDivisionBase {
 				value2 = quotient;
 	        } while(value2 != 0);
 			return new String(chars);
-		}
-		if(radix == 16) {
+		} else if(radix == 16) {
 			if(val2 < 0x10) {
 				len2 = 1;
 			} else if(val2 < 0x100) {
@@ -702,15 +704,17 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	}
 	
 	protected static String toDefaultString(long val, int radix) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX || val < 0) {
+			throw new IllegalArgumentException();
+		}
 		//0 and 1 are common segment values, and additionally they are the same regardless of radix (even binary)
 		//so we have a fast path for them
 		if(val == 0L) {
 			return "0";
-		}
-		if(val == 1L) {
+		} else if(val == 1L) {
 			return "1";
 		}
-		int len, quotient, remainder, value; //we iterate on //value == quotient * radix + remainder
+		int len, quotient, remainder, value; //we iterate on: value == quotient * radix + remainder
 		if(radix == 10) {
 			if(val < 10) {
 				return String.valueOf(DIGITS, (int) val, 1);
@@ -733,8 +737,7 @@ public abstract class AddressDivision extends AddressDivisionBase {
 				value = quotient;
 	        } while(value != 0);
 			return new String(chars);
-		}
-		if(radix == 16) {
+		} else if(radix == 16) {
 			if(val < 0x10) {
 				return String.valueOf(DIGITS, (int) val, 1);
 			} else if(val < 0x100) {
@@ -776,6 +779,9 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			char splitDigitSeparator,
 			boolean reverseSplitDigits,
 			String stringPrefix) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
 		int digitsLength = -1;//we will count one too many split digit separators in here
 		int stringPrefixLength = stringPrefix.length();
 		do {
@@ -870,6 +876,9 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			char splitDigitSeparator,
 			String stringPrefix,
 			StringBuilder appendable) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
 		boolean useInts = value <= Integer.MAX_VALUE;
 		int value2 = useInts ? (int) value : radix;
 		char dig[] = uppercase ? UPPERCASE_DIGITS : DIGITS;
@@ -922,6 +931,9 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			boolean reverseSplitDigits,
 			String stringPrefix, 
 			StringBuilder appendable) {
+		if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
 		char dig[] = uppercase ? UPPERCASE_DIGITS : DIGITS;
 		boolean previousWasFullRange = true;
 		boolean useInts = upper <= Integer.MAX_VALUE;
@@ -1021,9 +1033,10 @@ public abstract class AddressDivision extends AddressDivisionBase {
 	protected int getRangeDigitCount(int radix) {
 		if(!isMultiple()) {
 			return 0;
-		}
-		if(radix == getDefaultTextualRadix()) {
+		} else if(radix == getDefaultTextualRadix()) {
 			return getRangeDigitCountImpl();
+		} else if(radix < MIN_RADIX || radix > MAX_RADIX) {
+			throw new IllegalArgumentException();
 		}
 		return calculateRangeDigitCount(radix, getDivisionValue(), getUpperDivisionValue(), getMaxValue());
 	}

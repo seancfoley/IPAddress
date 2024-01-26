@@ -31,11 +31,11 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  * The current implementations of this class are the most common representations of IPv4, IPv6 and MAC; 
  * segments are 1 byte for Ipv4, they are two bytes for Ipv6, and they are 1 byte for MAC addresses.
  * <p>
- * There are alternative forms of dividing addresses into segments, such as dotted representation for MAC like 1111.2222.3333,
- * embedded IPv4 representation for IPv6 like f:f:f:f:f:f:1.2.3.4, inet_aton formats like 1.2 for IPv4, and so on.
+ * There are alternative forms of dividing addresses into divisions, such as the dotted representation for MAC like 1111.2222.3333,
+ * the embedded IPv4 representation for IPv6 like f:f:f:f:f:f:1.2.3.4, the inet_aton formats like 1.2 for IPv4, and so on.
  * <p>
  * If those alternative representations were to follow the general rules for segment representation, then you could reuse this class
- * for thos alternative representations.
+ * for those alternative representations.
  * <p>
  * The general rules are that segments have a whole number of bytes, and in a given address all segments have the same length.
  * <p>
@@ -50,6 +50,20 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  *
  */
 public interface AddressSegment extends AddressComponent, AddressGenericDivision {
+	/**
+	 * Returns the count of values in this address segment.
+	 * 
+	 * @return the same value as {@link #getCount()} as an integer
+	 */
+	int getValueCount();
+
+	/**
+	 * Returns the count of prefix values in this address segment for the given prefix bit count.
+	 * 
+	 * @return the count of values
+	 */
+	int getPrefixValueCount(int segmentPrefixLength);
+	
 	/**
 	 * returns the lower value
 	 */

@@ -30,21 +30,53 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 	private final long value, upperValue;
 	private final long bitsMask;
 	
+	/**
+	 * Constructs a division with the given values, the given number of bits, and the given radix for printing the values.
+	 * 
+	 * @param value
+	 * @param upperValue
+	 * @param bitCount
+	 * @param defaultRadix
+	 */
 	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix) {
 		this(value, upperValue, bitCount, defaultRadix, null, null);
 	}
 
+	/**
+	 * Constructs a division with the given values and prefix length, the given number of bits, and the given radix for printing the values.
+	 * 
+	 * @param value
+	 * @param upperValue
+	 * @param bitCount
+	 * @param defaultRadix
+	 * @param network
+	 * @param networkPrefixLength
+	 */
+	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix, Integer networkPrefixLength) {
+		this(value, upperValue, bitCount, defaultRadix, null, networkPrefixLength);
+	}
+
+	/**
+	 * Constructs a division with the given values and prefix length, the given number of bits, and the given radix for printing the values.
+	 * 
+	 * @param value
+	 * @param upperValue
+	 * @param bitCount
+	 * @param defaultRadix
+	 * @param network
+	 * @param networkPrefixLength
+	 */
 	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix, IPAddressNetwork<?, ?, ?, ?, ?> network, Integer networkPrefixLength) {
 		super(networkPrefixLength == null ? null : 
 			((bitCount < networkPrefixLength) ? AddressDivisionGrouping.cacheBits(bitCount) : networkPrefixLength));
 		this.bitCount = bitCount;
-		if(value < 0 || upperValue < 0) {
-			throw new AddressValueException(value < 0 ? value : upperValue);
-		}
 		if(value > upperValue) {
 			long tmp = value;
 			value = upperValue;
 			upperValue = tmp;
+		}
+		if(value < 0) {
+			throw new AddressValueException(value);
 		}
 		long fullMask = ~0L << bitCount; // 11110000  with bitCount zeros
 		long max = ~fullMask;
@@ -62,7 +94,7 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 		}
 		this.defaultRadix = defaultRadix;
 		bitsMask = max;
-		maxDigitCount = getMaxDigitCount(defaultRadix, bitCount, max);
+		maxDigitCount = getMaxDigitCount(defaultRadix, bitCount, max); // validates the bit count and the radix
 	}
 
 	@Override

@@ -339,11 +339,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
-	public boolean isIPv6() {
-		return false;
-	}
-	
-	@Override
 	public IPv4Address toIPv4() {
 		return this;
 	}

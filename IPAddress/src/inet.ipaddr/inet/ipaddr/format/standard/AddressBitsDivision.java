@@ -36,27 +36,42 @@ public class AddressBitsDivision extends AddressDivision {
 	private final int bitCount;
 	private final int defaultRadix;
 	
+	/**
+	 * Constructs a division with the given value, the given number of bits (which must be less than 32), and the given radix for printing the values.
+	 * 
+	 * @param value
+	 * @param bitCount
+	 * @param defaultRadix
+	 */
 	public AddressBitsDivision(int value, int bitCount, int defaultRadix) {
-		if(value < 0) {
-			throw new AddressValueException(value);
-		}
-		this.value = this.upperValue = value;
-		this.bitCount = bitCount;
-		this.defaultRadix = defaultRadix;
+		this(value, value, bitCount, defaultRadix);
 	}
 
+	/**
+	 * Constructs a division with the given value, the given number of bits (which must be less than 32), and the given radix for printing the values.
+	 * 
+	 * @param lower
+	 * @param upper
+	 * @param bitCount
+	 * @param defaultRadix
+	 */
 	public AddressBitsDivision(int lower, int upper, int bitCount, int defaultRadix) {
-		if(lower < 0 || upper < 0) {
-			throw new AddressValueException(lower < 0 ? lower : upper);
-		}
 		if(lower > upper) {
 			int tmp = lower;
 			lower = upper;
 			upper = tmp;
 		}
+		if(lower < 0) {
+			throw new AddressValueException(lower);
+		} else if(bitCount < 0 || bitCount >= Integer.SIZE || defaultRadix < MIN_RADIX || defaultRadix > MAX_RADIX) {
+			throw new IllegalArgumentException();
+		}
+		this.bitCount = bitCount;
+		if(upper > getMaxValue()) {
+			throw new AddressValueException(upper);
+		}
 		this.value = lower;
 		this.upperValue = upper;
-		this.bitCount = bitCount;
 		this.defaultRadix = defaultRadix;
 	}
 
@@ -91,7 +106,7 @@ public class AddressBitsDivision extends AddressDivision {
 
 	@Override
 	public int getMaxDigitCount() {
-		return (getBitCount() + 3) >> 2;//every 4 bits is another digit
+		return getMaxDigitCount(getDefaultTextualRadix(), getBitCount(), getMaxValue());
 	}
 
 	@Override
