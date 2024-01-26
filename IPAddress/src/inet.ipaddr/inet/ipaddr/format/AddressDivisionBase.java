@@ -73,7 +73,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		'o', 'p', 'q', 'r', 's', 't',
 		'u', 'v', 'w', 'x', 'y', 'z',
     };
-	
+
 	public static final char[] EXTENDED_DIGITS = {
 		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 
 		'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 
@@ -83,14 +83,14 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		'y', 'z', '!', '#', '$', '%', '&', '(', ')', '*', '+', '-', 
 		';', '<', '=', '>', '?', '@', '^', '_', '`', '{', '|', '}', 
 		'~' };
-	
+
 	protected static final int MIN_RADIX = 2, MAX_RADIX = 85;
-	
+
 	protected static final BigInteger BIG_MIN_RADIX = BigInteger.TWO,
 			BIG_MAX_RADIX = BigInteger.valueOf(MAX_RADIX);
-	
+
 	protected static final char[] UPPERCASE_DIGITS = IPAddressLargeDivision.EXTENDED_DIGITS; 
-	
+
 	protected static final char[] DOUBLE_DIGITS_DEC = {
 		'0', '0', '0', '1', '0', '2', '0', '3', '0', '4',
 		'0', '5', '0', '6', '0', '7', '0', '8', '0', '9',
@@ -113,7 +113,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		'9', '0', '9', '1', '9', '2', '9', '3', '9', '4',
 		'9', '5', '9', '6', '9', '7', '9', '8', '9', '9',
 	};
-	
+
 	private static TreeMap<Long, Integer> maxDigitMap = new TreeMap<Long, Integer>();
 
 	private static TreeMap<Long, BigInteger> radixPowerMap = new TreeMap<Long, BigInteger>();

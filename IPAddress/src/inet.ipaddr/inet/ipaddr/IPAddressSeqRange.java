@@ -592,7 +592,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		Function<IPAddress, String> stringer = IPAddress::toNormalizedString;
 		return toString(stringer, separator, stringer);
 	}
-	
+
 	/**
 	 * Produces a normalized string for the address range.
 	 * It has the format "lower -&gt; upper" where lower and upper are the normalized strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
@@ -601,7 +601,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public String toNormalizedString() {
 		return toNormalizedString(DEFAULT_RANGE_SEPARATOR);
 	}
-	
+
 	/**
 	 * Produces a canonical string for the address range with the given separator string.
 	 */
@@ -609,7 +609,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		Function<IPAddress, String> stringer = IPAddress::toCanonicalString;
 		return toString(stringer, separator, stringer);
 	}
-	
+
 	/**
 	 * Produces a canonical string for the address range.
 	 * It has the format "lower -&gt; upper" where lower and upper are the canonical strings for the lowest and highest addresses in the range, given by {@link #getLower()} and {@link #getUpper()}.
@@ -618,11 +618,11 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public String toCanonicalString() {
 		return toCanonicalString(DEFAULT_RANGE_SEPARATOR);
 	}
-	
+
 	public String toString(Function<? super IPAddress, String> lowerStringer, String separator, Function<? super IPAddress, String> upperStringer) {
 		return lowerStringer.apply(getLower()) + separator + upperStringer.apply(getUpper());
 	}
-	
+
 	/**
 	 * Produces the canonical string for the address, also available from {@link #toCanonicalString()}.
 	 */
@@ -755,7 +755,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean contains(IPAddressSeqRange other) {
 		return containsRange(other);
 	}
-	
+
 	/**
 	 * Returns whether the address or subnet represents a range of values that are sequential.
 	 * <p>
@@ -777,7 +777,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return res;
 	}
-	
+
 	/**
 	 * Returns whether the given sequential address range is equal to this sequential address range.
  	 * Two sequential address ranges are equal if their lower and upper range boundaries are equal.

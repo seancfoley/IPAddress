@@ -532,7 +532,7 @@ class AddressParseData implements Serializable {
 			builder.append("is all addresses").append('\n');
 		}
 	}
-	
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();

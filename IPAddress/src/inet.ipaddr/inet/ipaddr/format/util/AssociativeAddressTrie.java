@@ -410,7 +410,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 				setValue(((AssociativeTrieNode<K,V>) replacement).getValue());
 			}
 		}
-		
+
 		@Override
 		public String toString() {
 			return toNodeString(new StringBuilder(80), isAdded(), getKey(), getValue()).toString();

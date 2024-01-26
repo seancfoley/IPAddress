@@ -1092,7 +1092,7 @@ public class SpecialTypesTest extends TestBase {
 		testLoopback("1:2:3:4:1:2:3:4", false);
 		
 		testNetworkIntf();
-		
+
 		testDigitCount();
 	}
 }

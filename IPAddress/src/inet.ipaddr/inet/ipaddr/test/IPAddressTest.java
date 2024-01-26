@@ -4118,7 +4118,6 @@ public class IPAddressTest extends TestBase {
 		incrementTestCount();
 	}
 
-	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
 	static class ExpectedBlock {
 		int count;
 		String addr;
@@ -4129,6 +4128,7 @@ public class IPAddressTest extends TestBase {
 		}
 	}
 
+	//returns true if this testing class allows inet_aton, leading zeros extending to extra digits, empty addresses, and basically allows everything
 	boolean isLenient() {
 		return false;
 	}

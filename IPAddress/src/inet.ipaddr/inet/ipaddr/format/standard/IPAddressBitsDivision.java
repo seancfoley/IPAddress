@@ -41,7 +41,7 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix) {
 		this(value, upperValue, bitCount, defaultRadix, null, null);
 	}
-	
+
 	/**
 	 * Constructs a division with the given values and prefix length, the given number of bits, and the given radix for printing the values.
 	 * 
