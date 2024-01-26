@@ -1113,8 +1113,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		IPv4AddressSegment seg0 = getSegment(0);
 		IPv4AddressSegment seg1 = getSegment(1);
 		return seg0.matches(10)
-			|| seg0.matches(172) && seg1.matchesWithPrefixMask(16, 4)
-			|| seg0.matches(192) && seg1.matches(168);
+			|| (seg0.matches(172) && seg1.matchesWithPrefixMask(16, 4))
+			|| (seg0.matches(192) && seg1.matches(168));
 	}
 	
 	@Override
