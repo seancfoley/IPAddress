@@ -442,7 +442,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * @param power
 	 * @return
 	 */
-	protected static BigInteger getRadixPower(BigInteger radix, int power) {// maybe here too?  anywhere protected?
+	protected static BigInteger getRadixPower(BigInteger radix, int power) {
 		long key = (((long) radix.intValue()) << 32) | power;
 		BigInteger result = radixPowerMap.get(key);
 		if(result == null) {
