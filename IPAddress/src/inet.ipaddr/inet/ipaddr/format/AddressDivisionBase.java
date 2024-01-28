@@ -369,7 +369,10 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	}
 	
 	private static int getDigitCount(int bitCount, int radix) {
-		if(bitCount < 0) {
+		if(bitCount <= 0) {
+			if(bitCount == 0 && radix >= MIN_RADIX && radix <= MAX_RADIX) {
+				return 1;
+			}
 			throw new IllegalArgumentException();
 		}
 		switch(radix) {
