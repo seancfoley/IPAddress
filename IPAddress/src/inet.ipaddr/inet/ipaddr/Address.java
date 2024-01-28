@@ -33,7 +33,6 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressNetwork;
 
-//TODO I think you need an isIPAddress or isIPv4/6() in here and maybe toIPAddress(), to allow others to avoid casting
 /**
  * An address, or a collection of multiple addresses.  Each segment can represent a single value or a range of values.
  * <p>

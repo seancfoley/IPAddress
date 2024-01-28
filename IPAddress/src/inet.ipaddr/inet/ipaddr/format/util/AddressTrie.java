@@ -2346,7 +2346,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	@Override
 	public Spliterator<E> descendingSpliterator() {
 		return new KeySpliterator<E>(nodeSpliterator(false, true), reverseComparator());
-			//return new KeySpliterator<E>(descendingNodeSpliterator(), comp.comparator);
 	}
 
 	@Override
