@@ -1,3 +1,14 @@
+Version 5.4:
+
+added PrefixBlockAllocator for automatic CIDR prefix block allocation
+added AddedTree and AssociativeAddedTree classes for expanded constructAddedNodesTree methods
+added getBlockSize and getBitsForCount in AddressItem
+added matchUnordered and matchOrdered in Address
+eliminated invalid AddressValueException when joining a range with the IPv4 max value to an IPv6 range, issue #86
+fix to generation of strings from parsed address data, issue #87
+fix to IPv4 address primitive int upper value generation, issue #96
+
+
 Version 5.3:
 
 This version introduces address tries, associative address tries, address sets backed by address tries, and maps backed by associative address tries

@@ -33,7 +33,6 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressNetwork;
 
-//TODO I think you need an isIPAddress or isIPv4/6() in here and maybe toIPAddress(), to allow others to avoid casting
 /**
  * An address, or a collection of multiple addresses.  Each segment can represent a single value or a range of values.
  * <p>
@@ -236,28 +235,6 @@ public abstract class Address implements AddressSegmentSeries {
 	public abstract Address getUpper();
 	
 	/**
-	 * Returns whether this address represents more than a single individual address, whether it is a subnet.
-	 * 
-	 * Such addresses include CIDR/IP addresses (eg 1.2.3.0/25) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
-	 * 
-	 * @return whether this address represents more than one address.
-	 */
-	@Override
-	public boolean isMultiple() {
-		return getSection().isMultiple();
-	}
-
-	/**
-	 * Returns whether this address has an associated prefix length
-	 * 
-	 * @return whether this address has an associated prefix length
-	 */
-	@Override
-	public boolean isPrefixed() {
-		return getSection().isPrefixed();
-	}
-	
-	/**
 	 * Returns whether this address is an IP address
 	 * 
 	 * @return whether this address is an IP address
@@ -291,6 +268,28 @@ public abstract class Address implements AddressSegmentSeries {
 	 */
 	public MACAddress toMACAddress() {
 		return null;
+	}
+	
+	/**
+	 * Returns whether this address represents more than a single individual address, whether it is a subnet.
+	 * 
+	 * Such addresses include CIDR/IP addresses (eg 1.2.3.0/25) or wildcard addresses (eg 1.2.*.4) or range addresses (eg 1.2.3-4.5)
+	 * 
+	 * @return whether this address represents more than one address.
+	 */
+	@Override
+	public boolean isMultiple() {
+		return getSection().isMultiple();
+	}
+
+	/**
+	 * Returns whether this address has an associated prefix length
+	 * 
+	 * @return whether this address has an associated prefix length
+	 */
+	@Override
+	public boolean isPrefixed() {
+		return getSection().isPrefixed();
 	}
 	
 	/**

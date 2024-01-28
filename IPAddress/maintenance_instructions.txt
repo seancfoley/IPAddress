@@ -67,11 +67,11 @@ Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant w
 
 2. Use build.xml to first "create javadoc" running in separate Java 8 JRE.  If any javadoc errors, fix them and retry.
 
-3. Use build.xml to "create dist jar" running in jre >= 9 same as workspace.
+3. Use build.xml to "create dist jar" running in jdk >= 9, maybe the same as used by the workspace.
 
 4. Replace the checked-in file IPAddress.jar with the dist jar created.
 
-5. Commit and push the changes (build.xml and IPAddress.jar).
+5. Commit and push the changes (build.xml and IPAddress.jar and any source file changes not yet pushed).
 
 6. Edit the readme.md of the branch you are releasing from (the latest version), as well as on master if not the same.
 
