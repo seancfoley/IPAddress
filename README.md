@@ -1,7 +1,7 @@
 # IPAddress
 Java library for handling IP addresses and subnets, both IPv4 and IPv6
 
-IP address and network manipulations, CIDR, operations, iterations, containment checks, longest prefix match, subnetting, and data structures, with polymorphic code
+IP address and network manipulations, CIDR, address and subnet operations, iterations, containment checks, longest prefix match, subnetting, and address and subnet data structures, with polymorphic code 
 
 [View Project Page](https://seancfoley.github.io/IPAddress/)
 
@@ -9,10 +9,12 @@ IP address and network manipulations, CIDR, operations, iterations, containment 
 
 [View Javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/)
 
-[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress), in [Apache Archiva on Wikimedia](https://archiva.wikimedia.org/#artifact/com.github.seancfoley/ipaddress)
+[View List of Users](https://github.com/seancfoley/IPAddress/wiki)
+
+[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress)
 - Maven group id: com.github.seancfoley
 - Maven artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
-- Maven versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.4.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.4.0/jar)
+- Maven versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.4.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.4.0/jar) 
 - Latest Maven version: [![Maven Central](https://img.shields.io/maven-central/v/com.github.seancfoley/ipaddress.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.github.seancfoley%22%20AND%20a:%22ipaddress%22)
 - OSGI bundle since version 5.3.1: com.github.seancfoley.ipaddress
 
@@ -23,6 +25,8 @@ As a [Java](https://www.oracle.com/java/) library, it is also interoperable with
 Available as a [Go](https://go.dev/) library from the [ipaddress-go repository](https://github.com/seancfoley/ipaddress-go)
 
 [Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
+
+Because IPAddress is 100% Java, it is easy to integrate with your build and deploy process
 
 [Make your IPv4 App work with IPv6](https://seancfoley.github.io/IPAddress/ipaddress.html#make-your-ipv4-app-work-with-ipv6)
 
