@@ -96,6 +96,21 @@ You may need to run "sudo -i" first.
 11. Follow instructions here for manual deployment:
 http://central.sonatype.org/pages/manual-staging-bundle-creation-and-deployment.html
 which requires that you go here https://oss.sonatype.org/ to upload.
+
+ Instructions there are:
+	Once bundle.jar has been produced, log into OSSRH, and select Staging Upload in the Build Promotion menu on the left:
+
+	From the Staging Upload tab, select Artifact Bundle from the Upload Mode dropdown:
+
+	Then click the Select Bundle to Upload button, and select the bundle you just created:
+
+	Click the Upload Bundle button. If the upload is successful, a staging repository will be created, and you can proceed with releasing.
+
+	Access the Build Promotion menu in the left hand navigation and select the Staging Repositories item. 
+	
+	Select the staging repository and the panel below the list will display further details about the repository. In addition the buttons Close and Release will be activated.
+
+	Release Your Staging Repository if it looks good.  Otherwise, Drop it.
 	
 https://issues.sonatype.org/browse/OSSRH-27241 was the first sonatype issue that was dropped.
 Your original sonatype JIRA issue is https://issues.sonatype.org/browse/OSSRH-28545
