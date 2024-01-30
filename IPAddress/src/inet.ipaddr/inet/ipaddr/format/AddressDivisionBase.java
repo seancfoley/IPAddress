@@ -86,7 +86,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 
 	protected static final int MIN_RADIX = 2, MAX_RADIX = 85;
 
-	protected static final BigInteger BIG_MIN_RADIX = BigInteger.TWO,
+	protected static final BigInteger BIG_MIN_RADIX = BigInteger.valueOf(MIN_RADIX),
 			BIG_MAX_RADIX = BigInteger.valueOf(MAX_RADIX);
 
 	protected static final char[] UPPERCASE_DIGITS = IPAddressLargeDivision.EXTENDED_DIGITS; 
