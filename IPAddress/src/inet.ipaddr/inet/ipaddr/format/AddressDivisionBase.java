@@ -297,8 +297,19 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * @return the number of digits for the maximum possible value of the division when using the default radix
 	 */
 	protected abstract int getMaxDigitCount();
-
+	
+	
+	// Returns the maximum number of digits required for the given bit-count and radix.
+	// The supplied maximum value can be null, in which case it will be calculated if needed, 
+	// otherwise it must correspond to the largest unsigned integer corresponding to the given bit-count.
+	// So this means you should call this method for bit-counts 63 bits and larger, for which maxValue cannot be stored in a long.
+	// The bit-count and radix are validated.
+	// Callers must ensure maxValue is either null, or it is non-negative and corresponds to the given bit-count, otherwise the result will be incorrect.
 	protected static int getMaxDigitCount(int radix, int bitCount, BigInteger maxValue) {
+		int result = getDigitCount(radix, bitCount); // validates both radix and bitCount
+		if(result > 0) {
+			return result;
+		}
 		long key = (((long) radix) << 32) | bitCount;
 		Integer digs = maxDigitMap.get(key);
 		if(digs == null) {
@@ -350,25 +361,81 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		}
 		return result;
 	}
-	
+
+	// Returns the maximum number of digits required for the given bit-count and radix.
+	// The supplied maximum value must correspond to the largest unsigned integer corresponding to the given bit-count.
+	// So this means you should avoid calling this method for bit-counts larger than 63.
+	// The bit-count and radix are validated.
+	// Callers must ensure maxValue is non-negative and corresponds to the given bit-count, otherwise the result will be incorrect.
 	protected static int getMaxDigitCount(int radix, int bitCount, long maxValue) {
-		long key = (((long) radix) << 32) | bitCount;
-		Integer digs = maxDigitMap.get(key);
-		if(digs == null) {
-			int digitCount = getDigitCount(bitCount, radix);
-			if(digitCount < 0) {
-				digitCount = getDigitCount(maxValue, radix);
-			}
-			digs = AddressDivisionGroupingBase.cacheBits(digitCount);
-			@SuppressWarnings("unchecked")
-			TreeMap<Long, Integer> newMaxDigitMap = (TreeMap<Long, Integer>) maxDigitMap.clone();
-			newMaxDigitMap.put(key, digs);
-			maxDigitMap = newMaxDigitMap;
+		int result = getDigitCount(radix, bitCount); // validates both radix and bitCount
+		if(result > 0) {
+			return result;
 		}
-		return digs;
+		if(radix == 10) {
+			if(maxValue < 10) {
+				return 1;
+			} else if(maxValue < 100) {
+				return 2;
+			} else if(maxValue < 1000) {
+				return 3;
+			} else if(maxValue < 10000) {
+				return 4;
+			} else if(maxValue < 100000) {
+				return 5;
+			} else if(maxValue < 1000000) {
+				return 6;
+			} else if(maxValue < 10000000) {
+				return 7;
+			} else if(maxValue < 100000000) {
+				return 8;
+			} else if(maxValue < 1000000000) {
+				return 9;
+			} else if(maxValue < 10000000000L) {
+				return 10;
+			} else if(maxValue < 100000000000L) {
+				return 11;
+			} else if(maxValue < 1000000000000L) {
+				return 12;
+			} else if(maxValue < 10000000000000L) {
+				return 13;
+			} else if(maxValue < 100000000000000L) {
+				return 14;
+			} else if(maxValue < 1000000000000000L) {
+				return 15;
+			} else if(maxValue < 10000000000000000L) {
+				return 16;
+			} else if(maxValue < 100000000000000000L) {
+				return 17;
+			} else if(maxValue < 1000000000000000000L) {
+				return 18;
+			}
+			return 19;
+		} else {
+			long key = (((long) radix) << 32) | bitCount;
+			Integer digs = maxDigitMap.get(key);
+			if(digs == null) {
+				result = 1;
+				while(true) {
+					maxValue /= radix;
+					if(maxValue == 0) {
+						break;
+					}
+					result++;
+				}
+				
+				@SuppressWarnings("unchecked")
+				TreeMap<Long, Integer> newMaxDigitMap = (TreeMap<Long, Integer>) maxDigitMap.clone();
+				newMaxDigitMap.put(key, result);
+				maxDigitMap = newMaxDigitMap;
+			} else {
+				result = digs;
+			}
+			return result;
+		}
 	}
-	
-	private static int getDigitCount(int bitCount, int radix) {
+
+	private static int getDigitCount(int radix, int bitCount) {
 		if(bitCount <= 0) {
 			if(bitCount == 0 && radix >= MIN_RADIX && radix <= MAX_RADIX) {
 				return 1;
