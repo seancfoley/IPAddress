@@ -1,7 +1,7 @@
 # IPAddress
 Java library for handling IP addresses and subnets, both IPv4 and IPv6
 
-IP address and network manipulations, CIDR, address and subnet operations, iterations, containment checks, longest prefix match, subnetting, and address and subnet data structures, with polymorphic code 
+IP address and network manipulations, CIDR, address and subnet operations, iterations, containment checks, longest prefix match, subnetting, and address and subnet data structures including address tries, with polymorphic code 
 
 [View Project Page](https://seancfoley.github.io/IPAddress/)
 
