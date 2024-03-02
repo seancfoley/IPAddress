@@ -37,6 +37,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON = true;
 	public static final boolean DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK = false; //When not allowing prefixes beyond address size, whether 1.2.3.4/33 has a mask of ipv4 address 33 rather than treating it like a prefix
+	public static final boolean DEFAULT_ALLOW_IPV4_inet_aton_extraneous_digits = false;
 	
 	/**
 	 * Allows ipv4 inet_aton hexadecimal format 0xa.0xb.0xc.0xd
@@ -67,6 +68,20 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 	 * If you allow ipv4 joined segments, whether you allow a mask that looks like a prefix length: 1.2.3.5/255
 	 */
 	public final boolean inet_aton_single_segment_mask;
+	
+	/**
+	 * Allows single-segment inet_aton strings to have extraneous digits.
+	 * This allows up to 31 digits when parsing for both IPv4 and IPv6.
+	 * This allows an unlimited number of digits when parsing for just IPv4 (ie {@link IPAddressStringParameters#allowIPv6} is false).
+	 * <p>
+	 * Digits that go beyond 32 bits are essentially ignored.
+	 * The number of digits before exceeding 32 bits depends on the radix.
+	 * The value of the most significant digit before exceeding 32 bits depends on the radix.
+	 * <p>
+	 * The resulting address is the modulus of the address with the 32-bit unsigned int maximum value, 
+	 * or equivalently the truncation of the address to 32 bits.
+	 */
+	public final boolean inet_aton_extraneous_digits;
 	
 	/**
 	 * The network that will be used to construct addresses - both parameters inside the network, and the network's address creator
@@ -106,6 +121,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			inet_aton_leading_zeros,
 			inet_aton_joinedSegments,
 			inet_aton_single_segment_mask,
+			false,
 			network);
 	}
 	
@@ -141,6 +157,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			boolean inet_aton_leading_zeros,
 			boolean inet_aton_joinedSegments,
 			boolean inet_aton_single_segment_mask,
+			boolean inet_aton_extraneous_digits,
 			IPv4AddressNetwork network) {
 		super(allowBinary, allowLeadingZeros, allowCIDRPrefixLeadingZeros, allowUnlimitedLeadingZeros, rangeOptions, allowWildcardedSeparator, allowPrefixesBeyondAddressSize);
 		this.inet_aton_hex = inet_aton_hex;
@@ -148,6 +165,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		this.inet_aton_leading_zeros = inet_aton_leading_zeros;
 		this.inet_aton_joinedSegments = inet_aton_joinedSegments;
 		this.inet_aton_single_segment_mask = inet_aton_single_segment_mask;
+		this.inet_aton_extraneous_digits = inet_aton_extraneous_digits;
 		this.network = network;
 	}
 	
@@ -156,7 +174,8 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		builder.inet_aton_hex = inet_aton_hex;
 		builder.inet_aton_octal = inet_aton_octal;
 		builder.inet_aton_joinedSegments = inet_aton_joinedSegments;
-		builder.inet_aton_single_segment_mask = this.inet_aton_single_segment_mask;
+		builder.inet_aton_single_segment_mask = inet_aton_single_segment_mask;
+		builder.inet_aton_extraneous_digits = inet_aton_extraneous_digits;
 		builder.network = network;
 		return (Builder) toBuilder(builder);
 	}
@@ -167,6 +186,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		private boolean inet_aton_leading_zeros = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_joinedSegments = DEFAULT_ALLOW_IPV4_INET_ATON;
 		private boolean inet_aton_single_segment_mask = DEFAULT_ALLOW_IPV4_INET_ATON_SINGLE_SEGMENT_MASK;
+		private boolean inet_aton_extraneous_digits = DEFAULT_ALLOW_IPV4_inet_aton_extraneous_digits;
 		private IPv4AddressNetwork network;
 		
 		IPv6AddressStringParameters.Builder mixedParent;
@@ -180,6 +200,14 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 			return mixedParent;
 		}
 		
+		/**
+		 * Allows joined segments, resulting in just 2, 3 or 4 segments.  Allows octal or hex segments.
+		 * Allows an unlimited number of leading zeros.
+		 * To allow just a single segment, use {@link IPAddressStringParameters.Builder#allowSingleSegment(boolean)}
+		 * This does not affect whether extraneous digits are allowed, which can be allowed with {@link #inet_aton_extraneous_digits}
+		 * @param allow
+		 * @return
+		 */
 		public Builder allow_inet_aton(boolean allow) {
 			inet_aton_joinedSegments = inet_aton_octal = inet_aton_hex = allow;
 			super.allowUnlimitedLeadingZeros(allow);
@@ -243,6 +271,16 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 		}
 		
 		/**
+		 * @see IPv4AddressStringParameters#inet_aton_extraneous_digits
+		 * @param allow
+		 * @return the builder
+		 */
+		public Builder allow_inet_aton_extraneous_digits(boolean allow) {
+			inet_aton_extraneous_digits = allow;
+			return this;
+		}
+
+		/**
 		 * @see IPv4AddressStringParameters#network
 		 * @param network if null, the default network will be used
 		 * @return the builder
@@ -302,6 +340,7 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 					inet_aton_leading_zeros,
 					inet_aton_joinedSegments,
 					inet_aton_single_segment_mask,
+					inet_aton_extraneous_digits,
 					network);
 		}
 	}
@@ -335,10 +374,13 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 						result = Boolean.compare(inet_aton_leading_zeros, o.inet_aton_leading_zeros);
 						if(result == 0) {
 							result = Boolean.compare(inet_aton_single_segment_mask, o.inet_aton_single_segment_mask);
+							if(result == 0) {
+								result = Boolean.compare(inet_aton_extraneous_digits, o.inet_aton_extraneous_digits);
 						}
 					}
 				}
 			}
+		}
 		}
 		return result;
 	}
@@ -352,7 +394,8 @@ public class IPv4AddressStringParameters extends IPAddressStringFormatParameters
 						&& inet_aton_octal == other.inet_aton_octal
 						&& inet_aton_joinedSegments == other.inet_aton_joinedSegments
 						&& inet_aton_leading_zeros == other.inet_aton_leading_zeros
-						&& inet_aton_single_segment_mask == other.inet_aton_single_segment_mask;
+						&& inet_aton_single_segment_mask == other.inet_aton_single_segment_mask
+						&& inet_aton_extraneous_digits == other.inet_aton_extraneous_digits;
 				}
 		}
 

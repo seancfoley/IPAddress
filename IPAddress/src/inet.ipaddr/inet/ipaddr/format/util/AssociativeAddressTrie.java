@@ -101,10 +101,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		@SuppressWarnings("unchecked")
 		@Override
 		public V get(K addr) {
-			addr = checkBlockOrAddress(addr, true);
-			OpResult<K> result = new OpResult<>(addr, Operation.LOOKUP);
-			matchBits(result);
-			AssociativeTrieNode<K,V> node = (AssociativeTrieNode<K,V>) result.existingNode;
+			AssociativeTrieNode<K,V> node = (AssociativeTrieNode<K,V>) doLookup(addr).existingNode;
 			return node == null ? null : node.getValue();
 		}
 
@@ -373,7 +370,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 				if(isMatch) {
 					changeTracker.changedSince(change);
 					clearValue();
-					remove(result);
+					removeOp(result);
 				}
 				return false;
 			} else if (isMatch) {

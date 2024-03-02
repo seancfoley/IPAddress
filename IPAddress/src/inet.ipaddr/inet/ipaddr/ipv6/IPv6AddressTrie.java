@@ -293,6 +293,45 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 		public boolean equals(Object o) {
 			return o instanceof IPv6TrieNode && super.equals(o);
 		}
+		
+		static class IPv6TrieKeyData extends TrieKeyData {
+			long uint64HighVal, uint64LowVal, mask64HighVal, mask64LowVal, nextBitMask64Val;
+			
+			@Override
+			public boolean is128Bits() {
+				return true;
+			}
+			
+			@Override
+			public long getUint64LowVal() {
+				return uint64LowVal;
+			}
+			
+			@Override
+			public long getUint64HighVal() {
+				return uint64HighVal;
+			}
+
+			@Override
+			public long getMask64HighVal() {
+				return mask64HighVal;
+			}
+			
+			@Override
+			public long getMask64LowVal() {
+				return mask64LowVal;
+			}
+			
+			@Override
+			public long getNextBitMask64Val() {
+				return nextBitMask64Val;
+			}
+		}
+		
+		@Override
+		protected IPv6TrieKeyData getTrieKeyCache(IPv6Address addr) {
+			return addr.getTrieKeyCache();
+		}
 	}
 
 	@Override

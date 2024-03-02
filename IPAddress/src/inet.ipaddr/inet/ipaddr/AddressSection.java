@@ -18,6 +18,7 @@
 
 package inet.ipaddr;
 
+import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -41,6 +42,40 @@ public interface AddressSection extends AddressSegmentSeries {
 	 */
 	boolean contains(AddressSection other);
 	
+	/**
+	 * Determines if one section overlaps with another.
+	 * <p>
+	 * Sections must have the same number of segments to be comparable.
+	 * <p>
+	 * For sections which are aware of their position in an address (IPv6 and MAC), their respective positions must match to be comparable.
+	 * 
+	 * @param other
+	 * @return whether this section overlaps with the given address section
+	 */
+	boolean overlaps(AddressSection other);
+
+	/**
+	 * Indicates where an address section sits relative to the ordering of individual address sections within this section.
+	 * <p>
+	 * Determines how many address section elements precede the given address section element, if the given address section is within this address section.
+	 * If above the range, it is the distance to the upper boundary added to the address section count, and if below the range, the distance to the lower boundary.
+	 * <p>
+	 * In other words, if the given address section is not in this section but above it, returns the number of individual address sections preceding the given address section from the upper section boundary, 
+	 * added to the total number of individual address sections within.  If the given address section is not in this section but below it, returns the number of individual address sections following the given address section to the lower section boundary.
+	 * <p>
+	 * enumerate returns null when the argument is a multi-valued section. The argument must be an individual address section.
+	 * <p>
+	 * When this address section is also single-valued, the returned value is the distance (difference) between this address section and the argument address section.
+	 * <p>
+	 * enumerate is the inverse of the increment method:
+	 * <ul><li>section.enumerate(section.increment(inc)) = inc</li>
+	 * <li>section.increment(section.enumerate(individualSection)) = individualSection</li></ul>
+	 *
+	 * If the given address section does not have the same version or type as this address section, then null is returned.
+	 * If the given address section is the same version and type, but has a different segment count, then SizeMismatchException is thrown.
+	 */
+	BigInteger enumerate(AddressSection other);
+
 	/**
 	 * Determines if the argument section matches this section up to the prefix length of this section.
 	 * <p>

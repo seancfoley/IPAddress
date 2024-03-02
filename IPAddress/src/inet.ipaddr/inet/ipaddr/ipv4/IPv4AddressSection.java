@@ -113,7 +113,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	transient IPv4StringCache stringCache;
 	
 	private transient SectionCache<IPv4AddressSection> sectionCache;
-	private transient Integer cachedLowerVal;
+	private transient Integer cachedLowerVal, cachedUpperVal;
 	
 	/**
 	 * Constructs a single segment section.
@@ -557,7 +557,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	private int getIntValue(boolean lower) {
 		int result = 0;
-		if(lower) {
+		if(lower || !isMultiple()) {
 			Integer cachedInt = this.cachedLowerVal;
 			if(cachedInt == null) {
 				result = calcValue(true);
@@ -566,7 +566,13 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				result = cachedInt;
 			}
 		} else {
+			Integer cachedInt = this.cachedUpperVal;
+			if(cachedInt == null) {
 			result = calcValue(false);
+				this.cachedUpperVal = result;
+			} else {
+				result = cachedInt;
+		}
 		}
 		return result;
 	}
@@ -1204,17 +1210,14 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		if(increment == 0 && !isMultiple()) {
 			return this;
 		}
-		long lowerValue = 0xffffffffL & intValue();
-		long upperValue = 0xffffffffL & upperIntValue();
-		long count = getCount().longValue();
-		checkOverflow(increment, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
+		checkOverflow(increment, this::longValue, this::upperLongValue, () -> getCount().longValue(), this::isSequential, () -> getMaxValue(getSegmentCount()));
 		return increment(
 				this,
 				increment,
 				getAddressCreator(),
-				count,
-				lowerValue,
-				upperValue,
+				() -> getCount().longValue(),
+				this::longValue,
+				this::upperLongValue,
 				this::getLower,
 				this::getUpper,
 				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
@@ -1361,6 +1364,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	@Override
+	public boolean overlaps(AddressSection other) {
+		return other instanceof IPv4AddressSection && overlaps(this, other);
+	}
+
+	@Override
 	public boolean contains(AddressSection other) {
 		return other instanceof IPv4AddressSection && super.contains(other);
 	}
@@ -1384,6 +1392,37 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			return true;
 		}
 		return false;
+	}
+
+	static BigInteger enumerate(IPv4AddressSection addr, AddressSection other) {
+		 return enumerateBig(addr, other);
+	}
+	
+	/**
+	 * Indicates where an address section sits relative to the ordering of individual address sections within this section.
+	 * <p>
+	 * Equivalent to {@link #enumerate(AddressSection)} but returns a Long rather than a BigInteger.
+	 */
+	public Long enumerateIPv4(IPv4AddressSection other){
+		checkSegmentCount(other);
+		return enumerateSmall(this, other);
+	}
+	
+	// called by addresses
+	static Long enumerateIPv4(IPv4AddressSection addr, AddressSection other) {
+		 return enumerateSmall(addr, other);
+	}
+	
+	@Override
+	public BigInteger enumerate(AddressSection other) {
+		if(other instanceof IPv4AddressSection) {
+			checkSegmentCount(other);
+			Long result = enumerateSmall(this, other);
+			if(result != null) {
+				return BigInteger.valueOf(result);
+			}
+		}
+		return null;
 	}
 
 	@Override
@@ -1517,7 +1556,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	/**
-	 * Produces the subnet sections whose addresses are found in both this and the given argument.
+	 * Produces the subnet sections whose individual sections are found in both this and the given argument.
 	 * <p>
 	 * This is also known as the conjunction of the two sets of address sections.
 	 * <p>
@@ -1736,7 +1775,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection mask(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, SizeMismatchException {
-		checkMaskSectionCount(mask);
+		checkMaskSegmentCount(mask);
 		return getSubnetSegments(
 				this,
 				retainPrefix ? getPrefixLength() : null,
@@ -1765,7 +1804,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection maskNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, PrefixLenException, SizeMismatchException {
-		checkMaskSectionCount(mask);
+		checkMaskSegmentCount(mask);
 		IPv4AddressSection hostMask = getNetwork().getHostMaskSection(networkPrefixLength);
 		return getSubnetSegments(
 				this,
@@ -1800,7 +1839,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection bitwiseOr(IPv4AddressSection mask, boolean retainPrefix) throws IncompatibleAddressException, SizeMismatchException {
-		checkMaskSectionCount(mask);
+		checkMaskSegmentCount(mask);
 		return getOredSegments(
 				this,
 				retainPrefix ? getPrefixLength() : null,
@@ -1820,7 +1859,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	 * @throws IncompatibleAddressException
 	 */
 	public IPv4AddressSection bitwiseOrNetwork(IPv4AddressSection mask, int networkPrefixLength) throws IncompatibleAddressException, SizeMismatchException {
-		checkMaskSectionCount(mask);
+		checkMaskSegmentCount(mask);
 		IPv4AddressSection networkMask = getNetwork().getNetworkMaskSection(networkPrefixLength);
 		return getOredSegments(
 				this,
@@ -1908,7 +1947,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	public IPv4AddressSection coverWithPrefixBlock(IPv4AddressSection other) throws AddressConversionException {
-		checkSectionCount(other);
+		checkSegmentCount(other);
 		return coverWithPrefixBlock(
 				this,
 				other,

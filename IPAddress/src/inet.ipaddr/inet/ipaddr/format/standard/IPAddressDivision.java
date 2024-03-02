@@ -25,9 +25,9 @@ import inet.ipaddr.format.util.AddressSegmentParams;
 
 /**
  * A division of an IP address.
- * 
- * May be associated with a prefix length, in which case that number of bits in the upper-most
- * portion of the object represent a prefix, while the remaining bits can assume all possible values.
+ * <p>
+ * May be associated with a prefix length, in which case that number of bits 
+ * in the upper-most portion of the object represent a prefix.
  * 
  * @author sfoley
  *

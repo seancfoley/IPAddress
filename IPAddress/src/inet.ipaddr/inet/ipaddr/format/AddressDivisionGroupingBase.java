@@ -532,6 +532,11 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		return result;
 	}
 
+	@Override
+	public boolean isSequential() {
+		return !isMultiple() || AddressDivisionSeries.super.isSequential();
+	}
+
 	protected static int adjustHashCode(int currentHash, long lowerValue, long upperValue) {
 		return AddressDivisionBase.adjustHashCode(currentHash, lowerValue, upperValue);
 	}
@@ -552,7 +557,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 					lower = lower.shiftRight(longBits);
 					upper = upper.shiftRight(longBits);
 					res = adjustHashCode(res, low, up);
-				} while(!upper.equals(BigInteger.ZERO));
+				} while(upper.signum() != 0);
 			}
 			hashCode = res;
 		}

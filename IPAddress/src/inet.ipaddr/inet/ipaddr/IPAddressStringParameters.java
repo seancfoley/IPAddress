@@ -188,6 +188,15 @@ public class IPAddressStringParameters extends AddressStringParameters implement
 			return this;
 		}
 		
+		/**
+		 * Allows joined IPv4 segments, resulting in just 2, 3 or 4 segments.  Allows IPv4 octal or hex segments.
+		 * Allows an unlimited number of leading zeros in such segments.
+		 * To allow just a single segment, use {@link IPAddressStringParameters.Builder#allowSingleSegment(boolean)}
+		 * This does not affect whether extraneous IPv4 digits are allowed, which can be allowed with  {@link IPv4AddressStringParameters.Builder#allow_inet_aton_extraneous_digits(boolean)} 
+		 * 
+		 * @param allow
+		 * @return
+		 */
 		public Builder allow_inet_aton(boolean allow) {
 			getIPv4AddressParametersBuilder().allow_inet_aton(allow);
 			getIPv6AddressParametersBuilder().allow_mixed_inet_aton(allow);

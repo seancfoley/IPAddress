@@ -49,7 +49,6 @@ public class IPAddressBitsDivision extends IPAddressDivision {
 	 * @param upperValue
 	 * @param bitCount
 	 * @param defaultRadix
-	 * @param network
 	 * @param networkPrefixLength
 	 */
 	public IPAddressBitsDivision(long value, long upperValue, int bitCount, int defaultRadix, Integer networkPrefixLength) {

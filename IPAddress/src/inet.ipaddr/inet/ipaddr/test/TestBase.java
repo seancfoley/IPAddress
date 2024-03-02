@@ -19,6 +19,7 @@
 package inet.ipaddr.test;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -50,6 +51,7 @@ import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.MACAddressString;
 import inet.ipaddr.MACAddressStringParameters;
 import inet.ipaddr.format.AddressItem;
+import inet.ipaddr.format.util.BaseDualIPv4v6Tries;
 import inet.ipaddr.format.util.TreeOps;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
@@ -68,12 +70,14 @@ public abstract class TestBase {
 	public static PrefixConfiguration prefixConfiguration;
 			
 	public static class Failure {
+		StackTraceElement[] stack;
+		Class<? extends TestBase> testClass;
+		
 		HostIdentifierString addr;
 		AddressItem item;
 		String str;
-		StackTraceElement[] stack;
-		Class<? extends TestBase> testClass;
 		TreeOps<?> trie;
+		BaseDualIPv4v6Tries<?,?> dualTrie;
 		Set<?> set;
 		Map<?, ?> map;
 		
@@ -96,6 +100,11 @@ public abstract class TestBase {
 			this.trie = trie;
 		}
 		
+		public Failure(String str, BaseDualIPv4v6Tries<?,?> tries) {
+			this.str = str;
+			this.dualTrie = tries;
+		}
+
 		public Failure(String str, Set<?> set) {
 			this.str = str;
 			this.set = set;
@@ -124,6 +133,9 @@ public abstract class TestBase {
 			}
 			if(trie != null) {
 				return trie.toString();
+			}
+			if(dualTrie != null) {
+				return dualTrie.toString();
 			}
 			if(set != null) {
 				return set.toString();
@@ -504,6 +516,10 @@ public abstract class TestBase {
 		return createAddress(new IPAddressStringKey(x, ADDRESS_OPTIONS));
 	}
 	
+	protected IPAddressString createIPInetAtonAddress(String x) {
+		return createInetAtonAddress(x);
+	}
+
 	protected MACAddressString createMACAddress(String x, MACAddressStringParameters opts) {
 		MACAddressStringKey key = new MACAddressStringKey(x, opts);
 		return createMACAddress(key);
@@ -1004,7 +1020,7 @@ public abstract class TestBase {
 			IPAddress hostAddress = str.getHostAddress();
 			int prefixIndex = addressStr.indexOf(IPAddress.PREFIX_LEN_SEPARATOR);
 			if(prefixIndex < 0) {
-				if(!address.equals(hostAddress) || !address.contains(hostAddress)) {
+				if(!address.equals(hostAddress) || !address.contains(hostAddress) || !address.overlaps(hostAddress)) {
 					addFailure(new Failure("failed host address with no prefix: " + hostAddress + " expected: " + address, str));
 				}
 			} else {
@@ -1627,8 +1643,49 @@ public abstract class TestBase {
 				if(!result.equals(expectedResult)) {
 					addFailure(new Failure("increment mismatch result " +  result + " vs expected " + expectedResult, orig));
 				}
+				if(orig.toIPAddress() != null && orig.toIPAddress().toIPv4() != null) {
+					Long res = orig.toIPAddress().toIPv4().enumerateIPv4(result.toIPAddress().toIPv4());
+					if(res != increment) {
+						addFailure(new Failure("enumerateIPv4 mismatch result " +  res + " vs expected " + increment, orig));
+					}
+				}
+				BigInteger enumerated = orig.enumerate(result);
+				if(enumerated.longValue() != increment) {
+					orig.enumerate(result);
+					addFailure(new Failure("enumerate mismatch result " +  enumerated + " vs expected " + increment + ", " + result + " enumerated", orig));
+				}
 				if(first && !orig.isMultiple() && increment > Long.MIN_VALUE) {//negating Long.MIN_VALUE results in same address
 					testIncrement(expectedResult, -increment, orig, false);
+				}
+			}
+		} catch(AddressValueException e) {
+			if(expectedResult != null) {
+				addFailure(new Failure("increment mismatch exception " +  e + ", expected " + expectedResult, orig));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult) {
+		testIncrement(orig, increment, expectedResult, true);
+	}
+	
+	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult, boolean first) {
+		try {
+			IPv6Address result = orig.increment(increment);
+			if(expectedResult == null) {
+				addFailure(new Failure("increment mismatch result " +  result + " vs none expected", orig));
+			} else {
+				if(!result.equals(expectedResult)) {
+					addFailure(new Failure("increment mismatch result " +  result + " vs expected " + expectedResult, orig));
+				}
+				BigInteger enumerated = orig.enumerate(result);
+				if(!enumerated.equals(increment)) {
+					orig.enumerate(result);
+					addFailure(new Failure("enumerate mismatch result " +  enumerated + " vs expected " + increment + ", " + result + " enumerated", orig));
+				}
+				if(first && !orig.isMultiple()) {
+					testIncrement(expectedResult, increment.negate(), orig, false);
 				}
 			}
 		} catch(AddressValueException e) {

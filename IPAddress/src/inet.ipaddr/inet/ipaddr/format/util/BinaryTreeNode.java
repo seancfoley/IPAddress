@@ -60,7 +60,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  *
  * @param <E>
  */
-public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
+public class BinaryTreeNode<E> implements TreeOps<E> {
 
 	private static final long serialVersionUID = 1L;
 
@@ -599,12 +599,12 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	 */
 	public void setAdded() {
 		if(!added) {
-			setAdded(true);
+			setNodeAdded(true);
 			adjustCount(1);
 		}
 	}
 
-	protected void setAdded(boolean added) {
+	protected void setNodeAdded(boolean added) {
 		this.added = added;
 	}
 
@@ -684,7 +684,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 
 	void removed() {
 		adjustCount(-1);
-		setAdded(false);
+		setNodeAdded(false);
 		changeTracker.changed();
 	}
 
@@ -737,7 +737,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 
 	protected void replaceThisRoot(BinaryTreeNode<E> replacement) {
 		if(replacement == null) {
-			setAdded(false);
+			setNodeAdded(false);
 			setUpper(null);
 			setLower(null);
 			if(!FREEZE_ROOT) {
@@ -746,7 +746,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 			size = 0;
 		} else {
 			// We never go here when FREEZE_ROOT is true
-			setAdded(replacement.isAdded());
+			setNodeAdded(replacement.isAdded());
 			setUpper(replacement.getUpperSubNode());
 			setLower(replacement.getLowerSubNode());
 			setKey(replacement.getKey());
@@ -2157,11 +2157,12 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 				iter = createIterator();
 				iterator = iter;
 			}
-			return iterator;
+			return iter;
 		}
 
 		@Override
 		public boolean tryAdvance(Consumer<? super BinaryTreeNode<E>> action) {
+			// change tracking exception handled by iterator
 			BinaryTreeNode<E> next = provideIterator().nextNoThrow();
 			if(next != null) {
 				action.accept(next);
@@ -2174,6 +2175,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 
 		@Override
 		public void forEachRemaining(Consumer<? super BinaryTreeNode<E>> action) {
+			// change tracking exception handled by iterator
 			BinaryTreeNode<E> next = provideIterator().nextNoThrow();
 			if(next != null) {
 				action.accept(next);
@@ -2322,7 +2324,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 				subNodeIndent = cached.subNodeInd;
 			}
 			if(withNonAdded || next.isAdded()) {
-				builder.append(nodeIndent).append(next);
+				builder.append(nodeIndent).append(next); // appending next adds the ADDED_NODE_CIRCLE first
 				if(withSizes) {
 					builder.append(" (").append(next.size()).append(')');
 				}
@@ -2486,7 +2488,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 		return rootClone;
 	}
 
-	BinaryTreeNode<E> cloneTree(Bounds<E> bounds) {
+	BinaryTreeNode<E> cloneTreeBounds(Bounds<E> bounds) {
 		return cloneTree(new ChangeTracker(), bounds);
 	}
 
@@ -2495,7 +2497,7 @@ public class BinaryTreeNode<E> implements TreeOps<E>, Cloneable, Serializable {
 	 * The nodes are cloned, but their keys and values are not cloned.
 	 */
 	public BinaryTreeNode<E> cloneTree() {
-		return cloneTree(null);
+		return cloneTreeBounds(null);
 	}
 
 	/**

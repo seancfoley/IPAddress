@@ -145,7 +145,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	AddressSegmentSeries getLower();
 	
 	/**
-	 * If this represents a series with ranging values, returns a series representing the upper values of the range
+	 * If this represents a series with ranging values, returns a series representing the upper values of the range.
 	 * If this represents a series with a single value in each segment, returns this.
 	 * 
 	 * @return

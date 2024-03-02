@@ -29,11 +29,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
+import java.util.function.UnaryOperator;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
@@ -53,9 +57,13 @@ import inet.ipaddr.format.util.AssociativeAddedTree;
 import inet.ipaddr.format.util.AssociativeAddedTree.AssociativeAddedTreeNode;
 import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.AssociativeAddressTrie.AssociativeTrieNode;
+import inet.ipaddr.format.util.BaseDualIPv4v6Tries;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
+import inet.ipaddr.format.util.DualIPv4v6AssociativeTries;
+import inet.ipaddr.format.util.DualIPv4v6Tries;
 import inet.ipaddr.format.util.Partition;
+import inet.ipaddr.format.util.TreeOps;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressAssociativeTrie;
 import inet.ipaddr.ipv4.IPv4AddressTrie;
@@ -75,11 +83,6 @@ public class TrieTest extends TestBase {
 	
 	public TrieTest(AddressCreator creator) {
 		super(creator);
-	}
-	
-	@Override
-	protected IPAddressString createInetAtonAddress(String x) {
-		return createAddress(x);
 	}
 	
 	@Override
@@ -447,7 +450,7 @@ public class TrieTest extends TestBase {
 	
 	void testIPv6Strings(Strings strs) {
 		IPv6AddressTrie ipv6Tree = new IPv6AddressTrie();
-		createSampleTree(ipv6Tree, strs.addrs);
+		createIPv6SampleTree(ipv6Tree, strs.addrs);
 		String treeStr = ipv6Tree.toString();
 		if(!treeStr.contentEquals(strs.treeString)) {
 			addFailure("trie string not right, got " + treeStr + " instead of expected " + strs.treeString, ipv6Tree);
@@ -533,7 +536,7 @@ public class TrieTest extends TestBase {
 	
 	void testIPv4Strings(Strings strs) {
 		IPv4AddressTrie ipv4Tree = new IPv4AddressTrie();
-		createSampleTree(ipv4Tree, strs.addrs);
+		createIPv4SampleTree(ipv4Tree, strs.addrs);
 		String treeStr = ipv4Tree.toString();
 		if(!treeStr.contentEquals(strs.treeString)) {
 			addFailure("trie string not right, got " + treeStr + " instead of expected " + strs.treeString, ipv4Tree);
@@ -619,12 +622,12 @@ public class TrieTest extends TestBase {
 		incrementTestCount();
 	}
 	
-	static void testRemove(TestBase testBase, String addrs[]) {
+	void testRemove(String addrs[]) {
 		IPv6AddressTrie ipv6Tree = new IPv6AddressTrie();
 		IPv4AddressTrie ipv4Tree = new IPv4AddressTrie();
 		
-		testRemove(testBase, ipv6Tree, addrs, addrStr -> testBase.createAddress(addrStr).getAddress().toIPv6());
-		testRemove(testBase, ipv4Tree, addrs, addrStr -> testBase.createAddress(addrStr).getAddress().toIPv4());
+		testRemove(ipv6Tree, addrs, addrStr -> createAddress(addrStr).getAddress().toIPv6());
+		testRemove(ipv4Tree, addrs, addrStr -> createAddress(addrStr).getAddress().toIPv4());
 		
 		// reverse the address order
 		String addrs2[] = addrs.clone();
@@ -635,14 +638,14 @@ public class TrieTest extends TestBase {
 		}
 		
 		// both trees should be empty now
-		testRemove(testBase, ipv6Tree, addrs, addrStr -> testBase.createAddress(addrStr).getAddress().toIPv6());
-		testRemove(testBase, ipv4Tree, addrs, addrStr -> testBase.createAddress(addrStr).getAddress().toIPv4());
+		testRemove(ipv6Tree, addrs, addrStr -> createAddress(addrStr).getAddress().toIPv6());
+		testRemove(ipv4Tree, addrs, addrStr -> createAddress(addrStr).getAddress().toIPv4());
 	}
 	
-	static void testRemoveMAC(TestBase testBase, String addrs[]) {
+	void testRemoveMAC(String addrs[]) {
 		MACAddressTrie macTree = new MACAddressTrie();
 		
-		testRemove(testBase, macTree, addrs, addrStr -> testBase.createMACAddress(addrStr).getAddress());
+		testRemove(macTree, addrs, addrStr -> createMACAddress(addrStr).getAddress());
 		
 		// reverse the address order
 		String addrs2[] = addrs.clone();
@@ -653,12 +656,11 @@ public class TrieTest extends TestBase {
 		}
 		
 		// tree should be empty now
-		testRemove(testBase, macTree, addrs, addrStr -> testBase.createMACAddress(addrStr).getAddress());
-		testBase.incrementTestCount();
+		testRemove(macTree, addrs, addrStr -> createMACAddress(addrStr).getAddress());
+		incrementTestCount();
 	}
 	
-	static <E extends Address> void testRemove(TestBase testBase, 
-			AddressTrie<E> tree, String addrs[], Function<String, E> converter) {
+	<E extends Address> void testRemove(AddressTrie<E> tree, String addrs[], Function<String, E> converter) {
 		int count = 0;
 		ArrayList<E> list = new ArrayList<>(addrs.length);
 		HashSet<E> dupChecker = new HashSet<>();
@@ -673,26 +675,10 @@ public class TrieTest extends TestBase {
 				}
 			}
 		}
-		testRemove(testBase, tree, count, list);
+		testRemove(tree, count, list);
 	}
 	
-	static <E extends Address> List<E> collect(String addrs[], Function<String, E> converter) {
-		ArrayList<E> list = new ArrayList<>(addrs.length);
-		HashSet<E> dupChecker = new HashSet<>();
-		for(String str : addrs) {
-			E addr = converter.apply(str);
-			if(addr != null) {
-				if(!dupChecker.contains(addr)) {
-					dupChecker.add(addr);
-					list.add(addr);
-				}
-			}
-		}
-		return list;
-	}
-	
-	static <E extends Address> void testRemove(TestBase testBase, 
-			AddressTrie<E> tree, int count, List<E> addrs) {
+	<E extends Address> void testRemove(AddressTrie<E> tree, int count, List<E> addrs) {
 		AddressTrie<E> tree2 = tree.clone();
 		AddressTrie<E> tree3 = tree2.clone();
 		AddressTrie<E> tree4 = tree2.clone();
@@ -702,21 +688,21 @@ public class TrieTest extends TestBase {
 		tree5.addTrie(tree4.getRoot());
 		int nodeSize4 = tree4.nodeSize();
 		if(tree4.size() != count) {
-			addFailure(testBase, "trie size not right, got " + tree4.size() + " instead of expected " + count, tree4);
+			addTrieFailure("trie size not right, got " + tree4.size() + " instead of expected " + count, tree4);
 		}
 		tree4.clear();
 		if(tree4.size() != 0) {
-			addFailure(testBase, "trie size not zero, got " + tree4.size() + " after clearing trie", tree4);
+			addTrieFailure("trie size not zero, got " + tree4.size() + " after clearing trie", tree4);
 		}
 		if(tree4.nodeSize() != 1) {
-			addFailure(testBase, "node size not 1, got " + tree4.nodeSize() + " after clearing trie", tree4);
+			addTrieFailure("node size not 1, got " + tree4.nodeSize() + " after clearing trie", tree4);
 		}
 		if(tree5.size() != count) {
 		//if(tree5.size() != count || tree5.size() == 0) {
-			addFailure(testBase, "trie size not right, got " + tree5.size() + " instead of expected " + count, tree5);
+			addTrieFailure("trie size not right, got " + tree5.size() + " instead of expected " + count, tree5);
 		}
 		if(tree5.nodeSize() != nodeSize4) {
-			addFailure(testBase, "trie size not right, got " + tree5.size() + " instead of expected " + nodeSize4, tree5);
+			addTrieFailure("trie size not right, got " + tree5.size() + " instead of expected " + nodeSize4, tree5);
 		}
 		int origSize = tree.size();
 		int origNodeSize = tree.nodeSize();
@@ -728,21 +714,21 @@ public class TrieTest extends TestBase {
 			iterator.remove();
 			int newSize = tree.size();
 			if(size - 1 != newSize) {
-				addFailure(testBase, "trie size mismatch, expected " + (size - 1) + " got " + newSize + " when removing node " + node, tree);
+				addTrieFailure("trie size mismatch, expected " + (size - 1) + " got " + newSize + " when removing node " + node, tree);
 			}
 			size = newSize;
 			newSize = tree.nodeSize();
 			if(newSize > nodeSize) {
-				addFailure(testBase, "node size mismatch, expected smaller than " + nodeSize + " got " + newSize + " when removing node " + node, tree);
+				addTrieFailure("node size mismatch, expected smaller than " + nodeSize + " got " + newSize + " when removing node " + node, tree);
 			}
 			nodeSize = newSize;
 		}
 		
 		if(tree.size() != 0 || !tree.isEmpty()) {
-			addFailure(testBase, "trie size not zero, got " + tree.size() + " after clearing trie", tree);
+			addTrieFailure("trie size not zero, got " + tree.size() + " after clearing trie", tree);
 		}
 		if(tree.nodeSize() != 1) {
-			addFailure(testBase, "node size not 1, got " + tree.nodeSize() + " after clearing trie", tree);
+			addTrieFailure("node size not 1, got " + tree.nodeSize() + " after clearing trie", tree);
 		}
 		
 		size = origSize;
@@ -755,12 +741,12 @@ public class TrieTest extends TestBase {
 				tree2.remove(addr);
 				int newSize = tree2.size();
 				if(size - 1 != newSize) {
-					addFailure(testBase, "trie size mismatch, expected " + (size - 1) + " got " + newSize, tree2);
+					addTrieFailure("trie size mismatch, expected " + (size - 1) + " got " + newSize, tree2);
 				}
 				size = newSize;
 				newSize = tree2.nodeSize();
 				if(newSize > nodeSize) {
-					addFailure(testBase, "node size mismatch, expected smaller than " + nodeSize + " got " + newSize, tree2);
+					addTrieFailure("node size mismatch, expected smaller than " + nodeSize + " got " + newSize, tree2);
 				}
 				nodeSize = newSize;
 			}	
@@ -769,10 +755,10 @@ public class TrieTest extends TestBase {
 		
 		
 		if(tree2.size() != 0 || !tree2.isEmpty()) {
-			addFailure(testBase, "trie size not zero, got " + tree2.size() + " after clearing trie", tree2);
+			addTrieFailure("trie size not zero, got " + tree2.size() + " after clearing trie", tree2);
 		}
 		if(tree2.nodeSize() != 1) {
-			addFailure(testBase, "node size not 1, got " + tree2.nodeSize() + " after clearing trie", tree2);
+			addTrieFailure("node size not 1, got " + tree2.nodeSize() + " after clearing trie", tree2);
 		}
 		// now remove full subtrees at once
 		int addressesRemoved = 0;
@@ -801,51 +787,70 @@ public class TrieTest extends TestBase {
 				// we cannot check for smaller tree or node size because many elements might have been already erased
 				int newSize = tree3.size();
 				if(newSize != preRemovalSize - nodeCountToBeRemoved) {
-					addFailure(testBase, "removal size mismatch, expected to remove " + nodeCountToBeRemoved + " but removed " + (preRemovalSize - newSize), tree3);
+					addTrieFailure("removal size mismatch, expected to remove " + nodeCountToBeRemoved + " but removed " + (preRemovalSize - newSize), tree3);
 				}
 				if(newSize > origSize - addressesRemoved) {
-					addFailure(testBase, "trie size mismatch, expected smaller than " + (origSize - addressesRemoved) + " got " + newSize, tree3);
+					addTrieFailure("trie size mismatch, expected smaller than " + (origSize - addressesRemoved) + " got " + newSize, tree3);
 				}
 				newSize = tree3.nodeSize();
 				if(newSize > origNodeSize - addressesRemoved && newSize > 1) {
-					addFailure(testBase, "node size mismatch, expected smaller than " + (origSize - addressesRemoved) + " got " + newSize, tree3);
+					addTrieFailure("node size mismatch, expected smaller than " + (origSize - addressesRemoved) + " got " + newSize, tree3);
 				}
 			}	
 		}
 		if(tree3.size() != 0 || !tree3.isEmpty()) {
-			addFailure(testBase, "trie size not zero, got " + tree3.size() + " after clearing trie", tree3);
+			addTrieFailure("trie size not zero, got " + tree3.size() + " after clearing trie", tree3);
 		}
 		if(tree3.nodeSize() != 1) {
-			addFailure(testBase, "node size not 1, got " + tree3.nodeSize() + " after clearing trie", tree3);
+			addTrieFailure("node size not 1, got " + tree3.nodeSize() + " after clearing trie", tree3);
 		}
 		
 		tree6.asSet().removeAll(tree6.asSet().clone());
 		if(tree6.size() != 0 || !tree6.isEmpty() || tree6.asSet().size() != 0 || !tree6.asSet().isEmpty()) {
-			addFailure(testBase, "trie size not zero, got " + tree6.size() + " after clearing trie with removeAll", tree6);
+			addTrieFailure("trie size not zero, got " + tree6.size() + " after clearing trie with removeAll", tree6);
 		}
 		
-		testBase.incrementTestCount();
+		incrementTestCount();
+		}
+		
+	static <E extends Address> List<E> collect(String addrs[], Function<String, E> converter) {
+		ArrayList<E> list = new ArrayList<>(addrs.length);
+		HashSet<E> dupChecker = new HashSet<>();
+		for(String str : addrs) {
+			E addr = converter.apply(str);
+			if(addr != null) {
+				if(!dupChecker.contains(addr)) {
+					dupChecker.add(addr);
+					list.add(addr);
+				}
+			}
+		}
+		return list;
 	}
 	
-	static <R extends AddressTrie<T>, T extends Address> void addFailure(TestBase testBase, String str, R trie) {
-		testBase.addFailure(new Failure(str, trie));
+	void addTrieFailure(String str, Object trie) {
+		if(trie instanceof TreeOps) {
+			addFailure(new Failure(str, (TreeOps<?>) trie));
+		} else {
+			addFailure(new Failure(str, (BaseDualIPv4v6Tries<?,?>) trie));
+		}
 	}
 	
-	static void partitionTest(TestBase testBase) {
+	void partitionTest() {
 		String addrs = "1.2.1-15.*";
 		IPv4AddressTrie trie = new IPv4AddressTrie();
-		IPv4Address addr = testBase.createAddress(addrs).getAddress().toIPv4();
-		partitionForTrie(testBase, trie, addr);
+		IPv4Address addr = createAddress(addrs).getAddress().toIPv4();
+		partitionForTrie(trie, addr);
 	}
 	
-	static <T extends IPAddress> void partitionForTrie(TestBase testBase, AddressTrie<T> trie, T subnet) {
+	<T extends IPAddress> void partitionForTrie(AddressTrie<T> trie, T subnet) {
 		Partition.partitionWithSingleBlockSize(subnet).predicateForEach(trie::add);
 		if(trie.size() != 15) {
-			addFailure(testBase, "partition size unexpected " + trie.size() + ", expected " + 15, trie);
+			addTrieFailure("partition size unexpected " + trie.size() + ", expected " + 15, trie);
 		}
 		Map<T, TrieNode<T>> all = Partition.partitionWithSingleBlockSize(subnet).applyForEach(trie::getAddedNode);
 		if(all.size() != 15) {
-			addFailure(testBase, "map size unexpected " + trie.size() + ", expected " + 15, trie);
+			addTrieFailure("map size unexpected " + trie.size() + ", expected " + 15, trie);
 		}
 		HashMap<T, TrieNode<T>> all2 = new HashMap<>();
 		Partition.partitionWithSingleBlockSize(subnet).forEach(addr -> {
@@ -853,37 +858,36 @@ public class TrieTest extends TestBase {
 			all2.put(addr, node);
 		});
 		if(!all.equals(all2)) {
-			addFailure(testBase, "maps not equal " + all + " and " + all2, trie);
+			addTrieFailure("maps not equal " + all + " and " + all2, trie);
 		}
 		trie.clear();
 		Partition.partitionWithSpanningBlocks(subnet).predicateForEach(trie::add);
 		if(trie.size() != 4) {
-			addFailure(testBase,"partition size unexpected " + trie.size() + ", expected " + 4, trie);
+			addTrieFailure("partition size unexpected " + trie.size() + ", expected " + 4, trie);
 		}
 		trie.clear();
 		Partition.partitionWithSingleBlockSize(subnet).predicateForEach(trie::add);
 		Partition.partitionWithSpanningBlocks(subnet).predicateForEach(trie::add);
 		if(trie.size() != 18) {
-			addFailure(testBase,"partition size unexpected " + trie.size() + ", expected " + 18, trie);
+			addTrieFailure("partition size unexpected " + trie.size() + ", expected " + 18, trie);
 		}
 		boolean allAreThere = Partition.partitionWithSingleBlockSize(subnet).predicateForEach(trie::contains);
 		boolean allAreThere2 = Partition.partitionWithSpanningBlocks(subnet).predicateForEach(trie::contains);
 		if(!(allAreThere && allAreThere2)) {
-			addFailure(testBase,"partition contains check failing", trie);
+			addTrieFailure("partition contains check failing", trie);
 		}
-		testBase.incrementTestCount();
+		incrementTestCount();
 	}
 
-	static <R extends AddressTrie<T>, T extends Address> void testIterationContainment(TestBase testBase, R tree) {
-		testIterationContainment(testBase, tree, AddressTrie::blockSizeCachingAllNodeIterator, false);
-		testIterationContainment(testBase, tree, trie -> trie.containingFirstAllNodeIterator(true), false /* added only */);
-		testIterationContainment(testBase, tree, trie -> trie.containingFirstAllNodeIterator(false), false /* added only */);
-		testIterationContainment(testBase, tree, trie -> trie.containingFirstIterator(true), true /* added only */);
-		testIterationContainment(testBase, tree, trie -> trie.containingFirstIterator(false), true /* added only */);
+	<R extends AddressTrie<T>, T extends Address> void testIterationContainment(R tree) {
+		testIterationContainment(tree, AddressTrie::blockSizeCachingAllNodeIterator, false);
+		testIterationContainment(tree, trie -> trie.containingFirstAllNodeIterator(true), false /* added only */);
+		testIterationContainment(tree, trie -> trie.containingFirstAllNodeIterator(false), false /* added only */);
+		testIterationContainment(tree, trie -> trie.containingFirstIterator(true), true /* added only */);
+		testIterationContainment(tree, trie -> trie.containingFirstIterator(false), true /* added only */);
 	}
 	
-	static <R extends AddressTrie<T>, T extends Address> void testIterationContainment(
-			TestBase testBase, 
+	<R extends AddressTrie<T>, T extends Address> void testIterationContainment(
 			R trie, 
 			Function<R, CachingIterator<? extends TrieNode<T>, T, Integer>> iteratorFunc,
 			boolean addedNodesOnly) {
@@ -914,48 +918,47 @@ public class TrieTest extends TestBase {
 			}
 			Integer cached = iterator.getCached();
 			if(!skipCheck && !Objects.equals(cached, parentPrefix)) {
-				addFailure(testBase, "mismatched prefix for " + next + ", cached is " + iterator.getCached() + " and expected value is " + parentPrefix, trie);
+				addTrieFailure("mismatched prefix for " + next + ", cached is " + iterator.getCached() + " and expected value is " + parentPrefix, trie);
 			}
 			Integer prefLen = nextAddr.getPrefixLength();
 			iterator.cacheWithLowerSubNode(prefLen);
 			iterator.cacheWithUpperSubNode(prefLen);
 
 		}
-		testBase.incrementTestCount();
+		incrementTestCount();
 	}
 	
-	static <R extends AddressTrie<T>, T extends Address> void testIterate(TestBase testBase, R tree) {
+	<R extends AddressTrie<T>, T extends Address> void testIterate(R tree) {
+		testIterate(tree, trie -> trie.blockSizeNodeIterator(true), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.blockSizeAllNodeIterator(true), AddressTrie::nodeSize, true);
+		testIterate(tree, trie -> trie.blockSizeNodeIterator(false), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.blockSizeAllNodeIterator(false), AddressTrie::nodeSize, true);
 		
-		testIterate(testBase, tree, trie -> trie.blockSizeNodeIterator(true), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.blockSizeAllNodeIterator(true), AddressTrie::nodeSize, true);
-		testIterate(testBase, tree, trie -> trie.blockSizeNodeIterator(false), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.blockSizeAllNodeIterator(false), AddressTrie::nodeSize, true);
+		testIterate(tree, AddressTrie::blockSizeCachingAllNodeIterator, AddressTrie::nodeSize, true);
 		
-		testIterate(testBase, tree, AddressTrie::blockSizeCachingAllNodeIterator, AddressTrie::nodeSize, true);
+		testIterate(tree, trie -> trie.nodeIterator(true), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.allNodeIterator(true), AddressTrie::nodeSize, true);
+		testIterate(tree, trie -> trie.nodeIterator(false), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.allNodeIterator(false), AddressTrie::nodeSize, true);
 		
-		testIterate(testBase, tree, trie -> trie.nodeIterator(true), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.allNodeIterator(true), AddressTrie::nodeSize, true);
-		testIterate(testBase, tree, trie -> trie.nodeIterator(false), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.allNodeIterator(false), AddressTrie::nodeSize, true);
+		testIterate(tree, trie -> trie.containedFirstIterator(true), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.containedFirstAllNodeIterator(true), AddressTrie::nodeSize, false);
+		testIterate(tree, trie -> trie.containedFirstIterator(false), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.containedFirstAllNodeIterator(false), AddressTrie::nodeSize, false);
 		
-		testIterate(testBase, tree, trie -> trie.containedFirstIterator(true), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.containedFirstAllNodeIterator(true), AddressTrie::nodeSize, false);
-		testIterate(testBase, tree, trie -> trie.containedFirstIterator(false), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.containedFirstAllNodeIterator(false), AddressTrie::nodeSize, false);
+		testIterate(tree, trie -> trie.containingFirstIterator(true), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.containingFirstAllNodeIterator(true), AddressTrie::nodeSize, true);
+		testIterate(tree, trie -> trie.containingFirstIterator(false), AddressTrie::size, true);
+		testIterate(tree, trie -> trie.containingFirstAllNodeIterator(false), AddressTrie::nodeSize, true);
 		
-		testIterate(testBase, tree, trie -> trie.containingFirstIterator(true), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.containingFirstAllNodeIterator(true), AddressTrie::nodeSize, true);
-		testIterate(testBase, tree, trie -> trie.containingFirstIterator(false), AddressTrie::size, true);
-		testIterate(testBase, tree, trie -> trie.containingFirstAllNodeIterator(false), AddressTrie::nodeSize, true);
+		testIterate(tree, trie -> new SpliteratorWrapper<>(trie.nodeSpliterator(true)), AddressTrie::size, false);
+		testIterate(tree, trie -> new SpliteratorWrapper<>(trie.allNodeSpliterator(true)), AddressTrie::nodeSize, false);
+		testIterate(tree, trie -> new SpliteratorWrapper<>(trie.nodeSpliterator(false)), AddressTrie::size, false);
+		testIterate(tree, trie -> new SpliteratorWrapper<>(trie.allNodeSpliterator(false)), AddressTrie::nodeSize, false);
 		
-		testIterate(testBase, tree, trie -> new SpliteratorWrapper<>(trie.nodeSpliterator(true)), AddressTrie::size, false);
-		testIterate(testBase, tree, trie -> new SpliteratorWrapper<>(trie.allNodeSpliterator(true)), AddressTrie::nodeSize, false);
-		testIterate(testBase, tree, trie -> new SpliteratorWrapper<>(trie.nodeSpliterator(false)), AddressTrie::size, false);
-		testIterate(testBase, tree, trie -> new SpliteratorWrapper<>(trie.allNodeSpliterator(false)), AddressTrie::nodeSize, false);
+		testIterationContainment(tree);
 		
-		testIterationContainment(testBase, tree);
-		
-		testBase.incrementTestCount();
+		incrementTestCount();
 	}
 
 	static class SpliteratorWrapper<E> implements Iterator<E> {
@@ -984,53 +987,129 @@ public class TrieTest extends TestBase {
 		}
 	}
 	
+	<R extends BaseDualIPv4v6Tries<?,?>, T extends Address> void testIterate(R tree) {
+		testIterate(tree, trie -> trie.blockSizeNodeIterator(true), true);
+		testIterate(tree, trie -> trie.blockSizeNodeIterator(false), true);
+		
+		testIterate(tree, trie -> trie.nodeIterator(true), true);
+		testIterate(tree, trie -> trie.nodeIterator(false), true);
+		
+		testIterate(tree, trie -> trie.containedFirstIterator(true), true);
+		testIterate(tree, trie -> trie.containedFirstIterator(false), true);
+		
+		testIterate(tree, trie -> trie.containingFirstIterator(true), true);
+		testIterate(tree, trie -> trie.containingFirstIterator(false), true);
+		
+		testIterate(tree, trie -> new SpliteratorWrapper<>(trie.nodeSpliterator(true)), false);
+		testIterate(tree, trie -> new SpliteratorWrapper<>(trie.nodeSpliterator(false)), false);
+		
+		incrementTestCount();
+	}
+
 	@SuppressWarnings("unchecked")
-	static <R extends AddressTrie<T>, T extends Address> void testIterate(
-			TestBase testBase, 
+	<R extends BaseDualIPv4v6Tries<?,?>> void testIterate(
 			R trie, 
-			Function<R, Iterator<? extends BinaryTreeNode<T>>> iteratorFunc, 
+			Function<R, Iterator<? extends BinaryTreeNode<? extends IPAddress>>> iteratorFunc, 
+			boolean removeAllowed) {
+			testIterate( 
+				trie,
+				iteratorFunc,
+				BaseDualIPv4v6Tries::size, 
+				BaseDualIPv4v6Tries::size, 
+				null,
+				(t) -> { return (R) t.clone(); },
+				(dualTrie) -> { 
+					TrieNode<? extends IPAddress> node = dualTrie.getIPv4Trie().firstAddedNode();
+					if(node == null) {
+						node = dualTrie.getIPv6Trie().firstAddedNode();
+					}
+					return node;
+				},
+				BaseDualIPv4v6Tries::add,
+				BaseDualIPv4v6Tries::contains,
+				null,
+				BaseDualIPv4v6Tries::getAddedNode,
+				BaseDualIPv4v6Tries::isEmpty,
+				removeAllowed);	
+	}
+	
+	@SuppressWarnings("unchecked")
+	<R extends AddressTrie<T>, T extends Address> void testIterate(
+			R trie, 
+			Function<R, Iterator<? extends BinaryTreeNode<? extends T>>> iteratorFunc, 
 			ToIntFunction<R> countFunc,
+			boolean removeAllowed) {
+		testIterate(
+				trie,
+				iteratorFunc, 
+				countFunc,
+				AddressTrie::size, 
+				AddressTrie::nodeSize, 
+				(t) -> { return (R) t.clone(); },
+				AddressTrie::firstNode,
+				AddressTrie::add,
+				AddressTrie::contains,
+				AddressTrie::getNode,
+				AddressTrie::getAddedNode,
+				AddressTrie::isEmpty,
+				removeAllowed);
+	}
+	
+	<R, T extends Address> void testIterate(
+			R trie,
+			Function<R, Iterator<? extends BinaryTreeNode<? extends T>>> iteratorFunc, 
+			ToIntFunction<R> iteratorCountFunc,
+			ToIntFunction<R> trieSizeFunc,
+			ToIntFunction<R> trieNodeSizeFunc,
+			UnaryOperator<R> cloneFunc,
+			Function<R, TrieNode<? extends T>> firstNodeFunc,
+			BiPredicate<R, T> addFunc,
+			BiPredicate<R, T> containsFunc,
+			BiFunction<R, T, ? extends BinaryTreeNode<? extends T>> getNodeFunc,
+			BiFunction<R, T, ? extends BinaryTreeNode<? extends T>> getAddedNodeFunc,
+			Predicate<R> isEmptyFunc,	
 			boolean removeAllowed) {
 		// iterate the tree, confirm the size by counting
 		// clone the trie, iterate again, but remove each time, confirm the size
 		// confirm trie is empty at the end
 		
-		if(trie.size() > 0) {
-			R clonedTrie = (R) trie.clone();
-			TrieNode<T> node = clonedTrie.firstNode();
+		if(trieSizeFunc.applyAsInt(trie) > 0) {
+			R clonedTrie = cloneFunc.apply(trie);
+			TrieNode<? extends T> node = firstNodeFunc.apply(clonedTrie);
 			T toAdd = node.getKey();
 			node.remove();
-			Iterator<? extends BinaryTreeNode<T>> modIterator = iteratorFunc.apply(clonedTrie);
-			int mod = clonedTrie.size() / 2;
+			Iterator<? extends BinaryTreeNode<? extends T>> modIterator = iteratorFunc.apply(clonedTrie);
+			int mod = trieSizeFunc.applyAsInt(clonedTrie) / 2;
 			int i = 0;
 			boolean shouldThrow = false;
 			try {
 				while(modIterator.hasNext()) {
 					if(++i == mod) {
 						shouldThrow = true;
-						clonedTrie.add(toAdd);
+						addFunc.test(clonedTrie, toAdd);
 					}
 					modIterator.next();
 					if(shouldThrow) {
-						addFailure(testBase, "expected throw ", clonedTrie);
+						addTrieFailure("expected throw ", clonedTrie);
+						shouldThrow = false;
 					}
 				}
 			} catch(ConcurrentModificationException e) {
 				if(!shouldThrow) {
-					addFailure(testBase, "unexpected throw ", clonedTrie);
+					addTrieFailure("unexpected throw ", clonedTrie);
 				}
 			}
 		}
 
 		boolean firstTime = true;
 		while(true) {
-			int expectedSize = countFunc.applyAsInt(trie);
+			int expectedSize = iteratorCountFunc.applyAsInt(trie);
 			int actualSize = 0;
 			Set<T> set = new HashSet<>();
-			Set<BinaryTreeNode<T>> nodeSet = new HashSet<>();
-			Iterator<? extends BinaryTreeNode<T>> iterator = iteratorFunc.apply(trie);
+			Set<BinaryTreeNode<? extends T>> nodeSet = new HashSet<>();
+			Iterator<? extends BinaryTreeNode<? extends T>> iterator = iteratorFunc.apply(trie);
 			while(iterator.hasNext()) {
-				BinaryTreeNode<T> next = iterator.next();
+				BinaryTreeNode<? extends T> next = iterator.next();
 				nodeSet.add(next);
 				T nextAddr = next.getKey();
 				set.add(nextAddr);
@@ -1039,70 +1118,70 @@ public class TrieTest extends TestBase {
 					try {
 						iterator.remove();
 						if(!removeAllowed) {
-							addFailure(testBase, "removal " + next + " should not be supported", trie);
-						} else if(trie.contains(nextAddr)) {
-							addFailure(testBase, "after removal " + next + " still in trie ", trie);
+							addTrieFailure("removal " + next + " should not be supported", trie);
+						} else if(containsFunc.test(trie, nextAddr)) {
+							addTrieFailure("after removal " + next + " still in trie ", trie);
 						}
 					} catch(UnsupportedOperationException e) {
 						if(removeAllowed) {
-							addFailure(testBase, "removal " + next + " should be supported", trie);
+							addTrieFailure("removal " + next + " should be supported", trie);
 						}
 					}
 				} else {
 					if(next.isAdded()) {
-						if(!trie.contains(nextAddr)) {
-							addFailure(testBase, "after iteration " + next + " not in trie ", trie);
-						} else if(trie.getAddedNode(nextAddr) == null) {
-							addFailure(testBase, "after iteration address node for " + nextAddr + " not in trie ", trie);
+						if(!containsFunc.test(trie, nextAddr)) {
+							addTrieFailure("after iteration " + next + " not in trie ", trie);
+						} else if(getAddedNodeFunc.apply(trie, nextAddr) == null) {
+							addTrieFailure("after iteration address node for " + nextAddr + " not in trie ", trie);
 						}
 					} else {
-						if(trie.contains(nextAddr)) {
-							addFailure(testBase, "non-added node " + next + " in trie ", trie);
-						} else if(trie.getNode(nextAddr) == null) {
-							addFailure(testBase, "after iteration address node for " + nextAddr + " not in trie ", trie);
-						} else if(trie.getAddedNode(nextAddr) != null) {
-							addFailure(testBase, "after iteration non-added node for " + nextAddr + " added in trie ", trie);
+						if(containsFunc.test(trie, nextAddr)) {
+							addTrieFailure("non-added node " + next + " in trie ", trie);
+						} else if(getNodeFunc == null || getNodeFunc.apply(trie, nextAddr) == null) {
+							addTrieFailure("after iteration address node for " + nextAddr + " not in trie ", trie);
+						} else if(getAddedNodeFunc.apply(trie, nextAddr) != null) {
+							addTrieFailure("after iteration non-added node for " + nextAddr + " added in trie ", trie);
 						}
 					}
 				}
 			}
 			if(set.size() != expectedSize) {
-				addFailure(testBase, "set count was " + set.size() + " instead of expected " + expectedSize, trie);
+				addTrieFailure("set count was " + set.size() + " instead of expected " + expectedSize, trie);
 			} else if(actualSize != expectedSize) {
-				addFailure(testBase, "count was " + actualSize + " instead of expected " + expectedSize, trie);
+				addTrieFailure("count was " + actualSize + " instead of expected " + expectedSize, trie);
 			}
-			trie = (R) trie.clone();
+			trie = cloneFunc.apply(trie);
 			if(!firstTime) {
 				break;
 			}
 			firstTime = false;
 		}
 		if(removeAllowed) {
-			if(!trie.isEmpty()) {
-				addFailure(testBase, "trie not empty, size " + trie.size() + " after removing everything", trie);
-			} else if(trie.nodeSize() > 1) {
-				addFailure(testBase, "trie node size not 1, " + trie.nodeSize() + " after removing everything", trie);
-			} else if(trie.size() > 0) {
-				addFailure(testBase, "trie size not 0, " + trie.size() + " after removing everything", trie);
+			if(!isEmptyFunc.test(trie)) {
+				addTrieFailure("trie not empty, size " + trieSizeFunc.applyAsInt(trie) + " after removing everything", trie);
+			} else if(trieNodeSizeFunc != null && trieNodeSizeFunc.applyAsInt(trie) > 1) {
+				addTrieFailure("trie node size not 1, " + trieNodeSizeFunc.applyAsInt(trie) + " after removing everything", trie);
+			} else if(trieSizeFunc.applyAsInt(trie) > 0) {
+				addTrieFailure("trie size not 0, " + trieSizeFunc.applyAsInt(trie) + " after removing everything", trie);
 			}
 		}
-		testBase.incrementTestCount();
+		incrementTestCount();
 	}
 	
-	static <R extends AddressTrie<T>, T extends Address> void testSpliterate(TestBase testBase, R tree) {
+	<R extends AddressTrie<T>, T extends Address> void testSpliterate(R tree) {
 		Function<R, Spliterator<T>> spliteratorFunc = AddressTrie::spliterator;
-		testSpliterate(testBase, tree, spliteratorFunc);
+		testSpliterate(tree, spliteratorFunc);
 		spliteratorFunc = AddressTrie::descendingSpliterator;
-		testSpliterate(testBase, tree, spliteratorFunc);
+		testSpliterate(tree, spliteratorFunc);
 		
 	}
 
-	static <R extends AddressTrie<T>, T extends Address> void testSpliterate(TestBase testBase, R tree, Function<R, Spliterator<T>> spliteratorFunc) {
+	<R extends AddressTrie<T>, T extends Address> void testSpliterate(R tree, Function<R, Spliterator<T>> spliteratorFunc) {
 		int size = tree.size();
-		testSpliterate(testBase, tree, 0, size, spliteratorFunc);
-		testSpliterate(testBase, tree, 1, size, spliteratorFunc);
-		testSpliterate(testBase, tree, 5, size, spliteratorFunc);
-		testSpliterate(testBase, tree, -1, size, spliteratorFunc);
+		testSpliterate(tree, 0, size, spliteratorFunc);
+		testSpliterate(tree, 1, size, spliteratorFunc);
+		testSpliterate(tree, 5, size, spliteratorFunc);
+		testSpliterate(tree, -1, size, spliteratorFunc);
 	}
 
 	private static ExecutorService threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
@@ -1118,7 +1197,7 @@ public class TrieTest extends TestBase {
 	static int spliterateTestCounter = 0;
 	
 	@SuppressWarnings("unchecked")
-	static <R extends AddressTrie<T>, T extends Address> Set<Address> testSpliterate(TestBase testBase, R val, int splitCount, int number, 
+	<R extends AddressTrie<T>, T extends Address> Set<Address> testSpliterate(R val, int splitCount, int number, 
 			Function<R, Spliterator<T>> spliteratorFunc) {
 		
 		R modTrie = (R) val.clone();
@@ -1143,7 +1222,7 @@ public class TrieTest extends TestBase {
 				for(Spliterator<T> toSplit : modList) {
 					Spliterator<T> split = toSplit.trySplit();
 					if(shouldThrow) {
-						addFailure(testBase, "expected throw ", modTrie);
+						addTrieFailure("expected throw ", modTrie);
 					}
 					if(split != null) {
 						newModList.add(split);
@@ -1153,7 +1232,7 @@ public class TrieTest extends TestBase {
 				modList = newModList;
 			} catch(ConcurrentModificationException e) {
 				if(!shouldThrow) {
-					addFailure(testBase, "unexpected throw ", modTrie);
+					addTrieFailure("unexpected throw ", modTrie);
 				}
 			}
 			
@@ -1167,9 +1246,9 @@ public class TrieTest extends TestBase {
 					if(size1 > 3) {
 						long size2 = split.estimateSize();
 						if(2 * size1 < size2) {
-							addFailure(testBase, "unequal split " + size1 + " and " + size2, val);
+							addTrieFailure("unequal split " + size1 + " and " + size2, val);
 						} else if(size2 * 2 < size1) {
-							addFailure(testBase, "unequal split " + size1 + " and " + size2, val);
+							addTrieFailure("unequal split " + size1 + " and " + size2, val);
 						}
 					}
 				}
@@ -1185,7 +1264,7 @@ public class TrieTest extends TestBase {
 						// This is limited by tree depth, because we split based on tree shape,
 						// splitting the root at the top to two halves, so max would be 32.
 						// 
-						addFailure(testBase, "unable to split trie " + splitter + " but size is " + exactSize, val);
+						addTrieFailure("unable to split trie " + splitter + " but size is " + exactSize, val);
 					
 //unable to split spliterator from ● 129.0.0.0 to ● 128.0.0.0/1 but size is 59, 
 //						└─● 128.0.0.0/1 (143) to here
@@ -1217,7 +1296,7 @@ public class TrieTest extends TestBase {
 				newSize += splitter.estimateSize();
 			}
 			if(newSize != originalSize) {
-				addFailure(testBase, "split size differs, got " + newSize + " but size is " + originalSize, val);
+				addTrieFailure("split size differs, got " + newSize + " but size is " + originalSize, val);
 			}
 		}
 		AtomicInteger counter = new AtomicInteger();
@@ -1269,7 +1348,7 @@ public class TrieTest extends TestBase {
 					job.get();
 				}
 			} catch (InterruptedException | ExecutionException e) {
-				addFailure(testBase, "unexpected interruption " + e, val);
+				addTrieFailure("unexpected interruption " + e, val);
 			}
 			if(newList.size() == 0) {
 				break;
@@ -1286,16 +1365,16 @@ public class TrieTest extends TestBase {
 		}
 		//System.out.println("tested " + spliteratorCount + " spliterators, " + newSpliteratorCount + " split off, " + subSpliteratorCount + " split off from split off");
 		if(number < Integer.MAX_VALUE && set.size() != number) {
-			addFailure(testBase, "set count was " + set.size() + " instead of expected " + number, val);
+			addTrieFailure("set count was " + set.size() + " instead of expected " + number, val);
 		} else if(number < Integer.MAX_VALUE && counter.intValue() != number) {
-			addFailure(testBase, "count was " + counter + " instead of expected " + number, val);
+			addTrieFailure("count was " + counter + " instead of expected " + number, val);
 		}
-		testBase.incrementTestCount();
+		incrementTestCount();
 		return set;
 	}
 	
 	
-	void createSampleTree(MACAddressTrie tree, String addrs[]) {
+	void createMACSampleTree(MACAddressTrie tree, String addrs[]) {
 		for(String addr : addrs) {
 			MACAddressString addressStr = createMACAddress(addr);
 			MACAddress address = addressStr.getAddress();
@@ -1303,7 +1382,7 @@ public class TrieTest extends TestBase {
 		}
 	}
 	
-	void createSampleTree(IPv6AddressTrie tree, String addrs[]) {
+	void createIPv6SampleTree(IPv6AddressTrie tree, String addrs[]) {
 		for(String addr : addrs) {
 			IPAddressString addressStr = createAddress(addr);
 			if(addressStr.isIPv6()) {
@@ -1313,7 +1392,7 @@ public class TrieTest extends TestBase {
 		}
 	}
 	
-	void createSampleTree(IPv6AddressTrie tree, IPAddress addrs[]) {
+	void createIPv6SampleTreeAddrs(IPv6AddressTrie tree, IPAddress addrs[]) {
 		for(IPAddress addr : addrs) {
 			if(addr.isIPv6()) {
 				addr = Partition.checkBlockOrAddress(addr);
@@ -1325,7 +1404,7 @@ public class TrieTest extends TestBase {
 		}
 	}
 	
-	void createSampleTree(IPv4AddressTrie tree, IPAddress addrs[]) {
+	void createIPv4SampleTreeAddrs(IPv4AddressTrie tree, IPAddress addrs[]) {
 		for(IPAddress addr : addrs) {
 			if(addr.isIPv4()) {
 				addr = Partition.checkBlockOrAddress(addr);
@@ -1337,12 +1416,34 @@ public class TrieTest extends TestBase {
 		}
 	}
 	
-	void createSampleTree(IPv4AddressTrie tree, String addrs[]) {
+	void createIPv4SampleTree(IPv4AddressTrie tree, String addrs[]) {
 		for(String addr : addrs) {
 			IPAddressString addressStr = createAddress(addr);
 			if(addressStr.isIPv4()) {
 				IPv4Address address = addressStr.getAddress().toIPv4();
 				tree.add(address);
+			}
+		}
+	}
+	
+	void createIPv6SampleAssocTree(IPv6AddressAssociativeTrie<Integer> tree, String addrs[]) {
+		for(int i = 0; i < addrs.length; i++) {
+			String addr = addrs[i];
+			IPAddressString addressStr = createAddress(addr);
+			if(addressStr.isIPv6()) {
+				IPv6Address address = addressStr.getAddress().toIPv6();
+				tree.put(address, i);
+			}
+		}
+	}
+	
+	void createIPv4SampleAssocTree(IPv4AddressAssociativeTrie<Integer> tree, String addrs[]) {
+		for(int i = 0; i < addrs.length; i++) {
+			String addr = addrs[i];
+			IPAddressString addressStr = createAddress(addr);
+			if(addressStr.isIPv4()) {
+				IPv4Address address = addressStr.getAddress().toIPv4();
+				tree.put(address, i);
 			}
 		}
 	}
@@ -1366,7 +1467,11 @@ public class TrieTest extends TestBase {
 	@SuppressWarnings("unchecked")
 	<R extends AddressTrie<T>, T extends Address> void testContains(R trie) {
 		if(trie.size() > 0) {
-			TrieNode<T> last = trie.getAddedNode(trie.lastAddedNode().getKey());
+			T lastKey = trie.lastAddedNode().getKey();
+			TrieNode<T> last = trie.getAddedNode(lastKey);
+			if(last == null) {
+				addFailure("failure " + last + " key not in trie ", trie);
+			}
 			if(!trie.contains(last.getKey())) {
 				addFailure("failure " + last + " not in trie ", trie);
 			}
@@ -1820,7 +1925,8 @@ public class TrieTest extends TestBase {
 		i = 0;
 		for(T addr : addrs) {
 			if(i % 2 == 0) {
-				trie2.getNode(addr).remove();
+				AssociativeTrieNode<T, V> node = trie2.getNode(addr);
+				node.remove();
 			}
 			i++;
 		}
@@ -2362,7 +2468,6 @@ public class TrieTest extends TestBase {
 		//i = 0;
 		List<TrieNode<T>> ordered = new ArrayList<>(addrs.size());
 		for(T addr : trie) {
-			//i++;
 			ordered.add(trie.getAddedNode(addr));
 		}
 
@@ -3498,10 +3603,10 @@ public class TrieTest extends TestBase {
 	
 	void testConvertedBlock(String str, Integer expectedPrefLen) {
 		IPAddress addr = createAddress(str).getAddress();
-		testConvertedBlock(addr, expectedPrefLen);
+		testConvertedAddrBlock(addr, expectedPrefLen);
 	}
 	
-	void testConvertedBlock(Address addr, Integer expectedPrefLen) {
+	void testConvertedAddrBlock(Address addr, Integer expectedPrefLen) {
 		Address result = Partition.checkBlockOrAddress(addr);
 		if(result == null) {
 			addFailure("unexpectedly got no single block or address for " + addr, addr);
@@ -3515,7 +3620,7 @@ public class TrieTest extends TestBase {
 		IPAddress addr = createAddress("1.2.3.4/16").getAddress();
 		PrefixConfiguration prefCon = addr.getNetwork().getPrefixConfiguration();
 		if(!prefCon.allPrefixedAddressesAreSubnets()) {
-			testConvertedBlock(addr, null);
+			testConvertedAddrBlock(addr, null);
 		} else {
 			testIPAddrBlock("1.2.3.4/16");
 		}
@@ -3538,7 +3643,7 @@ public class TrieTest extends TestBase {
 		}
 		MACAddress mac = createMACAddress("a:b:c:*:*:*").getAddress();
 		mac = mac.setPrefixLength(48, false);
-		testConvertedBlock(mac, 24);
+		testConvertedAddrBlock(mac, 24);
 		testMACAddrBlock("a:b:c:*:*:*");
 		testNonMACBlock("a:b:c:*:2:*");
 		testNonBlock("a:b:c:*:2:*"); // passes null into checkBlockOrAddress
@@ -3646,24 +3751,26 @@ public class TrieTest extends TestBase {
 	@Override
 	void runTest() {
 		testAddressCheck();
-		partitionTest(this);
+		partitionTest();
 		
 		String[][] sampleIPAddressTries = getSampleIPAddressTries();
 		for(String treeAddrs[] : sampleIPAddressTries) {
-			testRemove(this, treeAddrs);
+			testRemove(treeAddrs);
 		}
 		boolean notDoneEmptyIPv6 = true;
 		boolean notDoneEmptyIPv4 = true;
-		for(String treeAddrs[] : sampleIPAddressTries) {
+		for(int i = 0; i < sampleIPAddressTries.length; i++) {
+			String treeAddrs[] = sampleIPAddressTries[i];
+			//for(String treeAddrs[] : sampleIPAddressTries) {
 			IPv6AddressTrie ipv6Tree = new IPv6AddressTrie();
-			createSampleTree(ipv6Tree, treeAddrs);
+			createIPv6SampleTree(ipv6Tree, treeAddrs);
 			int size = ipv6Tree.size();
 			if(size > 0 || notDoneEmptyIPv6) {
 				if(notDoneEmptyIPv6) {
 					notDoneEmptyIPv6 = size != 0;
 				}
-				testIterate(this, ipv6Tree);
-				testSpliterate(this, ipv6Tree);
+				testIterate(ipv6Tree);
+				testSpliterate(ipv6Tree);
 				testContains(ipv6Tree);
 				testSerialize(ipv6Tree);
 
@@ -3673,14 +3780,14 @@ public class TrieTest extends TestBase {
 			}
 			
 			IPv4AddressTrie ipv4Tree = new IPv4AddressTrie();
-			createSampleTree(ipv4Tree, treeAddrs);
+			createIPv4SampleTree(ipv4Tree, treeAddrs);
 			size = ipv4Tree.size();
 			if(size > 0 || notDoneEmptyIPv4) {
 				if(notDoneEmptyIPv4) {
 					notDoneEmptyIPv4 = size != 0;
 				}
-				testIterate(this, ipv4Tree);
-				testSpliterate(this, ipv4Tree);
+				testIterate(ipv4Tree);
+				testSpliterate(ipv4Tree);
 				testContains(ipv4Tree);
 				testSerialize(ipv4Tree);
 				
@@ -3688,6 +3795,36 @@ public class TrieTest extends TestBase {
 //				String s = ipv4Tree.toAddedNodesTreeString();
 //				System.out.println(s);
 			}
+			
+			for(int j = i + 1; j < sampleIPAddressTries.length; j++) {
+				ipv6Tree = new IPv6AddressTrie();
+				createIPv6SampleTree(ipv6Tree, treeAddrs);
+				ipv4Tree = new IPv4AddressTrie();
+				createIPv4SampleTree(ipv4Tree, treeAddrs);
+				
+				String treeAddrs2[] = sampleIPAddressTries[j];
+				createIPv6SampleTree(ipv6Tree, treeAddrs2);
+				createIPv4SampleTree(ipv4Tree, treeAddrs2);
+				DualIPv4v6Tries dualTries = new DualIPv4v6Tries(ipv4Tree, ipv6Tree);
+				testIterate(dualTries);
+				
+			}
+			
+			for(int j = i + 1; j < sampleIPAddressTries.length; j++) {
+				IPv6AddressAssociativeTrie<Integer> ipv6Trie = new IPv6AddressAssociativeTrie<>();
+				createIPv6SampleAssocTree(ipv6Trie, treeAddrs);
+				IPv4AddressAssociativeTrie<Integer> ipv4Trie = new IPv4AddressAssociativeTrie<>();
+				createIPv4SampleAssocTree(ipv4Trie, treeAddrs);
+				
+				String treeAddrs2[] = sampleIPAddressTries[j];
+				createIPv6SampleAssocTree(ipv6Trie, treeAddrs2);
+				createIPv4SampleAssocTree(ipv4Trie, treeAddrs2);
+				DualIPv4v6AssociativeTries<Integer> dualTries = new DualIPv4v6AssociativeTries<>(ipv4Trie, ipv6Trie);
+				
+				//System.out.println(dualTries);
+				testIterate(dualTries);	
+			}
+			
 		}
 		notDoneEmptyIPv6 = true;
 		notDoneEmptyIPv4 = true;
@@ -3723,14 +3860,14 @@ public class TrieTest extends TestBase {
 		boolean notDoneEmptyMAC = true;
 		for(String treeAddrs[] : testMACTries) {
 			MACAddressTrie macTree = new MACAddressTrie();
-			createSampleTree(macTree, treeAddrs);
+			createMACSampleTree(macTree, treeAddrs);
 			int size = macTree.size();
 			if(size > 0 || notDoneEmptyMAC) {
 				if(notDoneEmptyMAC) {
 					notDoneEmptyMAC = size != 0;
 				}
-				testIterate(this, macTree);
-				testSpliterate(this, macTree);
+				testIterate(macTree);
+				testSpliterate(macTree);
 				testContains(macTree);
 			}
 		}
@@ -3745,14 +3882,21 @@ public class TrieTest extends TestBase {
 				testAdd(new MACAddressTrie(), addrs);
 				testEdges(new MACAddressTrie(), addrs);
 				testSet(new MACAddressTrie(), addrs);
-				testMap(new MACAddressAssociativeTrie<Integer>(), addrs, i -> i, i -> 3 * 1);
+				testMap(new MACAddressAssociativeTrie<Integer>(), addrs, 
+					i -> i, 
+					i -> {
+						if(i != null) {
+							return 3 * i;
+						}
+						return 3;
+					});
 				testSetEdges(new MACAddressTrie(), addrs);
 				testMapEdges(new MACAddressAssociativeTrie<String>(), addrs, i -> ("foobar" + i));
 			}
 			
 		}
 		for(String treeAddrs[] : testMACTries) {
-			testRemoveMAC(this, treeAddrs);
+			testRemoveMAC(treeAddrs);
 		}
 		
 		IPAddress cached[] = getAllCached();
@@ -3760,17 +3904,17 @@ public class TrieTest extends TestBase {
 			if(cached[0].getNetwork().getPrefixConfiguration().zeroHostsAreSubnets()) {
 				didOneMegaTree = true;
 				IPv6AddressTrie ipv6Tree1 = new IPv6AddressTrie();
-				createSampleTree(ipv6Tree1, cached);
+				createIPv6SampleTreeAddrs(ipv6Tree1, cached);
 				//System.out.println(ipv6Tree1);
-				testIterate(this, ipv6Tree1);
-				testSpliterate(this, ipv6Tree1);
+				testIterate(ipv6Tree1);
+				testSpliterate(ipv6Tree1);
 				testContains(ipv6Tree1);
 				
 				IPv4AddressTrie ipv4Tree1 = new IPv4AddressTrie();
-				createSampleTree(ipv4Tree1, cached);
+				createIPv4SampleTreeAddrs(ipv4Tree1, cached);
 				//System.out.println(ipv4Tree1);
-				testIterate(this, ipv4Tree1);
-				testSpliterate(this, ipv4Tree1);
+				testIterate(ipv4Tree1);
+				testSpliterate(ipv4Tree1);
 				testContains(ipv4Tree1);
 			}
 		}
@@ -3859,7 +4003,7 @@ public class TrieTest extends TestBase {
 
 		Node(int i) {
 			super(i);
-			setAdded(true);
+			setNodeAdded(true);
 		}
 		
 		protected void setUpper(int upper) {

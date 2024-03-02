@@ -112,6 +112,8 @@ public interface AddressSegment extends AddressComponent, AddressGenericDivision
 
 	boolean matchesWithMask(int lowerValue, int upperValue, int mask);
 
+	boolean overlaps(AddressSegment other);
+
 	boolean contains(AddressSegment other);
 
 	@Override

@@ -979,7 +979,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			IntFunction<S> segProducer,
 			IntFunction<S> otherSegProducer) {
 		//check if they are comparable first.  We only check segment count, we do not care about start index.
-		first.checkSectionCount(other);
+		first.checkSegmentCount(other);
 		
 		//larger prefix length should prevail?    hmmmmm... I would say that is true, choose the larger prefix
 		Integer pref = first.getNetworkPrefixLength();
@@ -1185,7 +1185,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			UnaryOperator<R> prefixAdder,
 			UnaryOperator<R> prefixRemover,
 			IntFunction<R[]> arrayProducer) {
-		first.checkSectionCount(other);
+		first.checkSegmentCount(other);
 		R result = checkPrefixBlockContainment(first, other, prefixAdder);
 		if(result != null) {
 			R resultArray[] = arrayProducer.apply(1);
@@ -1885,7 +1885,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			IntFunction<S> segProducer,
 			SegFunction<R, R> prefixApplier) {
 		//check if they are comparable first
-		first.checkSectionCount(other);
+		first.checkSegmentCount(other);
 		if(!first.isMultiple()) {
 			if(other.contains(first)) {
 				return null;
@@ -2039,13 +2039,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	@Override
 	public abstract IPAddressSection applyPrefixLength(int networkPrefixLength) throws PrefixLenException;
 	
-	protected void checkSectionCount(IPAddressSection sec) throws SizeMismatchException {
-		if(sec.getSegmentCount() != getSegmentCount()) {
-			throw new SizeMismatchException(this, sec);
-		}
-	}
-	
-	protected void checkMaskSectionCount(IPAddressSection mask) throws SizeMismatchException {
+	protected void checkMaskSegmentCount(IPAddressSection mask) throws SizeMismatchException {
 		if(mask.getSegmentCount() < getSegmentCount()) {
 			throw new SizeMismatchException(this, mask);
 		}
@@ -2226,8 +2220,8 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * @return
 	 */
 	public boolean matchesWithMask(IPAddressSection other, IPAddressSection mask) {
-		checkMaskSectionCount(mask);
-		checkSectionCount(other);
+		checkMaskSegmentCount(mask);
+		checkSegmentCount(other);
 		int divCount = getSegmentCount();
 		for(int i = 0; i < divCount; i++) {
 			IPAddressSegment div = getSegment(i);

@@ -575,6 +575,10 @@ public class IPAddressTest extends TestBase {
 		iptest(pass, x, isZero, notBothTheSame, true);
 	}
 	
+	void ip_inet_aton_test(boolean pass, String x, boolean isZero) {
+		iptest(pass, createIPInetAtonAddress(x), isZero, false, true);
+	}
+	
 	void ipv6testOnly(int pass, String x) {
 		iptest(pass == 0 ? false : true, createAddress(x), false, true, false);
 	}
@@ -1093,6 +1097,11 @@ public class IPAddressTest extends TestBase {
 				} else if(equal ? !(w2.contains(w) || conversionContains(w2, w)) : (w2.contains(w) || conversionContains(w2, w))) {
 					addFailure(new Failure("failed " + w, w2));
 				}
+				if(firstContains) {
+					if(!w.overlaps(w2) || !w2.overlaps(w)) {
+						addFailure(new Failure("overlap passed " + w2, w));
+					}
+				}
 			}
 			if(!convCont) {
 				testStringContains(result, equal, wstr, w2str);
@@ -1502,9 +1511,6 @@ public class IPAddressTest extends TestBase {
 		IPAddressString h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
 		boolean straightMatch = h1.equals(h2);
 		if(matches != straightMatch && matches != conversionMatches(h1, h2)) {
-			h1.equals(h2);
-			System.out.println(h1 + ": " + h1.getAddress());
-			System.out.println(h2 + ": " + h2.getAddress());
 			addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h2, h1));
 		} else {
 			if(matches != h2.equals(h1) && matches != conversionMatches(h2, h1)) {
@@ -3476,6 +3482,45 @@ public class IPAddressTest extends TestBase {
 		testIncrement(createAddress(originalStr).getAddress(), increment, resultStr == null ? null : createAddress(resultStr).getAddress());
 	}
 	
+	void testIncrement(IPAddress orig, long increment, IPAddress expectedResult) {
+		if(orig.isIPv6()) { // test the variant that takes BigInteger increments
+			if(expectedResult == null) {
+				super.testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), null);
+			} else {
+				BigInteger bigInc =  BigInteger.valueOf(increment);
+				super.testIncrement(orig.toIPv6(), bigInc, expectedResult.toIPv6());
+				if(orig.isSequential()) { 
+					IPv6Address newAddr = new IPv6Address(orig.getValue().add(bigInc));
+					if(!newAddr.equals(expectedResult)) {
+						addFailure(new Failure("increment creation mismatch result " + 
+								newAddr + " vs expected " + expectedResult, orig));
+					}
+				}
+			}
+		}
+		super.testIncrement(orig, increment, expectedResult);
+	}
+
+	void testIncrement(String originalStr, BigInteger increment, String resultStr) {
+		testIncrement(createAddress(originalStr).getAddress().toIPv6(), increment, resultStr == null ? null : createAddress(resultStr).getAddress().toIPv6());
+	}
+
+	@Override
+	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult) {
+		if(expectedResult == null) {
+			super.testIncrement(orig.toIPv6(), increment, null);
+		} else {
+			super.testIncrement(orig.toIPv6(), increment, expectedResult);
+			if(orig.isSequential()) { 
+				IPv6Address newAddr = new IPv6Address(orig.getValue().add(increment));
+				if(!newAddr.equals(expectedResult)) {
+					addFailure(new Failure("increment creation mismatch result " + 
+							newAddr + " vs expected " + expectedResult, orig));
+				}
+			}
+		}
+	}
+
 	void testMaskedIncompatibleAddress(String address, String lower, String upper) {
 		testAddressStringRange(address, true, true, lower, upper, null, null, null);
 	}
@@ -4134,6 +4179,10 @@ public class IPAddressTest extends TestBase {
 	}
 
 	boolean allowsRange() {
+		return false;
+	}
+
+	boolean allowExtraneous() {
 		return false;
 	}
 
@@ -5557,6 +5606,68 @@ public class IPAddressTest extends TestBase {
 		ipv4testOnly(false, "1:2:3:4:5:6:7:8");
 		ipv4testOnly(false, "::1");
 		
+		// ipv6 not disallowed, but this can pass because < 20 digits, if the extraneous chars ipv4 option is enabled
+		ip_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaa7f000001", false); // 19 chars
+
+		// these two always fail because they are not ipv4-only, and they exceed 19 chars.  The only time we allow these is when ipv6 is disallowed.
+		ip_inet_aton_test(false, "0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001", false); // 57 chars
+		ip_inet_aton_test(false, "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899", false); // 57 chars
+
+		// ipv6 disallowed parsing means these are allowed when the extraneous chars ipv4 option is enabled
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaa7f000001", false); // 19 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaa7f000001", false); // 31 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001", false); // 57 chars
+		ipv4_inet_aton_test(allowExtraneous(), "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899", false); // 31 chars
+
+		testMatches(allowExtraneous(), "166.84.7.99", 
+				"30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899",
+				true);
+		testMatches(isLenient(), "166.84.7.99", "2790524771");
+		testMatches(isLenient(), "166.84.7.99", "2790524771");
+		testMatches(isLenient(), "166.84.7.99", "0b10100110010101000000011101100011");
+		testMatches(isLenient(), "166.84.7.99", "024625003543");
+		testMatches(isLenient(), "166.84.7.99", "166.0x540763");
+		testMatches(isLenient(), "166.84.7.99", "0246.84.07.0x63");
+
+		testMatches(isLenient(), "127.0.0.1", "127.0.00000000000000000000000000000000001");
+		testMatches(isLenient(), "127.0.0.1", "0177.0.0.01");
+		testMatches(isLenient(), "127.0.0.1", "0x7f.0x0.0x0.0x1");
+		testMatches(isLenient(), "127.0.0.1", "0x7f000001");
+		testMatches(allowExtraneous(), "127.0.0.1", "0xDEADBEEF7f000001", true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xBADF00D7f000001", true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xDEADC0DE7f000001", true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xBADC0DE7f000001", true);
+
+		testMatches(false, "127.0.0.1", "0xBA C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA%C0DE7f000001", true);//
+		testMatches(false, "127.0.0.1", "0xBA.C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA:C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA-C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA_C0DE7f000001", true);//
+		testMatches(false, "127.0.0.1", "0xBA*C0DE7f000001", true);//
+		testMatches(false, "127.0.0.1", "0xBAXC0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBAxC0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA" + IPAddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR + "C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA?C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA+C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA/C0DE7f000001", true);
+
+		testMatches(allowExtraneous(), "127.0.0.1",
+				"0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001",
+				true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xBAAAaaaaaaaaaaaaaaaaaaa7f000001", true); // 31 chars
+		testMatches(isLenient(), "127.0.0.1", "2130706433");
+		testMatches(isLenient(), "127.0.0.1", 
+				"00000000000000000000000000000000000000000000000000177.1");
+		testMatches(isLenient(), "127.0.0.1", "0x7f.1");
+		testMatches(isLenient(), "127.0.0.1", "127.0x1");
+
+		testMatches(isLenient(), "172.217.166.174", "172.14263982");
+		testMatches(isLenient(), "172.217.166.174", "0254.0xd9a6ae");
+		testMatches(isLenient(), "172.217.166.174", "0xac.000000000000000000331.0246.174");
+		testMatches(isLenient(), "172.217.166.174", "0254.14263982");
+
 		//in this test, the validation will fail unless validation options have allowEmpty
 		//if you allowempty and also emptyIsLoopback, then this will evaluate to either ipv4
 		//or ipv6 depending on the loopback
@@ -6481,6 +6592,7 @@ public class IPAddressTest extends TestBase {
 		testIncrement("ffff:ffff:ffff:ffff:f000::0", 1, "ffff:ffff:ffff:ffff:f000::1");
 		testIncrement("ffff:ffff:ffff:ffff:f000::0", -1, "ffff:ffff:ffff:ffff:efff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE, "ffff:ffff:ffff:ffff::");
+		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE + 1, "ffff:ffff:ffff:ffff::1");
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:ffff", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:fffe", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:fffe");
 		testIncrement("::8000:0:0:0", Long.MIN_VALUE, "::");
@@ -6514,6 +6626,18 @@ public class IPAddressTest extends TestBase {
 		testIncrement("::1:ffff", -0x10000, "::ffff");
 		testIncrement("::1:ffff", -0x10001, "::fffe");
 		
+		testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(126), "4001::1:ffff");
+		testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(127), "8001::1:ffff");
+		testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(128), null);
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", BigInteger.ONE, null);
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", BigInteger.ONE, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", BigInteger.ONE.negate(), "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe");
+		testIncrement("::", BigInteger.ONE.negate(), null);
+		testIncrement("::1", BigInteger.ONE.negate(), "::");
+		testIncrement("::", BigInteger.ZERO, "::");
+		//testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(131), null);
+
+
 		testLeadingZeroAddr("00.1.2.3", true);
 		testLeadingZeroAddr("1.00.2.3", true);
 		testLeadingZeroAddr("1.2.00.3", true);

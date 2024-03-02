@@ -334,7 +334,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	
 	@Override
 	public boolean includesZero() {
-		return getValue().equals(BigInteger.ZERO);
+		return getValue().signum() == 0;
 	}
 	
 	@Override
@@ -420,7 +420,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 				BigInteger highLow[] = val.divideAndRemainder(radixPower);
 				BigInteger high = highLow[0];
 				BigInteger low = highLow[1];
-				if(highest && high.equals(BigInteger.ZERO)) {
+				if(highest && high.signum() == 0) {
 					// only do low
 					toDefaultStringRecursive(low, radix, uppercase, choppedDigits, halfCount, dig, true, builder);
 				} else {
@@ -493,7 +493,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 				}
 				builder.append(dig[remainder.intValue()]);
 				val = quotient;
-			} while(!val.equals(BigInteger.ZERO));
+			} while(val.signum() != 0);
 			if(builder == null) {
 				return "";
 			}
@@ -757,7 +757,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 			BigInteger highLow[] = val.divideAndRemainder(bigRadix);
 			BigInteger quotient = highLow[0];
 			BigInteger remainder = highLow[1];
-			if(remainder.equals(BigInteger.ZERO)) {
+			if(remainder.signum() == 0) {
 				highLow = upperVal.divideAndRemainder(bigRadix);
 				BigInteger upperQuotient = highLow[0];
 				remainder = highLow[1];

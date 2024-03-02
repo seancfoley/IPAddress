@@ -450,6 +450,11 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	}
 	
 	@Override
+	public boolean overlaps(AddressSegment other) {
+		return this == other || (overlapsSeg(other) && other instanceof IPv6AddressSegment);
+	}
+
+	@Override
 	public boolean contains(AddressSegment other) {
 		return this == other || (containsSeg(other) && other instanceof IPv6AddressSegment);
 	}

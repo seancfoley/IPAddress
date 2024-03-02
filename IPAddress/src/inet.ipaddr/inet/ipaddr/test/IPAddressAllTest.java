@@ -514,14 +514,22 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 	};
 	
 	private static final IPAddressStringParameters DEFAULT_OPTIONS = new IPAddressStringParameters.Builder().toParams();
+	private static final IPAddressStringParameters EXTRANEOUS_DIGITS_OPTIONS = DEFAULT_OPTIONS.toBuilder().
+			getIPv4AddressParametersBuilder().allow_inet_aton_extraneous_digits(true).getParentBuilder().toParams();
+	private static final IPAddressStringParameters EXTRANEOUS_DIGITS_OPTIONS_IPV4 = EXTRANEOUS_DIGITS_OPTIONS.toBuilder().allowIPv6(false).toParams();
 	
 	IPAddressAllTest(AddressCreator creator) {
 		super(creator);
 	}
 	
 	@Override
-	protected IPAddressString createInetAtonAddress(String x) {
-		return createAddress(x);
+	protected IPAddressString createInetAtonAddress(String x) { // IPv6 disallowed, extraneous chars allowed
+		return createAddress(x, EXTRANEOUS_DIGITS_OPTIONS_IPV4);
+	}
+	
+	@Override
+	protected IPAddressString createIPInetAtonAddress(String x) { // extraneous chars allowed
+		return createAddress(x, EXTRANEOUS_DIGITS_OPTIONS);
 	}
 	
 	@Override
@@ -531,6 +539,11 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 
 	@Override
 	boolean isLenient() {
+		return true;
+	}
+	
+	@Override
+	boolean allowExtraneous() {
 		return true;
 	}
 	

@@ -18,6 +18,7 @@
 
 package inet.ipaddr.format;
 
+import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -49,6 +50,42 @@ public interface IPAddressRange extends AddressComponentRange {
 	 * @return
 	 */
 	boolean contains(IPAddress other);
+
+	/**
+	 * Returns whether this range overlaps with the given sequential range
+	 * 
+	 * @param other
+	 * @return
+	 */
+	boolean overlaps(IPAddressSeqRange other);
+
+	/**
+	 * Returns whether this range overlaps with the addresses in the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	boolean overlaps(IPAddress other);
+	
+	/**
+	 * Indicates where an address sits relative to the range ordering.
+	 * <p>
+	 * Determines how many address elements of a range precede the given address element, if the address is in the range.
+	 * If above the range, it is the distance to the upper boundary added to the range count, and if below the range, the distance to the lower boundary.
+	 * <p>
+	 * In other words, if the given address is not in the range but above it, returns the number of addresses preceding the address from the upper range boundary, 
+	 * added to the total number of range addresses.  If the given address is not in the subnet but below it, returns the number of addresses following the address to the lower subnet boundary.
+	 * <p>
+	 * Returns null when the argument is multi-valued. The argument must be an individual address.
+	 * <p>
+	 * When this is also an individual address, the returned value is the distance (difference) between the two address values.
+	 * <p>
+	 * If the given address does not have the same version or type, then null is returned.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	BigInteger enumerate(IPAddress other);
 
 	/**
 	 * Returns the address in the range with the lowest numeric value.

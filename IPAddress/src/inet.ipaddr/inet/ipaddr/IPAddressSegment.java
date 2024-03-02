@@ -802,6 +802,15 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 		return other.getSegmentValue() >= getSegmentValue() && other.getUpperSegmentValue() <= getUpperSegmentValue();
 	}
 
+	/**
+	 * 
+	 * @param other
+	 * @return whether this subnet segment overlaps with the given address segment
+	 */
+	protected boolean overlapsSeg(AddressSegment other) {
+		return other.getSegmentValue() <= getUpperSegmentValue() && other.getUpperSegmentValue() >= getSegmentValue();
+	}
+			
 	@Override
 	public boolean includesZero() {
 		return getSegmentValue() == 0;

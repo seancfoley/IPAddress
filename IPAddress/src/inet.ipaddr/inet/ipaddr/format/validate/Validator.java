@@ -224,6 +224,21 @@ public class Validator implements HostIdentifierStringValidator {
 		return backIsIpv4;
 	}
 
+	private static boolean hasExtraneousDigitsIPv4(
+			final IPAddressStringParameters validationOptions,
+			final IPv4AddressStringParameters ipv4SpecificOptions,
+			final IPv6AddressStringParameters ipv6SpecificOptions,
+			final int totalDigits) {
+		if(!ipv4SpecificOptions.inet_aton_extraneous_digits) {
+			return false;
+		} else if(!validationOptions.allowIPv6) {
+			return true; // any number of digits is allowed when IPv6 is ruled out
+		} else if(!ipv6SpecificOptions.allowBase85) {
+			return totalDigits < IPV6_SINGLE_SEGMENT_DIGIT_COUNT;
+		}
+		return totalDigits < IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT;
+	}
+
 	/**
 	 * This method is the mega-parser.
 	 * It is designed to go through the characters one-by-one as a big if/else.
@@ -276,7 +291,7 @@ public class Validator implements HostIdentifierStringValidator {
 			stringFormatParams = null;
 			parseData = ipAddressParseData.getAddressParseData();
 			ipv6SpecificOptions = validationOptions.getIPv6Parameters();
-			canBeBase85 = ipv6SpecificOptions.allowBase85;
+			canBeBase85 = ipv6SpecificOptions.allowBase85 && validationOptions.allowIPv6;
 			ipv4SpecificOptions = validationOptions.getIPv4Parameters();
 		}
 		
@@ -443,19 +458,20 @@ public class Validator implements HostIdentifierStringValidator {
 								throw new AddressStringException(str, "ipaddress.error.single.segment");
 							}
 							
-							boolean isRange = rangeWildcardIndex >= 0;
-							if(isSingleSegmentIPv6(totalDigits, isRange, frontTotalDigits, ipv6SpecificOptions)) {
+							if(canBeBase85 && 
+									parseBase85(validationOptions, str, strStartIndex, strEndIndex, ipAddressParseData,
+											extendedRangeWildcardIndex, totalCharacterCount, index)) {
+									break;
+							}
 								// we are not base 85, so throw if necessary
 								if(extendedCharacterIndex >= 0) {
 									throw new AddressStringException(str, extendedCharacterIndex);
 								}
+							boolean isRange = rangeWildcardIndex >= 0;
+							if(validationOptions.allowIPv6 && isSingleSegmentIPv6(totalDigits, isRange, frontTotalDigits, ipv6SpecificOptions)) {
 								isSingleIPv6 = true;
 								currentChar = IPv6Address.SEGMENT_SEPARATOR;
-							} else if(canBeBase85 && 
-									parseBase85(validationOptions, str, strStartIndex, strEndIndex, ipAddressParseData,
-											extendedRangeWildcardIndex, totalCharacterCount, index)) {
-									break;
-							} else {
+							} else if(validationOptions.allowIPv4) {
 								int leadingZeros = leadingZeroCount;
 								if(leadingWithZero) {
 									leadingZeros++;
@@ -466,15 +482,60 @@ public class Validator implements HostIdentifierStringValidator {
 									isRange,
 									frontDigitCount,
 									frontTotalDigits,
-									ipv4SpecificOptions)) {
-									// we are not base 85, so throw if necessary
-									if(extendedCharacterIndex >= 0) {
-										throw new AddressStringException(str, extendedCharacterIndex);
-									}
+									ipv4SpecificOptions)) { // < 12 digits, or binary allowed and 32 digits
 									currentChar = IPv4Address.SEGMENT_SEPARATOR;
+								} else if(hasExtraneousDigitsIPv4(validationOptions, ipv4SpecificOptions, ipv6SpecificOptions, totalDigits)) {
+									if(singleWildcardCount > 0 || wildcardCount > 0) {
+										throw new AddressStringException("ipaddress.error.invalid.character");
+									} else if(isRange) {
+										throw new AddressStringException(str, rangeWildcardIndex);
+									} else if(ipAddressParseData.getQualifierIndex() >= 0) {
+										throw new AddressStringException(str, ipAddressParseData.getQualifierIndex());
+									}
+
+									// We cannot allow normal parsing for decimal, because the remainder (mod of max uint32) does not work with the way we shift-store values hex values currentValueHex.
+									// We cannot allow normal parsing for octal.  This is because, even though the way we shift-store hex digits in currentValueHex works for octal, giving us the correct mod of max uint32,
+									// it does not allow us to check if overflow chars are octal.
+									// For hex, maybe we could use normal parsing, but we'd need to check for range chars here, we need to disallow them, and the code as written does not.
+									// So far all radices, we parse extraneous digits here.
+									int val;
+									int radix;
+									if(hexDelimiterIndex >= 0) {
+										if(!ipv4SpecificOptions.allowLeadingZeros) {
+											// the '0' preceding the 'x' is not allowed
+											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+										} else if(!ipv4SpecificOptions.inet_aton_hex) {
+											throw new AddressStringException(str, "ipaddress.error.ipv4.segment.hex");
+										} else if(leadingZeros > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+											// the '0' following the 'x' is not allowed
+											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+										}
+										radix = 16;
+										val = parseInt16(str, strEndIndex - 8, strEndIndex);
+									} else if(leadingZeros > 0 && ipv4SpecificOptions.inet_aton_octal) {
+										if(!ipv4SpecificOptions.allowLeadingZeros) {
+											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+										} else if(leadingZeros > 1 && !ipv4SpecificOptions.inet_aton_leading_zeros) {
+											throw new AddressStringException(str, "ipaddress.error.segment.leading.zeros");
+										}
+										radix = 8;
+										val = parseInt8(str, strStartIndex, strEndIndex);
+									} else {
+										radix = 10;
+										val = parseInt10(str, strStartIndex, strEndIndex);
+									}
+									ipAddressParseData.setVersion(IPVersion.IPV4);
+									ipAddressParseData.set_has_inet_aton_value(true);
+									parseData.initSegmentData(1);
+									parseData.incrementSegmentCount();
+									assign3Attributes1Values1Flags(strStartIndex + leadingZeros, strEndIndex, strStartIndex, parseData, 0, val, radix);
+									parseData.setSingleSegment();
+									break;
 								} else {
 									throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 								}
+							} else {
+								throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 							}
 							isSingleSegment = true;
 							parseData.setSingleSegment();
@@ -539,7 +600,7 @@ public class Validator implements HostIdentifierStringValidator {
 						ipAddressParseData.setVersion(version = IPVersion.IPV4);
 						stringFormatParams = ipv4SpecificOptions;
 						canBeBase85 = false;
-						parseData.initSegmentData(IPv4Address.SEGMENT_COUNT);
+						parseData.initSegmentData(IPv4Address.SEGMENT_COUNT); // there may be 1, 2, 3, or 4 segments, so we allocate for the max
 						isSegmented = true;
 					} else if(ipAddressParseData.getProviderIPVersion().isIPv6()) {
 						//mixed IPv6 address like 1:2:3:4:5:6:1.2.3.4
@@ -1583,9 +1644,6 @@ public class Validator implements HostIdentifierStringValidator {
 		AddressParseData parseData = ipAddressParseData.getAddressParseData();
 		if(extendedRangeWildcardIndex < 0) {
 			if(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT) {
-				if(!validationOptions.allowIPv6) {
-					throw new AddressStringException(str, "ipaddress.error.ipv6");
-				}
 				ipAddressParseData.setVersion(IPVersion.IPV6);
 				BigInteger val = parseBase85(str, strStartIndex, strEndIndex);
 				long value = val.and(LOW_BITS_MASK).longValue();
@@ -1593,7 +1651,7 @@ public class Validator implements HostIdentifierStringValidator {
 				long extendedValue = shift64.longValue();
 				//note that even with the correct number of digits, we can have a value too large
 				BigInteger shiftMore = shift64.shiftRight(Long.SIZE);
-				if(!shiftMore.equals(BigInteger.ZERO)) {
+				if(shiftMore.signum() != 0) {
 					throw new AddressStringException(str, "ipaddress.error.address.too.large");
 				}
 				parseData.initSegmentData(1);
@@ -1606,9 +1664,6 @@ public class Validator implements HostIdentifierStringValidator {
 			if(totalCharacterCount == (IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT << 1) + 1 /* two base 85 addresses */ ||
 					(totalCharacterCount == IPV6_BASE85_SINGLE_SEGMENT_DIGIT_COUNT + 1 &&
 					(extendedRangeWildcardIndex == 0 || extendedRangeWildcardIndex + 1 == strEndIndex)) /* inferred boundary */) {/* note that we already check that extendedRangeWildcardIndex is at index 20 */
-				if(!validationOptions.allowIPv6) {
-					throw new AddressStringException(str, "ipaddress.error.ipv6");
-				}
 				IPv6AddressStringParameters ipv6SpecificOptions = validationOptions.getIPv6Parameters();
 				if(!ipv6SpecificOptions.rangeOptions.allowsRangeSeparator()) {
 					throw new AddressStringException(str, "ipaddress.error.no.range");
@@ -1634,7 +1689,7 @@ public class Validator implements HostIdentifierStringValidator {
 							BigInteger shiftMoreVal = shift64.shiftRight(Long.SIZE);
 							if(!ipv6SpecificOptions.rangeOptions.allowsReverseRange()) {
 								throw new AddressStringException(str, "ipaddress.error.invalidRange");
-							} else if(!shiftMoreVal.equals(BigInteger.ZERO)) {
+							} else if(shiftMoreVal.signum() != 0) {
 								throw new AddressStringException(str, "ipaddress.error.address.too.large");
 							}
 							lowerStart = frontEndIndex + 1;
@@ -1642,7 +1697,7 @@ public class Validator implements HostIdentifierStringValidator {
 							upperStart = strStartIndex;
 							upperEnd = frontEndIndex;
 						} else {
-							if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
+							if(shiftMoreVal2.signum() != 0) {
 								throw new AddressStringException(str, "ipaddress.error.address.too.large");
 							}
 							lowerStart = strStartIndex;
@@ -1672,7 +1727,7 @@ public class Validator implements HostIdentifierStringValidator {
 					BigInteger shift64 = val2.shiftRight(Long.SIZE);
 					extendedValue2 = shift64.longValue();
 					BigInteger shiftMoreVal2 = shift64.shiftRight(Long.SIZE);
-					if(!shiftMoreVal2.equals(BigInteger.ZERO)) {
+					if(shiftMoreVal2.signum() != 0) {
 						throw new AddressStringException(str, "ipaddress.error.address.too.large");
 					}
 					upperStart = 1;
@@ -1892,18 +1947,24 @@ public class Validator implements HostIdentifierStringValidator {
 			final IPv4AddressStringParameters ipv4Options = validationOptions.getIPv4Parameters();
 			boolean hasWildcardSeparator = addressParseData.hasWildcard() && ipv4Options.allowWildcardedSeparator;
 			
+			boolean hasMissingSegs = false;
+			
 			//single segments are handled in the parsing code with the allowSingleSegment setting
-			if(missingCount > 0 && segCount > 1) {
-				if(ipv4Options.inet_aton_joinedSegments) {
-					parseData.set_inet_aton_joined(true);
-				} else if(!hasWildcardSeparator) {
-					throw new AddressStringException(fullAddr, "ipaddress.error.ipv4.too.few.segments");
+			if(missingCount > 0) {
+				if(segCount > 1) {
+					if(ipv4Options.inet_aton_joinedSegments) {
+							hasMissingSegs = true;
+							parseData.set_inet_aton_joined(true);
+					} else if(!hasWildcardSeparator) {
+						throw new AddressStringException(fullAddr, "ipaddress.error.ipv4.too.few.segments");
+					}
+				} else {
+					hasMissingSegs = ipv4Options.inet_aton_joinedSegments;
 				}
 			}
 
 			//here we check whether values are too large
 			boolean notUnlimitedLength = !ipv4Options.allowUnlimitedLeadingZeros;
-			boolean hasMissingSegs = missingCount > 0 && ipv4Options.inet_aton_joinedSegments;
 			for(int i = 0; i < segCount; i++) {
 				long max;
 				if(hasMissingSegs && i == segCount - 1) {
@@ -2970,22 +3031,34 @@ public class Validator implements HostIdentifierStringValidator {
 		return result;
 	}
 	
-	@SuppressWarnings("unused")
-	private static long parseLong8(CharSequence s, int start, int end) {
+	private static int parseInt8(CharSequence s, int start, int end) throws AddressStringException {
 		int charArray[] = chars;
-		long result = charArray[s.charAt(start)];
+		int result = charArray[s.charAt(start)];
+		if(result >= 8) {
+			throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.octal.digit");
+		}
 		while (++start < end) {
-			result = (result << 3) | charArray[s.charAt(start)];
+			int next = charArray[s.charAt(start)];
+			if(next >= 8) {
+				throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.octal.digit");
+			}
+			result = (result << 3) | next;
        }
 	   return result;
 	}
 	
-	@SuppressWarnings("unused")
-	private static long parseLong10(CharSequence s, int start, int end) {
+	private static int parseInt10(CharSequence s, int start, int end) throws AddressStringException {
 		int charArray[] = chars;
-		long result = charArray[s.charAt(start)];
+		int result = charArray[s.charAt(start)];
+		if(result >= 10) {
+			throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.decimal.digit");
+		}
 		while (++start < end) {
-			result = (result * 10) + charArray[s.charAt(start)];
+			int next = charArray[s.charAt(start)];
+			if(next >= 10) {
+				throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.decimal.digit");
+			}
+			result = (result * 10) + next;
 		}
 		return result;
 	}
@@ -2999,6 +3072,16 @@ public class Validator implements HostIdentifierStringValidator {
 		return result;
 	}
 	
+	private static int parseInt16(CharSequence s, int start, int end) {
+		int charArray[] = chars;
+		int result = charArray[s.charAt(start)];
+		while(++start < end) {
+			int next = charArray[s.charAt(start)];
+			result = (result << 4) | next;
+		}
+		return result;
+	}
+
 	static {
 		BigInteger eightyFive = BigInteger.valueOf(IPv6Address.BASE_85_RADIX);
 		BASE_85_POWERS[0] = BigInteger.ONE;

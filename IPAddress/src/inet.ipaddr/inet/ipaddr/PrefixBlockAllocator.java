@@ -66,13 +66,10 @@ public class PrefixBlockAllocator<E extends IPAddress> {
 	 * which is the total number of individual addresses in all the blocks.
 	 */
 	public BigInteger getTotalCount()   {
-		if(getBlockCount() == 0) {
+		if(getBlockCount() == 0 || blocks == null) {
 			return BigInteger.ZERO;
 		}
 		BigInteger result = BigInteger.ZERO;
-		if(blocks == null) {
-			return result;
-		}
 		IPVersion version = this.version;
 		for(int i = blocks.length - 1; i >= 0; i--) {
 			ArrayDeque<E> rowBlocks = blocks[i];
