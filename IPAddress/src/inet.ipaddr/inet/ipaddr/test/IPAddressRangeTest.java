@@ -1234,9 +1234,6 @@ public class IPAddressRangeTest extends IPAddressTest {
 			String singleOctal) {
 		IPAddressString w = createAddress(addr);
 		IPAddress ipAddr = w.getAddress();
-		
-		//createList(w);
-		
 		testIPv6Strings(w,
 				ipAddr,
 				normalizedString,
@@ -1287,7 +1284,50 @@ public class IPAddressRangeTest extends IPAddressTest {
 				addFailure(new Failure("failed expected: " + rangeList.get(i) + " actual: " + result[i], result[i]));
 			}
 		}
-		//System.out.println("matched up " + Arrays.asList(result));
+		incrementTestCount();
+	}
+	
+	void testOverlaps(boolean overlaps, String subnetStr1, String subnetStr2) {
+		IPAddress subnet1 = createAddress(subnetStr1).getAddress();
+		IPAddress subnet2 = createAddress(subnetStr2).getAddress();
+		boolean result = subnet1.overlaps(subnet2);
+		if(result != overlaps) {
+			addFailure(new Failure("failed expected overlap: " + overlaps + " for " + subnet1 + " with " + subnet2, subnet1));
+		}
+		result = subnet2.overlaps(subnet1);
+		if(result != overlaps) {
+			addFailure(new Failure("failed expected overlap: " + overlaps + " for " + subnet2 + " with " + subnet1, subnet1));
+		}
+		incrementTestCount();
+	}
+	
+	void testOverlaps(boolean overlaps, String rangeLow, String rangeHigh, String subnetStr) {
+		IPAddressString w = createAddress(rangeLow);
+		IPAddressString w2 = createAddress(rangeHigh);
+		IPAddressSeqRange rng = w.getAddress().spanWithRange(w2.getAddress());
+		IPAddress subnet = createAddress(subnetStr).getAddress();
+		boolean result = rng.overlaps(subnet);
+		if(result != overlaps) {
+			addFailure(new Failure("failed expected overlap: " + overlaps + " for " + rng + " with " + subnet, subnet));
+		}
+		incrementTestCount();
+	}
+	
+	void testSubnetContainsRange(boolean contains, String rangeLow, String rangeHigh, String subnetStr) {
+		IPAddressString w = createAddress(rangeLow);
+		IPAddressString w2 = createAddress(rangeHigh);
+		IPAddressSeqRange rng = w.getAddress().spanWithRange(w2.getAddress());
+		IPAddress subnet = createAddress(subnetStr).getAddress();
+		boolean result = subnet.contains(rng);
+		if(result != contains) {
+			addFailure(new Failure("failed expected contains: " + contains + " for " + subnet + " containing " + rng, subnet));;
+		}
+		if(contains) {
+			result = rng.overlaps(subnet);
+			if(!result) {
+				addFailure(new Failure("failed expected overlap for " + rng + " with " + subnet, subnet));;
+			}
+		}
 		incrementTestCount();
 	}
 	
@@ -4461,7 +4501,76 @@ public class IPAddressRangeTest extends IPAddressTest {
 					!isNoAutoSubnets ? ((3 * 256) * (2 * 256)) - (3 * 256) : 0, RangeParameters.WILDCARD_AND_RANGE);
 		
 		
+		testOverlaps(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.1.0.0/16");
+		testOverlaps(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.0.0.0/14");
+		testOverlaps(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.1.0.0/16");
+		testOverlaps(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.0.0.0/14");
+		testOverlaps(false, "1.1.254.255", "1.2.0.0", "1.1.253-254.1-3");
+		testOverlaps(true, "1.1.254.255", "1.2.0.0", "1.1.253-255.1-3");
+		testOverlaps(isAutoSubnets, "1.1.100.255", "1.2.0.0", "1.1.0.0/16");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.1.253-255.1-3");
+		testOverlaps(false, "1.1.100.255", "1.2.0.0", "1.2.253-255.1-3");
+		testOverlaps(false, "1.1.100.255", "1.2.0.0", "1.2-5.253-255.1-3");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.1-5.*.*");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.0-5.*.*");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.0-2.*.*");
+		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.0-1.*.*");
+		testOverlaps(isAutoSubnets, "1::1", "1::a:b:c:d", "1::/64");
+		testOverlaps(false, "1::1", "1::a:b:c:d", "1:2::/64");
+		testOverlaps(true, "1::1", "1::a:b:c:d", "1::a:b:c:d");
+		testOverlaps(true, "1::1", "1::a:b:c:d", "1::1");
+		testOverlaps(true, "1::1", "1::a:b:c:d", "1::a:b:c:*");
+		testOverlaps(true, "1::2:1", "1::5:ff", "1::1-3:1");
+		testOverlaps(true, "1::2:1", "1::5:ff", "1::2-3:1");
+		testOverlaps(true, "1::2:1", "1::5:ff", "1::5-6:1");
+		testOverlaps(false, "1::2:1", "1::5:ff", "1::5-6:fff");
 		
+		testOverlaps(true, "1::2-4:1", "1::1-3:1");
+		testContains("1::2-4:1", "1::1-3:1", false, false);
+		testOverlaps(true, "1::1-4:1", "1::1-3:1");
+		testContains("1::1-4:1", "1::1-3:1", true, false);
+		testOverlaps(false, "1::1-4:1", "1::1-3:2");
+		testContains("1::1-4:1", "1::1-3:2", false, false);
+		testOverlaps(false, "2::1-4:2", "1::1-3:2");
+		testContains("2::1-4:2", "1::1-3:2", false, false);
+		testOverlaps(true, "1-2::1-4:2", "1::1-3:2");
+		testContains("1-2::1-4:2", "1::1-3:2", true, false);
+		testOverlaps(true, "1-2::1-4:2", "1-2::1-4:2");
+		testContains("1-2::1-4:2", "1-2::1-4:2", true, true);
+		
+		testSubnetContainsRange(false, "1.1.254.255", "1.2.0.0", "1.1.0.0/16");
+		testSubnetContainsRange(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.0.0.0/14");
+		testSubnetContainsRange(false, "1.1.255.255", "1.2.0.0", "1.1.0.0/16");
+		testSubnetContainsRange(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.0.0.0/14");
+		testSubnetContainsRange(false, "1.1.254.255", "1.2.0.0", "1.1.253-254.1-3");
+		testSubnetContainsRange(false, "1.1.254.255", "1.2.0.0", "1.1.253-255.1-3");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.1.0.0/16");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.1.253-255.1-3");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.2.253-255.1-3");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.2-5.253-255.1-3");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
+		testSubnetContainsRange(true, "1.1.100.255", "1.2.0.0", "1.1-5.*.*");
+		testSubnetContainsRange(true, "1.1.100.255", "1.2.0.0", "1.0-5.*.*");
+		testSubnetContainsRange(true, "1.1.100.255", "1.2.0.0", "1.0-2.*.*");
+		testSubnetContainsRange(false, "1.1.100.255", "1.2.0.0", "1.0-1.*.*");
+		testSubnetContainsRange(isAutoSubnets, "1::1", "1::a:b:c:d", "1::/64");
+		testSubnetContainsRange(false, "1::1", "1::a:b:c:d", "1:2::/64");
+		testSubnetContainsRange(false, "1::1", "1::a:b:c:d", "1::a:b:c:d");
+		testSubnetContainsRange(false, "1::1", "1::a:b:c:d", "1::1");
+		testSubnetContainsRange(false, "1::1", "1::a:b:c:d", "1::a:b:c:*");
+		testSubnetContainsRange(false, "1::a:2:c:1", "1::a:b:c:d", "1::a:*:c:*"); // 1::a:3:0:0 not in the subnet
+		testSubnetContainsRange(false, "1::a:2:c:1", "1::a:3:c:d", "1::a:*:c:*"); // 1::a:3:0:0 not in the subnet
+		testSubnetContainsRange(false, "1::a:ffff:c:1", "1::b:0:c:d", "1::a-b:*:c:*"); // 1::b:0:0:0 not in the subnet
+		testSubnetContainsRange(true, "1::a:2:c:1", "1::a:2:c:d", "1::a:*:c:*");
+		testSubnetContainsRange(true, "1::a:2:c:1", "1::a:2:c:d", "1::a:2:c:*");
+		testSubnetContainsRange(true, "1::a:2:c:1", "1::a:b:c:d", "1::a:*:*:*");
+		testSubnetContainsRange(true, "1::a:b:c:1", "1::a:b:c:d", "1::a:b:c:*");
+		testSubnetContainsRange(true, "1::1", "1::a:b:c:d", "1:*");
+		testSubnetContainsRange(false, "1::2:1", "1::5:ff", "1::1-3:1");
+
 		ipv4test(true, "1.1.*.100-101", RangeParameters.WILDCARD_AND_RANGE);
 		ipv4test(true, "1.2.*.101-100", RangeParameters.WILDCARD_AND_RANGE);//downwards range 
 		ipv4test(false, "1.2.*.1010-100", RangeParameters.WILDCARD_AND_RANGE);//downwards range 
@@ -5702,6 +5811,15 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 7, "ffff:4:ffff:ffff:ffff:2:3::");
 		testIncrement("ffff:3-4:ffff:ffff:ffff:1-2:2-3::", 9, "ffff:4:ffff:ffff:ffff:2:3:2");
 		
+		testIncrement("1.*.*.*/16", 65539, "1.1.0.3");
+		testIncrement("1::*:*:*/80", 65539, "1::1:3");
+		
+		testIncrement("1.*.*.1-254", 65539, "1.1.2.8");
+		testIncrement("1::*:*:1-fffe", 65539, "1::1:6");
+		
+		testIncrement("::2-4:1-3", BigInteger.ONE.shiftLeft(3), "::4:3");
+		testIncrement("::2-4:1-3", BigInteger.ONE.shiftLeft(3).subtract(BigInteger.ONE), "::4:2");
+
 		testSpanAndMerge("1.2.3.0", "1.2.3.1", 1, isNoAutoSubnets ? new String[] {"1.2.3.0-1/31"} : new String[] {"1.2.3.0/31"}, 1, new String[] {"1.2.3.0-1"});//rangeCount
 		testSpanAndMerge("1.2.3.4", "1.2.5.8", 9, new String[] {"1.2.3.4-7/30", "1.2.3.8-15/29", "1.2.3.16-31/28", "1.2.3.32-63/27", "1.2.3.64-127/26", "1.2.3.128-255/25", "1.2.4.0-255/24", "1.2.5.0-7/29", "1.2.5.8"}, 3, new String[] {"1.2.3.4-255", "1.2.4.*", "1.2.5.0-8"});
 		

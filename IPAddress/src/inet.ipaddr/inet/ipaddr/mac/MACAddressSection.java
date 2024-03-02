@@ -41,8 +41,8 @@ import inet.ipaddr.format.standard.AddressDivision;
 import inet.ipaddr.format.standard.AddressDivisionGrouping;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
 import inet.ipaddr.format.string.AddressStringDivisionSeries;
-import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
 import inet.ipaddr.ipv6.IPv6AddressSection;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
@@ -969,9 +969,10 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	private long getLongValue(boolean lower) {
 		int segCount = getSegmentCount();
 		long result = 0;
+		int bitsPerSeg = getBitsPerSegment();
 		for(int i = 0; i < segCount; i++) {
 			MACAddressSegment seg = getSegment(i);
-			result = (result << getBitsPerSegment()) | (lower ? seg.getSegmentValue() : seg.getUpperSegmentValue());
+			result = (result << bitsPerSeg) | (lower ? seg.getSegmentValue() : seg.getUpperSegmentValue());
 		}
 		return result;
 	}
@@ -1507,26 +1508,20 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			return this;
 		}
 		if(!isExtended() || getSegmentCount() < 8) {
-			long lowerValue = longValue();
-			long upperValue = upperLongValue();
-			long count = getCount().longValue();
-			checkOverflow(increment, lowerValue, upperValue, count, () -> getMaxValueLong(getSegmentCount()));
+			checkOverflow(increment, this::longValue, this::upperLongValue, () -> getCount().longValue(), this::isSequential, () -> getMaxValueLong(getSegmentCount()));
 			return increment(
 					this,
 					increment,
 					getAddressCreator(),
-					getCount().longValue(),
-					longValue(),
-					upperLongValue(),
+					() -> getCount().longValue(),
+					this::longValue, 
+					this::upperLongValue,
 					this::getLower,
 					this::getUpper,
 					getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
 		}
-		BigInteger lowerValue = getValue();
-		BigInteger upperValue = getUpperValue();
-		BigInteger count = getCount();
 		BigInteger bigIncrement = BigInteger.valueOf(increment);
-		checkOverflow(increment, bigIncrement, lowerValue, upperValue, count, () -> getMaxValue(getSegmentCount()));
+		checkOverflow(increment, bigIncrement, this::getValue, this::getUpperValue, this::getCount, this::isSequential, () -> getMaxValue(getSegmentCount()));
 		Integer prefixLength = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength();
 		MACAddressSection result = fastIncrement(
 				this,
@@ -1729,6 +1724,23 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	}
 
 	@Override
+	public boolean overlaps(AddressSection other) {
+		return other instanceof MACAddressSection && overlaps((MACAddressSection) other);
+	}
+
+	/**
+	 * @param other
+	 * @return whether this section contains the given address section
+	 */
+	public boolean overlaps(MACAddressSection other) {
+		//check if they are comparable first
+		if(addressSegmentIndex != other.addressSegmentIndex || isExtended() != other.isExtended()) {
+			return false;
+		}
+		return overlaps(this, other);
+	}
+
+	@Override
 	public boolean contains(AddressSection other) {
 		return other instanceof MACAddressSection && contains((MACAddressSection) other);
 	}
@@ -1748,6 +1760,29 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			}
 		}
 		return true;
+	}
+
+	// only used by addresses, so we know the segment count is greater than 0
+	static BigInteger enumerate(MACAddressSection addr, AddressSection other) {
+		if(!addr.isExtended()) {
+			return BigInteger.valueOf(enumerateSmall(addr, other));
+		}
+		return enumerateBig(addr, other);
+	}
+
+	@Override
+	public BigInteger enumerate(AddressSection other) {
+		if(other instanceof MACAddressSection) {
+			checkSegmentCount(other);
+			MACAddressSection otherSec = (MACAddressSection) other;
+			if(addressSegmentIndex != otherSec.addressSegmentIndex) {
+				throw new AddressPositionException(this, addressSegmentIndex, otherSec.addressSegmentIndex);
+			} else if(!isExtended() || getSegmentCount() <= 7) {
+				enumerateSmall(this, other);
+			}
+			enumerateBig(this, other);
+		}
+		return null;
 	}
 
 	@Override

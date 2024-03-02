@@ -422,7 +422,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 					
 			@Override
 			public boolean hasNext() {
-				return !count.equals(BigInteger.ZERO);
+				return count.signum() != 0;
 			}
 
 			@Override
@@ -723,12 +723,106 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		return joined;
 	}
 	
+
+	boolean isContainedBy(IPAddress other) {
+		IPAddress lower = getLower(), upper = getUpper();
+		if(!lower.getIPVersion().equals(other.getIPVersion())) {
+			return false;
+		}
+		int segCount = lower.getSegmentCount();
+		for(int i = 0; i < segCount; i++) {
+			IPAddressSegment lowerSeg = lower.getSegment(i);
+			IPAddressSegment upperSeg = upper.getSegment(i);
+			int lowerSegValue = lowerSeg.getSegmentValue();
+			int upperSegValue = upperSeg.getSegmentValue();
+			IPAddressSegment otherSeg = other.getSegment(i);
+			int otherSegLowerValue = otherSeg.getSegmentValue();
+			int otherSegUpperValue = otherSeg.getUpperSegmentValue();
+			if(lowerSegValue < otherSegLowerValue || upperSegValue > otherSegUpperValue) {
+				return false;
+			}
+			if(lowerSegValue != upperSegValue) {
+				for(int j = i + 1; j < segCount; j++) {
+					otherSeg = other.getSegment(j);
+					if(!otherSeg.isFullRange()) {
+						return false;
+					}
+				}
+				break;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Returns true if this sequential range overlaps with the given address or subnet.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	@Override
+	public boolean overlaps(IPAddress other) {
+		IPAddress lower = getLower(), upper = getUpper();
+		if(!lower.getIPVersion().equals(other.getIPVersion())) {
+			return false;
+		}
+		int segCount = lower.getSegmentCount();
+		for(int i = 0; i < segCount; i++) {
+			IPAddressSegment lowerSeg = lower.getSegment(i);
+			IPAddressSegment upperSeg = upper.getSegment(i);
+			int lowerSegValue = lowerSeg.getSegmentValue();
+			int upperSegValue = upperSeg.getSegmentValue();
+			IPAddressSegment otherSeg = other.getSegment(i);
+			int otherSegLowerValue = otherSeg.getSegmentValue();
+			int otherSegUpperValue = otherSeg.getUpperSegmentValue();
+			if(lowerSegValue == upperSegValue) {
+				if(lowerSegValue < otherSegLowerValue || lowerSegValue > otherSegUpperValue) {
+					return false;
+				}
+			} else {
+				if(otherSegLowerValue < upperSegValue && otherSegUpperValue > lowerSegValue) {
+					return true;
+				} else if(otherSegLowerValue == upperSegValue) {
+					for(int j = i + 1; j < segCount; j++) {
+						otherSeg = other.getSegment(j);
+						upperSeg = upper.getSegment(j);
+						upperSegValue = upperSeg.getSegmentValue();
+						otherSegLowerValue = otherSeg.getSegmentValue();
+						if(otherSegLowerValue < upperSegValue) {
+							return true;
+						} else if(otherSegLowerValue > upperSegValue) {
+							return false;
+						}
+					}
+					break;
+				} else if(otherSegUpperValue == lowerSegValue) {
+					for(int j = i + 1; j < segCount; j++) {
+						otherSeg = other.getSegment(j);
+						lowerSeg = lower.getSegment(j);
+						lowerSegValue = lowerSeg.getSegmentValue();
+						otherSegUpperValue = otherSeg.getUpperSegmentValue();
+						if(otherSegUpperValue > lowerSegValue) {
+							return true;
+						} else if(otherSegUpperValue < lowerSegValue) {
+							return false;
+						}
+					}
+					break;
+				} else {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
 	/**
 	 * Returns true if this sequential range overlaps with the given sequential range.
 	 * 
 	 * @param other
 	 * @return
 	 */
+	@Override
 	public boolean overlaps(IPAddressSeqRange other) {
 		return compareLowValues(other.getLower(), getUpper()) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
 	}
@@ -754,6 +848,23 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	@Override
 	public boolean contains(IPAddressSeqRange other) {
 		return containsRange(other);
+	}
+
+	/**
+	 * Returns the distance of the given address from the initial value of this range.  Indicates where an address sits relative to the range ordering.
+	 * <p>
+	 * If within or above the range, it is the distance to the lower boundary of the sequential range.  If below the, returns the number of addresses following the address to the lower range boundary.
+	 * <p>
+	 * The method does not return null if this range does not contain the address.  You can call {@link #contains(IPAddress)} or you can compare with {@link #getCount()} to check for containment.
+	 * An address is in the range if 0 <= {@link #enumerate(IPAddress)} < {@link #getCount()}.
+	 * <p>
+	 * Returns null when the argument is a multi-valued subnet. The argument must be an individual address.
+	 * <p>
+	 * If the given address does not have the same version or type as the addresses in this range, then null is returned.
+	 */
+	@Override
+	public BigInteger enumerate(IPAddress other) {
+		return getLower().enumerate(other);
 	}
 
 	/**

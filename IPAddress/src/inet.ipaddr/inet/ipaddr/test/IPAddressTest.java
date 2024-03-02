@@ -575,6 +575,10 @@ public class IPAddressTest extends TestBase {
 		iptest(pass, x, isZero, notBothTheSame, true);
 	}
 	
+	void ip_inet_aton_test(boolean pass, String x, boolean isZero) {
+		iptest(pass, createIPInetAtonAddress(x), isZero, false, true);
+	}
+	
 	void ipv6testOnly(int pass, String x) {
 		iptest(pass == 0 ? false : true, createAddress(x), false, true, false);
 	}
@@ -1093,6 +1097,11 @@ public class IPAddressTest extends TestBase {
 				} else if(equal ? !(w2.contains(w) || conversionContains(w2, w)) : (w2.contains(w) || conversionContains(w2, w))) {
 					addFailure(new Failure("failed " + w, w2));
 				}
+				if(firstContains) {
+					if(!w.overlaps(w2) || !w2.overlaps(w)) {
+						addFailure(new Failure("overlap passed " + w2, w));
+					}
+				}
 			}
 			if(!convCont) {
 				testStringContains(result, equal, wstr, w2str);
@@ -1502,9 +1511,6 @@ public class IPAddressTest extends TestBase {
 		IPAddressString h2 = inet_aton ? createInetAtonAddress(host2Str) : createAddress(host2Str);
 		boolean straightMatch = h1.equals(h2);
 		if(matches != straightMatch && matches != conversionMatches(h1, h2)) {
-			h1.equals(h2);
-			System.out.println(h1 + ": " + h1.getAddress());
-			System.out.println(h2 + ": " + h2.getAddress());
 			addFailure(new Failure("failed: match " + (matches ? "fails" : "passes") + " with " + h2, h1));
 		} else {
 			if(matches != h2.equals(h1) && matches != conversionMatches(h2, h1)) {
@@ -3476,6 +3482,45 @@ public class IPAddressTest extends TestBase {
 		testIncrement(createAddress(originalStr).getAddress(), increment, resultStr == null ? null : createAddress(resultStr).getAddress());
 	}
 	
+	void testIncrement(IPAddress orig, long increment, IPAddress expectedResult) {
+		if(orig.isIPv6()) { // test the variant that takes BigInteger increments
+			if(expectedResult == null) {
+				super.testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), null);
+			} else {
+				BigInteger bigInc =  BigInteger.valueOf(increment);
+				super.testIncrement(orig.toIPv6(), bigInc, expectedResult.toIPv6());
+				if(orig.isSequential()) { 
+					IPv6Address newAddr = new IPv6Address(orig.getValue().add(bigInc));
+					if(!newAddr.equals(expectedResult)) {
+						addFailure(new Failure("increment creation mismatch result " + 
+								newAddr + " vs expected " + expectedResult, orig));
+					}
+				}
+			}
+		}
+		super.testIncrement(orig, increment, expectedResult);
+	}
+
+	void testIncrement(String originalStr, BigInteger increment, String resultStr) {
+		testIncrement(createAddress(originalStr).getAddress().toIPv6(), increment, resultStr == null ? null : createAddress(resultStr).getAddress().toIPv6());
+	}
+
+	@Override
+	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult) {
+		if(expectedResult == null) {
+			super.testIncrement(orig.toIPv6(), increment, null);
+		} else {
+			super.testIncrement(orig.toIPv6(), increment, expectedResult);
+			if(orig.isSequential()) { 
+				IPv6Address newAddr = new IPv6Address(orig.getValue().add(increment));
+				if(!newAddr.equals(expectedResult)) {
+					addFailure(new Failure("increment creation mismatch result " + 
+							newAddr + " vs expected " + expectedResult, orig));
+				}
+			}
+		}
+	}
+
 	void testMaskedIncompatibleAddress(String address, String lower, String upper) {
 		testAddressStringRange(address, true, true, lower, upper, null, null, null);
 	}
@@ -4134,6 +4179,10 @@ public class IPAddressTest extends TestBase {
 	}
 
 	boolean allowsRange() {
+		return false;
+	}
+
+	boolean allowExtraneous() {
 		return false;
 	}
 
@@ -5557,23 +5606,85 @@ public class IPAddressTest extends TestBase {
 		ipv4testOnly(false, "1:2:3:4:5:6:7:8");
 		ipv4testOnly(false, "::1");
 		
+		// ipv6 not disallowed, but this can pass because < 20 digits, if the extraneous chars ipv4 option is enabled
+		ip_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaa7f000001", false); // 19 chars
+
+		// these two always fail because they are not ipv4-only, and they exceed 19 chars.  The only time we allow these is when ipv6 is disallowed.
+		ip_inet_aton_test(false, "0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001", false); // 57 chars
+		ip_inet_aton_test(false, "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899", false); // 57 chars
+
+		// ipv6 disallowed parsing means these are allowed when the extraneous chars ipv4 option is enabled
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaa7f000001", false); // 19 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaa7f000001", false); // 31 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001", false); // 57 chars
+		ipv4_inet_aton_test(allowExtraneous(), "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899", false); // 31 chars
+
+		testMatches(allowExtraneous(), "166.84.7.99", 
+				"30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899",
+				true);
+		testMatches(isLenient(), "166.84.7.99", "2790524771");
+		testMatches(isLenient(), "166.84.7.99", "2790524771");
+		testMatches(isLenient(), "166.84.7.99", "0b10100110010101000000011101100011");
+		testMatches(isLenient(), "166.84.7.99", "024625003543");
+		testMatches(isLenient(), "166.84.7.99", "166.0x540763");
+		testMatches(isLenient(), "166.84.7.99", "0246.84.07.0x63");
+
+		testMatches(isLenient(), "127.0.0.1", "127.0.00000000000000000000000000000000001");
+		testMatches(isLenient(), "127.0.0.1", "0177.0.0.01");
+		testMatches(isLenient(), "127.0.0.1", "0x7f.0x0.0x0.0x1");
+		testMatches(isLenient(), "127.0.0.1", "0x7f000001");
+		testMatches(allowExtraneous(), "127.0.0.1", "0xDEADBEEF7f000001", true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xBADF00D7f000001", true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xDEADC0DE7f000001", true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xBADC0DE7f000001", true);
+
+		testMatches(false, "127.0.0.1", "0xBA C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA%C0DE7f000001", true);//
+		testMatches(false, "127.0.0.1", "0xBA.C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA:C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA-C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA_C0DE7f000001", true);//
+		testMatches(false, "127.0.0.1", "0xBA*C0DE7f000001", true);//
+		testMatches(false, "127.0.0.1", "0xBAXC0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBAxC0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA" + IPAddressLargeDivision.EXTENDED_DIGITS_RANGE_SEPARATOR + "C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA" + IPv6Address.ALTERNATIVE_ZONE_SEPARATOR + "C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA?C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA+C0DE7f000001", true);
+		testMatches(false, "127.0.0.1", "0xBA/C0DE7f000001", true);
+
+		testMatches(allowExtraneous(), "127.0.0.1",
+				"0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001",
+				true);
+		testMatches(allowExtraneous(), "127.0.0.1", "0xBAAAaaaaaaaaaaaaaaaaaaa7f000001", true); // 31 chars
+		testMatches(isLenient(), "127.0.0.1", "2130706433");
+		testMatches(isLenient(), "127.0.0.1", 
+				"00000000000000000000000000000000000000000000000000177.1");
+		testMatches(isLenient(), "127.0.0.1", "0x7f.1");
+		testMatches(isLenient(), "127.0.0.1", "127.0x1");
+
+		testMatches(isLenient(), "172.217.166.174", "172.14263982");
+		testMatches(isLenient(), "172.217.166.174", "0254.0xd9a6ae");
+		testMatches(isLenient(), "172.217.166.174", "0xac.000000000000000000331.0246.174");
+		testMatches(isLenient(), "172.217.166.174", "0254.14263982");
+
 		//in this test, the validation will fail unless validation options have allowEmpty
 		//if you allowempty and also emptyIsLoopback, then this will evaluate to either ipv4
 		//or ipv6 depending on the loopback
 		//if loopback is ipv4, then ipv6 validation fails but general validation passes because ipv4 passes because loopback is ipv4
 		ipv6test(false, "", false, isLenient());	
 		//ipv6test(0, ""); // empty string //this needs special validation options to be valid
-		
+
 		ipv6test(1, "/0");
 		ipv6test(1, "/1");
 		ipv6test(1, "/127");
 		ipv6test(1, "/128");
 		ipv6test(0, "/129");
-		
+
 		ipv6test(1, "::/0", isNoAutoSubnets); 
 		ipv6test(0, ":1.2.3.4"); //invalid
 		ipv6test(1, "::1.2.3.4");
-		
+
 		ipv6test(1,"::1");// loopback, compressed, non-routable
 		ipv6test(1,"::", true);// unspecified, compressed, non-routable
 		ipv6test(1,"0:0:0:0:0:0:0:1");// loopback, full
@@ -5585,14 +5696,14 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"2001:DB8:0:0:8:800:200C:417A:221");// unicast, full
 		ipv6test(0,"FF01::101::2");// multicast, compressed
 		ipv6test(1,"fe80::217:f2ff:fe07:ed62");
-		
+
 		ipv6test(0,"[a::b:c:d:1.2.3.4]");//square brackets can enclose ipv6 in host names but not addresses
 		ipv6testWithZone(0,"[a::b:c:d:1.2.3.4%x]");//zones not allowed when using []
 		ipv6testWithZone(true,"a::b:c:d:1.2.3.4%x"); //zones allowed
 		ipv6test(0,"[2001:0000:1234:0000:0000:C1C0:ABCD:0876]");//square brackets can enclose ipv6 in host names but not addresses
 		ipv6testWithZone(true,"2001:0000:1234:0000:0000:C1C0:ABCD:0876%x");//zones allowed
 		ipv6testWithZone(0,"[2001:0000:1234:0000:0000:C1C0:ABCD:0876%x]");//zones not allowed when using []
-		
+
 		ipv6test(1,"2001:0000:1234:0000:0000:C1C0:ABCD:0876");
 		ipv6test(1,"3ffe:0b00:0000:0000:0001:0000:0000:000a");
 		ipv6test(1,"FF02:0000:0000:0000:0000:0000:0000:0001");
@@ -5603,7 +5714,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"2001:0000:1234:0000:0000:C1C0:ABCD:0876  0"); // junk after valid address
 		ipv6test(0,"0 2001:0000:1234:0000:0000:C1C0:ABCD:0876"); // junk before valid address
 		ipv6test(0,"2001:0000:1234: 0000:0000:C1C0:ABCD:0876"); // internal space
-		
+
 		ipv6test(0,"3ffe:0b00:0000:0001:0000:0000:000a"); // seven segments
 		ipv6test(0,"FF02:0000:0000:0000:0000:0000:0000:0000:0001"); // nine segments
 		ipv6test(0,"3ffe:b00::1::a"); // double "::"
@@ -5629,7 +5740,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"1::2:3:4");
 		ipv6test(1,"1::2:3");
 		ipv6test(1,"1::8");
-		
+
 		ipv6test(1,"::2:3:4:5:6:7:8");
 		ipv6test(1,"::2:3:4:5:6:7");
 		ipv6test(1,"::2:3:4:5:6");
@@ -5650,22 +5761,22 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"1:2:3::7:8");
 		ipv6test(1,"1:2::7:8");
 		ipv6test(1,"1::7:8");
-		
+
 		// IPv4 addresses as dotted-quads
 		ipv6test(1,"1:2:3:4:5:6:1.2.3.4");
 		ipv6test(1,"0:0:0:0:0:0:0.0.0.0", true);
-		
+
 		ipv6test(1,"1:2:3:4:5::1.2.3.4");
 		ipv6test(1,"0:0:0:0:0::0.0.0.0", true);
-		
+
 		ipv6test(1,"0::0.0.0.0", true);
 		ipv6test(1,"::0.0.0.0", true);
-		
+
 		ipv6test(0, "1:2:3:4:5:6:.2.3.4");
 		ipv6test(0, "1:2:3:4:5:6:1.2.3.");
 		ipv6test(0, "1:2:3:4:5:6:1.2..4");
 		ipv6test(1, "1:2:3:4:5:6:1.2.3.4");
-		
+
 		ipv6test(1,"1:2:3:4::1.2.3.4");
 		ipv6test(1,"1:2:3::1.2.3.4");
 		ipv6test(1,"1:2::1.2.3.4");
@@ -5738,28 +5849,28 @@ public class IPAddressTest extends TestBase {
 		ipv6test(isLenient(),"::ffff:2.3.4");
 		ipv6test(0,"::ffff:257.1.2.3");
 		ipv6testOnly(0,"1.2.3.4");
-		
+
 		//stuff that might be mistaken for mixed if we parse incorrectly
 		ipv6test(0,"a:b:c:d:e:f:a:b:c:d:e:f:1.2.3.4");
 		ipv6test(0,"a:b:c:d:e:f:a:b:c:d:e:f:a:b.");
 		ipv6test(0,"a:b:c:d:e:f:1.a:b:c:d:e:f:a");
 		ipv6test(0,"a:b:c:d:e:f:1.a:b:c:d:e:f:a:b");
 		ipv6test(0,"a:b:c:d:e:f:.a:b:c:d:e:f:a:b");
-		
+
 		ipv6test(0,"::a:b:c:d:e:f:1.2.3.4");
 		ipv6test(0,"::a:b:c:d:e:f:a:b.");
 		ipv6test(0,"::1.a:b:c:d:e:f:a");
 		ipv6test(0,"::1.a:b:c:d:e:f:a:b");
 		ipv6test(0,"::.a:b:c:d:e:f:a:b");
-		
+
 		ipv6test(0,"1::a:b:c:d:e:f:1.2.3.4");
 		ipv6test(0,"1::a:b:c:d:e:f:a:b.");
 		ipv6test(0,"1::1.a:b:c:d:e:f:a");
 		ipv6test(0,"1::1.a:b:c:d:e:f:a:b");
 		ipv6test(0,"1::.a:b:c:d:e:f:a:b");
-		
+
 		ipv6test(1,"1:2:3:4:5:6:1.2.3.4/1:2:3:4:5:6:1.2.3.4");
-		
+
 		// Testing IPv4 addresses represented as dotted-quads
 		// Leading zero's in IPv4 addresses not allowed: some systems treat the leading "0" in ".086" as the start of an octal number
 		// Update: The BNF in RFC-3986 explicitly defines the dec-octet (for IPv4 addresses) not to have a leading zero
@@ -5772,8 +5883,8 @@ public class IPAddressTest extends TestBase {
 		//ipv6test(0,"1111:2222:3333:4444:5555:6666:000.000.000.000");
 		ipv6test(1,"1111:2222:3333:4444:5555:6666:000.000.000.000");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:256.256.256.256");
-		
-		
+
+
 		// Not testing address with subnet mask
 		// ipv6test(1,"2001:0DB8:0000:CD30:0000:0000:0000:0000/60");// full, with prefix
 		// ipv6test(1,"2001:0DB8::CD30:0:0:0:0/60");// compressed, with prefix
@@ -5784,7 +5895,7 @@ public class IPAddressTest extends TestBase {
 		// ipv6test(1,"FE80::/10");// compressed, link-local unicast, non-routable
 		// ipv6test(1,"FEC0::/10");// compressed, site-local unicast, deprecated
 		// ipv6test(0,"124.15.6.89/60");// standard IPv4, prefix not allowed
-		
+
 		ipv6test(1,"fe80:0000:0000:0000:0204:61ff:fe9d:f156");
 		ipv6test(1,"fe80:0:0:0:204:61ff:fe9d:f156");
 		ipv6test(1,"fe80::204:61ff:fe9d:f156");
@@ -5793,34 +5904,34 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"fe80::1");
 		ipv6test(0,":");
 		ipv6test(1,"::ffff:c000:280");
-		
+
 		// Aeron supplied these test cases
-		
+
 		ipv6test(0,"1111:2222:3333:4444::5555:");
 		ipv6test(0,"1111:2222:3333::5555:");
 		ipv6test(0,"1111:2222::5555:");
 		ipv6test(0,"1111::5555:");
 		ipv6test(0,"::5555:");
-		
-		
+
+
 		ipv6test(0,":::");
 		ipv6test(0,"1111:");
 		ipv6test(0,":");
-		
-		
+
+
 		ipv6test(0,":1111:2222:3333:4444::5555");
 		ipv6test(0,":1111:2222:3333::5555");
 		ipv6test(0,":1111:2222::5555");
 		ipv6test(0,":1111::5555");
-		
-		
+
+
 		ipv6test(0,":::5555");
 		ipv6test(0,":::");
-		
-		
+
+
 		// Additional test cases
 		// from http://rt.cpan.org/Public/Bug/Display.html?id=50693
-		
+
 		ipv6test(1,"2001:0db8:85a3:0000:0000:8a2e:0370:7334");
 		ipv6test(1,"2001:db8:85a3:0:0:8a2e:370:7334");
 		ipv6test(1,"2001:db8:85a3::8a2e:370:7334");
@@ -5837,7 +5948,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"2001:0db8:1234:ffff:ffff:ffff:ffff:ffff");
 		ipv6test(1,"2001:db8:a::123");
 		ipv6test(1,"fe80::");
-		
+
 		ipv6test(false, "123", false, isLenient());//this is passing the ipv4 side as inet_aton
 		ipv6test(0,"ldkfj");
 		ipv6test(0,"2001::FFD3::57ab");
@@ -5847,7 +5958,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1::2::3");
 		ipv6test(0,"1:::3:4:5");
 		ipv6test(0,"1:2:3::4:5:6:7:8:9");
-		
+
 		ipv6test(1,"1111:2222:3333:4444:5555:6666:7777:8888");
 		ipv6test(1,"1111:2222:3333:4444:5555:6666:7777::");
 		ipv6test(1,"1111:2222:3333:4444:5555:6666::");
@@ -5884,8 +5995,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"1111::3333:4444:5555:6666:7777:8888");
 		ipv6test(1,"::3333:4444:5555:6666:7777:8888");
 		ipv6test(1,"::2222:3333:4444:5555:6666:7777:8888");
-		
-		
+
+
 		ipv6test(1,"1111:2222:3333:4444:5555:6666:123.123.123.123");
 		ipv6test(1,"1111:2222:3333:4444:5555::123.123.123.123");
 		ipv6test(1,"1111:2222:3333:4444::123.123.123.123");
@@ -5907,12 +6018,12 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"::4444:5555:6666:123.123.123.123");
 		ipv6test(1,"1111::3333:4444:5555:6666:123.123.123.123");
 		ipv6test(1,"::2222:3333:4444:5555:6666:123.123.123.123");
-		
+
 		ipv6test(0,"1::2:3:4:5:6:1.2.3.4");
-		
+
 		ipv6test(1,"::", true);
 		ipv6test(1,"0:0:0:0:0:0:0:0", true);
-		
+
 		// Playing with combinations of "0" and "::"
 		// NB: these are all sytactically correct, but are bad form
 		//   because "0" adjacent to "::" should be combined into "::"
@@ -5930,18 +6041,18 @@ public class IPAddressTest extends TestBase {
 		ipv6test(1,"0:0:0::", true);
 		ipv6test(1,"0:0::", true);
 		ipv6test(1,"0::", true);
-		
-		
-		
+
+
+
 		// New invalid from Aeron
 		// Invalid data
 		ipv6test(0,"XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX");
-		
+
 		// Too many components
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:8888:9999");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:8888::");
 		ipv6test(0,"::2222:3333:4444:5555:6666:7777:8888:9999");
-		
+
 		// Too few components
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666");
@@ -5951,7 +6062,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222");
 		ipv6test(false, "1111", false, isLenient());// this is passing the ipv4 side for inet_aton
 		//ipv6test(0,"1111");
-		
+
 		// Missing :
 		ipv6test(0,"11112222:3333:4444:5555:6666:7777:8888");
 		ipv6test(0,"1111:22223333:4444:5555:6666:7777:8888");
@@ -5960,7 +6071,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:3333:4444:55556666:7777:8888");
 		ipv6test(0,"1111:2222:3333:4444:5555:66667777:8888");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:77778888");
-		
+
 		// Missing : intended for ::
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:8888:");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:");
@@ -5979,7 +6090,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,":3333:4444:5555:6666:7777:8888");
 		ipv6test(0,":2222:3333:4444:5555:6666:7777:8888");
 		ipv6test(0,":1111:2222:3333:4444:5555:6666:7777:8888");
-		
+
 		// :::
 		ipv6test(0,":::2222:3333:4444:5555:6666:7777:8888");
 		ipv6test(0,"1111:::3333:4444:5555:6666:7777:8888");
@@ -5989,7 +6100,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:3333:4444:5555:::7777:8888");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:::8888");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:::");
-		
+
 		// Double ::");
 		ipv6test(0,"::2222::4444:5555:6666:7777:8888");
 		ipv6test(0,"::2222:3333::5555:6666:7777:8888");
@@ -5997,36 +6108,36 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"::2222:3333:4444:5555::7777:8888");
 		ipv6test(0,"::2222:3333:4444:5555:7777::8888");
 		ipv6test(0,"::2222:3333:4444:5555:7777:8888::");
-		
+
 		ipv6test(0,"1111::3333::5555:6666:7777:8888");
 		ipv6test(0,"1111::3333:4444::6666:7777:8888");
 		ipv6test(0,"1111::3333:4444:5555::7777:8888");
 		ipv6test(0,"1111::3333:4444:5555:6666::8888");
 		ipv6test(0,"1111::3333:4444:5555:6666:7777::");
-		
+
 		ipv6test(0,"1111:2222::4444::6666:7777:8888");
 		ipv6test(0,"1111:2222::4444:5555::7777:8888");
 		ipv6test(0,"1111:2222::4444:5555:6666::8888");
 		ipv6test(0,"1111:2222::4444:5555:6666:7777::");
-		
+
 		ipv6test(0,"1111:2222:3333::5555::7777:8888");
 		ipv6test(0,"1111:2222:3333::5555:6666::8888");
 		ipv6test(0,"1111:2222:3333::5555:6666:7777::");
-		
+
 		ipv6test(0,"1111:2222:3333:4444::6666::8888");
 		ipv6test(0,"1111:2222:3333:4444::6666:7777::");
-		
+
 		ipv6test(0,"1111:2222:3333:4444:5555::7777::");
-		
-		
-		
+
+
+
 		// Too many components"
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:8888:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666::1.2.3.4");
 		ipv6test(0,"::2222:3333:4444:5555:6666:7777:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:1.2.3.4.5");
-		
+
 		// Too few components
 		ipv6test(0,"1111:2222:3333:4444:5555:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:1.2.3.4");
@@ -6034,7 +6145,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:1.2.3.4");
 		ipv6test(0,"1111:1.2.3.4");
 		ipv6testOnly(0,"1.2.3.4");
-		
+
 		// Missing :
 		ipv6test(0,"11112222:3333:4444:5555:6666:1.2.3.4");
 		ipv6test(0,"1111:22223333:4444:5555:6666:1.2.3.4");
@@ -6042,13 +6153,13 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:3333:44445555:6666:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:55556666:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:5555:66661.2.3.4");
-		
+
 		// Missing .
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:255255.255.255");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:255.255255.255");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:255.255.255255");
-		
-		
+
+
 		// Missing : intended for ::
 		ipv6test(0,":1.2.3.4");
 		ipv6test(0,":6666:1.2.3.4");
@@ -6057,7 +6168,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,":3333:4444:5555:6666:1.2.3.4");
 		ipv6test(0,":2222:3333:4444:5555:6666:1.2.3.4");
 		ipv6test(0,":1111:2222:3333:4444:5555:6666:1.2.3.4");
-		
+
 		// :::
 		ipv6test(0,":::2222:3333:4444:5555:6666:1.2.3.4");
 		ipv6test(0,"1111:::3333:4444:5555:6666:1.2.3.4");
@@ -6065,24 +6176,23 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222:3333:::5555:6666:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:::6666:1.2.3.4");
 		ipv6test(0,"1111:2222:3333:4444:5555:::1.2.3.4");
-		
+
 		// Double ::
 		ipv6test(0,"::2222::4444:5555:6666:1.2.3.4");
 		ipv6test(0,"::2222:3333::5555:6666:1.2.3.4");
 		ipv6test(0,"::2222:3333:4444::6666:1.2.3.4");
 		ipv6test(0,"::2222:3333:4444:5555::1.2.3.4");
-		
+
 		ipv6test(0,"1111::3333::5555:6666:1.2.3.4");
 		ipv6test(0,"1111::3333:4444::6666:1.2.3.4");
 		ipv6test(0,"1111::3333:4444:5555::1.2.3.4");
-		
+
 		ipv6test(0,"1111:2222::4444::6666:1.2.3.4");
 		ipv6test(0,"1111:2222::4444:5555::1.2.3.4");
-		
+
 		ipv6test(0,"1111:2222:3333::5555::1.2.3.4");
-		
-		
-		
+
+
 		// Missing parts
 		ipv6test(0,"::.");
 		ipv6test(0,"::..");
@@ -6096,8 +6206,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"::..3.");
 		ipv6test(0,"::..3.4");
 		ipv6test(0,"::...4");
-		
-		
+
+
 		// Extra : in front
 		ipv6test(0,":1111:2222:3333:4444:5555:6666:7777::");
 		ipv6test(0,":1111:2222:3333:4444:5555:6666::");
@@ -6135,8 +6245,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,":1111::3333:4444:5555:6666:7777:8888");
 		ipv6test(0,":::3333:4444:5555:6666:7777:8888");
 		ipv6test(0,":::2222:3333:4444:5555:6666:7777:8888");
-		
-		
+
+
 		ipv6test(0,":1111:2222:3333:4444:5555:6666:1.2.3.4");
 		ipv6test(0,":1111:2222:3333:4444:5555::1.2.3.4");
 		ipv6test(0,":1111:2222:3333:4444::1.2.3.4");
@@ -6158,8 +6268,8 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,":::4444:5555:6666:1.2.3.4");
 		ipv6test(0,":1111::3333:4444:5555:6666:1.2.3.4");
 		ipv6test(0,":::2222:3333:4444:5555:6666:1.2.3.4");
-		
-		
+
+
 		// Extra : at end
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:7777:::");
 		ipv6test(0,"1111:2222:3333:4444:5555:6666:::");
@@ -6197,38 +6307,38 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111::3333:4444:5555:6666:7777:8888:");
 		ipv6test(0,"::3333:4444:5555:6666:7777:8888:");
 		ipv6test(0,"::2222:3333:4444:5555:6666:7777:8888:");
-		
+
 		// Additional cases: http://crisp.tweakblogs.net/blog/2031/ipv6-validation-%28and-caveats%29.html
 		ipv6test(1,"0:a:b:c:d:e:f::");
 		ipv6test(1,"::0:a:b:c:d:e:f"); // syntactically correct, but bad form (::0:... could be combined)
 		ipv6test(1,"a:b:c:d:e:f:0::");
 		ipv6test(0,"':10.0.0.1");
-		
+
 		testInsertAndAppend("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8", new Integer[9]);
 		testInsertAndAppend("1.2.3.4", "5.6.7.8", new Integer[5]);
-		
+
 		testReplace("a:b:c:d:e:f:aa:bb", "1:2:3:4:5:6:7:8");
 		testReplace("1.2.3.4", "5.6.7.8");
-		
+
 		testSQLMatching();
-		
+
 		testInvalidIpv4Values();
-		
+
 		testInvalidIpv6Values();
-		
+
 		testIPv4Values(new int[] {1, 2, 3, 4}, "16909060");
 		testIPv4Values(new int[4], "0");
 		testIPv4Values(new int[] {255, 255, 255, 255}, String.valueOf(0xffffffffL));
-		
+
 		testIPv6Values(new int[] {1, 2, 3, 4, 5, 6, 7, 8}, "5192455318486707404433266433261576");
 		testIPv6Values(new int[8], "0");
 		BigInteger thirtyTwo = BigInteger.valueOf(0xffffffffL);
 		BigInteger one28 = thirtyTwo.shiftLeft(96).or(thirtyTwo.shiftLeft(64).or(thirtyTwo.shiftLeft(32).or(thirtyTwo)));
 		testIPv6Values(new int[] {0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}, one28.toString());
-		
-		
+
+
 		testSub("10.0.0.0/22", "10.0.1.0/24", isNoAutoSubnets ?  new String[] {"10.0.0.0/22"} : new String[] {"10.0.0.0/24", "10.0.2.0/23"});
-		
+
 		testIntersect("1:1::/32", "1:1:1:1:1:1:1:1", isNoAutoSubnets ? null : "1:1:1:1:1:1:1:1");//1:1:0:0:0:0:0:0/32
 		testIntersect("1:1::/32", "1:1::/16", "1:1::/32", !allPrefixesAreSubnets); //1:1::/16 1:1:0:0:0:0:0:0/32
 		testIntersect("1:1::/32", "1:1::/48", "1:1::/48");
@@ -6237,21 +6347,21 @@ public class IPAddressTest extends TestBase {
 		testIntersect("1:1::/32", "1:0:2:2::/64", null);
 		testIntersect("10.0.0.0/22", "10.0.0.0/24", "10.0.0.0/24");//[10.0.0.0/24, 10.0.2.0/23]
 		testIntersect("10.0.0.0/22", "10.0.1.0/24", isNoAutoSubnets ? null : "10.0.1.0/24");//[10.0.1-3.0/24]
-		
+
 		testToPrefixBlock("1:3::3:4", "1:3::3:4");
 		testToPrefixBlock("1.3.3.4", "1.3.3.4");
-		
+
 		testMaxHost("1.2.3.4", allPrefixesAreSubnets ? "255.255.255.255" : "255.255.255.255/0");
 		testMaxHost("1.2.255.255/16", allPrefixesAreSubnets ? "1.2.255.255" : "1.2.255.255/16");
-		
+
 		testMaxHost("1:2:3:4:5:6:7:8", allPrefixesAreSubnets ? "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" : "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/0");
 		testMaxHost("1:2:ffff:ffff:ffff:ffff:ffff:ffff/64", allPrefixesAreSubnets ? "1:2:ffff:ffff:ffff:ffff:ffff:ffff" : "1:2:ffff:ffff:ffff:ffff:ffff:ffff/64");
 		testMaxHost("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "1:2:3:4:ffff:ffff:ffff:ffff" : "1:2:3:4:ffff:ffff:ffff:ffff/64");
 		testMaxHost("1:2:3:4:5:6:7:8/128", allPrefixesAreSubnets ? "1:2:3:4:5:6:7:8" : "1:2:3:4:5:6:7:8/128");
-		
+
 		testZeroHost("1.2.3.4", allPrefixesAreSubnets ? "0.0.0.0" : "0.0.0.0/0");
 		testZeroHost("1.2.0.0/16", allPrefixesAreSubnets ? "1.2.0.0" : "1.2.0.0/16");
-		
+
 		testZeroHost("1:2:3:4:5:6:7:8", allPrefixesAreSubnets ? "::" : "::/0");
 		testZeroHost("1:2::/64", allPrefixesAreSubnets ? "1:2::" : "1:2::/64");
 		testZeroHost("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "1:2:3:4::" : "1:2:3:4::/64");
@@ -6259,13 +6369,13 @@ public class IPAddressTest extends TestBase {
 
 		testZeroNetwork("1.2.3.4", "0.0.0.0");
 		testZeroNetwork("1.2.0.0/16", "0.0.0.0/16");
-		
+
 		testZeroNetwork("1:2:3:4:5:6:7:8", "::");
 		testZeroNetwork("1:2::/64", "::/64");
 		testZeroNetwork("1:2:3:4:5:6:7:8/64", allPrefixesAreSubnets ? "::/64" : "::5:6:7:8/64");
 		testZeroNetwork("1:2:3:4:5:6:7:8/128", "::/128");
 
-		
+
 		testPrefixBlocks("1.2.3.4", false, false);
 		testPrefixBlocks("1.2.3.4/16", allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("1.2.0.0/16", isAutoSubnets, isAutoSubnets);
@@ -6273,7 +6383,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("1.2.3.3/31", allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("1.2.3.4/31", isAutoSubnets, isAutoSubnets);
 		testPrefixBlocks("1.2.3.4/32", true, true);
-		
+
 		testPrefixBlocks("1.2.3.4", 8, false, false);
 		testPrefixBlocks("1.2.3.4/16", 8, false, false);
 		testPrefixBlocks("1.2.0.0/16", 8, false, false);
@@ -6281,7 +6391,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("1.2.3.4/8", 8, allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("1.2.3.4/31", 8, false, false);
 		testPrefixBlocks("1.2.3.4/32", 8, false, false);
-		
+
 		testPrefixBlocks("1.2.3.4", 24, false, false);
 		testPrefixBlocks("1.2.3.4/16", 24, allPrefixesAreSubnets, false);
 		testPrefixBlocks("1.2.0.0/16", 24, isAutoSubnets, false);
@@ -6298,7 +6408,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("a:b:c:d:e:f:a:b/0", allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/127", allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/128", true, true);
-		
+
 		testPrefixBlocks("a:b:c:d:e:f:a:b", 0, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 0, false, false);
 		testPrefixBlocks("a:b:c:d::/64", 0, false, false);
@@ -6307,7 +6417,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 0, allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 0, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 0, false, false);
-		
+
 		testPrefixBlocks("a:b:c:d:e:f:a:b", 63, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 63, false, false);
 		testPrefixBlocks("a:b:c:d::/64", 63, false, false);
@@ -6316,7 +6426,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 63, allPrefixesAreSubnets, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 63, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 63, false, false);
-		
+
 		testPrefixBlocks("a:b:c:d:e:f:a:b", 64, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 64, allPrefixesAreSubnets, allPrefixesAreSubnets);
 		testPrefixBlocks("a:b:c:d::/64", 64, isAutoSubnets, isAutoSubnets);
@@ -6325,7 +6435,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 64, allPrefixesAreSubnets, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 64, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 64, false, false);
-		
+
 		testPrefixBlocks("a:b:c:d:e:f:a:b", 65, false, false);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/64", 65, allPrefixesAreSubnets, false);
 		testPrefixBlocks("a:b:c:d::/64", 65, isAutoSubnets, false);
@@ -6343,7 +6453,7 @@ public class IPAddressTest extends TestBase {
 		testPrefixBlocks("a:b:c:d:e:f:a:b/0", 128, true, !allPrefixesAreSubnets);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/127", 128, true, !allPrefixesAreSubnets);
 		testPrefixBlocks("a:b:c:d:e:f:a:b/128", 128, true, true);
-		
+
 		testSplitBytes("1.2.3.4");
 		testSplitBytes("1.2.3.4/16");
 		testSplitBytes("1.2.3.4/0");
@@ -6352,8 +6462,8 @@ public class IPAddressTest extends TestBase {
 		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/64");
 		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/0");
 		testSplitBytes("ffff:2:3:4:eeee:dddd:cccc:bbbb/128");
-		
-		
+
+
 		testByteExtension("255.255.255.255", new byte[][] {
 			new byte[] {0, 0, -1, -1, -1, -1},
 			new byte[] {0, -1, -1, -1, -1},
@@ -6458,8 +6568,8 @@ public class IPAddressTest extends TestBase {
 			new byte[] {2, 3}, 
 			new byte[] {4}
 		});
-		
-			
+
+
 		testIncrement("1.2.3.4", 0, "1.2.3.4");
 		testIncrement("1.2.3.4", 1, "1.2.3.5");
 		testIncrement("1.2.3.4", -1, "1.2.3.3");
@@ -6477,10 +6587,11 @@ public class IPAddressTest extends TestBase {
 		testIncrement("1.2.3.4", 4278058236L, null);
 		testIncrement("255.0.0.4", -4278190084L, "0.0.0.0");
 		testIncrement("255.0.0.4", -4278190085L, null);
-		
+
 		testIncrement("ffff:ffff:ffff:ffff:f000::0", 1, "ffff:ffff:ffff:ffff:f000::1");
 		testIncrement("ffff:ffff:ffff:ffff:f000::0", -1, "ffff:ffff:ffff:ffff:efff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE, "ffff:ffff:ffff:ffff::");
+		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE + 1, "ffff:ffff:ffff:ffff::1");
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:ffff", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:fffe", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:fffe");
 		testIncrement("::8000:0:0:0", Long.MIN_VALUE, "::");
@@ -6497,7 +6608,7 @@ public class IPAddressTest extends TestBase {
 		testIncrement("::2", -1, "::1");
 		testIncrement("::2", -2, "::");
 		testIncrement("::2", -3, null);
-		
+
 		testIncrement("1::1", 0, "1::1");
 		testIncrement("1::1", 1, "1::2");
 		testIncrement("1::1", -1, "1::");
@@ -6506,14 +6617,26 @@ public class IPAddressTest extends TestBase {
 		testIncrement("1::2", -1, "1::1");
 		testIncrement("1::2", -2, "1::");
 		testIncrement("1::2", -3, "::ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-		
+
 		testIncrement("::fffe", 2, "::1:0");
 		testIncrement("::ffff", 2, "::1:1");
 		testIncrement("::1:ffff", 2, "::2:1");
 		testIncrement("::1:ffff", -2, "::1:fffd");
 		testIncrement("::1:ffff", -0x10000, "::ffff");
 		testIncrement("::1:ffff", -0x10001, "::fffe");
-		
+
+		testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(126), "4001::1:ffff");
+		testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(127), "8001::1:ffff");
+		testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(128), null);
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", BigInteger.ONE, null);
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", BigInteger.ONE, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", BigInteger.ONE.negate(), "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe");
+		testIncrement("::", BigInteger.ONE.negate(), null);
+		testIncrement("::1", BigInteger.ONE.negate(), "::");
+		testIncrement("::", BigInteger.ZERO, "::");
+		//testIncrement("1::1:ffff", BigInteger.ONE.shiftLeft(131), null);
+
+
 		testLeadingZeroAddr("00.1.2.3", true);
 		testLeadingZeroAddr("1.00.2.3", true);
 		testLeadingZeroAddr("1.2.00.3", true);
@@ -6526,7 +6649,7 @@ public class IPAddressTest extends TestBase {
 		testLeadingZeroAddr("1.0.2.3", false);
 		testLeadingZeroAddr("1.2.0.3", false);
 		testLeadingZeroAddr("1.2.3.0", false);
-		
+
 		// octal and hex addresses are not allowed when we disallow leading zeros.
 		// if we allow leading zeros, the inet aton settings determine if hex is allowed, 
 		// or whether leading zeros are interpreted as octal.
@@ -6558,7 +6681,7 @@ public class IPAddressTest extends TestBase {
 		testInetAtonLeadingZeroAddr("1.001.2.3", true, true, true);
 		testInetAtonLeadingZeroAddr("1.2.001.3", true, true, true);
 		testInetAtonLeadingZeroAddr("1.2.3.001", true, true, true);
-		
+
 		testLeadingZeroAddr("00:1:2:3::", true);
 		testLeadingZeroAddr("1:00:2:3::", true);
 		testLeadingZeroAddr("1:2:00:3::", true);
@@ -6571,51 +6694,51 @@ public class IPAddressTest extends TestBase {
 		testLeadingZeroAddr("1:0:2:3::", false);
 		testLeadingZeroAddr("1:2:0:3::", false);
 		testLeadingZeroAddr("1:2:3:0::", false);
-		
+
 		//a b x y
 		testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.3");
-		
+
 		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", null, "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
-		
+
 		//a x b y
 		testRangeJoin("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeIntersect("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.4.3", "1.2.4.5");
 		testRangeSubtract("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.2");
-		
+
 		testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", null, "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
-		
+
 		//a x y b
 		testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
 		testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.4.3", "1.2.4.5");
 		testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.4.2", "1.2.4.6", "1.2.5.6");
-		
+
 		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", null, "1.2.3.4", "1.2.5.6");
-		
+
 		//a b x y
 		testRangeJoin("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
 		testRangeIntersect("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
 		testRangeSubtract("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:4:3::");
-		
+
 		testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:3:4::", null, "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
-		
+
 		//a x b y
 		testRangeJoin("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeIntersect("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::");
 		testRangeSubtract("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff");
-		
+
 		testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:3:4::", null, "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
-		
+
 		//a x y b
 		testRangeJoin("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
 		testRangeIntersect("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:4:3::", "1:2:4:5::");
@@ -6624,22 +6747,22 @@ public class IPAddressTest extends TestBase {
 		testRangeExtend("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:5:6::", null, "1:2:3:4::", null, "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:5:6::", null, "1:2:3:4::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
-		
+
 		testCustomNetwork(prefixConfiguration);
-		
+
 		testAddressStringRange("1.2.3.4", new Object[] {1, 2, 3, 4});
 		testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4});
 		testAddressStringRange("1:2:4:5:6:7:8:f", new Object[] {1, 2, 4, 5, 6, 7, 8, 0xf});
 		testAddressStringRange("1:2:4:5::", new Object[] {1, 2, 4, 5, 0});
 		testAddressStringRange("::1:2:4:5", new Object[] {0, 1, 2, 4, 5});
 		testAddressStringRange("1:2:4:5::6", new Object[] {1, 2, 4, 5, 0, 6});
-		
+
 		testAddressStringRange("a:b:c::cc:d:1.255.3.128", new Object[] {0xa, 0xb, 0xc, 0x0, 0xcc, 0xd, 1, 255, 3, 128});  //[a, b, c, 0-ffff, cc, d, e, f]
 		testAddressStringRange("a::cc:d:1.255.3.128", new Object[] {0xa, 0x0, 0xcc, 0xd, 1, 255, 3, 128});  //[a, 0-ffffffffffff, cc, d, e, f]
 		testAddressStringRange("::cc:d:1.255.3.128", new Object[] {0x0, 0xcc, 0xd, 1, 255, 3, 128});  //[0-ffffffffffffffff, cc, d, e, f]
-		
+
 		// with prefix lengths 
-		
+
 		if(isAutoSubnets) {
 			testAddressStringRange("1.2.3.4/31", new Object[] {1, 2, 3, new Integer[] {4, 5}}, 31);
 			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/127", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, new Integer[] {4, 5}}, 127);
@@ -6649,22 +6772,21 @@ public class IPAddressTest extends TestBase {
 			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/127", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4}, 127);
 			testAddressStringRange("1:2:4:5::/64", new Object[] {1, 2, 4, 5, 0}, 64);
 		}
-		
+
 		if(allPrefixesAreSubnets) {
 			testAddressStringRange("1.2.3.4/15", new Object[] {1, new Integer[] {2, 3}, new Integer[] {0, 255}, new Integer[] {0, 255}}, 15);
 			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", new Object[] {0xa, 0xb, 0xcc, new Integer[] {0xdc, 0xdd}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 255}, new Integer[] {0, 255}, new Integer[] {0, 255}, new Integer[] {0, 255}}, 63);
 			testAddressStringRange("1:2:4:5::/63", new Object[] {1, 2, 4, new Integer[] {4, 5}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}}, 63);
 			testAddressStringRange("::cc:d:1.255.3.128/16", new Object[] {new Long[] {0L, 0xffffffffffffL}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 16);  //[0-ffffffffffffffff, cc, d, e, f]
-			
 		} else {
 			testAddressStringRange("1.2.3.4/15", new Object[] {1, 2, 3, 4}, 15);
 			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4}, 63);
 			testAddressStringRange("1:2:4:5::/63", new Object[] {1, 2, 4, 5, 0}, 63);	
 			testAddressStringRange("::cc:d:1.255.3.128/16", new Object[] {0x0, 0xcc, 0xd, 1, 255, 3, 128}, 16);  //[0-ffffffffffffffff, cc, d, e, f]
 		}
-		
+
 		// with masks
-		
+
 		testSubnetStringRange("::aaaa:bbbb:cccc/abcd:dcba:aaaa:bbbb:cccc::dddd",
 				"::cccc", "::cccc", new Object[] {0, 0, 0, 0xcccc});
 		testSubnetStringRange("::aaaa:bbbb:cccc/abcd:abcd:dcba:aaaa:bbbb:cccc::dddd",
@@ -6673,7 +6795,7 @@ public class IPAddressTest extends TestBase {
 				"aa88:98ba::cccc", "aa88:98ba::cccc", new Object[] {0xaa88, 0x98ba, 0, 0xcccc});
 		testSubnetStringRange("aaaa:bbbb::/abcd:dcba:aaaa:bbbb:cccc::dddd",
 				"aa88:98ba::", "aa88:98ba::", new Object[] {0xaa88, 0x98ba, 0});
-		
+
 		testSubnetStringRange("3.3.3.3/175.80.81.83", 
 				"3.0.1.3", "3.0.1.3", 
 				new Object[] {3, 0, 1, 3}, 
@@ -6715,8 +6837,8 @@ public class IPAddressTest extends TestBase {
 				new ExpectedBlock(4, "1::70/125"),
 				new ExpectedBlock(3, "1::78/126")
 			});
-			
-			
+
+
 			testAllocator(new String[]{"192.168.10.0/24"}, new int[]{5, 5, 2, 6, 2, 2}, new ExpectedBlock[] {
 				new ExpectedBlock(64, "192.168.10.0/26"),
 				new ExpectedBlock(32, "192.168.10.64/27"),

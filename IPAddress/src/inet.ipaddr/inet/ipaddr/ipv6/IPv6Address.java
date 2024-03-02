@@ -64,6 +64,7 @@ import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringBuilderOptions;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringCache;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringCollection;
 import inet.ipaddr.ipv6.IPv6AddressSection.IPv6StringOptions;
+import inet.ipaddr.ipv6.IPv6AddressTrie.IPv6TrieNode.IPv6TrieKeyData;
 import inet.ipaddr.mac.MACAddress;
 import inet.ipaddr.mac.MACAddressNetwork;
 import inet.ipaddr.mac.MACAddressNetwork.MACAddressCreator;
@@ -384,6 +385,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	private transient IPv6StringCache stringCache;
 	
+	private transient IPv6TrieKeyData cachedTrieKeyData;
+
 	transient IPv6AddressCache addressCache;
 
 	IPv6Address(IPv6AddressSection section, CharSequence zone, boolean checkZone) throws AddressValueException {
@@ -703,6 +706,52 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	}
 
 	/**
+	 * Constructs an IPv6 address.
+	 * <p>
+	 * The highBytes form the more significant 4 bytes of the address.
+	 * 
+	 * @param highBytes the 4 more significant bytes in network byte order
+	 * @param lowBytes the 4 least significant bytes in network byte order
+	 * @throws AddressValueException if zone invalid
+	 */
+	public IPv6Address(long highBytes, long lowBytes, IPv6Zone zone) throws AddressValueException {
+		this(highBytes, lowBytes, null, zone);
+	}
+
+	/**
+	 * Constructs an IPv6 address.
+	 * <p>
+	 * The highBytes form the more significant 4 bytes of the address.
+	 *
+	 * @param highBytes the 4 more significant bytes in network byte order
+	 * @param lowBytes the 4 least significant bytes in network byte order
+	 */
+	public IPv6Address(long highBytes, long lowBytes) throws AddressValueException {
+		this(highBytes, lowBytes, null, null);
+	}
+
+	/**
+	 * Constructs an IPv6 address or subnet.
+	 * <p>
+	 * The highBytes form the more significant 4 bytes of the address.
+	 * <p>
+	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
+	 * this object may represent either a single address with that network prefix length, or the prefix subnet block containing all addresses with the same network prefix.
+	 * <p>
+	 * @param highBytes the 4 more significant bytes in network byte order
+	 * @param lowBytes the 4 least significant bytes in network byte order
+	 * @param networkPrefixLength the CIDR prefix, which can be null for no prefix length
+	 */
+	public IPv6Address(long highBytes, long lowBytes, Integer networkPrefixLength) throws AddressValueException {
+		this(highBytes, lowBytes, networkPrefixLength, null);
+	}
+
+	private IPv6Address(long highBytes, long lowBytes, Integer networkPrefixLength, IPv6Zone zone) throws AddressValueException {
+		super(thisAddress -> ((IPv6Address) thisAddress).getDefaultCreator().createSection(highBytes, lowBytes, IPv6Address.SEGMENT_COUNT, networkPrefixLength));
+		this.zone = zone;
+	}
+
+	/**
 	 * Constructs an IPv6 address or subnet.
 	 * <p>
 	 * When networkPrefixLength is non-null, depending on the prefix configuration (see {@link inet.ipaddr.AddressNetwork#getPrefixConfiguration()},
@@ -716,7 +765,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer networkPrefixLength) throws AddressValueException {
 		this(lowerValueProvider, upperValueProvider, networkPrefixLength, null);
 	}
-	
+
 	/**
 	 * Constructs an IPv6 address or subnet.
 	 * 
@@ -1257,7 +1306,53 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address getUpper() {
 		return getLowestOrHighest(false, false);
 	}
-	
+
+	/**
+	 * Returns a pair of longs with the lower address value in the range of this individual address or subnet.
+	 * The high bits are in the first element, the low bits in the second.
+	 * 
+	 * @return
+	 */
+	public long[] longValues() {
+		return getSection().longValues();
+	}
+
+	/**
+	 * Returns a pair of longs with the upper address value in the range of this individual address or subnet.
+	 * The high bits are in the first element, the low bits in the second.
+	 * 
+	 * @return
+	 */
+	public long[] upperLongValues() {
+		return getSection().upperLongValues();
+	}
+
+	IPv6TrieKeyData getTrieKeyCache() {
+		IPv6TrieKeyData keyData = cachedTrieKeyData;
+		if(keyData == null) {
+			keyData = new IPv6TrieKeyData();
+			Integer prefLen = getPrefixLength();
+			keyData.prefixLength = prefLen;
+			long vals[] = longValues();
+			keyData.uint64HighVal = vals[0];
+			keyData.uint64LowVal = vals[1];
+			if(prefLen != null) {
+				int bits = prefLen;
+				IPv6Address mask = getNetwork().getNetworkMask(bits, false);
+				vals = mask.longValues();
+				keyData.mask64HighVal = vals[0];
+				keyData.mask64LowVal = vals[1];
+				if(bits > 63) {
+					keyData.nextBitMask64Val = 0x8000000000000000L >>> (bits - 64);
+				} else {
+					keyData.nextBitMask64Val = 0x8000000000000000L >>> bits;
+				}
+			}
+			cachedTrieKeyData = keyData;
+		}
+		return keyData;
+	}
+
 	/**
 	 * Replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
 	 * 
@@ -1270,6 +1365,19 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	 */
 	public IPv6Address replace(int startIndex, int endIndex, IPv6Address replacement, int replacementIndex) {
 		return checkIdentity(getSection().replace(startIndex, endIndex, replacement.getSection(), replacementIndex, replacementIndex + (endIndex - startIndex)));
+	}
+
+	/**
+	 * Replaces segments starting from startIndex with as many segments as possible from the replacement section
+	 * 
+	 * @param startIndex
+	 * @param replacement
+	 * @throws IndexOutOfBoundsException
+	 * @return
+	 */
+	public IPv6Address replace(int startIndex, IPv6AddressSection replacement) {
+		int replacementCount = Math.min(IPv6Address.SEGMENT_COUNT - startIndex, replacement.getSegmentCount());
+		return checkIdentity(getSection().replace(startIndex, startIndex + replacementCount, replacement, 0, replacementCount));
 	}
 
 	@Override
@@ -1433,6 +1541,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public Iterable<IPv6Address> getIterable() {
 		return this;
+	}
+
+	public IPv6Address increment(BigInteger increment) {
+		return checkIdentity(getSection().increment(increment));
 	}
 
 	@Override
@@ -2283,6 +2395,27 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	/**
 	 * 
 	 * @param other
+	 * @return whether this subnet overlaps with the given address
+	 */
+	@Override
+	public boolean overlaps(Address other) {
+		if(super.overlaps(other)) {
+			//must check the zone too
+			if(other != this) {
+				IPv6Address otherAddr = (IPv6Address) other;
+				if(hasZone() || otherAddr.hasZone()) {
+					//if it has a zone, then it does not overlap addresses from other zones
+					return isSameZone(otherAddr);
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 
+	 * @param other
 	 * @return whether this subnet contains the given address
 	 */
 	@Override
@@ -2290,14 +2423,31 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(super.contains(other)) {
 			//must check the zone too
 			if(other != this) {
-				if(hasZone()) {
+				IPv6Address otherAddr = (IPv6Address) other;
+				if(hasZone() || otherAddr.hasZone()) {
 					//if it has a zone, then it does not contain addresses from other zones
-					return isSameZone((IPv6Address) other);
+					return isSameZone(otherAddr);
 				}
 			}
 			return true;
 		}
 		return false;
+	}
+	
+	@Override
+	public BigInteger enumerate(Address other) {
+		if(other instanceof IPv6Address) {
+			return IPv6AddressSection.enumerate(getSection(), other.getSection());
+		}
+		return null;
+	}
+	
+	@Override
+	public BigInteger enumerate(IPAddress other) {
+		if(other.isIPv6()) {
+			return IPv6AddressSection.enumerate(getSection(), other.getSection());
+		}
+		return null;
 	}
 
 	//////////////// string creation below ///////////////////////////////////////////////////////////////////////////////////////////

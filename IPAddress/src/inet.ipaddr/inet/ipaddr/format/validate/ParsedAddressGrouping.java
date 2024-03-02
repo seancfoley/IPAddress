@@ -60,6 +60,25 @@ public class ParsedAddressGrouping {
 		}
 		return networkPrefixLength >> 3;
 	}
+
+	/**
+	 * Returns the total number of bits for the given segment count, with each segment having the given number of bits.
+	 * The number of bytes must correspond to the number of bits.
+	 * 
+	 * @param segmentCount
+	 * @param bytesPerSegment
+	 * @param bitsPerSegment
+	 * @return
+	 */
+	public static int getTotalBits(int segmentCount, int bytesPerSegment, int bitsPerSegment) {
+		if(bytesPerSegment != 1) {
+			if(bytesPerSegment == 2) {
+				return segmentCount << 4;
+			}
+			return segmentCount * bitsPerSegment;
+		}
+		return segmentCount << 3;
+	}
 	
 	/**
 	 * Across an address prefixes are:

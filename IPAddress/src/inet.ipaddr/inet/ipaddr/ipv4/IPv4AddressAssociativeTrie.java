@@ -295,6 +295,11 @@ public class IPv4AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv4Ad
 		public boolean equals(Object o) {
 			return o instanceof IPv4AddressAssociativeTrie.IPv4AssociativeTrieNode && super.equals(o);
 		}
+
+		@Override
+		protected TrieKeyData getTrieKeyCache(IPv4Address addr) {
+			return addr.getTrieKeyCache();
+		}
 	}
 
 	@Override

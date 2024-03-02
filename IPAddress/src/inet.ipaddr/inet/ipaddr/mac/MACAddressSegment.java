@@ -371,6 +371,11 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	}
 
 	@Override
+	public boolean overlaps(AddressSegment other) {
+		return this == other || (other.getSegmentValue() <= upperValue && other.getUpperSegmentValue() >= value && other instanceof MACAddressSegment);
+	}
+
+	@Override
 	public boolean contains(AddressSegment other) {
 		return other instanceof MACAddressSegment && other.getSegmentValue() >= value && other.getUpperSegmentValue() <= upperValue;
 	}

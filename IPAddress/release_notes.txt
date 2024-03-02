@@ -1,50 +1,65 @@
+Version 5.5:
+
+-added a collection type for dual IPv4/v6 tries and another for dual IPv4/v6 associative tries, issue #103
+-trie performance improvements for all trie operations
+-added shortestPrefixMatch trie methods
+-added enumerate methods, the inverse of the increment methods, to find the position of an address in a subnet, or to find the distance between two addresses
+-added an increment method accepting a BigInteger argument to IPv6Address and IPv6AddressSection
+-added the ability to construct an IPv6Address from two longs
+-added replace methods to address classes that take address sections 
+-added overlaps methods to check for overlapping subnets, and for checking sequential range overlap with a subnet
+-added floor/lower/ceiling/higher methods to the address trie types, these methods were previously accessible only from trie sets
+-added the extraneous digits IPv4 parsing option allow_inet_aton_extraneous_digits, issue #105.  
+-includes the fix to invalid radix argument infinite loop, issue #118
+
+
 Version 5.4:
 
-added PrefixBlockAllocator for automatic CIDR prefix block allocation
-added AddedTree and AssociativeAddedTree classes for expanded constructAddedNodesTree methods
-added getBlockSize and getBitsForCount in AddressItem
-added matchUnordered and matchOrdered in Address
-eliminated invalid AddressValueException when joining a range with the IPv4 max value to an IPv6 range, issue #86
-fix to generation of strings from parsed address data, issue #87
-fix to IPv4 address primitive int upper value generation, issue #96
+-added PrefixBlockAllocator for automatic CIDR prefix block allocation
+-added AddedTree and AssociativeAddedTree classes for expanded constructAddedNodesTree methods
+-added getBlockSize and getBitsForCount in AddressItem
+-added matchUnordered and matchOrdered in Address
+-eliminated invalid AddressValueException when joining a range with the IPv4 max value to an IPv6 range, issue #86
+-fix to generation of strings from parsed address data, issue #87
+-fix to IPv4 address primitive int upper value generation, issue #96
 
 
 Version 5.3:
 
 This version introduces address tries, associative address tries, address sets backed by address tries, and maps backed by associative address tries
 
-added AddressTrie and its subclasses for IPv4, IPv6 and MAC
-added AssociativeAddressTrie and its subclasses for IPv4, IPv6 and MAC
-tries can be used as Java collections framework navigable set
-associative tries can be used as Java collections framework navigable map
-added testBit and isOneBit methods to all series and segments
+-added AddressTrie and its subclasses for IPv4, IPv6 and MAC
+-added AssociativeAddressTrie and its subclasses for IPv4, IPv6 and MAC
+-tries can be used as Java collections framework navigable set
+-associative tries can be used as Java collections framework navigable map
+-added testBit and isOneBit methods to all series and segments
 
 
 Version 5.2:
 
 This version introduces methods for Java 8 functional-style operations.
 
-added stream methods for addresses, address sections, address segments, and ip address sequential ranges: stream, prefixStream, prefixStream(int prefixLength), prefixBlockStream, prefixBlockStream(int prefixLength), blockStream(int segmentCount), sequentialBlockStream, segmentsStream
-added corresponding spliterator methods: spliterator, prefixSpliterator, prefixSpliterator(int prefixLength), prefixBlockSpliterator, prefixBlockSpliterator(int prefixLength), blockSpliterator(int segmentCount), sequentialBlockSpliterator, segmentsSpliterator
-added functions to create a single stream from multiple spliterators in AddressComponentRange:
-<T extends AddressComponent> Stream<T> stream(Function<T, Stream<? extends T>> addrStreamFunc, T ...components)
-<T extends AddressComponent> Stream<T> stream(Function<T, Stream<? extends T>> addrStreamFunc, Collection<? extends T> components)
-added coverWithPrefixBlock method to find single covering prefix block, the smallest prefix block covering two subnets or addresses
-added IPAddressString and HostName parsed mask access through getMask method
-made sub-typing of address classes easier by loosening restrictions on using multiple network objects
-altered network mask with prefix length so that it is single host
+-added stream methods for addresses, address sections, address segments, and ip address sequential ranges: stream, prefixStream, prefixStream(int prefixLength), prefixBlockStream, prefixBlockStream(int prefixLength), blockStream(int segmentCount), sequentialBlockStream, segmentsStream
+-added corresponding spliterator methods: spliterator, prefixSpliterator, prefixSpliterator(int prefixLength), prefixBlockSpliterator, prefixBlockSpliterator(int prefixLength), blockSpliterator(int segmentCount), sequentialBlockSpliterator, segmentsSpliterator
+-added functions to create a single stream from multiple spliterators in AddressComponentRange:
+-<T extends AddressComponent> Stream<T> stream(Function<T, Stream<? extends T>> addrStreamFunc, T ...components)
+-<T extends AddressComponent> Stream<T> stream(Function<T, Stream<? extends T>> addrStreamFunc, Collection<? extends T> components)
+-added coverWithPrefixBlock method to find single covering prefix block, the smallest prefix block covering two subnets or addresses
+-added IPAddressString and HostName parsed mask access through getMask method
+-made sub-typing of address classes easier by loosening restrictions on using multiple network objects
+-altered network mask with prefix length so that it is single host
 
 
 Version 5.1:
 
 Mostly parsing and masking improvements.
 
-getSequentialRange() method added to IPAddressString for direct access to sequential range
-improved handling of masking and bitwise-oring subnets. isMaskCompatibleWithRange replaced by maskRange, same with bitwise-or.
-getDivisionGrouping() method added to IPAddressString for "as-is" parsing
-toString() for division strings adjusted, no longer using '*' due to varying bit lengths for divisions and potentially no segment separator to indicate bit length, also using radix matching parsed string
-reverse ranges allowed in parsed strings
-improved control/support of inferred range boundaries
+-getSequentialRange() method added to IPAddressString for direct access to sequential range
+-improved handling of masking and bitwise-oring subnets. isMaskCompatibleWithRange replaced by maskRange, same with bitwise-or.
+-getDivisionGrouping() method added to IPAddressString for "as-is" parsing
+-toString() for division strings adjusted, no longer using '*' due to varying bit lengths for divisions and potentially no segment separator to indicate bit length, also using radix matching parsed string
+-reverse ranges allowed in parsed strings
+-improved control/support of inferred range boundaries
 
 
 Version 5 release:

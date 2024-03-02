@@ -26,6 +26,7 @@ import inet.ipaddr.format.util.AssociativeAddedTree;
 import inet.ipaddr.format.util.AssociativeAddressTrie;
 import inet.ipaddr.format.util.BinaryTreeNode;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
+import inet.ipaddr.ipv6.IPv6AddressTrie.IPv6TrieNode.IPv6TrieKeyData;
 
 /**
  * An IPv6 address trie in which each node can be associated with a value.
@@ -293,6 +294,11 @@ public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Ad
 		@Override
 		public boolean equals(Object o) {
 			return o instanceof IPv6AddressAssociativeTrie.IPv6AssociativeTrieNode && super.equals(o);
+		}
+
+		@Override
+		protected IPv6TrieKeyData getTrieKeyCache(IPv6Address addr) {
+			return addr.getTrieKeyCache();
 		}
 	}
 

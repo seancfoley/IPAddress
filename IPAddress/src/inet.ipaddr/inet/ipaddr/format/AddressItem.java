@@ -281,7 +281,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 				}
 				lower = lower.shiftRight(longBits);
 				upper = upper.shiftRight(longBits);
-			} while(!upper.equals(BigInteger.ZERO));
+			} while(upper.signum() != 0);
 		}
 		return result;
 	}

@@ -282,8 +282,37 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public boolean equals(Object o) {
 			return o instanceof IPv4TrieNode && super.equals(o);
 		}
+
+		static class IPv4TrieKeyData extends TrieKeyData {
+			int uint32Val, mask32Val, nextBitMask32Val;
+
+			@Override
+			public boolean is32Bits() {
+				return true;
+			}
+
+			@Override
+			public int getUint32Val() {
+				return uint32Val;
+			}
+
+			@Override
+			public int getMask32Val() {
+				return mask32Val;
+			}
+
+			@Override
+			public int getNextBitMask32Val() {
+				return nextBitMask32Val;
+			}
+		}
+
+		@Override
+		protected TrieKeyData getTrieKeyCache(IPv4Address addr) {
+			return addr.getTrieKeyCache();
+		}
 	}
-	
+
 	@Override
 	public IPv4TrieNode removeElementsContainedBy(IPv4Address addr) {
 		return (IPv4TrieNode) super.removeElementsContainedBy(addr);

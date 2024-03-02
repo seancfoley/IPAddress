@@ -18,6 +18,7 @@
 
 package inet.ipaddr.ipv4;
 
+import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -38,13 +39,14 @@ import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
-import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
+import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.IPAddressPartStringCollection;
 import inet.ipaddr.ipv4.IPv4AddressNetwork.IPv4AddressCreator;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4AddressCache;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringBuilderOptions;
 import inet.ipaddr.ipv4.IPv4AddressSection.IPv4StringCollection;
+import inet.ipaddr.ipv4.IPv4AddressTrie.IPv4TrieNode.IPv4TrieKeyData;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6Address.IPv6AddressConverter;
 import inet.ipaddr.ipv6.IPv6AddressNetwork;
@@ -83,6 +85,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public static final String REVERSE_DNS_SUFFIX = ".in-addr.arpa";
 	
 	transient IPv4AddressCache addressCache;
+
+	private transient IPv4TrieKeyData cachedTrieKeyData;
 
 	/**
 	 * Constructs an IPv4 address or subnet.
@@ -470,6 +474,23 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return getSection().upperLongValue();
 	}
 	
+	IPv4TrieKeyData getTrieKeyCache() {
+		IPv4TrieKeyData keyData = cachedTrieKeyData;
+		if(keyData == null) {
+			keyData = new IPv4TrieKeyData();
+			Integer prefLen = getPrefixLength();
+			keyData.prefixLength = prefLen;
+			keyData.uint32Val = intValue();
+			if(prefLen != null) {
+				int bits = prefLen;
+				keyData.nextBitMask32Val = 0x80000000 >>> bits;
+				keyData.mask32Val = getNetwork().getNetworkMask(bits, false).intValue();
+			}
+			cachedTrieKeyData = keyData;
+		}
+		return keyData;
+	}
+
 	/**
 	 * Replaces segments starting from startIndex and ending before endIndex with the same number of segments starting at replacementStartIndex from the replacement section
 	 * 
@@ -484,6 +505,19 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return checkIdentity(getSection().replace(startIndex, endIndex, replacement.getSection(), replacementIndex, replacementIndex + (endIndex - startIndex)));
 	}
 	
+	/**
+	 * Replaces segments starting from startIndex with as many segments as possible from the replacement section
+	 * 
+	 * @param startIndex
+	 * @param replacement
+	 * @throws IndexOutOfBoundsException
+	 * @return
+	 */
+	public IPv4Address replace(int startIndex, IPv4AddressSection replacement) {
+		int replacementCount = Math.min(IPv4Address.SEGMENT_COUNT - startIndex, replacement.getSegmentCount());
+		return checkIdentity(getSection().replace(startIndex, startIndex + replacementCount, replacement, 0, replacementCount));
+	}
+
 	@Override
 	public IPv4Address reverseBits(boolean perByte) {
 		return checkIdentity(getSection().reverseBits(perByte));
@@ -721,7 +755,32 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4Address incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));
 	}
+
+	/**
+	 * Indicates where an address sits relative to the subnet ordering.
+	 * <p>
+	 * Equivalent to {@link #enumerate(IPAddress)} but returns a Long rather than a BigInteger.
+	 */
+	public Long enumerateIPv4(IPv4Address other){
+		return IPv4AddressSection.enumerateIPv4(getSection(), other.getSection());
+	}
 	
+	@Override
+	public BigInteger enumerate(Address other) {
+		if(other instanceof IPv4Address) {
+			return IPv4AddressSection.enumerate(getSection(), other.getSection());
+		}
+		return null;
+	}
+
+	@Override
+	public BigInteger enumerate(IPAddress other) {
+		if(other.isIPv4()) {
+			return IPv4AddressSection.enumerate(getSection(), other.getSection());
+		}
+		return null;
+	}
+
 	IPv4AddressCreator getAddressCreator() {
 		return getNetwork().getAddressCreator();
 	}

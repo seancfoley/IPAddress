@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
@@ -40,14 +41,19 @@ import inet.ipaddr.AddressSection;
 import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressSegmentSeries;
 import inet.ipaddr.AddressValueException;
+import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IncompatibleAddressException;
 import inet.ipaddr.NetworkMismatchException;
+import inet.ipaddr.SizeMismatchException;
 import inet.ipaddr.format.AddressDivisionBase;
 import inet.ipaddr.format.AddressDivisionGroupingBase;
 import inet.ipaddr.format.string.AddressStringDivisionSeries;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
+import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv6.IPv6Address;
 
 /**
  * AddressDivisionGrouping objects consist of a series of AddressDivision objects, each division containing one or more segments.
@@ -131,6 +137,21 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		return ParsedAddressGrouping.cache(i);
 	}
 
+	protected static <R extends AddressSection, S extends AddressSegment> boolean overlaps(R original, R other) {
+		//check if they are comparable first
+		int count = original.getSegmentCount();
+		if(count != other.getSegmentCount()) {
+			return false;
+		}
+		for(int i = count - 1; i >= 0; i--) {
+			AddressSegment seg = original.getSegment(i);
+			if(!seg.overlaps(other.getSegment(i))) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	/**
 	 * Returns whether the values of this division grouping contain the prefix block for the given prefix length
 	 * 
@@ -1187,20 +1208,22 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 	
 	protected static void checkOverflow(
 			long increment,
-			long lowerValue,
-			long upperValue,
-			long count,
-			LongSupplier maxValue
-			) {
+			LongSupplier lower,
+			LongSupplier upper,
+			LongSupplier counter,
+			BooleanSupplier isSequential,
+			LongSupplier maxValue) {
 		if(increment < 0) {
-			if(lowerValue < -increment) {
+			if(lower.getAsLong() < -increment) {
+				throw new AddressValueException(increment);
+			}
+		} else if(isSequential.getAsBoolean()) {
+			if(increment > maxValue.getAsLong() - lower.getAsLong()) {
 				throw new AddressValueException(increment);
 			}
 		} else {
-			if(count > 1) {
-				increment -= count - 1;
-			}
-			if(increment > maxValue.getAsLong() - upperValue) {
+			long count = counter.getAsLong();
+			if(increment >= count && increment - (count - 1) > maxValue.getAsLong() - upper.getAsLong()) {
 				throw new AddressValueException(increment);
 			}
 		}
@@ -1209,22 +1232,46 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 	protected static void checkOverflow(
 			long increment,
 			BigInteger bigIncrement,
-			BigInteger lowerValue,
-			BigInteger upperValue,
-			BigInteger count,
-			Supplier<BigInteger> maxValue
-			) {
-		boolean isMultiple = count.compareTo(BigInteger.ONE) > 0;
+			Supplier<BigInteger> lower,
+			Supplier<BigInteger> upper,
+			Supplier<BigInteger> counter,
+			BooleanSupplier isSequential,
+			Supplier<BigInteger> maxValue) {
 		if(increment < 0) {
-			if(lowerValue.compareTo(bigIncrement.negate()) < 0) {
+			if(lower.get().compareTo(bigIncrement.negate()) < 0) {
+				throw new AddressValueException(increment);
+			}
+		} else if(isSequential.getAsBoolean()) {
+			if(bigIncrement.compareTo(maxValue.get().subtract(lower.get())) > 0) {
 				throw new AddressValueException(increment);
 			}
 		} else {
-			if(isMultiple) {
-				bigIncrement = bigIncrement.subtract(count.subtract(BigInteger.ONE));
-			}
-			if(bigIncrement.compareTo(maxValue.get().subtract(upperValue)) > 0) {
+			BigInteger count = counter.get();
+			if(bigIncrement.compareTo(count) >= 0 && bigIncrement.subtract(count.subtract(BigInteger.ONE)).compareTo(maxValue.get().subtract(upper.get())) > 0) {
 				throw new AddressValueException(increment);
+			}
+		}
+	}
+	
+	protected static void checkOverflow(
+			BigInteger bigIncrement,
+			Supplier<BigInteger> lower,
+			Supplier<BigInteger> upper,
+			Supplier<BigInteger> counter,
+			BooleanSupplier isSequential,
+			Supplier<BigInteger> maxValue) {
+		if(bigIncrement.signum() < 0) {
+			if(lower.get().compareTo(bigIncrement.negate()) < 0) {
+				throw new AddressValueException(bigIncrement);
+			}
+		} else if(isSequential.getAsBoolean()) {
+			if(bigIncrement.compareTo(maxValue.get().subtract(lower.get())) > 0) {
+				throw new AddressValueException(bigIncrement);
+			}
+		} else {
+			BigInteger count = counter.get();
+			if(bigIncrement.compareTo(count) >= 0 && bigIncrement.subtract(count.subtract(BigInteger.ONE)).compareTo(maxValue.get().subtract(upper.get())) > 0) {
+				throw new AddressValueException(bigIncrement);
 			}
 		}
 	}
@@ -1257,16 +1304,15 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 					}
 					return incrementRange(section, increment, addrCreator, lowerProducer, prefixLength);
 				}
-				BigInteger value = section.getValue();
-				BigInteger upperValue;
-				if(value.compareTo(LONG_MAX) <= 0 && (upperValue = section.getUpperValue()).compareTo(LONG_MAX) <= 0) {
+				BigInteger upperValue = section.getUpperValue();
+				if(upperValue.compareTo(LONG_MAX) <= 0) {
 					return increment(
 							section,
 							increment,
 							addrCreator,
-							count.longValue(),
-							value.longValue(),
-							upperValue.longValue(),
+							count::longValue,
+							() -> section.getValue().longValue(),
+							upperValue::longValue,
 							lowerProducer,
 							upperProducer,
 							prefixLength);
@@ -1286,26 +1332,28 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 			R section,
 			long increment,
 			AddressCreator<?, R, ?, S> addrCreator, 
-			long count,
-			long lowerValue,
-			long upperValue,
+			LongSupplier counter,
+			LongSupplier lower,
+			LongSupplier upper,
 			Supplier<R> lowerProducer,
 			Supplier<R> upperProducer,
 			Integer prefixLength) {
 		if(!section.isMultiple()) {
-			return add(section, lowerValue, increment, addrCreator, prefixLength);
+			return add(section, lower.getAsLong(), increment, addrCreator, prefixLength);
 		}
 		boolean isDecrement = increment <= 0;
 		if(isDecrement) {
 			//we know lowerValue + increment >= 0 because we already did an overflow check
-			return add(lowerProducer.get(), lowerValue, increment, addrCreator, prefixLength);
+			return add(lowerProducer.get(), lower.getAsLong(), increment, addrCreator, prefixLength);
 		} 
+		long count = counter.getAsLong();
 		if(count > increment) {
 			if(count == increment + 1) {
 				return upperProducer.get();
 			}
 			return incrementRange(section, increment, addrCreator, lowerProducer, prefixLength);
 		}
+		long upperValue = upper.getAsLong();
 		if(increment <= Long.MAX_VALUE - upperValue) {
 			return add(upperProducer.get(), upperValue, increment - (count - 1), addrCreator, prefixLength);
 		}
@@ -1340,6 +1388,33 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		return incrementRange(section, increment, addrCreator, lowerProducer, prefixLength);
 	}
 	
+	//this does not handle overflow, overflow should be checked before calling this
+	protected static <R extends AddressSection, S extends AddressSegment> R increment(
+			R section,
+			BigInteger bigIncrement,
+			AddressCreator<?, R, ?, S> addrCreator, 
+			Supplier<R> lowerProducer,
+			Supplier<R> upperProducer,
+			Integer prefixLength) {
+		if(!section.isMultiple()) {
+			return add(section, bigIncrement, addrCreator, prefixLength);
+		}
+		boolean isDecrement = bigIncrement.signum() <= 0;
+		if(isDecrement) {
+			return add(lowerProducer.get(), bigIncrement, addrCreator, prefixLength);
+		}
+		BigInteger count = section.getCount();
+		BigInteger incrementPlus1 = bigIncrement.add(BigInteger.ONE);
+		int countCompare = count.compareTo(incrementPlus1);
+		if(countCompare <= 0) {
+			if(countCompare == 0) {
+				return upperProducer.get();
+			}
+			return add(upperProducer.get(), incrementPlus1.subtract(count), addrCreator, prefixLength);
+		}
+		return incrementRange(section, bigIncrement, addrCreator, lowerProducer, prefixLength);
+	}
+	
 	/**
 	 * 
 	 * @param section
@@ -1365,10 +1440,25 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		S newSegments[] = addrCreator.createSegmentArray(segCount);
 		for(int i = segCount - 1; i >= 0; i--) {
 			AddressSegment seg = section.getSegment(i);
-			long segRange = (seg.getUpperSegmentValue() - seg.getSegmentValue()) + 1L;
-			long revolutions = increment / segRange;
-			int remainder = (int) (increment % segRange);
-			S newSegment = addrCreator.createSegment(seg.getSegmentValue() + remainder);
+			int segValue = seg.getSegmentValue();
+			long segRange = (seg.getUpperSegmentValue() - segValue) + 1L;
+			int bitCount = seg.getBitCount();
+			long revolutions;
+			int remainder;
+			S newSegment;
+			if(bitCount == IPv6Address.BITS_PER_SEGMENT && segRange == IPv6Address.MAX_VALUE_PER_SEGMENT + 1) {
+				revolutions = increment >>> IPv6Address.BITS_PER_SEGMENT;
+				remainder = (int) (increment & IPv6Address.MAX_VALUE_PER_SEGMENT);
+				newSegment = addrCreator.createSegment(remainder);
+			} else if(bitCount == IPv4Address.BITS_PER_SEGMENT && segRange == IPv4Address.MAX_VALUE_PER_SEGMENT + 1) {
+				revolutions = increment >>> IPv4Address.BITS_PER_SEGMENT;
+				remainder = (int) (increment & IPv4Address.MAX_VALUE_PER_SEGMENT);
+				newSegment = addrCreator.createSegment(remainder);
+			} else {
+				revolutions = increment / segRange;
+				remainder = (int) (increment % segRange);
+				newSegment = addrCreator.createSegment(segValue + remainder);
+			}
 			newSegments[i] = newSegment;
 			if(revolutions == 0) {
 				for(i--; i >= 0; i--) {
@@ -1378,6 +1468,39 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 				break;
 			} else {
 				increment = revolutions;
+			}
+		}
+		return createIteratedSection(newSegments, addrCreator, prefixLength);
+	}
+	
+	private static <R extends AddressSection, S extends AddressSegment> R incrementRange(
+			R section,
+			BigInteger bigIncrement,
+			AddressCreator<?, R, ?, S> addrCreator, 
+			Supplier<R> lowerProducer,
+			Integer prefixLength) {
+		if(bigIncrement.signum() == 0) {
+			return lowerProducer.get();
+		}
+		int segCount = section.getSegmentCount();
+		S newSegments[] = addrCreator.createSegmentArray(segCount);
+		for(int i = segCount - 1; i >= 0; i--) {
+			AddressSegment seg = section.getSegment(i);
+			int segValue = seg.getSegmentValue();
+			long segRange = (seg.getUpperSegmentValue() - segValue) + 1L;
+			BigInteger divs[] = bigIncrement.divideAndRemainder(BigInteger.valueOf(segRange)); 
+			BigInteger revolutions = divs[0];
+			int remainder = divs[1].intValue();
+			S newSegment = addrCreator.createSegment(segValue + remainder);
+			newSegments[i] = newSegment;
+			if(revolutions.signum() == 0) {
+				for(i--; i >= 0; i--) {
+					AddressSegment original = section.getSegment(i);
+					newSegments[i] = addrCreator.createSegment(original.getSegmentValue());
+				}
+				break;
+			} else {
+				bigIncrement = revolutions;
 			}
 		}
 		return createIteratedSection(newSegments, addrCreator, prefixLength);
@@ -1411,6 +1534,135 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 					addrCreator.getNetwork(),
 					prefixLength);
 		return createIteratedSection(newSegs, addrCreator, prefixLength);
+	}
+	
+	
+	// Use this for IPv4 and also for when IPv6 has the first 5 segments with no diff (seg equal to getLower), 
+	// and if MAC is 6 segments or the first segment of 8 has no diff.
+	// Callers should have checked for matching segment counts.
+	protected static Long enumerateSmall(AddressSegmentSeries series, AddressSegmentSeries otherSeries) {
+		if(otherSeries.isMultiple()) {
+			return null;
+		} else if(otherSeries == series) { // both the same individual address
+			return 0L;
+		}
+		return enumerateSmallImpl(series, otherSeries);
+	}
+	
+	protected static Long enumerateSmallImpl(AddressSegmentSeries series, AddressSegmentSeries otherSeries) {
+		if(series.isMultiple()) {
+			if(!series.isSequential()) {
+				if(series.getUpper().compareTo(otherSeries) < 0) {
+					return (otherSeries.getValue().longValue() - series.getUpperValue().longValue()) + (series.getCount().longValue() - 1L);
+				} else if(series.getLower().compareTo(otherSeries) <= 0) {
+					long total = 0;
+					long cumulativeSize = 1;
+					for(int i = series.getSegmentCount() - 1; ; i--) {
+						AddressSegment segment = series.getSegment(i), otherSegment = otherSeries.getSegment(i);
+						int otherValue = otherSegment.getSegmentValue();
+						int segValue = segment.getSegmentValue();
+						if(otherValue < segValue || otherValue > segment.getUpperSegmentValue()) {
+							return null;
+						}
+						total += cumulativeSize * (otherValue - segValue);
+						if(i == 0) {
+							return total;
+						}
+						cumulativeSize *= segment.getValueCount();
+					}
+				}
+			}
+		}
+		return otherSeries.getValue().longValue() - series.getValue().longValue();
+	}
+
+	protected static BigInteger enumerateBig(AddressSegmentSeries series, AddressSegmentSeries otherSeries) {
+		int segmentCount = series.getSegmentCount();
+		if(segmentCount != otherSeries.getSegmentCount()) {
+			throw new SizeMismatchException(series, otherSeries);
+		} else if(otherSeries.isMultiple()) {
+			return null;
+		} else if(otherSeries == series) { // both the same individual address
+			return BigInteger.ZERO;
+		}
+		
+		// If the initial segments beyond 63 bits match, which is probably the case for most subnets, 
+		// then we can just use long values to calculate
+		boolean initialSegsMatch = true;
+		int bitsPerSegment = series.getBitsPerSegment();
+		int totalBits = ParsedAddressGrouping.getTotalBits(segmentCount, series.getBytesPerSegment(), bitsPerSegment);
+		int i = 0;
+		while(totalBits > Long.SIZE) {
+			AddressSegment seg = series.getSegment(i);
+			AddressSegment otherSeg = otherSeries.getSegment(i);
+			if(!seg.matches(otherSeg.getSegmentValue())) {
+				initialSegsMatch = false;
+				break;
+			}
+			totalBits -= bitsPerSegment;
+			i++;
+		}
+		if(initialSegsMatch) {
+			// if there are exactly 64 bits left, we also need the top bit to match too, the sign bit
+			if(totalBits == Long.SIZE) {
+				AddressSegment seg = series.getSegment(i);
+				AddressSegment otherSeg = otherSeries.getSegment(i);
+				if(seg.matchesWithMask(otherSeg.getSegmentValue(), (1 << bitsPerSegment) >>> 1)) {
+					// we can use longs to calculate
+					Long result = enumerateSmallImpl(series, otherSeries);
+					if(result == null) {
+						return null;
+					}
+					return BigInteger.valueOf(result);
+				}
+			} else {
+				// we can use longs to calculate
+				Long result = enumerateSmallImpl(series, otherSeries);
+				if(result == null) {
+					return null;
+				}
+				return BigInteger.valueOf(result);
+			}
+		}
+		
+		// we use BigIntegers to calculate
+		
+		if(series.isMultiple()) {
+			if(!series.isSequential()) {
+				if(series.getUpper().compareTo(otherSeries) < 0) {
+					return otherSeries.getValue().subtract(series.getUpperValue()).add(series.getCount().subtract(BigInteger.ONE));
+				} else if(series.getLower().compareTo(otherSeries) <= 0) {
+					BigInteger total = BigInteger.ZERO;
+					BigInteger cumulativeSize = BigInteger.ONE;
+					for(int j = series.getSegmentCount() - 1; ; j--) {
+						AddressSegment segment = series.getSegment(j), otherSegment = otherSeries.getSegment(j);
+						int otherValue = otherSegment.getSegmentValue();
+						int segValue = segment.getSegmentValue();
+						if(otherValue < segValue || otherValue > segment.getUpperSegmentValue()) {
+							return null;
+						}
+						total = total.add(cumulativeSize.multiply(BigInteger.valueOf(otherValue - segValue)));
+						if(j == 0) {
+							return total;
+						}
+						cumulativeSize = cumulativeSize.multiply(segment.getCount());
+					}
+				}
+			}
+		}
+		return otherSeries.getValue().subtract(series.getValue());
+	}
+	
+	// not in series if result is negative or result is greater than or equal to range count
+	protected static BigInteger enumerateBig(IPAddressSeqRange range, IPAddress addr) {
+		if(addr.isMultiple()) {
+			return null;
+		} else if(addr == range.getLower()) {
+			return BigInteger.ZERO;
+		} else if(addr == range.getUpper()) { 
+			return range.getCount().subtract(BigInteger.ONE);
+		}
+		return addr.getValue().subtract(range.getValue());
 	}
 	
 	protected static BigInteger count(IntUnaryOperator segmentValueCountProvider, int segCount, int safeMultiplies, long safeLimit) {
@@ -1578,6 +1830,12 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		}
 		AddressStringParams.checkLengths(length, builder);
 		return builder.toString();
+	}
+
+	protected void checkSegmentCount(AddressSection sec) throws SizeMismatchException {
+		if(sec.getDivisionCount() != getDivisionCount()) {
+			throw new SizeMismatchException(this, sec);
+		}
 	}
 
 	/**

@@ -389,6 +389,10 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 			return new IPv6AddressSection(bytes, byteStartIndex, byteEndIndex, segmentCount, prefix, true, false);
 		}
 		
+		protected IPv6AddressSection createSection(long highBytes, long lowBytes, int segmentCount, Integer prefix) {
+			return new IPv6AddressSection(highBytes, lowBytes, segmentCount, prefix);
+		}
+
 		@Override
 		public IPv6AddressSection createSection(byte bytes[], Integer prefix) {
 			return new IPv6AddressSection(bytes, prefix);

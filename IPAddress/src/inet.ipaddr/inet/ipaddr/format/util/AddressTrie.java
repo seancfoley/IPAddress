@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Function;
 
@@ -33,6 +32,8 @@ import inet.ipaddr.AddressSegment;
 import inet.ipaddr.AddressSegmentSeries;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSegment;
+import inet.ipaddr.format.util.AddressTrie.TrieNode.FollowingBits;
+import inet.ipaddr.format.util.AddressTrie.TrieNode.KeyCompareResult;
 import inet.ipaddr.format.util.AssociativeAddressTrie.AssociativeTrieNode;
 import inet.ipaddr.format.util.BinaryTreeNode.BlockSizeNodeIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.Bounds;
@@ -45,6 +46,7 @@ import inet.ipaddr.format.util.BinaryTreeNode.NodeIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.NodeSpliterator;
 import inet.ipaddr.format.util.BinaryTreeNode.PostOrderNodeIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.PreOrderNodeIterator;
+import inet.ipaddr.format.validate.ParsedAddressGrouping;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 
@@ -224,7 +226,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		boolean isAdjacentAboveUpperBound(E addr) {
 			E res = oneAboveUpperBound;
 			if(res == null) {
-				//res = (E) upperBound.increment(1);
 				res = increment(upperBound);
 				oneAboveUpperBound = res;
 			}
@@ -236,31 +237,29 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		boolean isAdjacentBelowLowerBound(E addr) {
 			E res = oneBelowLowerBound;
 			if(res == null) {
-				//res = (E) lowerBound.increment(-1);
 				res = decrement(lowerBound);
 				oneBelowLowerBound = res;
 			}
 			return res != null && res.equals(addr);
 		}
 		
+		// matches the value just below the upper bound (only applies to discrete quantities)
 		@Override
 		boolean isAdjacentBelowUpperBound(E addr) { 
 			E res = oneBelowUpperBound;
 			if(res == null) {
 				res = decrement(upperBound);
-				//res = (E) upperBound.increment(-1);
 				oneBelowUpperBound = res;
 			}
 			return res != null && res.equals(addr);
 		}
 		
-		// matches the value just below the lower bound (only applies to discrete quantities)
+		// matches the value just above the lower bound (only applies to discrete quantities)
 		@Override
 		boolean isAdjacentAboveLowerBound(E addr) {
 			E res = oneAboveLowerBound;
 			if(res == null) {
 				res = increment(lowerBound);
-				//res = (E) lowerBound.increment(1);
 				oneAboveLowerBound = res;
 			}
 			return res != null && res.equals(addr);
@@ -291,24 +290,30 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	    NEAR, // closest match, going down trie to get element considered closest.
 	    	// Whether one thing is closer than another is determined by the sorted order.
 	    	// For example, for subnet 1.2.0.0/16, 1.2.128.0 is closest address on the high side, 1.2.127.255 is closest address on the low side
-	    CONTAINING, // list the nodes whose keys contain E
+	    CONTAINING, // find a single node whose key contains E
+	    ALL_CONTAINING, // list the nodes whose keys contain E
 	    INSERTED_DELETE, // remove node for E
-	    SUBNET_DELETE // remove nodes whose keys are contained by E
+	    SUBTREE_DELETE // remove nodes whose keys are contained by E
 	}
 	
 	// not optimized for size, since only temporary, to be used for a single operation
-	protected static class OpResult<E extends Address> {
+	protected static class OpResult<E extends Address> implements KeyCompareResult, FollowingBits, Serializable {
+
+		private static final long serialVersionUID = 1L;
+
 		E addr;
 		
 		// whether near is searching for a floor or ceiling
 		// a floor is greatest element below addr
 		// a ceiling is lowest element above addr
-		final boolean nearestFloor; 
+		boolean nearestFloor; 
 		
 		// whether near cannot be an exact match
-		final boolean nearExclusive;
+		boolean nearExclusive;
 		
-		final Operation op;
+		Operation op;
+		
+		OpResult() {}
 		
 		OpResult(E addr, Operation op) {
 			this(addr, op, false, false);
@@ -323,6 +328,46 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			this.op = op;
 			this.nearestFloor = floor;
 			this.nearExclusive = exclusive;
+		}
+		
+		// do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE
+		OpResult<E> reset(E addr, Operation op) {
+			this.addr = addr;
+			this.op = op;
+			return this;
+		}
+		
+		OpResult<E> resetNear(E addr, boolean floor, boolean exclusive) {
+			this.nearestFloor = floor;
+			this.nearExclusive = exclusive;
+			return reset(addr, Operation.NEAR);
+		}
+		
+		// Do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE,
+		// We'd need to do more cleaning if we did.
+		void clean() {
+			addr = null;
+			op = null;
+			
+			// contains and lookups
+			exists = false;
+			existingNode = containing = containingEnd = 
+					smallestContaining = largestContaining = 
+					containedBy = null;
+			
+			// near
+			nearestFloor = nearExclusive = false;
+			nearestNode = backtrackNode = null;
+			
+			// deletions
+			deleted = null;
+			
+			// adds and puts
+			newValue = existingValue = null;
+			inserted = added = addedAlready = null;
+
+			// remaps
+			remapper = null;
 		}
 
 		// lookups:
@@ -349,8 +394,9 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// that contain the supplied argument, and the end of the list
 		TrieNode<E> containing, containingEnd;
 		
-		// The tree node with the smallest subnet or address containing the supplied argument
-		TrieNode<E> smallestContaining;
+		// Of the tree nodes with elements containing the subnet or address,
+		// those with the smallest or largest subnet or address
+		TrieNode<E> smallestContaining, largestContaining;
 
 		// contained by: 
 
@@ -436,6 +482,70 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			}
 			containingEnd = cloned;
 		}
+		
+		//
+		//
+		//
+		// for searching
+		
+		long followingBits;
+		
+		@Override
+		public void setFollowingBits(long bits) {
+			followingBits = bits;
+		}
+		
+		TrieNode<E> node;
+		
+		@Override
+		public void bitsMatch() {
+			E existingAddr = node.getKey();
+			Integer existingPref = existingAddr.getPrefixLength();
+			Integer newPrefixLen = addr.getPrefixLength();
+			containedBy = node;
+			if(existingPref == null) {
+				if(newPrefixLen == null) {
+					// note that "added" is already true here, 
+					// we can only be here if explicitly inserted already 
+					// since it is a non-prefixed full address
+					node.handleMatch(this);
+				} else if(newPrefixLen == existingAddr.getBitCount()) {
+					node.handleMatch(this);
+				} else  {
+					node.handleContained(this, newPrefixLen);
+				}
+			} else { 
+				// we know newPrefixLen != null since we know all of the bits of newAddr match, 
+				// which is impossible if newPrefixLen is null and existingPref not null
+				if(newPrefixLen.intValue() == existingPref.intValue()) {
+					if(node.isAdded()) {
+						node.handleMatch(this);
+					} else {
+						node.handleNodeMatch(this);
+					}
+				} else if(existingPref == existingAddr.getBitCount()) { 
+					node.handleMatch(this);
+				} else { // existing prefix > newPrefixLen
+					node.handleContained(this, newPrefixLen);
+				}
+			}
+		}
+
+		@Override
+		public void bitsDoNotMatch(int matchedBits) {
+			node.handleSplitNode(this, matchedBits);
+		}
+
+		@Override
+		public FollowingBits bitsMatchPartially() {
+			if(node.isAdded()) {
+				node.handleContains(this);
+				if(op == Operation.CONTAINING) {
+					return null;
+				}
+			}
+			return this;
+		}
 	}
 
 	/**
@@ -480,32 +590,31 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			}
 			int segmentCount = o1.getSegmentCount();
 			int bitsPerSegment = o1.getBitsPerSegment();
+			Integer o1Pref = o1.getPrefixLength();
+			Integer o2Pref = o2.getPrefixLength();
 			int bitsMatchedSoFar = 0;
-			int extraBits = Integer.SIZE - bitsPerSegment;
 			int i = 0;
 			while(true) {
 				AddressSegment segment1 = o1.getSegment(i);
 				AddressSegment segment2 = o2.getSegment(i);
-				Integer pref1 = getSegmentPrefLen(o1, bitsMatchedSoFar, segment1);
-				Integer pref2 = getSegmentPrefLen(o2, bitsMatchedSoFar, segment2);
+				Integer pref1 = getSegmentPrefLen(o1, o1Pref, bitsPerSegment, bitsMatchedSoFar, segment1);
+				Integer pref2 = getSegmentPrefLen(o2, o2Pref, bitsPerSegment, bitsMatchedSoFar, segment2);
 				int segmentPref2;
 				if(pref1 != null) {
 					int segmentPref1 = pref1;
 					if(pref2 != null && (segmentPref2 = pref2) <= segmentPref1) {
-						int matchingBits = getMatchingBits(segment1, segment2, segmentPref2, extraBits);
+						int matchingBits = getMatchingBits(segment1, segment2, segmentPref2, bitsPerSegment);
 						if(matchingBits >= segmentPref2) {
 							if(segmentPref2 == segmentPref1) {
 								// same prefix block
 								return 0;
-							} else {
-								// segmentPref2 is shorter prefix, prefix bits match, so depends on bit at index segmentPref2
-								return segment1.isOneBit(segmentPref2) ? 1 : -1;
 							}
-						} else {
-							return segment1.getSegmentValue() - segment2.getSegmentValue();
+							// segmentPref2 is shorter prefix, prefix bits match, so depends on bit at index segmentPref2
+							return segment1.isOneBit(segmentPref2) ? 1 : -1;
 						}
+						return segment1.getSegmentValue() - segment2.getSegmentValue();
 					} else {
-						int matchingBits = getMatchingBits(segment1, segment2, segmentPref1, extraBits);
+						int matchingBits = getMatchingBits(segment1, segment2, segmentPref1, bitsPerSegment);
 						if(matchingBits >= segmentPref1) {
 							if(segmentPref1 < bitsPerSegment) {
 								return segment2.isOneBit(segmentPref1) ? -1 : 1;
@@ -518,7 +627,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					}
 				} else if(pref2 != null) {
 					segmentPref2 = pref2;
-					int matchingBits = getMatchingBits(segment1, segment2, segmentPref2, extraBits);
+					int matchingBits = getMatchingBits(segment1, segment2, segmentPref2, bitsPerSegment);
 					if(matchingBits >= pref2) {
 						if(segmentPref2 < bitsPerSegment) {
 							return segment1.isOneBit(segmentPref2) ? 1 : -1;
@@ -529,7 +638,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 						return segment1.getSegmentValue() - segment2.getSegmentValue();
 					}
 				} else {
-					int matchingBits = getMatchingBits(segment1, segment2, bitsPerSegment, extraBits);
+					int matchingBits = getMatchingBits(segment1, segment2, bitsPerSegment, bitsPerSegment);
 					if(matchingBits < bitsPerSegment) { // no match - the current subnet/address is not here
 						return segment1.getSegmentValue() - segment2.getSegmentValue();
 					} else if(++i == segmentCount) {
@@ -753,12 +862,22 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		@Override
+		public E lower(E addr) {
+			return getNodeKey(lowerAddedNode(addr));
+		}
+
+		@Override
 		public TrieNode<E> floorAddedNode(E addr) {
 			return findNodeNear(addr, true, false);
 		}
 
 		TrieNode<E> floorNodeNoCheck(E addr) {
 			return findNodeNearNoCheck(addr, true, false);
+		}
+
+		@Override
+		public E floor(E addr) {
+			return getNodeKey(floorAddedNode(addr));
 		}
 
 		@Override
@@ -771,12 +890,22 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		@Override
+		public E higher(E addr) {
+			return getNodeKey(higherAddedNode(addr));
+		}
+
+		@Override
 		public TrieNode<E> ceilingAddedNode(E addr) {
 			return findNodeNear(addr, false, false);
 		}
 
 		TrieNode<E> ceilingNodeNoCheck(E addr) {
 			return findNodeNearNoCheck(addr, false, false);
+		}
+
+		@Override
+		public E ceiling(E addr) {
+			return getNodeKey(ceilingAddedNode(addr));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -890,10 +1019,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return new KeySpliterator<E>(nodeSpliterator(false, true), reverseComparator());
 		}
 
+
 		@Override
 		public boolean contains(E addr) {
-			OpResult<E> result = doLookup(addr);
-			return result.exists;
+			return doLookup(addr).exists;
 		}
 
 		@Override
@@ -906,30 +1035,27 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		@Override
 		public TrieNode<E> getNode(E addr) {
-			OpResult<E> result = doLookup(addr);
-			TrieNode<E> ret = result.existingNode;
-			return ret;
+			return doLookup(addr).existingNode;
 		}
 
 		@Override
 		public TrieNode<E> removeElementsContainedBy(E addr) {
 			addr = checkBlockOrAddress(addr, true);
-			OpResult<E> result = new OpResult<>(addr, Operation.SUBNET_DELETE);
+			OpResult<E> result = new OpResult<>(addr, Operation.SUBTREE_DELETE);
 			matchBits(result);
 			return result.deleted;
 		}
 
 		@Override
 		public TrieNode<E> elementsContainedBy(E addr) {
-			OpResult<E> result = doLookup(addr);
-			return result.containedBy;
+			return doLookup(addr).containedBy;
 		}
 
 		// only added nodes are added to the linked list
 		@Override
 		public TrieNode<E> elementsContaining(E addr) {
 			addr = checkBlockOrAddress(addr, true);
-			OpResult<E> result = new OpResult<>(addr, Operation.CONTAINING);
+			OpResult<E> result = new OpResult<>(addr, Operation.ALL_CONTAINING);
 			matchBits(result);
 			return result.getContaining();
 		}
@@ -940,177 +1066,471 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return node == null ? null : node.getKey();
 		}
 
-		// only added nodes are added to the linked list
 		@Override
 		public TrieNode<E> longestPrefixMatchNode(E addr) {
 			return doLookup(addr).smallestContaining;
 		}
 
 		@Override
-		public boolean elementContains(E addr) {
-			return longestPrefixMatch(addr) != null;
+		public E shortestPrefixMatch(E addr) {
+			TrieNode<E> node = shortestPrefixMatchNode(addr);
+			return node == null ? null : node.getKey();
 		}
 
-		private OpResult<E> doLookup(E addr) {
+		@Override
+		public TrieNode<E> shortestPrefixMatchNode(E addr) {
+			return doElementContains(addr);
+		}
+
+		@Override
+		public boolean elementContains(E addr) {
+			return doElementContains(addr) != null;
+		}
+
+		private TrieNode<E> doElementContains(E addr) {
+			addr = checkBlockOrAddress(addr, true);
+			OpResult<E> result = new OpResult<>(addr, Operation.CONTAINING);
+			matchBits(result);
+			return result.largestContaining;
+		}
+
+		protected OpResult<E> doLookup(E addr) {
 			addr = checkBlockOrAddress(addr, true);
 			OpResult<E> result = new OpResult<>(addr, Operation.LOOKUP);
 			matchBits(result);
 			return result;
 		}
 
-		private void removeSubnet(OpResult<E> result) {
+		private void removeSubtree(OpResult<E> result) {
 			result.deleted = this;
 			clear();
 		}
 
-		protected void remove(OpResult<E> result) {
+		protected void removeOp(OpResult<E> result) {
 			result.deleted = this;
 			remove();
 		}
 
 		void matchBits(OpResult<E> result) {
-			matchBits(0, result);
-		}
-
-		void matchBits(int bitIndex, OpResult<E> result) {
-			matchBits(this, bitIndex, result);
+			matchBitsFromIndex(0, result);
 		}
 
 		// traverses the tree, matching bits with prefix block nodes, until we can match no longer,
 		// at which point it completes the operation, whatever that operation is
-		static <E extends Address> void matchBits(TrieNode<E> node, int bitIndex, OpResult<E> result) {
+		void matchBitsFromIndex(int bitIndex, OpResult<E> result) {
+			TrieNode<E> matchNode = this; 
+
+			E newAddr = result.addr;
+			Operation op = result.op;
+
+			TrieKeyData newKeyData = getTrieKeyCache(newAddr);
+			boolean simpleMatch = newKeyData != null && op != Operation.INSERT && op != Operation.NEAR && op != Operation.REMAP;
+
+			E existingAddr = getKey();
+
 			while(true) {
-				int bits = node.matchNodeBits(bitIndex, result);
-				if(bits >= 0) { 
+				result.node = matchNode;
+				boolean continueToNext = matchAddressBits(simpleMatch, newAddr, existingAddr, bitIndex, result, newKeyData);
+				if(continueToNext) {
+					int bits = existingAddr.getPrefixLength();
+
 					// matched all node bits up the given count, so move into sub-nodes
-					node = node.matchSubNode(bits, result);
-					if(node == null) {
+					matchNode = matchNode.matchSubNode(bits, result);
+					if(matchNode == null) {
 						// reached the end of the line
 						break;
 					}
+
 					// Matched a sub-node.  
-					// The sub-node was chosen according to that next bit. 
+					// The sub-node was chosen according to the next bit. 
 					// That bit is therefore now a match,
 					// so increment the matched bits by 1, and keep going.
 					bitIndex = bits + 1;
+					existingAddr = matchNode.getKey();
 				} else {
-					// reached the end of the line
 					break;
 				}
+			}
+			result.node = null;
+		}
+
+		static interface FollowingBits {
+			void setFollowingBits(long bits);
+		}
+
+		static interface KeyCompareResult {
+			void bitsMatch();
+
+			void bitsDoNotMatch(int matchedBits);
+
+			// When this is called, if the returned value is non-null, 
+			// then setFollowingBits must be called on the returned instance with either zero or a non-zero value
+			// to indicate if the next bit following the prefix length of the node's address is 0 or 1 in the supplied address.
+			FollowingBits bitsMatchPartially();
+		}
+		
+		// Providing TrieKeyData for trie keys makes lookup faster.
+		// However, it is optional, tries will work without it.
+		protected static class TrieKeyData {
+			// currently trie optimizations exist for 32 or 128 bits,
+			// so providing TrieKeyData for other bit sizes provides no benefit at this time
+
+			public Integer prefixLength;
+
+			// 32 bit key caches must override these 4 methods:
+			public boolean is32Bits() {
+				return false;
+			}
+
+			public int getUint32Val() {
+				return 0;
+			}
+
+			public int getMask32Val() {
+				return 0;
+			}
+
+			public int getNextBitMask32Val() {
+				return 0;
+			}
+
+			// 128 bit key caches must override these 6 methods:
+			public boolean is128Bits() {
+				return false;
+			}
+
+			public long getUint64LowVal() {
+				return 0;
+			}
+
+			public long getUint64HighVal() {
+				return 0;
+			}
+
+			public long getMask64HighVal() {
+				return 0;
+			}
+
+			public long getMask64LowVal() {
+				return 0;
+			}
+
+			public long getNextBitMask64Val() {
+				return 0;
 			}
 		}
 
-		int matchNodeBits(int bitIndex, OpResult<E> result) {
-			E newAddr = result.addr;
-			Operation op = result.op;
-			AddressSegmentSeries existingAddr = getKey();
-			int bitsPerSegment = existingAddr.getBitsPerSegment();
-			int segmentIndex = bitIndex / bitsPerSegment;
-			int segmentCount = existingAddr.getSegmentCount();
-			// this block handles cases like handling 1.2.3.4 and 1.2.3.4/32
-			// but since those two return true for equals(), we do not allow both in our tries and we do not actually need this case,
-			// but we do keep it for alternative tries that do not need the collection to consistent with equals()
-			if(segmentIndex >= segmentCount) {
-				Integer existingPref = existingAddr.getPrefixLength();
-				Integer newPref = newAddr.getPrefixLength();
-				// note that "added" is already true here, we can only be here if explicitly inserted already 
-				if(Objects.equals(existingPref, newPref)) {
-					result.containedBy = this;
-					handleMatch(result);
-				} else if(existingPref == null) {
-					result.containedBy = this;
-					handleContained(result, newPref);
-				} else { // newPref == null
-					handleContains(result);
-					return existingPref;
+		protected TrieKeyData getTrieKeyCache(E addr) {
+			return null;
+		}
+	
+		boolean matchAddressBits(boolean simpleSearch, E newAddr, E existingAddr, int bitIndex, TrieNode.KeyCompareResult handleMatch, TrieKeyData newTrieCache)  {
+			
+			// this is the optimized path for the case where we do not need to know how many of the initial bits match in a mismatch
+			// when we have a match, all bits match
+			// when we have a mismatch, we do not need to know how many of the initial bits match
+			// So there is no callback for a mismatch here.
+
+			// The non-optimized code has 8 cases, 2 for each fully nested if or else block
+			// I have added comments to see how this code matches up to those 8 cases
+
+			if(simpleSearch) {
+				TrieKeyData existingTrieCache = getTrieKeyCache(existingAddr);
+				if(existingTrieCache != null) {
+					if(existingTrieCache.is32Bits()) {
+						if(newTrieCache.is32Bits()) {
+							int existingVal = existingTrieCache.getUint32Val();
+							Integer existingPrefLen = existingTrieCache.prefixLength;
+							if(existingPrefLen == null) {
+								int newVal = newTrieCache.getUint32Val();
+								if(newVal == existingVal) {
+									handleMatch.bitsMatch();
+								} else {
+									Integer newPrefLen = newTrieCache.prefixLength;
+									if(newPrefLen != null) {
+										int newMask = newTrieCache.getMask32Val();
+										if((newVal & newMask) == (existingVal & newMask)) {
+											// rest of case 1 and rest of case 5
+											handleMatch.bitsMatch();
+										}
+									}
+								}
+							} else {
+								int existingPrefLenBits = existingPrefLen;
+								Integer newPrefLen = newTrieCache.prefixLength;
+								if(existingPrefLenBits == 0) {
+									if(newPrefLen != null && newPrefLen == 0) {
+										handleMatch.bitsMatch();
+									} else {
+										FollowingBits followingBits = handleMatch.bitsMatchPartially();
+										if(followingBits != null) {
+											followingBits.setFollowingBits(newTrieCache.getUint32Val() & 0x80000000);
+											return true;
+										}
+									}
+								} else if(existingPrefLenBits == bitIndex) { // optimized case where no matching is required because bit index had advanced by just one
+									if(newPrefLen != null && existingPrefLenBits >= newPrefLen) {
+										handleMatch.bitsMatch();
+									} else {
+										FollowingBits followingBits = handleMatch.bitsMatchPartially();
+										if(followingBits != null) {
+											int nextBitMask = existingTrieCache.getNextBitMask32Val();
+											followingBits.setFollowingBits(newTrieCache.getUint32Val() & nextBitMask);
+											return true;
+										}
+									}
+								} else {
+									int existingMask = existingTrieCache.getMask32Val();
+									int newVal = newTrieCache.getUint32Val();
+									if((newVal & existingMask) == (existingVal & existingMask)) {
+										if(newPrefLen != null && existingPrefLenBits >= newPrefLen) {
+											handleMatch.bitsMatch();
+										} else {
+											FollowingBits followingBits = handleMatch.bitsMatchPartially();
+											if(followingBits != null) {
+												int nextBitMask = existingTrieCache.getNextBitMask32Val();
+												followingBits.setFollowingBits(newVal & nextBitMask);
+												return true;
+											}
+										}
+									} else if(newPrefLen != null) {
+										int newPrefLenBits = newPrefLen;
+										if(existingPrefLenBits > newPrefLenBits) {
+											int newMask = newTrieCache.getMask32Val();
+											if((newTrieCache.getUint32Val() & newMask) == (existingVal & newMask)) {
+												// rest of case 1 and rest of case 5
+												handleMatch.bitsMatch();
+											}
+										}
+									} // else case 4, 7
+								}
+							}
+							return false;
+						}
+					} else if(existingTrieCache.is128Bits()) {
+						if(newTrieCache != null && newTrieCache.is128Bits()) {
+							Integer existingPrefLen = existingTrieCache.prefixLength;
+							if(existingPrefLen == null) {
+								long newLowVal = newTrieCache.getUint64LowVal();
+								long existingLowVal = existingTrieCache.getUint64LowVal();
+								if(newLowVal == existingLowVal &&
+									newTrieCache.getUint64HighVal() == existingTrieCache.getUint64HighVal()) {
+									handleMatch.bitsMatch();
+								} else {
+									Integer newPrefLen = newTrieCache.prefixLength;
+									if(newPrefLen != null) {
+										long newMaskLow = newTrieCache.getMask64LowVal();
+										if((newLowVal & newMaskLow) == (existingLowVal & newMaskLow)) {
+											long newMaskHigh = newTrieCache.getMask64HighVal();
+											if((newTrieCache.getUint64HighVal() & newMaskHigh) == (existingTrieCache.getUint64HighVal() & newMaskHigh)) {
+												// rest of case 1 and rest of case 5
+												handleMatch.bitsMatch();
+											}
+										}
+									} // else case 4, 7
+								}
+							} else {
+								int existingPrefLenBits = existingPrefLen;
+								Integer newPrefLen = newTrieCache.prefixLength;
+								if(existingPrefLenBits == 0) {
+									if(newPrefLen != null && newPrefLen == 0) {
+										handleMatch.bitsMatch();
+									} else {
+										FollowingBits followingBits = handleMatch.bitsMatchPartially();
+										if(followingBits != null) {
+											followingBits.setFollowingBits(newTrieCache.getUint64HighVal() & 0x8000000000000000L);
+											return true;
+										}
+									}
+								} else if(existingPrefLenBits == bitIndex) { // optimized case where no matching is required because bit index had advanced by just one
+									if(newPrefLen != null && existingPrefLenBits >= newPrefLen) {
+										handleMatch.bitsMatch();
+									} else {
+										FollowingBits followingBits = handleMatch.bitsMatchPartially();
+										if(followingBits != null) {
+											long nextBitMask = existingTrieCache.getNextBitMask64Val();
+											if(bitIndex > 63) /* IPv6BitCount - 65 */ {
+												followingBits.setFollowingBits(newTrieCache.getUint64LowVal() & nextBitMask);
+											} else {
+												followingBits.setFollowingBits(newTrieCache.getUint64HighVal() & nextBitMask);
+											}
+											return true;
+										}
+									}
+								} else if(existingPrefLenBits > 64) {
+									long existingMaskLow = existingTrieCache.getMask64LowVal();
+									long newLowVal = newTrieCache.getUint64LowVal();
+									if((newLowVal & existingMaskLow) == (existingTrieCache.getUint64LowVal() & existingMaskLow)) {
+										long existingMaskHigh = existingTrieCache.getMask64HighVal();
+										if((newTrieCache.getUint64HighVal() & existingMaskHigh) == (existingTrieCache.getUint64HighVal() & existingMaskHigh)) {
+											if(newPrefLen != null && existingPrefLenBits >= newPrefLen) {
+												handleMatch.bitsMatch();
+											} else {
+												FollowingBits followingBits = handleMatch.bitsMatchPartially();
+												if(followingBits != null) {
+													long nextBitMask = existingTrieCache.getNextBitMask64Val();
+													followingBits.setFollowingBits(newLowVal & nextBitMask);
+													return true;
+												}
+											}
+										} else if(newPrefLen != null && existingPrefLenBits > newPrefLen) {
+											long newMaskLow = newTrieCache.getMask64LowVal();
+											if((newTrieCache.getUint64LowVal() & newMaskLow) == (existingTrieCache.getUint64LowVal() & newMaskLow)) {
+												long newMaskHigh = newTrieCache.getMask64HighVal();
+												if((newTrieCache.getUint64HighVal() & newMaskHigh) == (existingTrieCache.getUint64HighVal() & newMaskHigh)) {
+													// rest of case 1 and rest of case 5
+													handleMatch.bitsMatch();
+												}
+											}
+										} // else case 4, 7
+									} else if(newPrefLen != null && existingPrefLenBits > newPrefLen) {
+										long newMaskLow = newTrieCache.getMask64LowVal();
+										if((newTrieCache.getUint64LowVal()&newMaskLow) == (existingTrieCache.getUint64LowVal()&newMaskLow)) {
+											long newMaskHigh = newTrieCache.getMask64HighVal();
+											if((newTrieCache.getUint64HighVal() & newMaskHigh) == (existingTrieCache.getUint64HighVal() & newMaskHigh)) {
+												// rest of case 1 and rest of case 5
+												handleMatch.bitsMatch();
+											}
+										}
+									} // else case 4, 7
+								} else if(existingPrefLenBits == 64) {
+									if(newTrieCache.getUint64HighVal() == existingTrieCache.getUint64HighVal()) {
+										if(newPrefLen != null && newPrefLen <= 64) {
+											handleMatch.bitsMatch();
+										} else {
+											FollowingBits followingBits = handleMatch.bitsMatchPartially();
+											if(followingBits != null) {
+												followingBits.setFollowingBits(newTrieCache.getUint64LowVal() & 0x8000000000000000L);
+												return true;
+											}
+										}
+									} else {
+										if(newPrefLen != null && newPrefLen < 64) {
+											long newMaskHigh = newTrieCache.getMask64HighVal();
+											if((newTrieCache.getUint64HighVal() & newMaskHigh) == (existingTrieCache.getUint64HighVal() & newMaskHigh)) {
+												// rest of case 1 and rest of case 5
+												handleMatch.bitsMatch();
+											}
+										}
+									} // else case 4, 7
+								} else { // existingPrefLen < 64
+									long existingMaskHigh = existingTrieCache.getMask64HighVal();
+									long newHighVal = newTrieCache.getUint64HighVal();
+									if((newHighVal & existingMaskHigh) == (existingTrieCache.getUint64HighVal() & existingMaskHigh)) {
+										if(newPrefLen != null && existingPrefLenBits >= newPrefLen) {
+											handleMatch.bitsMatch();
+										} else {
+											FollowingBits followingBits = handleMatch.bitsMatchPartially();
+											if(followingBits != null) {
+												long nextBitMask = existingTrieCache.getNextBitMask64Val();
+												followingBits.setFollowingBits(newHighVal & nextBitMask);
+												return true;
+											}
+										}
+									} else if(newPrefLen != null && existingPrefLenBits > newPrefLen) {
+										long newMaskHigh = newTrieCache.getMask64HighVal();
+										if((newTrieCache.getUint64HighVal() & newMaskHigh) == (existingTrieCache.getUint64HighVal() & newMaskHigh)) {
+											// rest of case 1 and rest of case 5
+											handleMatch.bitsMatch();
+										}
+									} // else case 4, 7
+								}
+							}
+							return false;
+						}
+					}
 				}
-				return -1;
 			}
-			if(newAddr.getSegmentCount() != segmentCount) {
-				// to handle this is tricky.  For a:b:c:d:e:f I would need
-				// to convert to an address with prefix length 48, which I do not support.
-				// Not only that, the prefixed address would be equal with the original, which is an equality problem.
-				// So overall, it is not supported, it doesn't make sense.
-				//
-				// However, for MAC addresses, we do allow the first inserted address to determine the bit size of the trie.
+
+			int bitsPerSegment = existingAddr.getBitsPerSegment();
+			int bytesPerSegment = existingAddr.getBytesPerSegment();
+			int segmentIndex = ParsedAddressGrouping.getHostSegmentIndex(bitIndex, bytesPerSegment, bitsPerSegment);
+			int segmentCount = existingAddr.getSegmentCount();
+			if(newAddr.getSegmentCount() != segmentCount || bitsPerSegment != newAddr.getBitsPerSegment()) {
 				throw new IllegalArgumentException(getMessage("ipaddress.error.mismatched.bit.size"));
 			}
-			int bitsMatchedSoFar = segmentIndex * bitsPerSegment;
-			int extraBits = Integer.SIZE - bitsPerSegment;
+			Integer existingPref = existingAddr.getPrefixLength();
+			Integer newPrefLen = newAddr.getPrefixLength();
+
+			// this block handles cases like where we matched matching ::ffff:102:304 to ::ffff:102:304/127,
+			// and we found a subnode to match, but we know the final bit is a match due to the subnode being lower or upper,
+			// so there is actually not more bits to match
+			if(segmentIndex >= segmentCount) {
+				// all the bits match
+				handleMatch.bitsMatch();
+				return false;
+			}
+
+			int bitsMatchedSoFar = ParsedAddressGrouping.getTotalBits(segmentIndex, bytesPerSegment, bitsPerSegment);
 			while(true) {
 				AddressSegment existingSegment = existingAddr.getSegment(segmentIndex);
 				AddressSegment newSegment = newAddr.getSegment(segmentIndex);
-				Integer segmentPref = getSegmentPrefLen(existingAddr, bitsMatchedSoFar, existingSegment);
-				Integer newPref = getSegmentPrefLen(newAddr, bitsMatchedSoFar, newSegment);
+				Integer segmentPref = getSegmentPrefLen(existingAddr, existingPref, bitsPerSegment, bitsMatchedSoFar, existingSegment);
+				Integer newSegmentPref = getSegmentPrefLen(newAddr, newPrefLen, bitsPerSegment, bitsMatchedSoFar, newSegment);
 				int newPrefixLen;
 				if(segmentPref != null) {	
 					int segmentPrefLen = segmentPref;
-					if(newPref != null && (newPrefixLen = newPref) <= segmentPrefLen) {
-						int matchingBits = getMatchingBits(existingSegment, newSegment, newPrefixLen, extraBits);
-						if(matchingBits >= newPrefixLen) { // the bits of current prefix match
-							result.containedBy = this;
-							if(newPrefixLen == segmentPrefLen) {
-								if(isAdded()) {
-									handleMatch(result);
-								} else if(op == Operation.LOOKUP) {
-									result.existingNode = this;
-								} else if(op == Operation.INSERT) {
-									existingAdded(result);
-								} else if(op == Operation.SUBNET_DELETE) {
-									removeSubnet(result);
-								} else if(op == Operation.NEAR) {
-									findNearestFromMatch(result);
-								} else if(op == Operation.REMAP) {
-									remapNonAdded(result);
-								}
-								break;
-							} else { // newPrefixLen < segmentPrefLen, matchingBits >= newPrefixLen
-								handleContained(result, bitsMatchedSoFar + newPrefixLen);
-							}
+					if(newSegmentPref != null && (newPrefixLen = newSegmentPref) <= segmentPrefLen) {
+						int matchingBits = getMatchingBits(existingSegment, newSegment, newPrefixLen, bitsPerSegment);
+						if(matchingBits >= newPrefixLen) { 
+							handleMatch.bitsMatch();
 						} else {
 							// no match - the bits don't match
 							// matchingBits < newPrefLen < segmentPrefLen
-							handleSplitNode(result, bitsMatchedSoFar + matchingBits);
+							handleMatch.bitsDoNotMatch(bitsMatchedSoFar + matchingBits);
 						}
 					} else {
-						int matchingBits = getMatchingBits(existingSegment, newSegment, segmentPrefLen, extraBits);
+						int matchingBits = getMatchingBits(existingSegment, newSegment, segmentPrefLen, bitsPerSegment);
 						if(matchingBits >= segmentPrefLen) { // match - the current subnet/address is a match so far, and we must go further to check smaller subnets
-							if(isAdded()) {
-								handleContains(result);
+							FollowingBits followingBits = handleMatch.bitsMatchPartially();
+							if(followingBits != null) {
+								// calculate the followingBitsFlag
+
+								// check if at end of segment, advance to next if so
+								if(segmentPrefLen == bitsPerSegment) {
+									segmentIndex++;
+									if(segmentIndex == segmentCount) {
+										return true;
+									}
+									newSegment = newAddr.getSegment(segmentIndex);
+									segmentPrefLen = 0;
+								}
+
+								// check the bit for followingBitsFlag
+								if(newSegment.isOneBit(segmentPrefLen)) {
+									followingBits.setFollowingBits(0x8000000000000000L);
+								}
+								return true;
 							}
-							return segmentPrefLen + bitsMatchedSoFar;
-						} else {
-							// matchingBits < segmentPrefLen - no match - the bits in current prefix do not match the prefix of the existing address
-							handleSplitNode(result, bitsMatchedSoFar + matchingBits);
+							return false;
 						}
+						// matchingBits < segmentPrefLen - no match - the bits in current prefix do not match the prefix of the existing address
+						handleMatch.bitsDoNotMatch(bitsMatchedSoFar + matchingBits);
 					}
-					break;
-				} else if(newPref != null) {
-					newPrefixLen = newPref;
-					int matchingBits = getMatchingBits(existingSegment, newSegment, newPrefixLen, extraBits);
+					return false;
+				} else if(newSegmentPref != null) {
+					newPrefixLen = newSegmentPref;
+					int matchingBits = getMatchingBits(existingSegment, newSegment, newPrefixLen, bitsPerSegment);
 					if(matchingBits >= newPrefixLen) { // the current bits match the current prefix, but the existing has no prefix
-						result.containedBy = this;
-						handleContained(result, bitsMatchedSoFar + newPrefixLen);
+						handleMatch.bitsMatch();
 					} else {
 						// no match - the current subnet does not match the existing address
-						handleSplitNode(result, bitsMatchedSoFar + matchingBits);
+						handleMatch.bitsDoNotMatch(bitsMatchedSoFar + matchingBits);
 					}
-					break;
+					return false;
 				} else {
-					int matchingBits = getMatchingBits(existingSegment, newSegment, bitsPerSegment, extraBits);
+					int matchingBits = getMatchingBits(existingSegment, newSegment, bitsPerSegment, bitsPerSegment);
 					if(matchingBits < bitsPerSegment) { // no match - the current subnet/address is not here
-						handleSplitNode(result, bitsMatchedSoFar + matchingBits);
-						break;
+						handleMatch.bitsDoNotMatch(bitsMatchedSoFar + matchingBits);
+						return false;
 					} else if(++segmentIndex == segmentCount) { // match - the current subnet/address is a match
-						result.containedBy = this;
 						// note that "added" is already true here, we can only be here if explicitly inserted already since it is a non-prefixed full address
-						handleMatch(result);
-						break;
+						handleMatch.bitsMatch();
+						return false;
 					}
 					bitsMatchedSoFar += bitsPerSegment;
 				}
 			}
-			return -1;
 		}
 
 		private void handleContained(OpResult<E> result, int newPref) {
@@ -1120,8 +1540,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				// then there are no more bits to look at, and this makes the former a sub-node of the latter.
 				// In most cases, however, there are more bits in existingAddr, the latter, to look at.
 				replace(result, newPref);
-			} else  if(op == Operation.SUBNET_DELETE) {
-				removeSubnet(result);
+			} else  if(op == Operation.SUBTREE_DELETE) {
+				removeSubtree(result);
 			} else if(op == Operation.NEAR) {
 				findNearest(result, newPref);
 			} else if(op == Operation.REMAP) {
@@ -1130,11 +1550,14 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		private boolean handleContains(OpResult<E> result) {
-			result.smallestContaining = this;
 			if(result.op == Operation.CONTAINING) {
+				result.largestContaining = this;
+				return true;
+			} else if(result.op == Operation.ALL_CONTAINING) {
 				result.addContaining(this);
 				return true;
 			}
+			result.smallestContaining = this;
 			return false;
 		}
 
@@ -1150,6 +1573,23 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			} 
 		}
 
+		// a node exists for the given key but the node is not added,
+		// so not a match, but a split not required
+		private void handleNodeMatch(OpResult<E> result) {
+			Operation op = result.op;
+			if(op == Operation.LOOKUP) {
+				result.existingNode = this;
+			} else if(op == Operation.INSERT) {
+				existingAdded(result);
+			} else if(op == Operation.SUBTREE_DELETE) {
+				removeSubtree(result);
+			} else if(op == Operation.NEAR) {
+				findNearestFromMatch(result);
+			} else if(op == Operation.REMAP) {
+				remapNonAdded(result);
+			}
+		}
+
 		private void handleMatch(OpResult<E> result) {
 			result.exists = true;
 			if(!handleContains(result)) {
@@ -1159,9 +1599,9 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				} else if(op == Operation.INSERT) {
 					matchedInserted(result);
 				} else if(op == Operation.INSERTED_DELETE) {
-					remove(result);
-				} else if(op == Operation.SUBNET_DELETE) {
-					removeSubnet(result);
+					removeOp(result);
+				} else if(op == Operation.SUBTREE_DELETE) {
+					removeSubtree(result);
 				} else if(op == Operation.NEAR) {
 					if(result.nearExclusive) {
 						findNearestFromMatch(result);
@@ -1248,7 +1688,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		// ** overridden by map trie **
 		void added(OpResult<E> result) {
-			setAdded(true);
+			setNodeAdded(true);
 			adjustCount(1);
 			changeTracker.changed();
 		}
@@ -1268,7 +1708,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			} else {
 				newBlock = (E) key.setPrefixLength(totalMatchingBits).toPrefixBlock();
 			}
-			replace(newBlock, result, totalMatchingBits, newSubNode);
+			replaceToSub(newBlock, totalMatchingBits, newSubNode);
 			newSubNode.inserted(result);
 		}
 
@@ -1280,7 +1720,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		 */
 		private void replace(OpResult<E> result, int totalMatchingBits) {
 			result.containedBy = this;
-			TrieNode<E> newNode = replace(result.addr, result, totalMatchingBits, null);
+			TrieNode<E> newNode = replaceToSub(result.addr, totalMatchingBits, null);
 			newNode.inserted(result);
 		}
 
@@ -1294,7 +1734,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		 * @param newSubNode
 		 * @return
 		 */
-		private TrieNode<E> replace(E newAssignedAddr, OpResult<E> result, int totalMatchingBits, TrieNode<E> newSubNode) {
+		private TrieNode<E> replaceToSub(E newAssignedAddr, int totalMatchingBits, TrieNode<E> newSubNode) {
 			TrieNode<E> newNode = createNew(newAssignedAddr);
 			newNode.size = size;
 			TrieNode<E> parent = getParent();
@@ -1413,7 +1853,12 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					setKey(newAddr);
 					existingAdded(result);
 				}
-			} else if(bitIndex < newAddr.getBitCount() && newAddr.isOneBit(bitIndex)) {
+			} else if(bitIndex >= newAddr.getBitCount()) {
+				// we matched all bits, yet somehow we are still going
+				// this can only happen when matching 1.2.3.4/32 to 1.2.3.4
+				// which should never happen and so we do nothing
+			} else if(result.followingBits != 0L) {
+				result.setFollowingBits(0);
 				TrieNode<E> upper = getUpperSubNode();
 				if(upper == null) {
 					// no match
@@ -1457,11 +1902,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					return upper;
 				}
 			} else {
-				// if we have 1.2.3.4 and 1.2.3.4/32, and we are looking at the last segment,
-				// then there are no more bits to look at, and this makes the former a sub-node of the latter.
-				// However, because 1.2.3.4 and 1.2.3.4/32 return true for equals(), we avoid putting both in the tree,
-				// and instead we always convert to 1.2.3.4 first.
-				// In most cases, however, there are more bits in newAddr, the former, to look at.
 				TrieNode<E> lower = getLowerSubNode();
 				if(lower == null) {
 					// no match
@@ -1539,8 +1979,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		@Override
-		TrieNode<E> cloneTree(Bounds<E> bounds) {
-			return (TrieNode<E>) super.cloneTree(bounds);
+		TrieNode<E> cloneTreeBounds(Bounds<E> bounds) {
+			return (TrieNode<E>) super.cloneTreeBounds(bounds);
 		}
 
 		@Override
@@ -1573,14 +2013,15 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 	private static Integer getSegmentPrefLen(
 			AddressSegmentSeries addr,
+			Integer prefLen,
+			int bitsPerSegment,
 			int bitsMatchedSoFar,
 			AddressSegment segment) {
 		if(segment instanceof IPAddressSegment) {
 			return ((IPAddressSegment) segment).getSegmentPrefixLength();
-		} else if(addr.isPrefixed()) {
-			int existingPrefLen = addr.getPrefixLength();
-			if(existingPrefLen <= bitsMatchedSoFar + addr.getBitsPerSegment()) {
-				Integer result = existingPrefLen - bitsMatchedSoFar;
+		} else if(prefLen != null) {
+			Integer result = prefLen - bitsMatchedSoFar;
+			if(result <= bitsPerSegment) {
 				if(result < 0) {
 					result = 0;
 				}
@@ -1590,19 +2031,21 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return null;
 	}
 
-	private static int getMatchingBits(AddressSegment segment1, AddressSegment segment2, int maxBits, int adjustment) {
+	private static int getMatchingBits(AddressSegment segment1, AddressSegment segment2, int maxBits, int bitsPerSegment) {
 		if(maxBits == 0) {
 			return 0;
 		}
 		int val1 = segment1.getSegmentValue();
 		int val2 = segment2.getSegmentValue();
 		int xor = val1 ^ val2;
-		if(adjustment == IPv6Address.BITS_PER_SEGMENT) {
-			return numberOfLeadingZerosShort(xor);
-		} else if(adjustment == (32 - IPv4Address.BITS_PER_SEGMENT)) {
+		switch(bitsPerSegment) {
+		case IPv4Address.BITS_PER_SEGMENT:
 			return numberOfLeadingZerosByte(xor);
+		case IPv6Address.BITS_PER_SEGMENT:
+			return numberOfLeadingZerosShort(xor);
+		default:
+			return Integer.numberOfLeadingZeros(xor) + bitsPerSegment - Integer.SIZE;
 		}
-		return Integer.numberOfLeadingZeros(xor) - adjustment;
 	}
 
 	private static int numberOfLeadingZerosShort(int i) {
@@ -1621,8 +2064,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return 0;
 		}
 		int n = 1;
-		if (i >>> 4 == 0) { n +=  4; i <<=  4; }
-		if (i >>> 6 == 0) { n +=  2; i <<=  2; }
+		if (i >>> 4 == 0) { n += 4; i <<= 4; }
+		if (i >>> 6 == 0) { n += 2; i <<= 2; }
 		n -= i >>> 7;
 		return n;
 	}
@@ -1637,7 +2080,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
     }
 
 	/**
-	 * Returns the number of nodes in the trie, which is more than the number of elements.
+	 * Returns the number of nodes in the trie, which is more than the number of added elements.
 	 * 
 	 * @return
 	 */
@@ -1881,7 +2324,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	}
 
 	TrieNode<E> addNode(OpResult<E> result, TrieNode<E> fromNode, TrieNode<E> nodeToAdd, boolean withValues) {
-		fromNode.matchBits(fromNode.getKey().getPrefixLength(), result);
+		fromNode.matchBitsFromIndex(fromNode.getKey().getPrefixLength(), result);
 		TrieNode<E> node = result.existingNode;
 		return node == null ? result.inserted : node;
 	}
@@ -1918,6 +2361,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				result.addr = addrNext;
 				result.existingNode = null;
 				result.inserted = null;
+				result.setFollowingBits(0);
 				lastAddedNode = addNode(result, cachedNode, toAdd, withValues);
 			} else {
 				lastAddedNode = cachedNode;
@@ -2004,7 +2448,25 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().longestPrefixMatchNode(addr);
 	}
-	
+
+	@Override
+	public E shortestPrefixMatch(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().shortestPrefixMatch(addr);
+	}
+
+	@Override
+	public TrieNode<E> shortestPrefixMatchNode(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().shortestPrefixMatchNode(addr);
+	}
+
 	@Override
 	public boolean elementContains(E addr) {
 		if(bounds != null) {
@@ -2031,7 +2493,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return createSubTrie(newBounds);
 	}
-	
+
 	AddressTrie<E> elementsContainingToTrie(E addr) {
 		if(isEmpty()) {
 			return this;
@@ -2067,7 +2529,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// Now we need to know if any of the nodes are within the bounds
 		return !createNewSameBoundsFromList(node).isEmpty();
 	}
-	
+
 	TrieNode<E> smallestElementContainingBounds(E addr) {
 		if(bounds == null) {
 			return longestPrefixMatchNode(addr);
@@ -2100,18 +2562,18 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return node;
 	}
-	
+
 	E longestPrefixMatchBounds(E addr) {
 		TrieNode<E> node = smallestElementContainingBounds(addr);
 		return node == null ? null : node.getKey();
 	}
-	
+
 	// creates a new one-node trie with a new root and the given bounds
 	protected abstract AddressTrie<E> createNew(AddressBounds<E> bounds);
-	
+
 	// create a trie with the same root as this one, but different bounds
 	protected abstract AddressTrie<E> createSubTrie(AddressBounds<E> bounds);
-	
+
 	private AddressTrie<E> createNewSameBoundsFromList(TrieNode<E> node) {
 		AddressTrie<E> newTrie = createNew(bounds);
 		TrieNode<E> root = newTrie.absoluteRoot();
@@ -2140,7 +2602,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		newTrie.root.size();
 		return newTrie;
 	}
-	
+
 	@Override
 	public TrieNode<E> getNode(E addr) {
 		TrieNode<E> subRoot;
@@ -2158,7 +2620,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return subRoot.getNode(addr);
 	}
-	
+
 	@Override
 	public Iterator<? extends TrieNode<E>> allNodeIterator(boolean forward) {
 		if(bounds != null) {
@@ -2219,7 +2681,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return (Iterator<? extends TrieNode<E>>) iterator;
 	}
-	
+
 	/**
 	 * Iterates all nodes, ordered by keys from largest prefix blocks to smallest, and then to individual addresses.
 	 * <p>
@@ -2337,7 +2799,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return (Iterator<? extends TrieNode<E>>) iterator;
 	}
-	
+
 	@Override
 	public Spliterator<E> spliterator() {
 		return new KeySpliterator<E>(nodeSpliterator(true, true), comparator());
@@ -2363,7 +2825,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().nodeSpliterator(forward, false);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	Spliterator<? extends TrieNode<E>> nodeSpliterator(boolean forward, boolean addedNodesOnly) {
 		Spliterator<? extends TrieNode<E>> spliterator;
@@ -2384,7 +2846,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return spliterator;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<? extends TrieNode<E>> nodeIterator(boolean forward) {
@@ -2558,6 +3020,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	}
 
 	@Override
+	public E lower(E addr) {
+		return getNodeKey(lowerAddedNode(addr));
+	}
+
+	@Override
 	public TrieNode<E> floorAddedNode(E addr) {
 		if(bounds == null) {
 			return absoluteRoot().floorAddedNode(addr);
@@ -2574,6 +3041,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return (node == null || bounds.isBelowLowerBound(node.getKey())) ? null : node;
 		}
 		return null;
+	}
+
+	@Override
+	public E floor(E addr) {
+		return getNodeKey(floorAddedNode(addr));
 	}
 
 	@Override
@@ -2596,6 +3068,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	}
 
 	@Override
+	public E higher(E addr) {
+		return getNodeKey(higherAddedNode(addr));
+	}
+
+	@Override
 	public TrieNode<E> ceilingAddedNode(E addr) {
 		if(bounds == null) {
 			return absoluteRoot().ceilingAddedNode(addr);
@@ -2612,6 +3089,15 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return (node == null || bounds.isAboveUpperBound(node.getKey())) ? null : node;
 		}
 		return null;
+	}
+
+	@Override
+	public E ceiling(E addr) {
+		return getNodeKey(ceilingAddedNode(addr));
+	}
+
+	static <E extends Address> E getNodeKey(TrieNode<E> node) {
+		return (node == null) ? null : node.getKey();
 	}
 
 	@Override
@@ -2638,17 +3124,17 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		} else {
 			TrieNode<E> root = absoluteRoot();
 			if(bounds.isInBounds(root.getKey())) {
-				result.root = root.cloneTree(bounds);
+				result.root = root.cloneTreeBounds(bounds);
 			} else {
 				// clone the root ourselves, then clone the trie starting from the subroot, and make it a child of the root
 				BinaryTreeNode<E> clonedRoot = root.cloneTreeNode(new ChangeTracker()); // clone root node only
 				result.root = clonedRoot;
-				clonedRoot.setAdded(false); // not in bounds, so not part of new trie
+				clonedRoot.setNodeAdded(false); // not in bounds, so not part of new trie
 				clonedRoot.setLower(null);
 				clonedRoot.setUpper(null);
 				TrieNode<E> subRoot = getRoot();
 				if(subRoot != null) {
-					TrieNode<E> subCloned = subRoot.cloneTree(bounds);
+					TrieNode<E> subCloned = subRoot.cloneTreeBounds(bounds);
 					if(subCloned != null) {
 						result.absoluteRoot().init(subCloned);// attach cloned sub-root to root
 					} else {
@@ -2710,8 +3196,12 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 * @return
 	 */
 	public static String toString(boolean withNonAddedKeys, AddressTrie<?> ...tries) {
-		StringBuilder builder = new StringBuilder('\n' + BinaryTreeNode.NON_ADDED_NODE_CIRCLE);
-		String topLabel =  ' ' + Address.SEGMENT_WILDCARD_STR;
+		int totalEntrySize = 0;
+		for(int i=0; i < tries.length; i++) {
+			totalEntrySize += tries[i].size();
+		}
+		StringBuilder builder = new StringBuilder(totalEntrySize * 120);
+		builder.append('\n').append(BinaryTreeNode.NON_ADDED_NODE_CIRCLE);
 		boolean isEmpty = tries == null;
 		if(!isEmpty) {
 			AddressTrie<?> lastTree = null;
@@ -2732,7 +3222,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					}
 				}
 				if(withNonAddedKeys) {
-					builder.append(topLabel).append(" (").append(totalSize).append(')');
+					builder.append(' ').append(Address.SEGMENT_WILDCARD_STR).append(" (").append(totalSize).append(')');
 				}
 				builder.append('\n');
 				for(int i = 0; i < lastTreeIndex; i++) {
@@ -2746,7 +3236,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		if(isEmpty) {
 			if(withNonAddedKeys) {
-				builder.append(topLabel).append(" (0)");
+				builder.append(' ').append(Address.SEGMENT_WILDCARD_STR).append(" (0)");
 			}
 			builder.append('\n');
 		}

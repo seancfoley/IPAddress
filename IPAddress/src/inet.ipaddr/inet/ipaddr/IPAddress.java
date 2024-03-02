@@ -659,7 +659,31 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
+	 * Returns true if this address overlaps with the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	@Override
+	public boolean overlaps(IPAddress other) {
+		return super.overlaps(other);
+	}
+	
+	/**
+	 * Returns true if this address overlaps with the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	@Override
+	public boolean overlaps(IPAddressSeqRange other) {
+		return other.overlaps(this);
+	}
+	
+	/**
 	 * Returns whether this contains all values of the given address or subnet
+	 * <p>
+	 * Implements the same method in {@link IPAddressRange}.
 	 * 
 	 * @param other
 	 * @return
@@ -682,6 +706,16 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return getSection().containsNonZeroHosts(other.getSection());
 	}
 	
+	/**
+	 * Indicates where an address sits relative to the subnet ordering.
+	 * <p>
+	 * For more details, see the equivalent method {@link #enumerate(Address)}.
+	 * This method satisfies the implementation of {@link IPAddressRange}.
+	 * 
+	 */
+	@Override
+	public abstract BigInteger enumerate(IPAddress other);
+
 	/**
 	 * Returns whether the prefix of this address contains all values of the same bits in the given address or subnet
 	 * 
@@ -718,20 +752,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	@Override
 	public boolean contains(IPAddressSeqRange otherRange) {
-		if(compareLowValues(otherRange.getLower(), getLower()) >= 0 && 
-				compareLowValues(otherRange.getUpper(), getUpper()) <= 0) {
-			if(isSequential()) {
-				return true;
-			}
-			Iterator<? extends IPAddress> iterator = sequentialBlockIterator();
-			while(iterator.hasNext()) {
-				IPAddress sequential = iterator.next();
-				if(sequential.contains(otherRange)) {
-					return true;
-				}
-			}
-		}
-		return false;
+		return otherRange.isContainedBy(this);
 	}
 
 	static int compareLowValues(IPAddress one, IPAddress two) {

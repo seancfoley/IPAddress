@@ -612,11 +612,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> firstEntry() {
-		AssociativeTrieNode<K, V> node = isReverse ? trie.lastAddedNode() : trie.firstAddedNode();
-		if(node == null) {
-    		return null;
-    	}
-		return node;
+		return isReverse ? trie.lastAddedNode() : trie.firstAddedNode();
 	}
 
 	@Override
@@ -626,11 +622,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> lastEntry() {
-		AssociativeTrieNode<K, V> node = isReverse ? trie.firstAddedNode()  : trie.lastAddedNode();
-		if(node == null) {
-			return null;
-    	}
-		return node;
+		return isReverse ? trie.firstAddedNode()  : trie.lastAddedNode();
 	}
 
 	@Override
@@ -640,11 +632,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> lowerEntry(K key) {
-		AssociativeTrieNode<K, V> node = isReverse ? trie.higherAddedNode(key) : trie.lowerAddedNode(key);
-		if(node == null) {
-			return null;
-    	}
-		return node;
+		return isReverse ? trie.higherAddedNode(key) : trie.lowerAddedNode(key);
 	}
 
 	@Override
@@ -654,11 +642,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> floorEntry(K key) {
-		AssociativeTrieNode<K, V> node = isReverse ? trie.ceilingAddedNode(key) : trie.floorAddedNode(key);
-		if(node == null) {
-			return null;
-    	}
-		return node;
+		return isReverse ? trie.ceilingAddedNode(key) : trie.floorAddedNode(key);
 	}
 
 	@Override
@@ -668,11 +652,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> ceilingEntry(K key) {
-		AssociativeTrieNode<K, V> node = isReverse ? trie.floorAddedNode(key) : trie.ceilingAddedNode(key);
-		if(node == null) {
-			return null;
-    	}
-		return node;
+		return isReverse ? trie.floorAddedNode(key) : trie.ceilingAddedNode(key);
 	}
 
 	@Override
@@ -682,11 +662,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> higherEntry(K key) {
-		AssociativeTrieNode<K, V> node = isReverse ? trie.lowerAddedNode(key) : trie.higherAddedNode(key);
-		if(node == null) {
-			return null;
-    	}
-		return node;
+		return isReverse ? trie.lowerAddedNode(key) : trie.higherAddedNode(key);
 	}
 
 	@Override

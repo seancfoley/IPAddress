@@ -98,13 +98,10 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			return (AssociativeTrieNode<K,V>) super.getParent();
 		}
 
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings("unchecked")  
 		@Override
 		public V get(K addr) {
-			addr = checkBlockOrAddress(addr, true);
-			OpResult<K> result = new OpResult<>(addr, Operation.LOOKUP);
-			matchBits(result);
-			AssociativeTrieNode<K,V> node = (AssociativeTrieNode<K,V>) result.existingNode;
+			AssociativeTrieNode<K,V> node = (AssociativeTrieNode<K,V>) doLookup(addr).existingNode;
 			return node == null ? null : node.getValue();
 		}
 
@@ -373,7 +370,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 				if(isMatch) {
 					changeTracker.changedSince(change);
 					clearValue();
-					remove(result);
+					removeOp(result);
 				}
 				return false;
 			} else if (isMatch) {
@@ -520,11 +517,9 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		
 		Iterator<? extends AssociativeTrieNode<K, V>> thisIterator = containingFirstAllNodeIterator(true);
 		
-		//System.out.println("starting iteration");
 		while(cachingIterator.hasNext()) {
 			AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>> newNext = cachingIterator.next(), parent;
 			AssociativeTrieNode<K, V> thisNext = thisIterator.next();
-			//System.out.println("iterated on " + thisNext + " and " + newNext);
 			
 			SubNodesMappingAssociative<K,V> mapping = new SubNodesMappingAssociative<K,V>();
 			mapping.value = thisNext.getValue();

@@ -463,38 +463,22 @@ public class AddressTrieSet<E extends Address> extends AbstractSet<E> implements
 
 	@Override
 	public E lower(E e) {
-		BinaryTreeNode<E> node = isReverse ? trie.higherAddedNode(e) : trie.lowerAddedNode(e);
-    	if(node == null) {
-    		return null;
-    	}
-    	return node.getKey();
+		return isReverse ? trie.higher(e) : trie.lower(e);
 	}
 
 	@Override
 	public E floor(E e) {
-		BinaryTreeNode<E> node = isReverse ? trie.ceilingAddedNode(e) : trie.floorAddedNode(e);
-    	if(node == null) {
-    		return null;
-    	}
-    	return node.getKey();
+		return isReverse ? trie.ceiling(e) : trie.floor(e);
 	}
 
 	@Override
 	public E ceiling(E e) {
-		BinaryTreeNode<E> node = isReverse ? trie.floorAddedNode(e) : trie.ceilingAddedNode(e);
-    	if(node == null) {
-    		return null;
-    	}
-    	return node.getKey();
+		return isReverse ? trie.floor(e) : trie.ceiling(e);
 	}
 
 	@Override
 	public E higher(E e) {
-		BinaryTreeNode<E> node = isReverse ? trie.lowerAddedNode(e) : trie.higherAddedNode(e);
-    	if(node == null) {
-    		return null;
-    	}
-    	return node.getKey();
+		return isReverse ? trie.lower(e) : trie.higher(e);
 	}
 
 	@Override

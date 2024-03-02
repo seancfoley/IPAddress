@@ -185,7 +185,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				lower = lower.shiftRight(longBits);
 				upper = upper.shiftRight(longBits);
 				res = adjustHashCode(res, low, up);
-			} while(!upper.equals(BigInteger.ZERO));
+			} while(upper.signum() != 0);
 			hashCode = res;
 		}
 		return res;
@@ -348,13 +348,13 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	public static int getDigitCount(BigInteger val, BigInteger radix) {
 		if(radix.compareTo(BIG_MIN_RADIX) < 0 || radix.compareTo(BIG_MAX_RADIX) > 0) {
 			throw new IllegalArgumentException();
-		} else if(val.equals(BigInteger.ZERO) || val.equals(BigInteger.ONE)) {
+		} else if(val.signum() == 0 || val.equals(BigInteger.ONE)) {
 			return 1;
 		}
 		int result = 1;
 		while(true) {
 			val = val.divide(radix);
-			if(val.equals(BigInteger.ZERO)) {
+			if(val.signum() == 0) {
 				break;
 			}
 			result++;

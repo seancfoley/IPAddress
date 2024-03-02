@@ -501,6 +501,19 @@ public abstract class Address implements AddressSegmentSeries {
 	}
 	
 	/**
+	 * Returns whether this is same type and version of the given address and whether it overlaps with the values in the given address or subnet
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public boolean overlaps(Address other) {
+		if(other == this) {
+			return true;
+		}
+		return getSection().overlaps(other.getSection());
+	}
+	
+	/**
 	 * Returns whether this is same type and version of the given address and whether it contains all values in the given address or subnet
 	 * 
 	 * @param other
@@ -512,6 +525,27 @@ public abstract class Address implements AddressSegmentSeries {
 		}
 		return getSection().contains(other.getSection());
 	}
+	
+	/**
+	 * Indicates where an address sits relative to the subnet ordering.
+	 * <p>
+	 * Determines how many address elements of a subnet precede the given address element, if the address is in the subnet.
+	 * If above the subnet range, it is the distance to the upper boundary added to the subnet address count, and if below the subnet range, the distance to the lower boundary.
+	 * <p>
+	 * In other words, if the given address is not in the subnet but above it, returns the number of addresses preceding the address from the upper subnet boundary, 
+	 * added to the total number of subnet addresses.  If the given address is not in the subnet but below it, returns the number of addresses following the address to the lower subnet boundary.
+	 * <p>
+	 * enumerate returns null when the argument is a multi-valued subnet. The argument must be an individual address.
+	 * <p>
+	 * When this address is also single-valued, the returned value is the distance (difference) between this address and the argument address.
+	 * <p>
+	 * enumerate is the inverse of the increment method:
+	 * <ul><li>subnet.enumerate(subnet.increment(inc)) = inc</li>
+	 * <li>subnet.increment(subnet.enumerate(newAddr)) = newAddr</li></ul>
+	 *
+	 * If the given address does not have the same version or type as this subnet or address, then null is returned.
+	 */
+	public abstract BigInteger enumerate(Address other);
 
 	@Override
 	public boolean isSequential() {

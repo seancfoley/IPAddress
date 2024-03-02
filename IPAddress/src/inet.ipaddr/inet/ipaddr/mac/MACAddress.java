@@ -18,6 +18,7 @@
 
 package inet.ipaddr.mac;
 
+import java.math.BigInteger;
 import java.net.NetworkInterface;
 import java.util.Iterator;
 import java.util.stream.Stream;
@@ -201,6 +202,14 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return Address.getMessage(key);
 	}
 	
+	@Override
+	public BigInteger enumerate(Address other) {
+		if(other instanceof MACAddress) {
+			return MACAddressSection.enumerate(getSection(), other.getSection());
+		}
+		return null;
+	}
+
 	@Override
 	public MACAddressNetwork getNetwork() {
 		return defaultMACNetwork();
@@ -606,6 +615,19 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	 */
 	public MACAddress replace(int startIndex, int endIndex, MACAddress replacement, int replacementIndex) {
 		return checkIdentity(getSection().replace(startIndex, endIndex, replacement.getSection(), replacementIndex, replacementIndex + (endIndex - startIndex)));
+	}
+	
+	/**
+	 * Replaces segments starting from startIndex with as many segments as possible from the replacement section
+	 * 
+	 * @param startIndex
+	 * @param replacement
+	 * @throws IndexOutOfBoundsException
+	 * @return
+	 */
+	public MACAddress replace(int startIndex, MACAddressSection replacement) {
+		int replacementCount = Math.min(getSegmentCount() - startIndex, replacement.getSegmentCount());
+		return checkIdentity(getSection().replace(startIndex, startIndex + replacementCount, replacement, 0, replacementCount));
 	}
 
 	public AddressDivisionGrouping getDottedAddress() {
