@@ -2324,7 +2324,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 				subNodeIndent = cached.subNodeInd;
 			}
 			if(withNonAdded || next.isAdded()) {
-				builder.append(nodeIndent).append(next.toString()); // appending next adds the ADDED_NODE_CIRCLE first
+				builder.append(nodeIndent).append(next); // appending next adds the ADDED_NODE_CIRCLE first
 				if(withSizes) {
 					builder.append(" (").append(next.size()).append(')');
 				}
