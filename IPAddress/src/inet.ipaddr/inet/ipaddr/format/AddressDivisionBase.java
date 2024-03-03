@@ -297,8 +297,8 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	 * @return the number of digits for the maximum possible value of the division when using the default radix
 	 */
 	protected abstract int getMaxDigitCount();
-	
-	
+
+
 	// Returns the maximum number of digits required for the given bit-count and radix.
 	// The supplied maximum value can be null, in which case it will be calculated if needed, 
 	// otherwise it must correspond to the largest unsigned integer corresponding to the given bit-count.
@@ -423,7 +423,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 					}
 					result++;
 				}
-				
+
 				@SuppressWarnings("unchecked")
 				TreeMap<Long, Integer> newMaxDigitMap = (TreeMap<Long, Integer>) maxDigitMap.clone();
 				newMaxDigitMap.put(key, result);

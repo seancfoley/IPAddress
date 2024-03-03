@@ -3126,7 +3126,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 		//options for addresses with an ipv4 section
 		public final MixedCompressionOptions compressMixedOptions;
-		
+
 		public CompressOptions(boolean compressSingle, CompressionChoiceOptions rangeSelection) {
 			this(compressSingle, rangeSelection, MixedCompressionOptions.YES);
 		}
@@ -3243,7 +3243,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		public static class Builder extends IPStringOptions.Builder {
 			private boolean makeMixed;
 			private IPStringOptions ipv4Options;
-	
+
 			//default is null, which means no compression
 			private CompressOptions compressOptions;
 
@@ -3746,7 +3746,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				builder.append(ipv6Params.getTrailingSegmentSeparator());
 			}
 			ipv4Params.appendSegments(builder, addr.ipv4Section);
-			
+
 			/* 
 			 * rfc 4038: for bracketed addresses, zone is inside and prefix outside, putting prefix after zone. 
 			 * 

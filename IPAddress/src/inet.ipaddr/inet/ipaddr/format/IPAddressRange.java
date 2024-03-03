@@ -50,7 +50,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	 * @return
 	 */
 	boolean contains(IPAddress other);
-	
+
 	/**
 	 * Returns whether this range overlaps with the given sequential range
 	 * 

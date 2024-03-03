@@ -1393,7 +1393,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return false;
 	}
-	
+
 	static BigInteger enumerate(IPv4AddressSection addr, AddressSection other) {
 		 return enumerateBig(addr, other);
 	}

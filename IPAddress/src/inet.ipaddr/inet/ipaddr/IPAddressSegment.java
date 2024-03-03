@@ -801,7 +801,7 @@ public abstract class IPAddressSegment extends IPAddressDivision implements Addr
 	protected boolean containsSeg(AddressSegment other) {
 		return other.getSegmentValue() >= getSegmentValue() && other.getUpperSegmentValue() <= getUpperSegmentValue();
 	}
-	
+
 	/**
 	 * 
 	 * @param other

@@ -224,7 +224,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	 * @return
 	 */
 	E longestPrefixMatch(E addr);
-	
+
 	/**
 	 * Finds the containing subnet or address in the trie with the largest subnet size,
 	 * which is equivalent to finding the subnet or address with the shortest matching prefix.

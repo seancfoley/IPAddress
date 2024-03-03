@@ -329,7 +329,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			this.nearestFloor = floor;
 			this.nearExclusive = exclusive;
 		}
-		
+
 		// do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE
 		OpResult<E> reset(E addr, Operation op) {
 			this.addr = addr;
@@ -1019,7 +1019,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return new KeySpliterator<E>(nodeSpliterator(false, true), reverseComparator());
 		}
 
-
 		@Override
 		public boolean contains(E addr) {
 			return doLookup(addr).exists;
@@ -1140,7 +1139,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 						// reached the end of the line
 						break;
 					}
-
 					// Matched a sub-node.  
 					// The sub-node was chosen according to the next bit. 
 					// That bit is therefore now a match,

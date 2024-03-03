@@ -2433,7 +2433,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public BigInteger enumerate(Address other) {
 		if(other instanceof IPv6Address) {

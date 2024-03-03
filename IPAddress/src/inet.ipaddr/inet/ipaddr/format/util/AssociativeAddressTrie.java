@@ -98,7 +98,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			return (AssociativeTrieNode<K,V>) super.getParent();
 		}
 
-		@SuppressWarnings("unchecked")  
+		@SuppressWarnings("unchecked") 
 		@Override
 		public V get(K addr) {
 			AssociativeTrieNode<K,V> node = (AssociativeTrieNode<K,V>) doLookup(addr).existingNode;
@@ -516,11 +516,11 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			emptyTrie.containingFirstAllNodeIterator(true);
 		
 		Iterator<? extends AssociativeTrieNode<K, V>> thisIterator = containingFirstAllNodeIterator(true);
-		
+
 		while(cachingIterator.hasNext()) {
 			AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>> newNext = cachingIterator.next(), parent;
 			AssociativeTrieNode<K, V> thisNext = thisIterator.next();
-			
+
 			SubNodesMappingAssociative<K,V> mapping = new SubNodesMappingAssociative<K,V>();
 			mapping.value = thisNext.getValue();
 			

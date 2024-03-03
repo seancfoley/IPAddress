@@ -616,7 +616,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress replace(int startIndex, int endIndex, MACAddress replacement, int replacementIndex) {
 		return checkIdentity(getSection().replace(startIndex, endIndex, replacement.getSection(), replacementIndex, replacementIndex + (endIndex - startIndex)));
 	}
-	
+
 	/**
 	 * Replaces segments starting from startIndex with as many segments as possible from the replacement section
 	 * 
