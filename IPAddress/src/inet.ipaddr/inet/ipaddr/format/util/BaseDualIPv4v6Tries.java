@@ -196,7 +196,7 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 	 * <p>
 	 * Returns true if the prefix block or address address exists already in one the two tries, false otherwise.
 	 * <p>
-	 * Use {@link #getAddedNode(Address)} to get the node for the address rather than just checking for its existence.
+	 * Use {@link #getAddedNode(IPAddress)} to get the node for the address rather than just checking for its existence.
 	 * 
 	 * @param addr
 	 * @return
@@ -217,12 +217,12 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 	 * <p>
 	 * Returns true if the prefix block or address was removed, false if not already in one of the two tries.
 	 * <p>
-	 * You can also remove by calling {@link #getAddedNode(Address)} to get the node and then calling {@link BinaryTreeNode#remove()} on the node.
+	 * You can also remove by calling {@link #getAddedNode(IPAddress)} to get the node and then calling {@link BinaryTreeNode#remove()} on the node.
 	 * <p>
 	 * When an address is removed, the corresponding node may remain in the trie if it remains a subnet block for two sub-nodes.
 	 * If the corresponding node can be removed from the trie, it will be.
 	 * 
-	 * @see #removeElementsContainedBy(Address)
+	 * @see #removeElementsContainedBy(IPAddress)
 	 * @param addr
 	 * @return
 	 */
@@ -240,7 +240,7 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 	 * <p>
 	 * Returns true if the subnet or address is contained by a trie element, false otherwise.
 	 * <p>
-	 * To get all the containing addresses, use {@link #elementsContaining(Address)}.
+	 * To get all the containing addresses, use {@link #elementsContaining(IPAddress)}.
 	 * 
 	 * @param addr
 	 * @return
