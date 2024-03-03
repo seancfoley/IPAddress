@@ -448,7 +448,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	public boolean prefixEquals(AddressSegment other, int segmentPrefixLength) {
 		return this == other || (super.prefixEquals(other, segmentPrefixLength) && other instanceof IPv6AddressSegment);
 	}
-	
+
 	@Override
 	public boolean overlaps(AddressSegment other) {
 		return this == other || (overlapsSeg(other) && other instanceof IPv6AddressSegment);
