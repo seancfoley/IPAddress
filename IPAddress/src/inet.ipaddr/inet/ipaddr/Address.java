@@ -233,7 +233,7 @@ public abstract class Address implements AddressSegmentSeries {
 	
 	@Override
 	public abstract Address getUpper();
-	
+
 	/**
 	 * Returns whether this address represents more than a single individual address, whether it is a subnet.
 	 * 
@@ -255,7 +255,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public boolean isPrefixed() {
 		return getSection().isPrefixed();
 	}
-	
+
 	/**
 	 * Returns whether this address is an IP address
 	 * 
@@ -264,7 +264,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public boolean isIPAddress() {
 		return false;
 	}
-	
+
 	/**
 	 * Returns whether this address is a MAC address
 	 * 
@@ -273,7 +273,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public boolean isMACAddress() {
 		return false;
 	}
-	
+
 	/**
 	 * If this address is an IP address, returns that {@link IPAddress}.  Otherwise, returns null.
 	 * 
@@ -282,7 +282,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public IPAddress toIPAddress() {
 		return null;
 	}
-	
+
 	/**
 	 * If this address is a MAC address, returns that {@link MACAddress}.  Otherwise, returns null.
 	 * 
@@ -291,7 +291,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public MACAddress toMACAddress() {
 		return null;
 	}
-	
+
 	/**
 	 * the largest number of high bits for which this address represents all addresses with the same set of high bits
 	 */
@@ -299,7 +299,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public Integer getPrefixLength() {
 		return getSection().getPrefixLength();
 	}
-	
+
 	/**
 	 * Returns the smallest prefix length possible such that this includes the block of addresses for that prefix.
 	 * <p>
@@ -474,7 +474,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public boolean isSameAddress(Address other) {
 		return other == this || getSection().equals(other.getSection());
 	}
-	
+
 	/**
 	 * Two Address objects are equal if they represent the same set of addresses.
 	 */
@@ -492,14 +492,14 @@ public abstract class Address implements AddressSegmentSeries {
 		}
 		return false;
 	}
-	
+
 	public boolean prefixEquals(Address other) {
 		if(other == this) {
 			return true;
 		}
 		return getSection().prefixEquals(other.getSection());
 	}
-	
+
 	/**
 	 * Returns whether this is same type and version of the given address and whether it overlaps with the values in the given address or subnet
 	 * 
@@ -512,7 +512,7 @@ public abstract class Address implements AddressSegmentSeries {
 		}
 		return getSection().overlaps(other.getSection());
 	}
-	
+
 	/**
 	 * Returns whether this is same type and version of the given address and whether it contains all values in the given address or subnet
 	 * 
