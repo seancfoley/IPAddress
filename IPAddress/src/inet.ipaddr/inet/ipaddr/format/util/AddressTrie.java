@@ -2062,8 +2062,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return 0;
 		}
 		int n = 1;
-		if (i >>> 4 == 0) { n += 4; i <<=  4; }
-		if (i >>> 6 == 0) { n += 2; i <<=  2; }
+		if (i >>> 4 == 0) { n += 4; i <<= 4; }
+		if (i >>> 6 == 0) { n += 2; i <<= 2; }
 		n -= i >>> 7;
 		return n;
 	}

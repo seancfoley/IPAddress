@@ -5862,7 +5862,7 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"::1.a:b:c:d:e:f:a");
 		ipv6test(0,"::1.a:b:c:d:e:f:a:b");
 		ipv6test(0,"::.a:b:c:d:e:f:a:b");
-		
+
 		ipv6test(0,"1::a:b:c:d:e:f:1.2.3.4");
 		ipv6test(0,"1::a:b:c:d:e:f:a:b.");
 		ipv6test(0,"1::1.a:b:c:d:e:f:a");
@@ -6191,7 +6191,6 @@ public class IPAddressTest extends TestBase {
 		ipv6test(0,"1111:2222::4444:5555::1.2.3.4");
 
 		ipv6test(0,"1111:2222:3333::5555::1.2.3.4");
-
 
 
 		// Missing parts
@@ -6779,7 +6778,6 @@ public class IPAddressTest extends TestBase {
 			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", new Object[] {0xa, 0xb, 0xcc, new Integer[] {0xdc, 0xdd}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 255}, new Integer[] {0, 255}, new Integer[] {0, 255}, new Integer[] {0, 255}}, 63);
 			testAddressStringRange("1:2:4:5::/63", new Object[] {1, 2, 4, new Integer[] {4, 5}, new BigInteger[] {BigInteger.ZERO, new BigInteger("ffffffffffffffff", 16)}}, 63);
 			testAddressStringRange("::cc:d:1.255.3.128/16", new Object[] {new Long[] {0L, 0xffffffffffffL}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xffff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}, new Integer[] {0, 0xff}}, 16);  //[0-ffffffffffffffff, cc, d, e, f]
-			
 		} else {
 			testAddressStringRange("1.2.3.4/15", new Object[] {1, 2, 3, 4}, 15);
 			testAddressStringRange("a:b:cc:dd:e:f:1.2.3.4/63", new Object[] {0xa, 0xb, 0xcc, 0xdd, 0xe, 0xf, 1, 2, 3, 4}, 63);

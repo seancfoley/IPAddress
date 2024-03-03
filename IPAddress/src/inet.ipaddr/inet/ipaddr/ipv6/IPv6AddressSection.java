@@ -3023,7 +3023,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPAddressStringDivisionSeries[] getParts(IPStringBuilderOptions opts) {
 		return getParts(IPv6StringBuilderOptions.from(opts));
 	}
-	
+
 	public IPAddressStringDivisionSeries[] getParts(IPv6StringBuilderOptions opts) {
 		if(opts.includes(IPv6StringBuilderOptions.MIXED)) {
 			if(opts.includes(IPStringBuilderOptions.BASIC)) {
@@ -3126,7 +3126,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 		//options for addresses with an ipv4 section
 		public final MixedCompressionOptions compressMixedOptions;
-	
+
 		public CompressOptions(boolean compressSingle, CompressionChoiceOptions rangeSelection) {
 			this(compressSingle, rangeSelection, MixedCompressionOptions.YES);
 		}
