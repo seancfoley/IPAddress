@@ -856,7 +856,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * If within or above the range, it is the distance to the lower boundary of the sequential range.  If below the, returns the number of addresses following the address to the lower range boundary.
 	 * <p>
 	 * The method does not return null if this range does not contain the address.  You can call {@link #contains(IPAddress)} or you can compare with {@link #getCount()} to check for containment.
-	 * An address is in the range if 0 <= {@link #enumerate(IPAddress)} < {@link #getCount()}.
+	 * An address is in the range if 0 &lt;= {@link #enumerate(IPAddress)} &lt; {@link #getCount()}.
 	 * <p>
 	 * Returns null when the argument is a multi-valued subnet. The argument must be an individual address.
 	 * <p>

@@ -2583,6 +2583,7 @@ public class TrieTest extends TestBase {
 			}
 			
 		} else if(set instanceof WrappedMap) {
+			@SuppressWarnings("unchecked")
 			WrappedMap<T,?> wrapped = (WrappedMap<T,?>) set;
 			AddressTrieMap<T, ?> trieMap = wrapped.map;
 			AssociativeAddressTrie<T,?> trie = trieMap.asTrie();
@@ -3123,6 +3124,7 @@ public class TrieTest extends TestBase {
 			AddressTrieSet<T> trieSet = (AddressTrieSet<T>) set;
 			newTrie = trieSet.asTrie();
 		} else if(set instanceof WrappedMap) {
+			@SuppressWarnings("unchecked")
 			WrappedMap<T, ?> wrapped = (WrappedMap<T, ?>) set;
 			newTrie = wrapped.map.asTrie();
 		} else {
@@ -3335,6 +3337,7 @@ public class TrieTest extends TestBase {
 			testBoundedTrieIterators(trieSet, ordered, lowerInd, upperInd, AddressTrieSet::containingFirstIterator);
 			testBoundedTrieIterators(trieSet, ordered, lowerInd, upperInd, AddressTrieSet::blockSizeIterator);
 		} else if(set instanceof WrappedMap) {
+			@SuppressWarnings("unchecked")
 			WrappedMap<T,?> wrappedMap = (WrappedMap<T,?>) set;
 			testBoundedMapIterators(wrappedMap, ordered, lowerInd, upperInd, EntrySet::iterator);
 			testBoundedMapIterators(wrappedMap, ordered, lowerInd, upperInd, EntrySet::containingFirstIterator);
