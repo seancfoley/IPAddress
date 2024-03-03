@@ -98,7 +98,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			return (AssociativeTrieNode<K,V>) super.getParent();
 		}
 
-		@SuppressWarnings("unchecked") 
+		@SuppressWarnings("unchecked")
 		@Override
 		public V get(K addr) {
 			AssociativeTrieNode<K,V> node = (AssociativeTrieNode<K,V>) doLookup(addr).existingNode;

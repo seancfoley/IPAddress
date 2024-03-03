@@ -3030,7 +3030,7 @@ public class Validator implements HostIdentifierStringValidator {
 		}
 		return result;
 	}
-			
+
 	private static int parseInt8(CharSequence s, int start, int end) throws AddressStringException {
 		int charArray[] = chars;
 		int result = charArray[s.charAt(start)];

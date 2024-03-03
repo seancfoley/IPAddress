@@ -3804,7 +3804,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			super(addr);
 			this.zone = zone;
 		}
-	
+
 		@Override
 		public Iterator<IPv6AddressSectionString> iterator() {
 			return new IPAddressConfigurableStringIterator() {
