@@ -29,7 +29,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  *
  */
 public interface AddressSection extends AddressSegmentSeries {
-	
+
 	/**
 	 * Determines if one section contains another.
 	 * <p>
@@ -41,7 +41,7 @@ public interface AddressSection extends AddressSegmentSeries {
 	 * @return whether this section contains the given address section
 	 */
 	boolean contains(AddressSection other);
-	
+
 	/**
 	 * Determines if one section overlaps with another.
 	 * <p>
@@ -89,40 +89,40 @@ public interface AddressSection extends AddressSegmentSeries {
 	 * @return whether the argument section has the same address section prefix as this
 	 */
 	boolean prefixEquals(AddressSection other);
-	
+
 	@Override
 	AddressSection getLower();
-	
+
 	@Override
 	AddressSection getUpper();
-	
+
 	@Override
 	AddressSection reverseSegments();
-	
+
 	@Override
 	AddressSection reverseBits(boolean perByte);
-	
+
 	@Override
 	AddressSection reverseBytes();
-	
+
 	@Override
 	AddressSection reverseBytesPerSegment();
-	
+
 	@Override
 	AddressSection toPrefixBlock();
 
 	@Override @Deprecated
 	AddressSection removePrefixLength();
-	
+
 	@Override
 	AddressSection withoutPrefixLength();
-	
+
 	@Override @Deprecated
 	AddressSection removePrefixLength(boolean zeroed);
 
 	@Override
 	AddressSection adjustPrefixBySegment(boolean nextSegment);
-	
+
 	@Override
 	AddressSection adjustPrefixBySegment(boolean nextSegment, boolean zeroed);
 
@@ -147,7 +147,7 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	Iterator<? extends AddressSection> iterator();
-	
+
 	@Override
 	AddressComponentSpliterator<? extends AddressSection> spliterator();
 
@@ -156,7 +156,7 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	Iterator<? extends AddressSection> prefixIterator();
-	
+
 	@Override
 	AddressComponentSpliterator<? extends AddressSection> prefixSpliterator();
 
@@ -165,7 +165,7 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	Iterator<? extends AddressSection> prefixBlockIterator();
-	
+
 	@Override
 	AddressComponentSpliterator<? extends AddressSection> prefixBlockSpliterator();
 

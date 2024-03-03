@@ -290,7 +290,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 			public boolean is32Bits() {
 				return true;
 			}
-	
+
 			@Override
 			public int getUint32Val() {
 				return uint32Val;

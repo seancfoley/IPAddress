@@ -765,7 +765,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address(SegmentValueProvider lowerValueProvider, SegmentValueProvider upperValueProvider, Integer networkPrefixLength) throws AddressValueException {
 		this(lowerValueProvider, upperValueProvider, networkPrefixLength, null);
 	}
-	
+
 	/**
 	 * Constructs an IPv6 address or subnet.
 	 * 
@@ -1306,7 +1306,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address getUpper() {
 		return getLowestOrHighest(false, false);
 	}
-	
+
 	/**
 	 * Returns a pair of longs with the lower address value in the range of this individual address or subnet.
 	 * The high bits are in the first element, the low bits in the second.

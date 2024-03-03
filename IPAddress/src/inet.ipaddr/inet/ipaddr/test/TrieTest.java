@@ -811,8 +811,8 @@ public class TrieTest extends TestBase {
 		}
 		
 		incrementTestCount();
-		}
-		
+	}
+
 	static <E extends Address> List<E> collect(String addrs[], Function<String, E> converter) {
 		ArrayList<E> list = new ArrayList<>(addrs.length);
 		HashSet<E> dupChecker = new HashSet<>();
@@ -1167,7 +1167,7 @@ public class TrieTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
+
 	<R extends AddressTrie<T>, T extends Address> void testSpliterate(R tree) {
 		Function<R, Spliterator<T>> spliteratorFunc = AddressTrie::spliterator;
 		testSpliterate(tree, spliteratorFunc);
@@ -1577,9 +1577,7 @@ public class TrieTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
-	
-	
+
 	@SuppressWarnings("unchecked")
 	<R extends AddressTrie<T>, T extends Address> void testEdges(R trie, List<T> addrs) {
 		R trie2 = (R) trie.clone();

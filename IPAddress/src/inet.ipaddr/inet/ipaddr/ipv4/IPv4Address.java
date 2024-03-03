@@ -755,7 +755,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4Address incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));
 	}
-	
+
 	/**
 	 * Indicates where an address sits relative to the subnet ordering.
 	 * <p>

@@ -463,10 +463,10 @@ public class Validator implements HostIdentifierStringValidator {
 											extendedRangeWildcardIndex, totalCharacterCount, index)) {
 									break;
 							}
-								// we are not base 85, so throw if necessary
-								if(extendedCharacterIndex >= 0) {
-									throw new AddressStringException(str, extendedCharacterIndex);
-								}
+							// we are not base 85, so throw if necessary
+							if(extendedCharacterIndex >= 0) {
+								throw new AddressStringException(str, extendedCharacterIndex);
+							}
 							boolean isRange = rangeWildcardIndex >= 0;
 							if(validationOptions.allowIPv6 && isSingleSegmentIPv6(totalDigits, isRange, frontTotalDigits, ipv6SpecificOptions)) {
 								isSingleIPv6 = true;
@@ -1953,8 +1953,8 @@ public class Validator implements HostIdentifierStringValidator {
 			if(missingCount > 0) {
 				if(segCount > 1) {
 					if(ipv4Options.inet_aton_joinedSegments) {
-							hasMissingSegs = true;
-							parseData.set_inet_aton_joined(true);
+						hasMissingSegs = true;
+						parseData.set_inet_aton_joined(true);
 					} else if(!hasWildcardSeparator) {
 						throw new AddressStringException(fullAddr, "ipaddress.error.ipv4.too.few.segments");
 					}
@@ -3030,7 +3030,7 @@ public class Validator implements HostIdentifierStringValidator {
 		}
 		return result;
 	}
-	
+
 	private static int parseInt8(CharSequence s, int start, int end) throws AddressStringException {
 		int charArray[] = chars;
 		int result = charArray[s.charAt(start)];
@@ -3043,17 +3043,17 @@ public class Validator implements HostIdentifierStringValidator {
 				throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.octal.digit");
 			}
 			result = (result << 3) | next;
-       }
-	   return result;
+		}
+		return result;
 	}
-	
+
 	private static int parseInt10(CharSequence s, int start, int end) throws AddressStringException {
 		int charArray[] = chars;
 		int result = charArray[s.charAt(start)];
 		if(result >= 10) {
 			throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.decimal.digit");
 		}
-		while (++start < end) {
+		while(++start < end) {
 			int next = charArray[s.charAt(start)];
 			if(next >= 10) {
 				throw new AddressStringException(s, "ipaddress.error.ipv4.invalid.decimal.digit");
@@ -3066,7 +3066,7 @@ public class Validator implements HostIdentifierStringValidator {
 	private static long parseLong16(CharSequence s, int start, int end) {
 		int charArray[] = chars;
 		long result = charArray[s.charAt(start)];
-		while (++start < end) {
+		while(++start < end) {
 			result = (result << 4) | charArray[s.charAt(start)];
 		}
 		return result;

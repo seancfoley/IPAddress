@@ -1982,7 +1982,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 
 		@Override
 		public void remove() {
-			if (current == null) {
+			if(current == null) {
                 throw new IllegalStateException(getMessage("ipaddress.error.no.iterator.element.to.remove"));
 			}
 			ChangeTracker changeTracker = this.changeTracker;

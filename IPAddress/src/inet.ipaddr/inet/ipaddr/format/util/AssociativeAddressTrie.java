@@ -516,13 +516,11 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			emptyTrie.containingFirstAllNodeIterator(true);
 		
 		Iterator<? extends AssociativeTrieNode<K, V>> thisIterator = containingFirstAllNodeIterator(true);
-		
-		//System.out.println("starting iteration");
+
 		while(cachingIterator.hasNext()) {
 			AssociativeTrieNode<K, SubNodesMappingAssociative<K, V>> newNext = cachingIterator.next(), parent;
 			AssociativeTrieNode<K, V> thisNext = thisIterator.next();
-			//System.out.println("iterated on " + thisNext + " and " + newNext);
-			
+
 			SubNodesMappingAssociative<K,V> mapping = new SubNodesMappingAssociative<K,V>();
 			mapping.value = thisNext.getValue();
 			

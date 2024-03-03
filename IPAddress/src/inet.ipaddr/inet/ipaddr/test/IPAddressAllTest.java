@@ -517,7 +517,7 @@ public class IPAddressAllTest extends IPAddressRangeTest {
 	private static final IPAddressStringParameters EXTRANEOUS_DIGITS_OPTIONS = DEFAULT_OPTIONS.toBuilder().
 			getIPv4AddressParametersBuilder().allow_inet_aton_extraneous_digits(true).getParentBuilder().toParams();
 	private static final IPAddressStringParameters EXTRANEOUS_DIGITS_OPTIONS_IPV4 = EXTRANEOUS_DIGITS_OPTIONS.toBuilder().allowIPv6(false).toParams();
-	
+
 	IPAddressAllTest(AddressCreator creator) {
 		super(creator);
 	}

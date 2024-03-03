@@ -609,10 +609,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 								// same prefix block
 								return 0;
 							}
-								// segmentPref2 is shorter prefix, prefix bits match, so depends on bit at index segmentPref2
-								return segment1.isOneBit(segmentPref2) ? 1 : -1;
-							}
-							return segment1.getSegmentValue() - segment2.getSegmentValue();
+							// segmentPref2 is shorter prefix, prefix bits match, so depends on bit at index segmentPref2
+							return segment1.isOneBit(segmentPref2) ? 1 : -1;
+						}
+						return segment1.getSegmentValue() - segment2.getSegmentValue();
 					} else {
 						int matchingBits = getMatchingBits(segment1, segment2, segmentPref1, bitsPerSegment);
 						if(matchingBits >= segmentPref1) {
@@ -1457,7 +1457,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				// all the bits match
 				handleMatch.bitsMatch();
 				return false;
-				}
+			}
 
 			int bitsMatchedSoFar = ParsedAddressGrouping.getTotalBits(segmentIndex, bytesPerSegment, bitsPerSegment);
 			while(true) {
@@ -1501,10 +1501,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 								return true;
 							}
 							return false;
-							}
-							// matchingBits < segmentPrefLen - no match - the bits in current prefix do not match the prefix of the existing address
-						handleMatch.bitsDoNotMatch(bitsMatchedSoFar + matchingBits);
 						}
+						// matchingBits < segmentPrefLen - no match - the bits in current prefix do not match the prefix of the existing address
+						handleMatch.bitsDoNotMatch(bitsMatchedSoFar + matchingBits);
+					}
 					return false;
 				} else if(newSegmentPref != null) {
 					newPrefixLen = newSegmentPref;
@@ -2062,8 +2062,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return 0;
 		}
 		int n = 1;
-		if (i >>> 4 == 0) { n +=  4; i <<=  4; }
-		if (i >>> 6 == 0) { n +=  2; i <<=  2; }
+		if (i >>> 4 == 0) { n += 4; i <<=  4; }
+		if (i >>> 6 == 0) { n += 2; i <<=  2; }
 		n -= i >>> 7;
 		return n;
 	}
@@ -2446,7 +2446,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().longestPrefixMatchNode(addr);
 	}
-	
+
 	@Override
 	public E shortestPrefixMatch(E addr) {
 		if(bounds != null) {
@@ -2491,7 +2491,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return createSubTrie(newBounds);
 	}
-	
+
 	AddressTrie<E> elementsContainingToTrie(E addr) {
 		if(isEmpty()) {
 			return this;
@@ -2527,7 +2527,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// Now we need to know if any of the nodes are within the bounds
 		return !createNewSameBoundsFromList(node).isEmpty();
 	}
-	
+
 	TrieNode<E> smallestElementContainingBounds(E addr) {
 		if(bounds == null) {
 			return longestPrefixMatchNode(addr);
@@ -2560,18 +2560,18 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return node;
 	}
-	
+
 	E longestPrefixMatchBounds(E addr) {
 		TrieNode<E> node = smallestElementContainingBounds(addr);
 		return node == null ? null : node.getKey();
 	}
-	
+
 	// creates a new one-node trie with a new root and the given bounds
 	protected abstract AddressTrie<E> createNew(AddressBounds<E> bounds);
-	
+
 	// create a trie with the same root as this one, but different bounds
 	protected abstract AddressTrie<E> createSubTrie(AddressBounds<E> bounds);
-	
+
 	private AddressTrie<E> createNewSameBoundsFromList(TrieNode<E> node) {
 		AddressTrie<E> newTrie = createNew(bounds);
 		TrieNode<E> root = newTrie.absoluteRoot();
@@ -2600,7 +2600,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		newTrie.root.size();
 		return newTrie;
 	}
-	
+
 	@Override
 	public TrieNode<E> getNode(E addr) {
 		TrieNode<E> subRoot;
@@ -2618,7 +2618,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return subRoot.getNode(addr);
 	}
-	
+
 	@Override
 	public Iterator<? extends TrieNode<E>> allNodeIterator(boolean forward) {
 		if(bounds != null) {
@@ -2679,7 +2679,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return (Iterator<? extends TrieNode<E>>) iterator;
 	}
-	
+
 	/**
 	 * Iterates all nodes, ordered by keys from largest prefix blocks to smallest, and then to individual addresses.
 	 * <p>
@@ -2797,7 +2797,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return (Iterator<? extends TrieNode<E>>) iterator;
 	}
-	
+
 	@Override
 	public Spliterator<E> spliterator() {
 		return new KeySpliterator<E>(nodeSpliterator(true, true), comparator());
@@ -2823,7 +2823,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().nodeSpliterator(forward, false);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	Spliterator<? extends TrieNode<E>> nodeSpliterator(boolean forward, boolean addedNodesOnly) {
 		Spliterator<? extends TrieNode<E>> spliterator;
@@ -2844,7 +2844,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return spliterator;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Iterator<? extends TrieNode<E>> nodeIterator(boolean forward) {

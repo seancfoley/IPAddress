@@ -60,7 +60,7 @@ public class ParsedAddressGrouping {
 		}
 		return networkPrefixLength >> 3;
 	}
-	
+
 	/**
 	 * Returns the total number of bits for the given segment count, with each segment having the given number of bits.
 	 * The number of bytes must correspond to the number of bits.

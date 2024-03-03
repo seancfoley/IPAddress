@@ -114,7 +114,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	private transient SectionCache<IPv4AddressSection> sectionCache;
 	private transient Integer cachedLowerVal, cachedUpperVal;
-	
+
 	/**
 	 * Constructs a single segment section.
 	 * 
@@ -568,11 +568,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		} else {
 			Integer cachedInt = this.cachedUpperVal;
 			if(cachedInt == null) {
-			result = calcValue(false);
+				result = calcValue(false);
 				this.cachedUpperVal = result;
 			} else {
 				result = cachedInt;
-		}
+			}
 		}
 		return result;
 	}
@@ -1362,7 +1362,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public boolean equals(Object o) {
 		return o == this || (o instanceof IPv4AddressSection && ((IPv4AddressSection) o).isSameGrouping(this));
 	}
-	
+
 	@Override
 	public boolean overlaps(AddressSection other) {
 		return other instanceof IPv4AddressSection && overlaps(this, other);
