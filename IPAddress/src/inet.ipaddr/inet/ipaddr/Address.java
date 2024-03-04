@@ -542,7 +542,7 @@ public abstract class Address implements AddressSegmentSeries {
 	 * enumerate is the inverse of the increment method:
 	 * <ul><li>subnet.enumerate(subnet.increment(inc)) = inc</li>
 	 * <li>subnet.increment(subnet.enumerate(newAddr)) = newAddr</li></ul>
-	 *
+	 * <p>
 	 * If the given address does not have the same version or type as this subnet or address, then null is returned.
 	 */
 	public abstract BigInteger enumerate(Address other);
@@ -752,7 +752,7 @@ public abstract class Address implements AddressSegmentSeries {
 		if(len1 != len2) {
 			return false;
 		}
-		for(int i = 0; i < addrs1.length; i++) {
+		for(int i = 0; i < len1; i++) {
 			if(!addrs1[i].equals(addrs2[i])) {
 				return false;
 			}
