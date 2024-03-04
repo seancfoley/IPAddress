@@ -21,7 +21,11 @@ by Sean C Foley
 
 [Parse String Representation of IP Address or Host Name](#parse-string-representation-of-ip-address-or-host-name)
 
-[IP Address and Numeric Values](#ip-address-and-numeric-values)
+[Addresses from Numeric Values](#addresses-from-numeric-values)
+
+[Golang Address Keys](#golang-address-keys)
+
+[Golang Zero Values](#golang-zero-values)
 
 [Networks](#networks)
 
@@ -44,8 +48,6 @@ by Sean C Foley
 [Address Framework](#address-framework)
 
 [Conversion to String Representation of Address](#conversion-to-string-representation-of-address)
-
-[Searching Text of Databases for all Addresses in a Subnet](#searching-text-of-databases-for-all-addresses-in-a-subnet)
 
 [Containment and Subnet Membership](#containment-and-subnet-membership)
 
@@ -987,8 +989,9 @@ Output from both the Java and Go code:
 eth0
 ```
 
+
 &#8203;
-## IP Address and Numeric Values
+## Addresses from Numeric Values
 
 In addition to the range of string formats that can be parsed to produce `IPAddress` instances, you can also obtain `IPAddress` instances from a large number of numeric formats.   You an obtain instances of `IPAddress` from byte arrays in Java and from byte slices in Go.  You can obtain instances of `IPAddress` from `java.net.InetAddress` or `java.net.InterfaceAddress` in Java and any one of `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `netip.Addr`, or `netip.Prefix` in Go.  You can obtain instances of `IPAddress` from arrays of address segments in Java, or from slices of address segments in Go.  You can obtain instances of `IPAddress` from individual integer segment values using the `SegmentValueProvider` interface.  All of these options are generic to either IPv4 or IPv6 unless you specifically choose the IPv4 or IPv6-specific constructors.  See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddress) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressNetwork.IPAddressGenerator.html) for the full list.
 
@@ -1003,6 +1006,215 @@ When constructing IP addresses or sections, you can supply a prefix length, and 
 The same rule applies to subnets where the lower and upper values have zero hosts, like 10.1.2-3.0/24 or 10.1.2.2-6/31.  Both of those examples will become CIDR prefix blocks when constructed.
 
 Should you wish to get the individual address or section with a zero host, you can construct without the prefix length and then apply the prefix length afterwards, or you can use `getLower` or `toZeroHost` after construction.
+
+
+&#8203;
+## Golang Address Keys
+
+The Go language has the concept of [comparable types, those types that can be compared with comparison operators](https://go.dev/ref/spec#Comparison_operators).  The core types of this library are not comparable in that manner, although they are all comparable with each other using their Compare methods, or using [one of the library's comparator instances](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#pkg-variables).
+
+Each of the address and range core types provides an associated key type, a value type, that is comparable with comparison operators and usable as keys for the Go built-in map type.  Use the ToKey methods to obtain the corresponding key, and use each key's ToAddress method to get back the corresponding address.
+
+You can see [an example using address keys in the example wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing#use-addresses-or-address-ranges-as-keys-for-go-built-in-maps).
+
+
+&#8203;
+## Golang Zero Values
+
+The following Go code reveals the zero values for the address and sequential range core types, as well as some other related types:
+```go
+strip := func(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "ipaddr.", ""),
+		"github.com/seancfoley/ipaddress-go/", "")
+}
+
+typeName := func(i any) string {
+	return strip(reflect.ValueOf(i).Elem().Type().Name())
+}
+
+interfaceTypeName := func(i any) string {
+	return strip(reflect.TypeOf(i).String())
+}
+
+truncateIndent := func(s, indent string) string {
+	if boundary := len(indent) - (len(s) >> 3); boundary >= 0 {
+		return indent[:boundary] + "\t" // every 8 chars eliminates a tab
+	}
+	return ""
+}
+
+baseIndent := "\t\t\t"
+title := "Address item zero values"
+fmt.Printf("%s%sint\tbits\tcount\tstring\n", title, truncateIndent(title, baseIndent))
+vars := []ipaddr.AddressItem{
+	&ipaddr.Address{}, &ipaddr.IPAddress{},
+	&ipaddr.IPv4Address{}, &ipaddr.IPv6Address{}, &ipaddr.MACAddress{},
+
+	&ipaddr.AddressSection{}, &ipaddr.IPAddressSection{},
+	&ipaddr.IPv4AddressSection{}, &ipaddr.IPv6AddressSection{}, &ipaddr.MACAddressSection{},
+	&ipaddr.EmbeddedIPv6AddressSection{},
+	&ipaddr.AddressDivisionGrouping{}, &ipaddr.IPAddressLargeDivisionGrouping{},
+	&ipaddr.IPv6v4MixedAddressGrouping{},
+
+	&ipaddr.AddressSegment{}, &ipaddr.IPAddressSegment{},
+	&ipaddr.IPv4AddressSegment{}, &ipaddr.IPv6AddressSegment{}, &ipaddr.MACAddressSegment{},
+	&ipaddr.AddressDivision{}, &ipaddr.IPAddressLargeDivision{},
+
+	&ipaddr.IPAddressSeqRange{}, &ipaddr.IPv4AddressSeqRange{}, &ipaddr.IPv6AddressSeqRange{},
+}
+for _, v := range vars {
+	name := typeName(v) + "{}"
+	indent := truncateIndent(name, baseIndent)
+	fmt.Printf("%s%s%v\t%v\t%v\t\"%v\"\n", name, indent, v.GetValue(), v.GetBitCount(), v.GetCount(), v)
+}
+```
+Zero values for versioned address types, like those for IPv4 and IPv6, are the respective zero-valued addresses.  
+
+For other addresses, sections and groupings, those with no specific address type, version, and length, the zero values have no segments nor divisions.  They have a total of zero bits.
+
+Regardless of bit-size, all zero-values have a corresponding integer value of zero.
+
+The zero values for sequential ranges correspond to ranges with both boundaries as the corresponding zero valued address.
+
+Output:
+```
+Address item zero values        int     bits    count   string
+Address{}                       0       0       1       ""
+IPAddress{}                     0       0       1       ""
+IPv4Address{}                   0       32      1       "0.0.0.0"
+IPv6Address{}                   0       128     1       "::"
+MACAddress{}                    0       48      1       "00:00:00:00:00:00"
+AddressSection{}                0       0       1       ""
+IPAddressSection{}              0       0       1       ""
+IPv4AddressSection{}            0       0       1       ""
+IPv6AddressSection{}            0       0       1       ""
+MACAddressSection{}             0       0       1       ""
+EmbeddedIPv6AddressSection{}    0       0       1       ""
+AddressDivisionGrouping{}       0       0       1       ""
+IPAddressLargeDivisionGrouping{}0       0       1       ""
+IPv6v4MixedAddressGrouping{}    0       0       1       ""
+AddressSegment{}                0       0       1       "0x0"
+IPAddressSegment{}              0       0       1       "0x0"
+IPv4AddressSegment{}            0       8       1       "0"
+IPv6AddressSegment{}            0       16      1       "0x0"
+MACAddressSegment{}             0       8       1       "0x0"
+AddressDivision{}               0       0       1       "0x0"
+IPAddressLargeDivision{}        0       0       1       "0x0"
+SequentialRange[*IPAddress]{}   0       0       1       " -> "
+SequentialRange[*IPv4Address]{} 0       32      1       "0.0.0.0 -> 0.0.0.0"
+SequentialRange[*IPv6Address]{} 0       128     1       ":: -> ::"
+```
+Address items allow for producing strings and counts from nil pointers.  Most other methods, methods that require analysis of the internals of those struct types, will panic on nil pointers.  But the String and GetCount methods will return a string indicating nil and a count of zero.
+```go
+title = "Address item nil pointers"
+fmt.Printf("\n%s%scount\tstring\n", title, truncateIndent(title, baseIndent+"\t\t"))
+nilPtrItems := []ipaddr.AddressItem{
+	(*ipaddr.Address)(nil), (*ipaddr.IPAddress)(nil),
+	(*ipaddr.IPv4Address)(nil), (*ipaddr.IPv6Address)(nil), (*ipaddr.MACAddress)(nil),
+
+	(*ipaddr.AddressSection)(nil), (*ipaddr.IPAddressSection)(nil),
+	(*ipaddr.IPv4AddressSection)(nil), (*ipaddr.IPv6AddressSection)(nil), (*ipaddr.MACAddressSection)(nil),
+
+	(*ipaddr.AddressSegment)(nil), (*ipaddr.IPAddressSegment)(nil),
+	(*ipaddr.IPv4AddressSegment)(nil), (*ipaddr.IPv6AddressSegment)(nil), (*ipaddr.MACAddressSegment)(nil),
+
+	(*ipaddr.IPAddressSeqRange)(nil), (*ipaddr.IPv4AddressSeqRange)(nil), (*ipaddr.IPv6AddressSeqRange)(nil),
+}
+for _, v := range nilPtrItems {
+	name := "(" + interfaceTypeName(v) + ")(nil)"
+	indent := truncateIndent(name, baseIndent+"\t\t")
+	fmt.Printf("%s%s%v\t\"%v\"\n", name, indent, v.GetCount(), v)
+}
+```
+Output:
+```
+Address item nil pointers                       count   string
+(*Address)(nil)                                 0       "<nil>"
+(*IPAddress)(nil)                               0       "<nil>"
+(*IPv4Address)(nil)                             0       "<nil>"
+(*IPv6Address)(nil)                             0       "<nil>"
+(*MACAddress)(nil)                              0       "<nil>"
+(*AddressSection)(nil)                          0       "<nil>"
+(*IPAddressSection)(nil)                        0       "<nil>"
+(*IPv4AddressSection)(nil)                      0       "<nil>"
+(*IPv6AddressSection)(nil)                      0       "<nil>"
+(*MACAddressSection)(nil)                       0       "<nil>"
+(*AddressSegment)(nil)                          0       "<nil>"
+(*IPAddressSegment)(nil)                        0       "<nil>"
+(*IPv4AddressSegment)(nil)                      0       "<nil>"
+(*IPv6AddressSegment)(nil)                      0       "<nil>"
+(*MACAddressSegment)(nil)                       0       "<nil>"
+(*SequentialRange[*IPAddress])(nil)             0       "<nil>"
+(*SequentialRange[*IPv4Address])(nil)           0       "<nil>"
+(*SequentialRange[*IPv6Address])(nil)           0       "<nil>"
+```
+The address key value types have zero values matching the zero values of their corresponding address and range types.
+```go
+title = "Address key zero values"
+fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+keys := []fmt.Stringer{
+	&ipaddr.AddressKey{}, &ipaddr.IPAddressKey{},
+	&ipaddr.IPv4AddressKey{}, &ipaddr.IPv6AddressKey{}, &ipaddr.MACAddressKey{},
+	&ipaddr.IPAddressSeqRangeKey{}, &ipaddr.IPv4AddressSeqRangeKey{}, &ipaddr.IPv6AddressSeqRangeKey{},
+}
+for _, k := range keys {
+	name := typeName(k) + "{}"
+	indent := truncateIndent(name, baseIndent+"\t\t\t")
+	fmt.Printf("%s%s\"%v\"\n", name, indent, k)
+}
+```
+Output:
+```
+Address key zero values                                 string
+Key[*Address]{}                                         ""
+Key[*IPAddress]{}                                       ""
+IPv4AddressKey{}                                        "0.0.0.0"
+IPv6AddressKey{}                                        "::"
+MACAddressKey{}                                         "00:00:00:00:00:00"
+SequentialRangeKey[*IPAddress]{}                        " -> "
+SequentialRangeKey[*IPv4Address]{}                      "0.0.0.0 -> 0.0.0.0"
+SequentialRangeKey[*IPv6Address]{}                      ":: -> ::"
+```
+The zero values of host identifier strings are empty strings.
+```go
+title = "Host id zero values"
+fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+hostids := []ipaddr.HostIdentifierString{
+  &ipaddr.HostName{}, &ipaddr.IPAddressString{}, &ipaddr.MACAddressString{},
+}
+for _, k := range hostids {
+  name := typeName(k) + "{}"
+  indent := truncateIndent(name, baseIndent+"\t\t\t")
+  fmt.Printf("%s%s\"%v\"\n", name, indent, k)
+}
+```
+Output:
+```
+Host id zero values                                     string
+HostName{}                                              ""
+IPAddressString{}                                       ""
+MACAddressString{}                                      ""
+```
+Like addresses, host identifier strings allow for producing strings from nil pointers.  Most other methods of these types will panic on nil pointers, but the String methods will return a string indicating nil.
+```go
+title = "Host id nil pointers"
+fmt.Printf("\n%s%sstring\n", title, truncateIndent(title, baseIndent+"\t\t\t"))
+nilPtrIds := []ipaddr.HostIdentifierString{
+  (*ipaddr.HostName)(nil), (*ipaddr.IPAddressString)(nil), (*ipaddr.MACAddressString)(nil),
+}
+for _, v := range nilPtrIds {
+  name := "(" + interfaceTypeName(v) + ")(nil)"
+  indent := truncateIndent(name, baseIndent+"\t\t\t")
+  fmt.Printf("%s%s\"%v\"\n", name, indent, v)
+}
+```
+Output:
+```
+Host id nil pointers                                    string
+(*HostName)(nil)                                        "<nil>"
+(*IPAddressString)(nil)                                 "<nil>"
+(*MACAddressString)(nil)                                "<nil>"
+```
 
 &#8203;
 ## Networks
@@ -1029,19 +1241,15 @@ section above on parsing, or can be supplied when directly constructing
 addresses or sections. Addresses and sections store their prefix lengths
 and the prefix length is incorporated in numerous address operations as well as
 when producing strings. For instance, an address will provide the
-network section, based upon the prefix length, with calls to the IPAddress method `getNetworkSection`, and will
+network section, based upon the prefix length, with calls to the IPAddress method `getNetworkSection` in Java or `GetNetworkSection` in Go, and will
 supply the prefix length when calling `getNetworkPrefixLength` in Java or `GetNetworkPrefixLen` in Go.
 
 Given an address with no prefix length, you can convert to an address
-with prefix length using the methods `assignPrefixForSingleBlock` or
-`assignMinPrefixForBlock`, or any of the methods that allow
-you to set a prefix length directly such as
-`setPrefixLength` / `SetPrefixLen` or `adjustPrefixLength` / `AdjustPrefixLen` in Java / Go.
+with prefix length using the methods `assignPrefixForSingleBlock` / `AssignPrefixForSingleBlock` or `assignMinPrefixForBlock` / `AssignMinPrefixForBlock`, or any of the methods that allow you to set a prefix length directly such as `setPrefixLength` / `SetPrefixLen` or `adjustPrefixLength` / `AdjustPrefixLen` in Java / Go.
 
 Anytime you have an individual address or a subnet with prefix length, you
 can get the address representing the entire block for that
-prefix using the method `toPrefixBlock`. This type of subnet can be called a CIDR prefix block, a subnet which spans all the hosts for a specific CIDR prefix.  In the reverse direction, given a CIDR prefix block, you can get the IPv4 network address or the
-IPv6 anycast address by calling `getLower` or by calling `toZeroHost`.
+prefix using the method `toPrefixBlock` / `ToPrefixBlock` in in Java / Go. This type of subnet can be called a CIDR prefix block, a subnet which spans all the hosts for a specific CIDR prefix.  In the reverse direction, given a CIDR prefix block, you can get the IPv4 network address or the IPv6 anycast address by calling `getLower` / `GetLower` or by calling `toZeroHost` / `ToZeroHost`.
 
 &#8203;
 
@@ -1057,11 +1265,10 @@ Addresses can be broken up into sections, and reconstituted from
 sections. A section is a series of segments. You can get the section for
 the full address by calling `getSection`, or you can get subsections by
 calling one of the variants, either `getSection(int)` or `getSection(int,
-int)` in Java, or `GetSubSection` or `GetTrailingSection` in Go.
+int)` in Java.  In Go you would use `GetSubSection` or `GetTrailingSection`.
 These methods return a subsection spanning the given indices. You can also
 get the segments in an address by calling `getSegment` or one of the
-variants of `getSegments` in Java, or one of `GetSegments`, `CopySegments` or `CopySubSegments` in Go,
-either on the address or on a section of the address.
+variants of `getSegments` in Java, or one of `GetSegments`, `CopySegments` or `CopySubSegments` in Go, either on the address or on a section of the address.
 
 You can also reconstitute an address from a section or array of segments
 using the appropriate address constructor, if your section or array of
@@ -1104,10 +1311,12 @@ available as those available with addresses themselves.
 
 An `IPAddress` or `IPAddressString` instance can represent any individual
 address or any range of addresses in which each segment specifies a
-range of sequential values. An `IPAddress` instance has the canonical number of segments for its address version or type,
-which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 for MAC.
+range of sequential values. Such a range can be called a segment block, a block of values within the segment's range of possible values.  A subnet that contains segment blocks for any of its segments can be called a segment block subnet.  An individual address is one in which each segment is a segment block of size one, just a single value.
 
-Any CIDR prefix block can be specified in this manner.
+Any CIDR prefix block can be specified as segment blocks.  However, a prefix block is a more specific type of subnet, a subnet that contains the full range of values for its prefix.  So any segment outside the prefix is a segment block containing all possible values for the segment.
+
+An `IPAddress` instance has the canonical number of segments for its address version or type,
+which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 for MAC.
 
 An `IPAddressString` can represent any such address string, as well as those
 that do not use the canonical number of segments. However, for ranges
@@ -1129,8 +1338,7 @@ be expressed without the prefix length. For instance, the prefix block
 1:2:3:4::/64 can be written without the prefix length as 1:2:3:4:\*.
 
 You can convert a non-sequential block to a collection of sequential
-blocks using the `sequentialBlockIterator` method of `IPAddress`. If you
-wish to get the count of sequential blocks, use the method `getSequentialBlockCount`.
+blocks using the `sequentialBlockIterator` / `SequentialBlockIterator` method of `IPAddress`. If you wish to get the count of sequential blocks, use the method `getSequentialBlockCount` / `GetSequentialBlockCount`.
 
 This Java and Go code demonstrates the use of the sequential block iterator.
 ```java
@@ -1571,262 +1779,230 @@ The two tries illustrate how the two partitions differ.
 &#8203;
 ## IP Address Operations
 
-There are various methods for masking, obtaining subnets, and so on.
+Here we summarize the operations on IP Addresses, Subnets, and Sequential Ranges.  Many of these operations are also available on other address items, such as sections and segments.
+
+We start with the more general operations, those that do not involve prefixes, prefix blocks, or segment blocks, followed by operations involving prefixes and prefix blocks, and the operations involving segment blocks.  Segment block subnets are those subnets which have value ranges by segment.  Prefix blocks are subnets that have a value range corresponding to a specified prefix length, the subnet containing the full block of addresses according to that prefix.
 
 &#8203;
 
-#### Summary of IP Address Operations
+#### General Operations on Subnets, Addresses and Sequential Ranges
 
-Here is a summary, a non-exhaustive list, in no specific order, of
-operations and queries for transforming addresses and subnets.  Many of these methods are available not just for address instances, but also for sections, for sequential ranges, and a few are available for segments as well:
+Many of these operations are available on address sections as well.  You can obtain an address section by either constructing one directly or by getting the address section from a subnet or address.
 
 | Java | Go | Description |
 | --- | --- | --- |
+| equals | Equal | Returns whether two address items or sequential ranges include the exact same individual values |
+| contains | Contains, ContainsRange | Returns whether an address item or sequential range includes all the individual values of another address item or sequential range |
+| isMultiple | IsMultiple | Returns whether an address item or sequential range includes multiple values within its range. |
+| getCount | GetCount | Returns the number of individual values contained with the address item or sequential range, the number of values within its range of values. |
+| getLower | GetLower | Returns the lowest single-valued individual address item contained within an address item or sequential range. |
+| getUpper | GetUpper | Returns the highest single-valued individual address item contained within an address item or sequential range |
+| includesMax | IncludesMax | Returns whether the range of values in the address item or sequential range includes the largest possible individual value. |
+| includesZero | IncludesZero | Returns whether the range of values in the address item or sequential range includes the smallest possible individual value, namely the value of zero. |
+| isMax | IsMax | Returns whether the the address item or sequential range includes just a single value, which is the largest possible individual value. |
+| isZero | IsZero | Returns whether the the address item or sequential range includes just a single value, which is the smallest possible individual value, namely the value of zero. |
+| isFullRange | IsFullRange | Returns whether the range of values in the address item or sequential range includes all possible values, from zero to the max value. |
+| isSequential | IsSequential | Returns whether the range of values within the address item are a sequence of consecutive values.  In other words, it is sequential if the number of disjoint value ranges in the address item is one.  This really only applies to address items that are not sequential ranges since, by definition, a sequential range is always sequential, representing the sequence of addresses between a pair of addresses. |
+| iterator, spliterator, stream | Iterator | Traverses through the individual address items (or sections thereof) comprising the range of values within the original address item or sequential range.  Use `getCount` / `GetCount` to get the traversed count. |
+| subtract | Subtract | Computes the difference, the set of addresses in the receiver address, subnet, or sequential range, but not in the argument address, subnet, or sequential range.  Returns an array of subnets or or sequential ranges containing the result. |
+| intersect | Intersect | Computes the conjunction of the address, subnet or sequential range arguments.  The conjunction is the set of addresses in all of them.  Returns the address, subnet or sequential range representing that set of addresses.
+
+&#8203;
+
+#### Other General Operations on Subnets and Addresses
+
+Many of these operations are available on address sections as well.  You can obtain an address section by either constructing one directly or by getting the address section from a subnet or address.
+
+| Java | Go | Description |
+| --- | --- | --- |
+| increment | Increment | If the incremented address item is a subnet, provides the individual address that is the given increment into the sequence of individual addresses within the subnet range.  An increment exceeding the subnet count being simply added to the final address in the subnet. If the address is an individual address, simply adds the given increment to the address value to produce a new address. The increment value can be a positive or negative integer. |
+| incrementBoundary | IncrementBoundary |  Returns the address that is the given increment from one of the range boundaries of the subnet or address, with positive increments added to the upper bound of the range, and negative increments being added to the lower bound. An increment of zero returns the original. If the address is an individual address, simply adds the given increment to the address value to produce a new address. |
+| reverseBits, reverseBytes, reverseBytesPerSegment, reverseSegments | ReverseBits, ReverseBytes, ReverseSegments | Reverses the bits of segments, bytes, or the entire address or subnet.  Each individual value is reversed and included in the result.  Note that some subnets cannot have bits reversed due to a reversed segment not being expressible as a single range of segment values.  Reverse operations can be useful for handling endianness (network byte order sometimes requires bytes be reversed), or DNS lookup.
+| toIPv4, toIPv6 | ToIPv4, ToIPv6 | Provides the same address represented with the more specific type, so that IP-version specific method calls can be made.  If the address was originally constructed as the more specific type, then an instance of that type is returned.  The address itself remains the same. |
+| segmentsIterator, segmentsSpliterator, segmentsStream | | Traverses through all address items, similar to `iterator`/`spliterator`/`stream`, but using only segment arrays.  Use `getCount` to get the count. |
+| toSequentialRange | ToSequentialRange | Returns the associated sequential range ranging from the lowest to highest value of the address or subnet.  You can use the `isSequential` / `IsSequential` method of the address to know if the resulting sequential range represents the same set of addresses as the original address or subnet. |
+| spanWithRange | SpanWithRange | Returns a sequential range that spans from the subnet to the given subnet. The resulting range qill include all addresses in both subnets as well as all addresses in between. |
+
+&#8203;
+
+#### Other General Operations on Sequential Ranges
+
+| Java | Go | Description |
+| --- | --- | --- |
+| overlaps | Overlaps | Returns whether the given sequential range overlaps with the sequential range. |
+| extend | Extend | Extend extends the sequential range to include all address in the given sequential range, as well as all address in-between the two sequential ranges. |
+| join | Join, JoinTo | Given a list of address ranges, merges them into the minimal list of address ranges. |
+
+&#8203;
+
+#### Operations Involving Prefixes or Prefix Blocks
+
+The following methods allow you to query whether something is a prefix block, change prefix lengths, mask addresses, or other prefix-related operations, which are particularly integral to CIDR addressing and routing.  
+
+| Java | Go | Description |
+| --- | --- | --- |
+| prefixEquals | PrefixEqual | Returns whether the prefix of the address item matches the same bits in the given address or subnet. |
+| prefixContains | PrefixContains | Returns whether the prefix of the address item contains all the values of the same bits in the given address or subnet. |
+| isPrefixBlock | IsPrefixBlock | Returns whether the address item has a prefix length and contains the prefix block for that prefix.  A prefix block subnet, such as the /64 block a:&#8203;b:c:d::/64 or the /16 block 1.2.0.0/16, is a subnet or collection of address sections that contains all the addresses or address sections with the same prefix, with a prefix length identifying the prefix. |
+| isSinglePrefixBlock | IsSinglePrefixBlock | Returns whether the address item has a prefix length, it has a single prefix of that prefix length, and contains the prefix block for that prefix. |
+| containsSinglePrefixBlock | ContainsSinglePrefixBlock | Returns whether the subnet or sequential range contains the prefix block for the given prefix length, regardless of the assigned prefix length. |
+| containsPrefixBlock | ContainsPrefixBlock | Returns whether the subnet or sequential range contains the prefix block for the given prefix length and has a single prefix of that prefix length, regardless of the assigned prefix length. |
 | toPrefixBlock | ToPrefixBlock, ToPrefixBlockLen | Returns the subnet comprising the entire prefix block (all addresses with the same prefix), with either the existing or a given prefix length. |
-assignPrefixForSingleBlock | AssignPrefixForSingleBlock | Provides the equivalent subnet or address with a prefix length, the prefix length being the prefix length that makes the returned subnet a single prefix block.  The resulting subnet or address will span the same range of values as the original, and will thus remain equal to the original.
-getPrefixLengthForSingleBlock | GetPrefixLenForSingleBlock | Returns the prefix length that would make the address or subnet a prefix block with a single prefix.
-isSinglePrefixBlock | IsSinglePrefixBlock | Returns whether the subnet has a prefix length, it has a single prefix for that length, and is the prefix block for that prefix.
-
-
-
-Here is a summary, a non-exhaustive list, in no specific order, of
-operations for transforming addresses and subnets.  Many of these methods are available not just for address instances, but also for sections, for sequential ranges, and a few are available for segments as well:
-
-  - **toPrefixBlock**: Provides the subnet for the entire prefix block
-    using the existing or a supplied prefix length. You
-    can use `isPrefixBlock` to determine if the operation would have no
-    effect on the address because it is already a prefix block.
-
-  - **assignPrefixForSingleBlock** (formerly `toPrefixedEquivalent`):
-    Converts a subnet address with no prefix length to an equivalent
-    address with a prefix length. The resulting address will span the
-    same range of values as the original. You can use
-    `getPrefixLengthForSingleBlock` (formerly `getEquivalentPrefix`) to get
-    the resultant prefix prior to the operation, or `isSinglePrefixBlock`
-    (formerly `isRangeEquivalentToPrefix`) to determine if the operation
-    would have no effect on the address because it is already a single
-    prefix block.
-
-  - **assignMinPrefixForBlock** (formerly `toMinPrefixedEquivalent`):
-    Converts an address to an equivalent address with the smallest
-    possible prefix length. The resulting address will span the same
-    range of values as the original. You can use
-    `getMinPrefixLengthForBlock` (formerly `getMinPrefix`) to get the
-    resultant prefix prior to the operation.
-
-  - **mergeToPrefixBlocks**, **mergeToSequentialBlocks**: Given a list of
-    addresses or subnets, merges them into the minimal list of prefix
-    block subnets or sequential block subnets
-
-  - **toSequentialRange**: converts an IP address or subnet to the associated address range ranging from the lowest to highest value of the address or subnet.  The `isSequential` method of `IPAddress` indicates if both objects represent the same set of addresses.
-
-  - **join**: Given a list of address ranges, merges them into the
-    minimal list of address ranges
-
-  - **spanWithPrefixBlocks**, **spanWithSequentialBlocks**: Given a pair of
-    addresses or subnets, finds the minimal list of prefix block subnets
-    or sequential block subnets that span all addresses between the pair
-
-  - **append**, **prepend**, **replace**: Add or replace segments in
-    sections and addresses. On addresses you must always maintain the
-    correct number of segments, so only the replace operation is
-    provided. You can obtain a section by either constructing one
-    directly or by calling a variant of `getSection` on an address.
-
-  - **adjustPrefixBySegment**: Will create a larger network or smaller
-    subnet address by increasing or decreasing the prefix length to the
-    next segment boundary. If prefix length is increased, the additional
-    prefix bits can be either zero or the full range of potential
-    values.
-
-  - **withoutPrefixLength**: Convert to the same address but with no
-    prefix length
-
-  - **adjustPrefixLength**, **setPrefixLength**: Add, remove or adjust prefix lengths by the indicated values. There are variants with a
-    boolean argument to control whether extended prefix lengths have
-    zeros for the added bits, or whether the bits retain their values
-    from when they were on the other side of the prefix boundary. The
-    default behavior when extending or shortening a prefix length is to insert zeros
-    in the bits added to the prefix or removed from the prefix.
-
-    When reconstituting the result,
-    if the initial host bits have been changed to zero or remain zero, while the remaining host bits are zero or cover the full range, then the result will be a prefix block, just like when parsing strings with zero hosts or creating addresses or sections with zero hosts.
-
-  - **mask**, **maskNetwork**, **bitwiseOr**, **bitwiseOrNetwork**:
-    apply masks to subnets and addresses. The “network” variants allow
-    you to mask just the network portion and apply a prefix length,
-    while the others remove any existing prefix length.
-
-  - **reverseBits**, **reverseBytes**, **reverseBytesPerSegment**,
-    **reverseSegments**: useful for handling endianness (network byte
-    order sometimes requires bytes be reversed), or DNS lookup, or other
-    reasons for reversing bits and bytes.
-
-  - **subtract**: Computes the subnet difference, the set of addresses
-    in the subnet but not in the argument subnet. Subtracts a given
-    subnet from the receiver subnet, returning an array of subnets for
-    the result.
-
-  - **intersect**: Computes the subnet conjunction, the set of addresses
-    in both the receiver subnet and the argument subnet.
-
-  - **increment**: Given a positive or negative integer increment value,
-    if the address is a subnet, provides the address that is the given
-    increment into the list of subnet addresses. Any increment exceeding
-    the count of addresses in the subnet is simply added to the final
-    address in the subnet. If the address is an individual address, adds
-    the given increment to the address value to produce a new address.
-
-  - **toIPv4**, **toIPv6**, **toEUI**: Use either standard or customized address
-    conversions to go from one address version/type to another
+| getMinPrefixLengthForBlock | GetMinPrefixLenForBlock | Returns the smallest prefix length for which the range matches the block of addresses for that prefix. |
+| assignMinPrefixForBlock | AssignMinPrefixForBlock | Converts to an equivalent subnet (or section thereof) with the smallest prefix length, so that the result is a prefix block for that prefix length. The result will span the same range of values as the original. |
+| getPrefixLengthForSingleBlock | GetPrefixLenForSingleBlock | Returns a prefix length for which the range matches exactly the prefix block for a single-valued prefix, if such a prefix length exists. |
+| assignPrefixForSingleBlock | AssignPrefixForSingleBlock | Provides the equivalent subnet or address with a prefix length, the prefix length being the prefix length that makes the returned subnet a single prefix block. Such a subnet or address might not exist. The resulting subnet or address, if it exists, will span the same range of values as the original, and will thus remain equal to the original. |
+| getBlockMaskPrefixLength | GetBlockMaskPrefixLen | Returns the prefix length of a network or host mask, if the address is a mask. |
+| withoutPrefixLength | WithoutPrefixLen | Convert to the same but with no prefix length |
+| setPrefixLength | SetPrefixLen, SetPrefixLenZeroed | Set the prefix length to the indicated value in the result. If there was an existing prefix length, then the "zeroed" variants control whether the bits to change sides of the prefix are changed to zeros, or whether the bits retain their values from when they were on the other side of the prefix boundary. Other bits retain their value.  *Java only*: another method variant determines if the result can be re-interpreted as a prefix block when the host is all zeros, like when parsing strings with zero hosts or creating addresses with zero hosts.  |
+| adjustPrefixLength | AdjustPrefixLen, AdjustPrefixLenZeroed | Adjust the prefix length by the indicated value to a new prefix length in the result. The "zeroed" variants control whether the bits to change sides of the prefix are changed to zeros, or whether the bits retain their values from when they were on the other side of the prefix boundary. Other bits retain their value.  *Java only*: another method variant determines if the result can be re-interpreted as a prefix block when the host is all zeros, like when parsing strings with zero hosts or creating addresses with zero hosts.  |
+| adjustPrefixBySegment |  | Adjust the prefix length to the next segment boundary in the result. The "zeroed" variants control whether the bits to change sides of the prefix are changed to zeros, or whether the bits retain their values from when they were on the other side of the prefix boundary. Other bits retain their value.  |
+| mask, maskNetwork | Mask | Applies a mask to a subnet or address, the result being the bitwise conjunction. For subnets, the mask is applied to all individual addresses to produce a single result, if possible. *Java only*: the “network” variant allows you to mask just the network and apply a prefix length. |
+| bitwiseOr, bitwiseOrNetwork | BitwiseOr | Produces the bitwise disjunction of the original with the given mask. For subnets, the mask is applied to all individual addresses to produce a single result, if possible. *Java only*: the “network” variant allows you to mask just the network and apply a prefix length. |
+| matchesWithMask | MatchesWithMask | Applies a mask to an address item and then compares the result with another address item, returning true if they match, false otherwise. |
+| includesZeroHost | IncludesZeroHost IncludesZeroHostLen | Returns whether the host part of the address item, the bits following the prefix, includes the value of zero within its range. |
+| includesMaxHost | IncludesMaxHost IncludesMaxHostLen | Returns whether the host part of the address item, the bits following the prefix, includes the maximum possible value within its range, the value in which all host bits are ones. |
+| isZeroHost |  IsZeroHost, IsZeroHostLen | Returns whether the host part of the address item, the sequence of bits following the prefix, is single-valued, that value being zero. |
+| | IsMaxHost, IsMaxHostLen | Returns whether the host part of the address item, the sequence of bits following the prefix, is single-valued and is the maximum possible value within its range, the value in which all host bits are ones.  |
+| toZeroHost | ToZeroHost, ToZeroHostLen | Produces the address item with prefix having the same range of values as the original and with the host, the sequence of bits beyond the prefix, having the value of zero. |
+| toZeroNetwork | ToZeroNetwork | Produces the address item with the prefix, the bits within the prefix length, having the value of zero, and the host the same range of values as the original. |
+| toMaxHost | ToMaxHost, ToMaxHostLen | Produces the address item with the same prefix as the original and with a host, the sequence of bits beyond the prefix, having the maximum possible value, the value where all host bits are ones. |
+| prefixBlockIterator, prefixBlockSpliterator, prefixBlockStream | PrefixBlockIterator | If the subnet (or section thereof) has a prefix length, then this traverses through the prefix blocks subnets for that prefix length, with each traversed item being a prefix block.  If no prefix length, then it traverses through all individual addresses  (or section thereof). Use `getPrefixCount` / `GetPrefixCount` for the traversed count.  For sequential range variants, the prefix length for the traversal is supplied. |
+| prefixIterator, prefixSpliterator, prefixStream | PrefixIterator | If the subnet (or section thereof) has a prefix length, then  traverses through the prefixes, with each traversed item including all those items from the original which have the same prefix.  All except possibly the boundary iterations (first and last) will be a prefix block.  If no prefix length, then it traverses through all individual addresses (or sections thereof). Use `getPrefixCount` / `GetPrefixCount` for the traversed count.  For sequential range variants, the prefix length for the traversal is supplied. |
+| nonZeroHostIterator | | Traverses through the individual address items (or sections thereof) comprising the range of values within the original address item, but skipping those values with a zero host, if the original has a prefix length.  Values with a zero host typically represent the entire block with the same prefix, rather than an individual address.  Use `getNonZeroHostCount` to get the traversed count. |
+| getPrefixCount | GetPrefixCount, GetPrefixCountLen | Returns the number of prefixes contained with the address item or sequential range, for either the existing prefix (which is the entire address item if no existing prefix length) or the given prefix length.  For sequential range variants, the prefix length is given.  |
+| spanWithPrefixBlocks | SpanWithPrefixBlocks, SpanWithPrefixBlocksTo | Given a pair of addresses or subnets (or sections thereof), or a sequential range,  finds the minimal list of prefix block subnets that span all addresses within. |
+| mergeToPrefixBlocks | MergeToPrefixBlocks | Given a list of addresses or subnets (or sections thereof), merges them into the minimal list of prefix blocks. |
+| coverWithPrefixBlock | CoverWithPrefixBlock, CoverWithPrefixBlockTo | Given a pair of addresses or subnets (or sections thereof), or a sequential range, returns the minimal-size prefix block that includes them both |
 
 &#8203;
 
-#### Queries for Prefix Lengths and Prefix Blocks
+#### Operations involving Segment Blocks
 
-In some cases you may need to know if you have a prefix block subnet,
-such as the /64 block a:&#8203;b:c:d::/64 or the /16 block 1.2.0.0/16, in which
-the subnet contains all the addresses with the same prefix of a given
-length. The following methods allow you to query for prefix blocks and
-lengths of blocks.
+The following operations involve segment blocks.  Note that a sequential block is a segment block segment that is sequential, such that for any two addresses in the range, all addresses in-between are also in the range.  To be sequential, any multi-valued segment must be followed only by segments comprising all segment values.
 
-  - **containsPrefixBlock**: Answers whether the subnet contains the
-    prefix block of addresses for a given prefix length (regardless of
-    whether the address is assigned a different prefix length or has
-    none assigned).
-
-  - **containsSinglePrefixBlock**: Like `containsPrefixBlock`, but queries
-    if the subnet contains *only* the prefix block of addresses for a
-    given prefix length. In other words, it answers whether the subnet
-    contains the full block of address for just a single prefix
-
-  - **isPrefixBlock**: Like `containsPrefixBlock` but using the prefix
-    length assigned to the address.
-
-  - **isSinglePrefixBlock**: Like `containsSinglePrefixBlock` but using
-    the prefix length assigned to the address
-
-  - **getBlockMaskPrefixLength**: (formerly `getMaskPrefixLength`): Will
-    return the prefix length for a network or host mask, if it is one
-
-  - **getPrefixLengthForSingleBlock**: Returns a prefix length for which
-    the range of this segment grouping matches exactly the block of
-    addresses for that prefix, if such a prefix length exists, and if it
-    does, it will match the result of `getMinPrefixLengthForBlock`
-
-  - **getMinPrefixLengthForBlock**: Returns the smallest prefix length
-    such that this address division series includes the block of
-    addresses for that prefix, which is the bit count for individual
-    addresses.
+| Java | Go | Description |
+| --- | --- | --- |
+| blockIterator, blockSpliterator, blockStream | BlockIterator | Traverses through the segment values of the higher segments up until a given segment index, with each traversed item including all those items from the original which have the same initial single-valued segments. If the segment index is 0, produces just a single value, the original address. If the segment index matches the segment count, traverses through all individual addresses (or sections thereof).  Use `getBlockCount` / `GetBlockCount` to get the traversed count. |
+| getBlockCount | GetBlockCount | Returns the count of distinct individual values in the given number of initial (more significant) segments.  |
+| sequentialBlockIterator, sequentialBlockSpliterator, sequentialBlockStream | SequentialBlockIterator | Traverses through the segment values of the higher segments up until a given segment index, with each traversed item including all those from the original which have the same initial single-valued segments.  The segment index is chosen to be the largest segment index for which all iterated blocks will be sequential. Use `getSequentialBlockCount` / `GetSequentialBlockCount` to get the traversed count. |
+| getSequentialBlockCount | GetSequentialBlockCount | Returns the count of maximal-length sequential value ranges in the address item.  In other words, it is the number of disjoint value ranges in the address item.  If `isSequential` / `IsSequential` returns true, the count will be one. |
+| spanWithSequentialBlocks | SpanWithSequentialBlocks, SpanWithSequentialBlocksTo | Given a pair of addresses or subnets (or sections thereof), or a sequential range, finds the minimal list of sequential block subnets that span all addresses within. |
+| mergeToSequentialBlocks | MergeToSequentialBlocks | Given a list of addresses or subnets (or sections thereof), merges them into the minimal list of sequential block subnets |
+| append, prepend, replace | Replace, ReplaceLen | Adds or replaces segments in the subnet, address, or the section of a subnet or address.  With subnets and addresses you must always maintain the correct number of segments, so only the replace operation is provided. |
 
 &#8203;
 
-#### Iterators, Spliterators and Streams
-
-Various iterators, spliterators and streams are available for traversing through subnets in different ways.
-
-  - **iterator**, **spliterator**, **stream**: Traverses through all address items. Use `getCount` to get the count.
-
-  - **nonZeroHostIterator**: Like iterator, but if the subnet has a prefix length, then this skips all zero-valued hosts. This can be
-    useful because the zero-valued host in a subnet typically represents
-    the subnet as a whole and is typically not used as an individual
-    address. Use `getNonZeroHostCount` to get the iterated count.
-
-  - **prefixBlockIterator**, **prefixBlockSpliterator**, **prefixBlockStream**: If the subnet has a prefix length, then
-    this traverses through the prefix blocks subnets for that prefix length within the larger subnet, with each traversed item being
-    a prefix block. If no prefix length, same as
-    `iterator`/`spliterator`/`stream`. Use `getPrefixCount` to get the count.
-
-  - **prefixIterator**, **prefixSpliterator**, **prefixStream**: If the subnet has a prefix length, then this
-    iterates through the prefixes, with each iterated item including all
-    the addresses in the original iterated subnet which have the same
-    prefix. For all traversed items except the lowest and highest this is
-    the prefix block, while the lowest and highest prefix might have
-    fewer addresses than the prefix block. If no prefix length, same as
-    `iterator`/`spliterator`/`stream`. Use `getPrefixCount` to get the count.
-
-  - **blockIterator**, **blockSpliterator**, **blockStream**: Traverses through the segment values of the higher
-    segments up until a given segment index. If the segment index is 0,
-    produces just a single value, the original address. If the segment
-    index is the segment count, same as iterator. Like `prefixIterator`/`prefixSpliterator`/`prefixStream`,
-    for each segment prefix, includes all addresses in the original
-    iterated subnet which have that prefix. Use `getBlockCount` to get the count.
-
-  - **sequentialBlockIterator**, **sequentialBlockSpliterator**, **sequentialBlockStream**: Traverses through the segment values of
-    the higher segments up until a specific segment index. The segment
-    index is chosen to be the largest segment index which allows for all
-    iterated address blocks to be sequential. Use
-    `getSequentialBlockCount` to get the iterated count.
-
-  - **segmentIterator**, **segmentsSpliterator**, **segmentsStream**: Traverses through all address items, similar to `iterator`/`spliterator`/`stream`, but using only segment arrays. Use `getCount` to get the count.
 
 &#8203;
 
-#### Mask and Prefix Length Operations
-
-The methods `mask`, `maskNetwork`, `bitwiseOr`, `bitwiseOrNetwork`,
-`withoutPrefixLength`, `adjustPrefixBySegment`, `adjustPrefixLength`, and `setPrefixLength` allow you to apply and adjust
-prefix lengths, and to apply masks, to individual addresses/sections and subnets.
-
-When applying an operation to a subnet, the operation is applied to
-every member of the subnet, so the result must be something
-representable with sequential segment ranges, otherwise you will get
-`IncompatibleAddressException` (formerly `AddressTypeException`). For
-instance, masking the subnet block of 255 addresses 0.0.0.0/24 with
-0.0.0.128 results in the two addresses 0.0.0.0 and 0.0.0.128 which is
-not sequential. However, this will not happen when using standard
-masking and subnetting techniques typical with IPv4 and IPv6 routing, so in the usual cases no exception will be thrown.
+#### Example of Mask and Prefix Length Operations
 
 The following code demonstrates how to get the lowest address in a
-prefixed subnet using any one of three methods: `getLowest`, `mask`, or
-`removePrefixLength`.
+prefixed subnet using any one of three methods: getting the lowest address in the subnet, masking, or converting the host to zero.
 ```java
 String addr = "1.2.3.4";
-IPAddress address = new IPAddressString(addr).getAddress();
 int prefixLength = 16;
-IPAddress maskWithPreLen =
-  new IPAddressString("/" + prefixLength).getAddress(address.getIPVersion());
-IPAddress mask = address.getNetwork().getNetworkMask(16, false);
 
-System.out.println("mask with prefix length " + maskWithPrefLen);
+IPAddress address = new IPAddressString(addr).getAddress();
+IPAddress mask = address.getNetwork().getNetworkMask(prefixLength, false);
 System.out.println("mask " + mask);
 
-IPAddress maskedAddress = address.mask(mask);
-System.out.println("address " + address + " masked " + maskedAddress);
 
-// create the subnet
+// create the prefix block subnet
 
-IPAddress subnet = address.applyPrefixLength(prefixLength).toPrefixBlock();
+IPAddress subnet = address.setPrefixLength(prefixLength).toPrefixBlock();
+System.out.println("subnet " + subnet + " no prefix is " +
+		subnet.withoutPrefixLength());
+
 
 // mask
 
 IPAddress maskedSubnet = subnet.mask(mask);
-System.out.println("subnet " + subnet + " masked " + maskedSubnet);
-System.out.println("equals: " + maskedAddress.equals(maskedSubnet));
+System.out.println("subnet " + subnet + " masked is " + maskedSubnet);
+IPAddress maskedAddress = address.mask(mask);
+System.out.println("address " + address + " masked is " + maskedAddress);
+System.out.println("masked address " + maskedAddress +
+		" equals masked subnet " + maskedSubnet + " is " +
+		maskedAddress.equals(maskedSubnet));
 
-// getLower
+// get the lower address
 
-IPAddress lowestInSubnet = subnet.getLower();
-System.out.println("lowest in subnet " + lowestAddressInSubnet);
-System.out.println("lowest in subnet no prefix " + lowestInSubnet.removePrefixLength(false));
-System.out.println("equals: " + maskedAddress.equals(lowestAddressInSubnet));
+IPAddress lowestAddrInSubnet = subnet.getLower();
+System.out.println("lowest in subnet is " + lowestAddrInSubnet);
+System.out.println("lowest in subnet no prefix is " +
+		lowestAddrInSubnet.withoutPrefixLength());
+System.out.println("masked address " + maskedAddress +
+		" equals lowest address in subnet " + lowestAddrInSubnet +  " is " +
+		maskedAddress.equals(lowestAddrInSubnet));
 
-// removePrefixLength
+// get the zero host
 
-IPAddress prefixRemoved = subnet.removePrefixLength(true);
-System.out.println("prefix removed " + prefixRemoved);
+IPAddress zeroHost = subnet.toZeroHost();
+System.out.println("zero host is " + zeroHost);
+System.out.println("zero host no prefix is " +
+		zeroHost.withoutPrefixLength());
+System.out.println("masked address " + maskedAddress +
+		" equals zero host " + zeroHost +  " is " +
+		maskedAddress.equals(zeroHost));
 ```
-Output:
+Here is the equivalent Go code:
+```go
+addr := "1.2.3.4"
+prefixLength := 16
+
+address := ipaddr.NewIPAddressString(addr).GetAddress()
+mask := address.GetNetwork().GetNetworkMask(prefixLength)
+fmt.Println("mask", mask)
+
+// create the prefix block subnet
+
+subnet := address.SetPrefixLen(prefixLength).ToPrefixBlock()
+fmt.Println("subnet", subnet, "no prefix is", subnet.WithoutPrefixLen())
+
+// mask
+
+maskedSubnet, _ := subnet.Mask(mask)
+maskedSubnet = maskedSubnet.WithoutPrefixLen()
+fmt.Println("subnet", subnet, "masked is", maskedSubnet)
+maskedAddress, _ := address.Mask(mask)
+fmt.Println("address", address, "masked is", maskedAddress)
+fmt.Println("masked address", maskedAddress,
+	"equals masked subnet", maskedSubnet,
+	"is", maskedAddress.Equal(maskedSubnet))
+
+// get the lower address
+
+lowestAddrInSubnet := subnet.GetLower()
+fmt.Println("lowest in subnet is", lowestAddrInSubnet)
+fmt.Println("lowest in subnet no prefix is",
+  lowestAddrInSubnet.WithoutPrefixLen())
+fmt.Println("masked address", maskedAddress,
+	"equals lowest address in subnet", lowestAddrInSubnet,
+	"is", maskedAddress.Equal(lowestAddrInSubnet))
+
+	// get the zero host
+
+zeroHost, _ := subnet.ToZeroHost()
+fmt.Println("zero host is", zeroHost)
+fmt.Println("zero host no prefix is", zeroHost.WithoutPrefixLen())
+fmt.Println("masked address", maskedAddress,
+	"equals zero host", zeroHost,
+	"is", maskedAddress.Equal(zeroHost))
 ```
-mask with prefix length 255.255.0.0/16
+Here is the output from either the Java or Go code:
+```
 mask 255.255.0.0
-address 1.2.3.4 masked 1.2.0.0
-subnet 1.2.0.0/16 masked 1.2.0.0
-equals: true
-lowest in subnet 1.2.0.0/16
-lowest in subnet no prefix 1.2.0.0
-equals: true
-prefix removed 1.2.0.0
+subnet 1.2.0.0/16 no prefix is 1.2.*.*
+subnet 1.2.0.0/16 masked is 1.2.0.0
+address 1.2.3.4 masked is 1.2.0.0
+masked address 1.2.0.0 equals masked subnet 1.2.0.0 is true
+lowest in subnet is 1.2.0.0/16
+lowest in subnet no prefix is 1.2.0.0
+masked address 1.2.0.0 equals lowest address in subnet 1.2.0.0/16 is true
+zero host is 1.2.0.0/16
+zero host no prefix is 1.2.0.0
+masked address 1.2.0.0 equals zero host 1.2.0.0/16 is true
 ```
 
 &#8203;
@@ -1834,20 +2010,38 @@ prefix removed 1.2.0.0
 #### Polymorphism
 
 Simply change the string "1.2.3.4" in the code above to an IPv6 address
-like a:ffff:&#8203;b:c:d::f and the code works all the same.
+like "a:ffff:&#8203;b:c:d::f" and the code works all the same.
 
 Output:
 ```
-mask with prefix length ffff::/16
 mask ffff::
-address a:ffff:b:c:d::f masked a::
-subnet a::/16 masked a::
-equals: true
-lowest in subnet a::/16
-lowest in subnet no prefix a::
-equals: true  
-prefix removed a::
+subnet a::/16 no prefix is a:*:*:*:*:*:*:*
+subnet a::/16 masked is a::
+address a:ffff:b:c:d::f masked is a::
+masked address a:: equals masked subnet a:: is true
+lowest in subnet is a::/16
+lowest in subnet no prefix is a::
+masked address a:: equals lowest address in subnet a::/16 is true
+zero host is a::/16
+zero host no prefix is a::
+masked address a:: equals zero host a::/16 is true
 ```
+
+&#8203;
+
+#### Masking Subnets
+
+When applying an operation to a subnet, the operation is applied to
+every member of the subnet.  In such cases, the result must be something
+representable with sequential segment ranges, otherwise
+`IncompatibleAddressException` will be thrown in Java, or an `IncompatibleAddressError` returned in Go. In other words, each resulting segment must be representable by a single range of values.
+
+For instance, masking the subnet block of 255 addresses 0.0.0.0/24 with
+the mask 0.0.0.128 results in the two addresses 0.0.0.0 and 0.0.0.128, which is
+not a sequential range of values.
+
+Such exceptions or errors will not happen when using standard
+masking and subnetting techniques typical with IPv4 and IPv6 routing.
 
 &#8203;
 
@@ -1855,58 +2049,90 @@ prefix removed a::
 
 Subnetting can be accomplished using various address manipulation
 methods. Given a prefixed IP address, you can extend the prefix length
-and insert bits for an extended prefix and new subnet of the previous
-address block, as shown in the following example.
+and insert bits for an extended prefix and new subnet.
 ```java
 int originalPrefix = 18, adjustment = 4;
 IPAddress address = new IPAddressString("207.0.64.0").getAddress();
-IPAddress address2 = address.setPrefixLength(originalPrefix);
-System.out.println(address2);
-IPAddress subnet1 = address2.adjustPrefixLength(adjustment); // extend the prefix length
-System.out.println(subnet1);
-IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
-IPAddress subnet2 =
-  subnet1.bitwiseOrNetwork(prefixExtension,
-    originalPrefix + adjustment); // adjust the extended prefix  
+IPAddress subnet1 = address.toPrefixBlock(originalPrefix);
+System.out.println(subnet1 + " of size " + subnet1.getCount());
+IPAddress subnet2 = subnet1.adjustPrefixLength(adjustment); // extend the prefix length
 System.out.println(subnet2);
+IPAddress prefixExtension = new IPAddressString("0.0.4.0").getAddress();
+IPAddress subnet3 =
+		subnet2.bitwiseOrNetwork(prefixExtension,
+		  originalPrefix + adjustment); // adjust the extended prefix  
+System.out.println(subnet3 + " of size " + subnet3.getCount());
 ```
-Output:
+The equivalent Go code is:
+```go
+originalPrefix, adjustment := 18, 4
+address := ipaddr.NewIPAddressString("207.0.64.0").GetAddress()
+subnet1 := address.ToPrefixBlockLen(originalPrefix)
+fmt.Println(subnet1, "of size", subnet1.GetCount())
+subnet2, _ := subnet1.AdjustPrefixLenZeroed(adjustment) // extend the prefix length
+fmt.Println(subnet2)
+prefixExtension := ipaddr.NewIPAddressString("0.0.4.0").GetAddress()
+subnet3, _ := subnet2.BitwiseOr(prefixExtension) // adjust the extended prefix
+fmt.Println(subnet3, "of size", subnet3.GetCount())
 ```
-207.0.64.0/18
+Output for both the Java and Go code:
+```
+207.0.64.0/18 of size 16384
 207.0.64.0/22
-207.0.68.0/22
+207.0.68.0/22 of size 1024
 ```
-Here is the same subnetting operation using segment replacement:
+Here is the same subnetting operation using segment replacement.
 ```java
 IPv4Address address = new IPAddressString("207.0.64.0/18").getAddress().toIPv4();
 IPv4AddressSection replacementSection =
-  new IPAddressString("0.0.68.0/22").getAddress().toIPv4().getSection(2);
+		new IPAddressString("0.0.68.0/22").getAddress().toIPv4().getSection(2);
 IPAddress subnet = new IPv4Address(address.getSection().replace(2, replacementSection));  
-System.out.println(subnet);
+System.out.println(subnet + " of size " + subnet.getCount());
 ```
-Output:
+```go
+address := ipaddr.NewIPAddressString("207.0.64.0/18").GetAddress().ToIPv4()
+replacementSection :=
+	ipaddr.NewIPAddressString("0.0.68.0/22").GetAddress().ToIPv4().GetTrailingSection(2)
+subnet, _ := ipaddr.NewIPv4Address(address.GetSection().Replace(2, replacementSection))
+fmt.Println(subnet, "of size", subnet.GetCount())
 ```
-207.0.68.0/22
+Output for both the Java and Go code:
 ```
-Alternatively, you can use the `prefixBlockIterator` method to get a
+207.0.68.0/22 of size 1024
+```
+Alternatively, you can use the prefix block iterator to get a
 list of subnets when adjusting the prefix:
 ```java
-IPAddress subnet = new
-IPAddressString("192.168.0.0/28").getAddress();
+IPAddress subnet = new IPAddressString("192.168.0.0/28").getAddress();
 IPAddress newSubnets = subnet.setPrefixLength(subnet.getPrefixLength() + 2, false);
 System.out.println(newSubnets);
 
-TreeSet<IPAddress> subnetSet = new TreeSet<IPAddress>();
 Iterator<? extends IPAddress> iterator = newSubnets.prefixBlockIterator();
-while (iterator.hasNext()) {
-  subnetSet.add(iterator.next());
+if (iterator.hasNext()) {
+	System.out.print(iterator.next());
+	while (iterator.hasNext()) {
+		System.out.print(", ");
+		System.out.print(iterator.next());
+	}
 }
-System.out.println(subnetSet);
 ```
-Output:
+```go
+subnet := ipaddr.NewIPAddressString("192.168.0.0/28").GetAddress()
+newSubnets := subnet.SetPrefixLen(subnet.GetPrefixLen().Len() + 2)
+fmt.Println(newSubnets)
+
+iterator := newSubnets.PrefixBlockIterator()
+if iterator.HasNext() {
+	fmt.Print(iterator.Next())
+	for iterator.HasNext() {
+		fmt.Print(", ", iterator.Next())
+	}
+}
+```
+Output for both the Java and Go code:
 ```
 192.168.0.0-12/30
-[192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30]
+192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30
 ```
 Another option is to let the library do the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.
 
@@ -1924,6 +2150,8 @@ Most of these operations are methods that operate directly on `AddressTrie` or `
 Retrieves or checks for the existence of one or more nodes in the trie whose keys are the given individual addresses or CIDR prefix blocks.
 
 - **remove**, **removeAll**: Removes from the trie the nodes whose keys are the given individual addresses or CIDR prefix blocks, if any.
+
+xxx Entry? xxxx
 
 - **ceilingAddedNode**, **floorAddedNode**, **higherAddedNode**, **lowerAddedNode**, **ceiling**, **floor**, **higher**, **lower**, **ceilingKey**, **floorKey**, **higherKey**, **lowerKey**, **ceilingEntry**, **floorEntry**, **higherEntry**, **lowerEntry**: Finds nodes whose keys are closest to the given individual address or CIDR prefix block.  These are implementations of methods defined by `java.util.NavigableSet` and `java.util.NavigableMap`.
 
@@ -2197,11 +2425,9 @@ explicitly defined.
 ## MAC Address Operations
 
 Many of the same address operations available for IP addresses are
-available for MAC addresses, including the prefix operations, the section and segment access methods, iterators, spliterators, streams, containment, and reversal of bits, bytes and segments.
+available for MAC addresses, including the prefix operations, the section and segment access methods, iterators, containment, and reversal of bits, bytes and segments.
 
-The reverse operations may be useful for for "MSB format", "IBM format",
-"Token-Ring format", and "non-canonical form", where the bits are
-reversed in each byte of a MAC address.
+The reverse operations may be useful for for "MSB format", "IBM format", "Token-Ring format", and "non-canonical form", where the bits are reversed in each byte of a MAC address.
 
 &#8203;
 
@@ -2790,76 +3016,6 @@ options)`.
 
 &#8203;
 
-## Searching Text of Databases for all Addresses in a Subnet
-
-Suppose you wanted to search for all addresses from a subnet in a large
-amount of text data. For instance, suppose you wanted to search for all
-addresses in the text from the subnet a:&#8203;b:0:0::/64. You can start a
-representation of just the network prefix section of the address, then
-you can get all such strings for that prefix.
-```java
-IPAddressSection prefix = new IPAddressString("a:b::").getAddress().
-  getNetworkSection(64, false);
-String strings[] = prefix.toStandardStringCollection().toStrings();
-for(String str : strings) {
-  System.out.println(str);
-}
-```
-Output:
-```
-a:b:0:0  
-000a:000b:0000:0000  
-A:B:0:0  
-000A:000B:0000:0000  
-a:b::  
-000a:000b::  
-A:B::  
-000A:000B::
-```
-If you need to be more stringent or less stringent about the address
-formats you wish to search, then you can use
-`toStringCollection(IPStringBuilderOptions options)` with an instance of
-`IPv6StringBuilderOptions`.
-
-Searching for those strings will find the subnet addresses. However, you
-may get a few false positives, like "a:&#8203;b::d:e:f:a:b". To eliminate the
-false positives, you can just emulate in Java the SQL code produced
-below for the SQL database search, using substrings constructed from the
-segment separators.
-
-For a MySQL database search:
-```java
-public static void main(String[] args) {
-  IPAddressSection prefix = new IPAddressString("a:b::").  
-    getAddress().getNetworkSection(64, false);  
-  StringBuilder sql = new StringBuilder("Select rows from table where");  
-  prefix.getStartsWithSQLClause(sql, "column1");  
-  System.out.println(sql);
-}
-```
-Output:
-```sql
-Select rows from table where ((substring_index(column1,':',4) =
-'a:b:0:0') OR ((substring_index(column1,':',3) = 'a:b:') AND (LENGTH
-(column1) - LENGTH(REPLACE(column1, ':', '')) <= 6)))
-```
-For IPv4, another way to search for a subnet like 1.2.0.0/16 would be to
-do an SQL `SELECT` with the SQL wildcard string:
-```java
-public static void main(String[] args) {  
-  String wildcardString = new IPAddressString("1.2.0.0/16").  
-    getAddress().toSQLWildcardString();  
-  System.out.println(wildcardString);
-}
-```
-Output:
-```
-1.2.%.%
-```
-Then your SQL search string would be like:
-```sql
-Select rows from table where column1 like 1.2.%.%
-```
 
 &#8203;
 
