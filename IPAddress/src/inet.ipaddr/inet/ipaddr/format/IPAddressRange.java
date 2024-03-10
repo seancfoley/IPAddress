@@ -71,10 +71,10 @@ public interface IPAddressRange extends AddressComponentRange {
 	 * Indicates where an address sits relative to the range ordering.
 	 * <p>
 	 * Determines how many address elements of a range precede the given address element, if the address is in the range.
-	 * If above the range, it is the distance to the upper boundary added to the range count, and if below the range, the distance to the lower boundary.
+	 * If above the range, it is the distance to the upper boundary added to the range count less one, and if below the range, the distance to the lower boundary.
 	 * <p>
 	 * In other words, if the given address is not in the range but above it, returns the number of addresses preceding the address from the upper range boundary, 
-	 * added to the total number of range addresses.  If the given address is not in the subnet but below it, returns the number of addresses following the address to the lower subnet boundary.
+	 * added to one less than the total number of range addresses.  If the given address is not in the subnet but below it, returns the number of addresses following the address to the lower subnet boundary.
 	 * <p>
 	 * Returns null when the argument is multi-valued. The argument must be an individual address.
 	 * <p>

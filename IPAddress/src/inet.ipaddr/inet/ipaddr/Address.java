@@ -530,10 +530,10 @@ public abstract class Address implements AddressSegmentSeries {
 	 * Indicates where an address sits relative to the subnet ordering.
 	 * <p>
 	 * Determines how many address elements of a subnet precede the given address element, if the address is in the subnet.
-	 * If above the subnet range, it is the distance to the upper boundary added to the subnet address count, and if below the subnet range, the distance to the lower boundary.
+	 * If above the subnet range, it is the distance to the upper boundary added to the subnet address count less one, and if below the subnet range, the distance to the lower boundary.
 	 * <p>
 	 * In other words, if the given address is not in the subnet but above it, returns the number of addresses preceding the address from the upper subnet boundary, 
-	 * added to the total number of subnet addresses.  If the given address is not in the subnet but below it, returns the number of addresses following the address to the lower subnet boundary.
+	 * added to one less than the total number of subnet addresses.  If the given address is not in the subnet but below it, returns the number of addresses following the address to the lower subnet boundary.
 	 * <p>
 	 * enumerate returns null when the argument is a multi-valued subnet. The argument must be an individual address.
 	 * <p>
