@@ -58,10 +58,10 @@ public interface AddressSection extends AddressSegmentSeries {
 	 * Indicates where an address section sits relative to the ordering of individual address sections within this section.
 	 * <p>
 	 * Determines how many address section elements precede the given address section element, if the given address section is within this address section.
-	 * If above the range, it is the distance to the upper boundary added to the address section count, and if below the range, the distance to the lower boundary.
+	 * If above the range, it is the distance to the upper boundary added to the address section count less one, and if below the range, the distance to the lower boundary.
 	 * <p>
 	 * In other words, if the given address section is not in this section but above it, returns the number of individual address sections preceding the given address section from the upper section boundary, 
-	 * added to the total number of individual address sections within.  If the given address section is not in this section but below it, returns the number of individual address sections following the given address section to the lower section boundary.
+	 * added to one less than the total number of individual address sections within.  If the given address section is not in this section but below it, returns the number of individual address sections following the given address section to the lower section boundary.
 	 * <p>
 	 * enumerate returns null when the argument is a multi-valued section. The argument must be an individual address section.
 	 * <p>
