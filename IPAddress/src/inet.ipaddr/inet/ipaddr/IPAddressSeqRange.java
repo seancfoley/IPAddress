@@ -32,8 +32,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import inet.ipaddr.AddressNetwork.AddressSegmentCreator;
-import inet.ipaddr.IPAddressSection.IPAddressSeqRangeSpliterator;
 import inet.ipaddr.IPAddressSection.IPAddressSeqRangePrefixSpliterator;
+import inet.ipaddr.IPAddressSection.IPAddressSeqRangeSpliterator;
 import inet.ipaddr.IPAddressSection.SegFunction;
 import inet.ipaddr.IPAddressSection.SeqRangeIteratorProvider;
 import inet.ipaddr.format.AddressComponentRange;
@@ -42,6 +42,8 @@ import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
+import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv6.IPv6Address;
 
 /**
  * This class can be used to represent an arbitrary range of consecutive IP addresses.  
@@ -105,11 +107,25 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		lower = first;
 		upper = second;
 	}
-
-	private static int compareLowValues(IPAddress one, IPAddress two) {
-		return IPAddress.compareLowValues(one, two);
+	
+	private static boolean versionsMatch(IPAddress one, IPAddress two) {
+		if(one.getClass().equals(two.getClass())) {
+			return true;
+		}
+		// here we use type checks and not: if(!lower.getIPVersion().equals(other.getIPVersion())) 
+		// This is because we construct ranges based on type, 
+		// all we need is both to be the same type IPvxAddress to be able to construct an IPvxAddressSeqRange,
+		// so we might as well stick with that principle here.
+		if(one instanceof IPv4Address) {
+			return two instanceof IPv4Address;
+		}
+		return two instanceof IPv6Address;
 	}
 	
+	private static int compareLowValues(IPAddress one, IPAddress two) {
+		return AddressComparator.compareSegmentValues(false, one.getSection(), two.getSection());
+	}
+
 	@Override
 	public BigInteger getCount() {
 		BigInteger result = count;
@@ -118,7 +134,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public boolean isMultiple() {
 		BigInteger count = this.count;
@@ -127,7 +143,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return IPAddressRange.super.isMultiple();
 	}
-	
+
 	/**
 	 * 
 	 * @param other the range to compare, which does not need to range across the same address space
@@ -136,22 +152,22 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean isMore(IPAddressSeqRange other) {
 		return getCount().compareTo(other.getCount()) > 0;
 	}
-	
+
 	protected BigInteger getCountImpl() {
 		return IPAddressRange.super.getCount();
 	}
-	
+
 	@Override
 	public abstract Iterable<? extends IPAddress> getIterable();
-	
+
 	protected static int getNetworkSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
 		return ParsedAddressGrouping.getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 	}
-	
+
 	protected static int getHostSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
 		return ParsedAddressGrouping.getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 	}
-	
+
 	/**
 	 * Iterates through the range of prefix blocks in this range instance using the given prefix length.
 	 * 
@@ -684,6 +700,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			for(; j < len; j++) {
 				IPAddressSeqRange range2 = ranges[j];
 				IPAddress nextLower = range2.getLower();
+				if(!versionsMatch(nextLower, currentUpper)) {
+					break;
+				}
 				if(compareLowValues(currentUpper, nextLower) >= 0
 						|| (currentUpper.getIPVersion().equals(nextLower.getIPVersion()) && currentUpper.increment(1).equals(nextLower))) {
 					// join them
@@ -726,7 +745,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 
 	boolean isContainedBy(IPAddress other) {
 		IPAddress lower = getLower(), upper = getUpper();
-		if(!lower.getIPVersion().equals(other.getIPVersion())) {
+		if(!versionsMatch(lower, other)) {
 			return false;
 		}
 		int segCount = lower.getSegmentCount();
@@ -763,7 +782,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	@Override
 	public boolean overlaps(IPAddress other) {
 		IPAddress lower = getLower(), upper = getUpper();
-		if(!lower.getIPVersion().equals(other.getIPVersion())) {
+		if(!versionsMatch(lower, other)) {
 			return false;
 		}
 		int segCount = lower.getSegmentCount();
@@ -824,7 +843,12 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 */
 	@Override
 	public boolean overlaps(IPAddressSeqRange other) {
-		return compareLowValues(other.getLower(), getUpper()) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
+		IPAddress otherLower = other.getLower();
+		IPAddress upper = getUpper();
+		if(!versionsMatch(upper, otherLower)) {
+			return false;
+		}
+		return compareLowValues(otherLower, upper) <= 0 && compareLowValues(other.getUpper(), getLower()) >= 0;
 	}
 
 	// we choose to not make this public
@@ -837,7 +861,12 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	// in IPAddress you need to either go through the segments, or you need to go through the sequential blocks,
 	// and there is no general way to do it for any implementation of IPAddressRange.
 	private boolean containsRange(IPAddressRange other) {
-		return compareLowValues(other.getLower(), getLower()) >= 0 && compareLowValues(other.getUpper(), getUpper()) <= 0;
+		IPAddress otherLower = other.getLower();
+		IPAddress lower = getLower();
+		if(!versionsMatch(lower, otherLower)) {
+			return false;
+		}
+		return compareLowValues(otherLower, lower) >= 0 && compareLowValues(other.getUpper(), getUpper()) <= 0;
 	}
 	
 	@Override
@@ -908,10 +937,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * @return
 	 */
 	public IPAddressSeqRange intersect(IPAddressSeqRange other) {
-		IPAddress otherLower = other.getLower();
-		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = getLower();
 		IPAddress upper = getUpper();
+		IPAddress otherLower = other.getLower();
+		IPAddress otherUpper = other.getUpper();
+		if(!versionsMatch(lower, otherLower)) {
+			return null;
+		}
 		if(compareLowValues(lower, otherLower) <= 0) {
 			if(compareLowValues(upper, otherUpper) >= 0) {
 				return other;
@@ -940,10 +972,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * @return
 	 */
 	public IPAddressSeqRange join(IPAddressSeqRange other) {
-		IPAddress otherLower = other.getLower();
-		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = getLower();
 		IPAddress upper = getUpper();
+		IPAddress otherLower = other.getLower();
+		IPAddress otherUpper = other.getUpper();
+		if(!versionsMatch(lower, otherLower)) {
+			return null;
+		}
 		int lowerComp = compareLowValues(lower, otherLower);
 		if(!overlaps(other)) {
 			if(lower.getIPVersion().equals(otherLower.getIPVersion())) {
@@ -982,10 +1017,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * @return
 	 */
 	public IPAddressSeqRange extend(IPAddressRange other) {
-		IPAddress otherLower = other.getLower();
-		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = getLower();
 		IPAddress upper = getUpper();
+		IPAddress otherLower = other.getLower();
+		IPAddress otherUpper = other.getUpper();
+		if(!versionsMatch(lower, otherLower)) {
+			return null;
+		}
 		int lowerComp = compareLowValues(lower, otherLower);
 		int upperComp = compareLowValues(upper, otherUpper);
 		if(lowerComp > 0) { // 
@@ -1016,10 +1054,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * @return
 	 */
 	public IPAddressSeqRange[] subtract(IPAddressSeqRange other) {
-		IPAddress otherLower = other.getLower();
-		IPAddress otherUpper = other.getUpper();
 		IPAddress lower = getLower();
 		IPAddress upper = getUpper();
+		IPAddress otherLower = other.getLower();
+		IPAddress otherUpper = other.getUpper();
+		if(!versionsMatch(lower, otherLower)) {
+			return createSingle();
+		}
 		if(compareLowValues(lower, otherLower) < 0) {
 			if(compareLowValues(upper, otherUpper) > 0) { // l ol ou u
 				return createPair(lower, otherLower.increment(-1), otherUpper.increment(1), upper);

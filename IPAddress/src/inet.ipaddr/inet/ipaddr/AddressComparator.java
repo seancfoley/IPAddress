@@ -383,19 +383,12 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			}
 			boolean compareHigh = compareHighValue;
 			do {
-				int segCount = one.getSegmentCount();
-				for(int i = 0; i < segCount; i++) {
-					AddressSegment segOne = one.getSegment(i);
-					AddressSegment segTwo = two.getSegment(i);
-					int result = compareHigh ? 
-							(segOne.getUpperSegmentValue() - segTwo.getUpperSegmentValue()) : 
-								(segOne.getSegmentValue() - segTwo.getSegmentValue());
-					if(result != 0) {
-						if(flipSecond && compareHigh != compareHighValue) {
-							return -result;
-						}
-						return result;
+				int result = compareSegmentValues(compareHigh, one, two);
+				if(result != 0) {
+					if(flipSecond && compareHigh != compareHighValue) {
+						return -result;
 					}
+					return result;
 				}
 				compareHigh = !compareHigh;
 			} while(compareHigh != compareHighValue);
@@ -860,5 +853,28 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			}
 			return result;
 		}
+	}
+	
+	static int compareSegmentValues(boolean compareUpper, AddressSection one, AddressSection two) {
+		int segCount = one.getSegmentCount();
+		for(int i = 0; i < segCount; i++) {
+			AddressSegment segOne = one.getSegment(i);
+			AddressSegment segTwo = two.getSegment(i);
+			int s1, s2;
+			if(compareUpper) {
+				s1 = segOne.getUpperSegmentValue();
+				s2 = segTwo.getUpperSegmentValue();
+			} else {
+				s1 = segOne.getSegmentValue();
+				s2 = segTwo.getSegmentValue();
+			}
+			if(s1 != s2) {
+				if(s1 > s2) {
+					return 1;
+				}
+				return -1;
+			}
+		}
+		return 0;
 	}
 }
