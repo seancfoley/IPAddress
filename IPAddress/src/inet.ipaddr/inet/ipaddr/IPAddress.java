@@ -755,10 +755,6 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return otherRange.isContainedBy(this);
 	}
 
-	static int compareLowValues(IPAddress one, IPAddress two) {
-		return Address.ADDRESS_LOW_VALUE_COMPARATOR.compare(one, two);
-	}
-
 	/**
 	 * Applies the mask to this address and then compares values with the given address
 	 * 
