@@ -704,7 +704,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 					break;
 				}
 				if(compareLowValues(currentUpper, nextLower) >= 0
-						|| (currentUpper.getIPVersion().equals(nextLower.getIPVersion()) && currentUpper.increment(1).equals(nextLower))) {
+						|| currentUpper.increment(1).equals(nextLower)) {
 					// join them
 					joinedCount++;
 					IPAddress nextUpper = range2.getUpper();
@@ -741,7 +741,6 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return joined;
 	}
-	
 
 	boolean isContainedBy(IPAddress other) {
 		IPAddress lower = getLower(), upper = getUpper();
@@ -981,15 +980,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		int lowerComp = compareLowValues(lower, otherLower);
 		if(!overlaps(other)) {
-			if(lower.getIPVersion().equals(otherLower.getIPVersion())) {
-				if(lowerComp >= 0) {
-					if(otherUpper.increment(1).equals(lower)) {
-						return create(otherLower, upper);
-					}
-				} else {
-					if(upper.increment(1).equals(otherLower)) {
-						return create(lower, otherUpper);
-					}
+			if(lowerComp >= 0) {
+				if(otherUpper.increment(1).equals(lower)) {
+					return create(otherLower, upper);
+				}
+			} else {
+				if(upper.increment(1).equals(otherLower)) {
+					return create(lower, otherUpper);
 				}
 			}
 			return null;
@@ -1030,18 +1027,12 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			if(upperComp <= 0) { // ol l u ou
 				return other.toSequentialRange();
 			}
-			if(!upper.getIPVersion().equals(otherLower.getIPVersion())) {
-				return null;
-			}
 			// ol l ou u or ol ou l u
 			return create(otherLower, upper);
 		}
 		// lowerComp <= 0
 		if(upperComp >= 0) { // l ol ou u
 			return this;
-		}
-		if(!lower.getIPVersion().equals(otherUpper.getIPVersion())) {
-			return null;
 		}
 		return create(lower, otherUpper);// l ol u ou or l u ol ou
 	}
