@@ -351,6 +351,27 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 		} else if(val.signum() == 0 || val.equals(BigInteger.ONE)) {
 			return 1;
 		}
+		if(val.signum() > 0) {
+			int smallRadix = radix.intValue();
+			if(smallRadix == 16) {
+				return getDigitCount(16, val.bitLength());
+			} else if(smallRadix == 8) {
+				// could have used getDigitCount like hex, but chose to avoid the division
+				int result = 1;
+				while(true) {
+					val = val.shiftRight(3);
+					if(val.signum() == 0) {
+						break;
+					}
+					result++;
+				}
+				return result;
+			} else if(smallRadix == 4) {
+				return getDigitCount(4, val.bitLength());
+			} else if(smallRadix == 2) {
+				return val.bitLength();
+			}
+		}
 		int result = 1;
 		while(true) {
 			val = val.divide(radix);
@@ -464,13 +485,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 	public static int getDigitCount(long value, int radix) {
 		int result = 1;
 		if(radix == 16 && value >= 0) {
-			while(true) {
-				value >>>= 4;
-				if(value == 0) {
-					return result;
-				}
-				result++;
-			}
+			return getDigitCount(16, Long.SIZE - Long.numberOfLeadingZeros(value));
 		} else if(radix == 10 && value > -10) {
 			if(value < 10) {
 				return 1;
@@ -482,6 +497,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 			value /= 1000;
 			result = 3; //we start with 3 in the loop below
 		} else if(radix == 8 && value >= 0) {
+			// could have used getDigitCount like hex, but chose to avoid the division
 			while(true) {
 				value >>>= 3;
 				if(value == 0) {
@@ -490,6 +506,8 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				result++;
 			}
 			return result;
+		} else if(radix == 4 && value >= 0) {
+			return getDigitCount(4, Long.SIZE - Long.numberOfLeadingZeros(value));
 		} else if(radix == 2 && value > 0) {
 			return Long.SIZE - Long.numberOfLeadingZeros(value);
 		} else if(radix < MIN_RADIX || radix > MAX_RADIX) {
