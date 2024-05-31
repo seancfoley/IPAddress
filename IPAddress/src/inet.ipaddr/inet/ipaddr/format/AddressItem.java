@@ -107,7 +107,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	 * Whether this represents multiple potential values (eg a prefixed address or a segment representing a range of values)
 	 */
 	default boolean isMultiple() {
-		return !getCount().equals(BigInteger.ONE);
+		return !getUpperValue().equals(getValue());
 	}
 	
 	/**
@@ -347,3 +347,4 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 		return logBase2;
 	}
 }
+
