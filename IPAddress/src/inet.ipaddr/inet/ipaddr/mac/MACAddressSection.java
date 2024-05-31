@@ -1765,7 +1765,11 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	// only used by addresses, so we know the segment count is greater than 0
 	static BigInteger enumerate(MACAddressSection addr, AddressSection other) {
 		if(!addr.isExtended()) {
-			return BigInteger.valueOf(enumerateSmall(addr, other));
+			Long result = enumerateSmall(addr, other);
+			if(result != null) {
+				return BigInteger.valueOf(result);
+			}
+			return null;
 		}
 		return enumerateBig(addr, other);
 	}
@@ -1778,9 +1782,13 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			if(addressSegmentIndex != otherSec.addressSegmentIndex) {
 				throw new AddressPositionException(this, addressSegmentIndex, otherSec.addressSegmentIndex);
 			} else if(!isExtended() || getSegmentCount() <= 7) {
-				enumerateSmall(this, other);
+				Long result = enumerateSmall(this, other);
+				if(result != null) {
+					return BigInteger.valueOf(result);
+				}
+				return null;
 			}
-			enumerateBig(this, other);
+			return enumerateBig(this, other);
 		}
 		return null;
 	}
