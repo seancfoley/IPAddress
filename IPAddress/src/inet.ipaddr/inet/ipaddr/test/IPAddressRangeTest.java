@@ -1301,7 +1301,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		incrementTestCount();
 	}
 	
-	void testOverlaps(boolean overlaps, String rangeLow, String rangeHigh, String subnetStr) {
+	void testOverlapsRange(boolean overlaps, String rangeLow, String rangeHigh, String subnetStr) {
 		IPAddressString w = createAddress(rangeLow);
 		IPAddressString w2 = createAddress(rangeHigh);
 		IPAddressSeqRange rng = w.getAddress().spanWithRange(w2.getAddress());
@@ -4501,31 +4501,31 @@ public class IPAddressRangeTest extends IPAddressTest {
 					!isNoAutoSubnets ? ((3 * 256) * (2 * 256)) - (3 * 256) : 0, RangeParameters.WILDCARD_AND_RANGE);
 		
 		
-		testOverlaps(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.1.0.0/16");
-		testOverlaps(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.0.0.0/14");
-		testOverlaps(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.1.0.0/16");
-		testOverlaps(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.0.0.0/14");
-		testOverlaps(false, "1.1.254.255", "1.2.0.0", "1.1.253-254.1-3");
-		testOverlaps(true, "1.1.254.255", "1.2.0.0", "1.1.253-255.1-3");
-		testOverlaps(isAutoSubnets, "1.1.100.255", "1.2.0.0", "1.1.0.0/16");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.1.253-255.1-3");
-		testOverlaps(false, "1.1.100.255", "1.2.0.0", "1.2.253-255.1-3");
-		testOverlaps(false, "1.1.100.255", "1.2.0.0", "1.2-5.253-255.1-3");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.1-5.*.*");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.0-5.*.*");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.0-2.*.*");
-		testOverlaps(true, "1.1.100.255", "1.2.0.0", "1.0-1.*.*");
-		testOverlaps(isAutoSubnets, "1::1", "1::a:b:c:d", "1::/64");
-		testOverlaps(false, "1::1", "1::a:b:c:d", "1:2::/64");
-		testOverlaps(true, "1::1", "1::a:b:c:d", "1::a:b:c:d");
-		testOverlaps(true, "1::1", "1::a:b:c:d", "1::1");
-		testOverlaps(true, "1::1", "1::a:b:c:d", "1::a:b:c:*");
-		testOverlaps(true, "1::2:1", "1::5:ff", "1::1-3:1");
-		testOverlaps(true, "1::2:1", "1::5:ff", "1::2-3:1");
-		testOverlaps(true, "1::2:1", "1::5:ff", "1::5-6:1");
-		testOverlaps(false, "1::2:1", "1::5:ff", "1::5-6:fff");
+		testOverlapsRange(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.1.0.0/16");
+		testOverlapsRange(isAutoSubnets, "1.1.254.255", "1.2.0.0", "1.0.0.0/14");
+		testOverlapsRange(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.1.0.0/16");
+		testOverlapsRange(isAutoSubnets, "1.1.255.255", "1.2.0.0", "1.0.0.0/14");
+		testOverlapsRange(false, "1.1.254.255", "1.2.0.0", "1.1.253-254.1-3");
+		testOverlapsRange(true, "1.1.254.255", "1.2.0.0", "1.1.253-255.1-3");
+		testOverlapsRange(isAutoSubnets, "1.1.100.255", "1.2.0.0", "1.1.0.0/16");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.1.253-255.1-3");
+		testOverlapsRange(false, "1.1.100.255", "1.2.0.0", "1.2.253-255.1-3");
+		testOverlapsRange(false, "1.1.100.255", "1.2.0.0", "1.2-5.253-255.1-3");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.2-5.*.*");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.1-5.*.*");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.0-5.*.*");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.0-2.*.*");
+		testOverlapsRange(true, "1.1.100.255", "1.2.0.0", "1.0-1.*.*");
+		testOverlapsRange(isAutoSubnets, "1::1", "1::a:b:c:d", "1::/64");
+		testOverlapsRange(false, "1::1", "1::a:b:c:d", "1:2::/64");
+		testOverlapsRange(true, "1::1", "1::a:b:c:d", "1::a:b:c:d");
+		testOverlapsRange(true, "1::1", "1::a:b:c:d", "1::1");
+		testOverlapsRange(true, "1::1", "1::a:b:c:d", "1::a:b:c:*");
+		testOverlapsRange(true, "1::2:1", "1::5:ff", "1::1-3:1");
+		testOverlapsRange(true, "1::2:1", "1::5:ff", "1::2-3:1");
+		testOverlapsRange(true, "1::2:1", "1::5:ff", "1::5-6:1");
+		testOverlapsRange(false, "1::2:1", "1::5:ff", "1::5-6:fff");
 		
 		testOverlaps(true, "1::2-4:1", "1::1-3:1");
 		testContains("1::2-4:1", "1::1-3:1", false, false);
@@ -5818,6 +5818,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testIncrement("1::*:*:1-fffe", 65539, "1::1:6");
 		
 		testIncrement("::2-4:1-3", BigInteger.ONE.shiftLeft(3), "::4:3");
+		testIncrement("::2-4:1-3", BigInteger.ONE.shiftLeft(128), null);
 		testIncrement("::2-4:1-3", BigInteger.ONE.shiftLeft(3).subtract(BigInteger.ONE), "::4:2");
 
 		testSpanAndMerge("1.2.3.0", "1.2.3.1", 1, isNoAutoSubnets ? new String[] {"1.2.3.0-1/31"} : new String[] {"1.2.3.0/31"}, 1, new String[] {"1.2.3.0-1"});//rangeCount
