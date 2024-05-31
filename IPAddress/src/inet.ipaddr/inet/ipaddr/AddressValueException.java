@@ -66,11 +66,11 @@ public class AddressValueException extends RuntimeException {
 		super(one + ", "  + errorMessage + " " + getMessage(key));
 	}
 	
-	AddressValueException(String message) {
+	public AddressValueException(String message) {
         super(message);
     }
 
-    AddressValueException(String message, Throwable cause) {
+	public AddressValueException(String message, Throwable cause) {
         super(message, cause);
     }
 }

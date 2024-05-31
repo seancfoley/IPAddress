@@ -83,4 +83,12 @@ public class IncompatibleAddressException extends RuntimeException {
 	public IncompatibleAddressException(AddressItem one, AddressItem two, String key) {
 		super(one + ", " + two + ", " + errorMessage + " " + getMessage(key));
 	}
+	
+	public IncompatibleAddressException(String message) {
+        super(message);
+    }
+
+	public IncompatibleAddressException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
