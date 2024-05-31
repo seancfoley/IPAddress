@@ -688,6 +688,9 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	public long[] upperLongValues() {
+		if(!isMultiple()) {
+			return longValues();
+		}
 		return calcLongValues(false);
 	}
 
