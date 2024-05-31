@@ -1395,7 +1395,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	static BigInteger enumerate(IPv4AddressSection addr, AddressSection other) {
-		 return enumerateBig(addr, other);
+		Long result = enumerateSmall(addr, other);
+		if(result != null) {
+			return BigInteger.valueOf(result);
+		}
+		return null;
 	}
 	
 	/**
