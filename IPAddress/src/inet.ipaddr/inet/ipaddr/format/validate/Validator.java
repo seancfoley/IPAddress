@@ -537,6 +537,7 @@ public class Validator implements HostIdentifierStringValidator {
 							} else {
 								throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 							}
+							// single segment IPv4 or single-segment IPv6
 							isSingleSegment = true;
 							parseData.setSingleSegment();
 							checkCharCounts = false; // counted chars already

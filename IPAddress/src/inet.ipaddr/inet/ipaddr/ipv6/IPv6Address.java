@@ -2395,7 +2395,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	/**
 	 * 
 	 * @param other
-	 * @return whether this subnet overlaps with the given address
+	 * @return whether this subnet overlaps the given address
 	 */
 	@Override
 	public boolean overlaps(Address other) {

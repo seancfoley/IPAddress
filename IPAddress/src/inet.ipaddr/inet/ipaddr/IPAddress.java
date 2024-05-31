@@ -659,7 +659,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
-	 * Returns true if this address overlaps with the given address or subnet
+	 * Returns true if this address overlaps the given address or subnet
 	 * 
 	 * @param other
 	 * @return
@@ -670,7 +670,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
-	 * Returns true if this address overlaps with the given address or subnet
+	 * Returns true if this address overlaps the given sequential range
 	 * 
 	 * @param other
 	 * @return

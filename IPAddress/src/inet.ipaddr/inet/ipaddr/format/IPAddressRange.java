@@ -52,7 +52,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	boolean contains(IPAddress other);
 
 	/**
-	 * Returns whether this range overlaps with the given sequential range
+	 * Returns whether this range overlaps the given sequential range
 	 * 
 	 * @param other
 	 * @return
@@ -60,7 +60,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	boolean overlaps(IPAddressSeqRange other);
 
 	/**
-	 * Returns whether this range overlaps with the addresses in the given address or subnet
+	 * Returns whether this range overlaps the addresses in the given address or subnet
 	 * 
 	 * @param other
 	 * @return

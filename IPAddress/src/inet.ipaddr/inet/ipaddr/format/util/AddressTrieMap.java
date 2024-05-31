@@ -622,7 +622,7 @@ public class AddressTrieMap<K extends Address, V> extends AbstractMap<K, V> impl
 
 	@Override
 	public Entry<K, V> lastEntry() {
-		return isReverse ? trie.firstAddedNode()  : trie.lastAddedNode();
+		return isReverse ? trie.firstAddedNode() : trie.lastAddedNode();
 	}
 
 	@Override

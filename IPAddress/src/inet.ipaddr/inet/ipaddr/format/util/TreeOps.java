@@ -146,6 +146,8 @@ public interface TreeOps<E> extends Iterable<E>, Serializable, Cloneable {
 	/**
 	 * Traverses the added node keys in natural tree order.
 	 * <p>
+	 * This iterator supports the {@link java.util.Iterator#remove()} operation.
+	  * <p>
 	 * See {@link TreeOps} for more details on the ordering.
 	 * 
 	 * @return
@@ -156,6 +158,8 @@ public interface TreeOps<E> extends Iterable<E>, Serializable, Cloneable {
 	/**
 	 * Traverses the added node keys in reverse natural tree order.
 	 * <p>
+	 * This iterator supports the {@link java.util.Iterator#remove()} operation.
+	  * <p>
 	 * See {@link TreeOps} for more details on the ordering.
 	 * @return
 	 */
