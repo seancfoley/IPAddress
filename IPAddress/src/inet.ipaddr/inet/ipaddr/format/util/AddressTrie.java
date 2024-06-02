@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Sean C Foley
+ * Copyright 2020-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package inet.ipaddr.format.util;
 
 import java.io.Serializable;
