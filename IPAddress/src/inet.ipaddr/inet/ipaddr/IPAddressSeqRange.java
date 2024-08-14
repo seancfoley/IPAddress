@@ -107,7 +107,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		lower = first;
 		upper = second;
 	}
-	
+
 	private static boolean versionsMatch(IPAddress one, IPAddress two) {
 		if(one.getClass().equals(two.getClass())) {
 			return true;

@@ -334,7 +334,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		public AssociativeTrieNode<K,V> longestPrefixMatchNode(K addr) {
 			return (AssociativeTrieNode<K, V>) super.longestPrefixMatchNode(addr);
 		}
-		
+
 		@SuppressWarnings("unchecked")
 		@Override
 		public AssociativeTrieNode<K,V> shortestPrefixMatchNode(K addr) {
@@ -707,7 +707,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	public AssociativeTrieNode<K,V> longestPrefixMatchNode(K addr) {
 		return (AssociativeTrieNode<K, V>) super.longestPrefixMatchNode(addr);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public AssociativeTrieNode<K,V> shortestPrefixMatchNode(K addr) {
