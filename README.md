@@ -15,7 +15,7 @@ IP address and network manipulations, CIDR, address and subnet operations, itera
 - Maven group id: com.github.seancfoley
 - Maven artifact id: [ipaddress](https://search.maven.org/search?q=ipaddress)
 - Maven versions: [2.0.2](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/2.0.2/jar), [3.0.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/3.0.0/jar), [4.3.3](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/4.3.3/jar), [5.5.0](https://search.maven.org/artifact/com.github.seancfoley/ipaddress/5.5.0/jar) 
-- Latest Maven version: [![Maven Central](https://img.shields.io/maven-central/v/com.github.seancfoley/ipaddress.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.github.seancfoley%22%20AND%20a:%22ipaddress%22)
+- Latest Maven version: [![Maven Central](https://img.shields.io/maven-central/v/com.github.seancfoley/ipaddress.svg?label=Maven%20Central)](https://central.sonatype.com/namespace/com.github.seancfoley)
 - OSGI bundle since version 5.3.1: com.github.seancfoley.ipaddress
 
 ![Java](https://github.com/seancfoley/IPAddress/blob/gh-pages/images/java_logo.png?raw=true) ![Kotlin](https://github.com/seancfoley/IPAddress/blob/gh-pages/images/kotlin_logo.png?raw=true)![Go](https://github.com/seancfoley/IPAddress/blob/gh-pages/images/go_logo.png?raw=true) ![Scala](https://github.com/seancfoley/IPAddress/blob/gh-pages/images/scala.png?raw=true)![Groovy](https://github.com/seancfoley/IPAddress/blob/gh-pages/images/groovy.png?raw=true)![Clojure](https://github.com/seancfoley/IPAddress/blob/gh-pages/images/clojure.png?raw=true)
