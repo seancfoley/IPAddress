@@ -125,7 +125,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	private static int compareLowValues(IPAddress one, IPAddress two) {
 		return AddressComparator.compareSegmentValues(false, one.getSection(), two.getSection());
 	}
-	
+
 	@Override
 	public BigInteger getCount() {
 		BigInteger result = count;
@@ -134,7 +134,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public boolean isMultiple() {
 		BigInteger count = this.count;
@@ -143,7 +143,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return !count.equals(BigInteger.ONE);
 	}
-	
+
 	/**
 	 * 
 	 * @param other the range to compare, which does not need to range across the same address space
@@ -152,22 +152,22 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean isMore(IPAddressSeqRange other) {
 		return getCount().compareTo(other.getCount()) > 0;
 	}
-	
+
 	protected BigInteger getCountImpl() {
 		return IPAddressRange.super.getCount();
 	}
-	
+
 	@Override
 	public abstract Iterable<? extends IPAddress> getIterable();
-	
+
 	protected static int getNetworkSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
 		return ParsedAddressGrouping.getNetworkSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 	}
-	
+
 	protected static int getHostSegmentIndex(int networkPrefixLength, int bytesPerSegment, int bitsPerSegment) {
 		return ParsedAddressGrouping.getHostSegmentIndex(networkPrefixLength, bytesPerSegment, bitsPerSegment);
 	}
-	
+
 	/**
 	 * Iterates through the range of prefix blocks in this range instance using the given prefix length.
 	 * 
