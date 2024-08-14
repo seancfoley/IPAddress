@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,4 +83,12 @@ public class IncompatibleAddressException extends RuntimeException {
 	public IncompatibleAddressException(AddressItem one, AddressItem two, String key) {
 		super(one + ", " + two + ", " + errorMessage + " " + getMessage(key));
 	}
+	
+	public IncompatibleAddressException(String message) {
+        super(message);
+    }
+
+	public IncompatibleAddressException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

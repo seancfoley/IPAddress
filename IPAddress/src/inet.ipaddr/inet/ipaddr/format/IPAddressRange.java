@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	boolean contains(IPAddress other);
 
 	/**
-	 * Returns whether this range overlaps with the given sequential range
+	 * Returns whether this range overlaps the given sequential range
 	 * 
 	 * @param other
 	 * @return
@@ -60,7 +60,7 @@ public interface IPAddressRange extends AddressComponentRange {
 	boolean overlaps(IPAddressSeqRange other);
 
 	/**
-	 * Returns whether this range overlaps with the addresses in the given address or subnet
+	 * Returns whether this range overlaps the addresses in the given address or subnet
 	 * 
 	 * @param other
 	 * @return

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Sean C Foley
+ * Copyright 2020-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -146,6 +146,8 @@ public interface TreeOps<E> extends Iterable<E>, Serializable, Cloneable {
 	/**
 	 * Traverses the added node keys in natural tree order.
 	 * <p>
+	 * This iterator supports the {@link java.util.Iterator#remove()} operation.
+	  * <p>
 	 * See {@link TreeOps} for more details on the ordering.
 	 * 
 	 * @return
@@ -156,6 +158,8 @@ public interface TreeOps<E> extends Iterable<E>, Serializable, Cloneable {
 	/**
 	 * Traverses the added node keys in reverse natural tree order.
 	 * <p>
+	 * This iterator supports the {@link java.util.Iterator#remove()} operation.
+	  * <p>
 	 * See {@link TreeOps} for more details on the ordering.
 	 * @return
 	 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -501,7 +501,9 @@ public abstract class Address implements AddressSegmentSeries {
 	}
 
 	/**
-	 * Returns whether this is same type and version of the given address and whether it overlaps with the values in the given address or subnet
+	 * Returns whether this is same type and version of the given address and whether it overlaps with the individual addresses in the given address or subnet,
+	 * containing at least one individual address common to both.
+	 * 
 	 * 
 	 * @param other
 	 * @return
@@ -514,7 +516,7 @@ public abstract class Address implements AddressSegmentSeries {
 	}
 
 	/**
-	 * Returns whether this is same type and version of the given address and whether it contains all values in the given address or subnet
+	 * Returns whether this is same type and version of the given address and whether it contains all individual addresses in the given address or subnet
 	 * 
 	 * @param other
 	 * @return

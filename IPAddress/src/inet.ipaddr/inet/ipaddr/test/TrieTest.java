@@ -1,3 +1,21 @@
+/*
+ * Copyright 2020-2024 Sean C Foley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *     or at
+ *     https://github.com/seancfoley/IPAddress/blob/master/LICENSE
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package inet.ipaddr.test;
 
 import java.io.IOException;
@@ -219,12 +237,12 @@ public class TrieTest extends TestBase {
 
 	Strings two = new Strings(
 		new String[] {
-			"ff80::/8",
-			"ff80:8000::/16",
-			"ff80:8000::/24",
+			"ff80::", 
+			"ff80:8000::", 
+			"ff80:8000::/24", 
 			"ff80:8000::/32",
 			"ff80:8000:c000::/34",
-			"ff80:8000:c800::/36",
+			"ff80:8000:c800::",
 			"ff80:8000:cc00::/38",
 			"ff80:8000:cc00::/40",
 		},
@@ -394,12 +412,21 @@ public class TrieTest extends TestBase {
 				"0.128.0.0/24",
 				"0.128.0.128"
 			}, {
-				"ff80::/8",
-				"ff80:8000::/16",
-				"ff80:8000::/24",
+				"ff80::", 
+				"ff80:8000::", 
+				"ff80:8000::/24", 
 				"ff80:8000::/32",
 				"ff80:8000:c000::/34",
-				"ff80:8000:c800::/36",
+				"ff80:8000:c800::",
+				"ff80:8000:cc00::/38",
+				"ff80:8000:cc00::/40",
+			}, {
+				"ff80::/16",
+				"ff80:8000::/20", 
+				"ff80:8000::/24", 
+				"ff80:8000::/32",
+				"ff80:8000:c000::/34",
+				"ff80:8000:c800::/37",
 				"ff80:8000:cc00::/38",
 				"ff80:8000:cc00::/40",
 			}, {
@@ -987,7 +1014,7 @@ public class TrieTest extends TestBase {
 		}
 	}
 	
-	<R extends BaseDualIPv4v6Tries<?,?>, T extends Address> void testIterate(R tree) {
+	<R extends BaseDualIPv4v6Tries<?,?>, T extends Address> void testDualIterate(R tree) {
 		testIterate(tree, trie -> trie.blockSizeNodeIterator(true), true);
 		testIterate(tree, trie -> trie.blockSizeNodeIterator(false), true);
 		
@@ -2583,6 +2610,7 @@ public class TrieTest extends TestBase {
 			}
 			
 		} else if(set instanceof WrappedMap) {
+			@SuppressWarnings("unchecked")
 			WrappedMap<T,?> wrapped = (WrappedMap<T,?>) set;
 			AddressTrieMap<T, ?> trieMap = wrapped.map;
 			AssociativeAddressTrie<T,?> trie = trieMap.asTrie();
@@ -3123,6 +3151,7 @@ public class TrieTest extends TestBase {
 			AddressTrieSet<T> trieSet = (AddressTrieSet<T>) set;
 			newTrie = trieSet.asTrie();
 		} else if(set instanceof WrappedMap) {
+			@SuppressWarnings("unchecked")
 			WrappedMap<T, ?> wrapped = (WrappedMap<T, ?>) set;
 			newTrie = wrapped.map.asTrie();
 		} else {
@@ -3335,6 +3364,7 @@ public class TrieTest extends TestBase {
 			testBoundedTrieIterators(trieSet, ordered, lowerInd, upperInd, AddressTrieSet::containingFirstIterator);
 			testBoundedTrieIterators(trieSet, ordered, lowerInd, upperInd, AddressTrieSet::blockSizeIterator);
 		} else if(set instanceof WrappedMap) {
+			@SuppressWarnings("unchecked")
 			WrappedMap<T,?> wrappedMap = (WrappedMap<T,?>) set;
 			testBoundedMapIterators(wrappedMap, ordered, lowerInd, upperInd, EntrySet::iterator);
 			testBoundedMapIterators(wrappedMap, ordered, lowerInd, upperInd, EntrySet::containingFirstIterator);
@@ -3804,7 +3834,7 @@ public class TrieTest extends TestBase {
 				createIPv6SampleTree(ipv6Tree, treeAddrs2);
 				createIPv4SampleTree(ipv4Tree, treeAddrs2);
 				DualIPv4v6Tries dualTries = new DualIPv4v6Tries(ipv4Tree, ipv6Tree);
-				testIterate(dualTries);
+				testDualIterate(dualTries);
 				
 			}
 			
@@ -3820,7 +3850,7 @@ public class TrieTest extends TestBase {
 				DualIPv4v6AssociativeTries<Integer> dualTries = new DualIPv4v6AssociativeTries<>(ipv4Trie, ipv6Trie);
 				
 				//System.out.println(dualTries);
-				testIterate(dualTries);	
+				testDualIterate(dualTries);	
 			}
 			
 		}

@@ -86,6 +86,15 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 	}
 	
 	@Override
+	public boolean equals(Object other) {
+		if(other instanceof BaseDualIPv4v6Tries) {
+			BaseDualIPv4v6Tries<?, ?> o = (BaseDualIPv4v6Tries<?, ?>) other;
+			return getIPv4Trie().equals(o.getIPv4Trie()) && getIPv6Trie().equals(o.getIPv6Trie());
+		}
+		return false;
+	}
+	
+	@Override
 	public String toString() {
 		return AddressTrie.toString(true, getIPv4Trie(), getIPv6Trie());
 	}
@@ -472,7 +481,8 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 			// replace whatever was returned previously
 			if(ipv4Item == null && ipv4Iterator.hasNext()) {
 				ipv4Item = ipv4Iterator.next();
-			} else if(ipv6Item == null && ipv6Iterator.hasNext()) {
+			} 
+			if(ipv6Item == null && ipv6Iterator.hasNext()) {
 				ipv6Item = ipv6Iterator.next();
 			}
 			
@@ -551,6 +561,7 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 			// so that means we know we can trust the result of hasNext
 			// even when the trie has been changed.
 			if(current.hasNext()) {
+				//TODO you really only need to check the non-current here, since current.next() checks the current, but is this optimization worth the bother? I suppose
 				changedSince();
 			}
 			return current.next();

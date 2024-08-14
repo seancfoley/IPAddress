@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3485,17 +3485,9 @@ public class IPAddressTest extends TestBase {
 	void testIncrement(IPAddress orig, long increment, IPAddress expectedResult) {
 		if(orig.isIPv6()) { // test the variant that takes BigInteger increments
 			if(expectedResult == null) {
-				super.testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), null);
+				testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), null);
 			} else {
-				BigInteger bigInc =  BigInteger.valueOf(increment);
-				super.testIncrement(orig.toIPv6(), bigInc, expectedResult.toIPv6());
-				if(orig.isSequential()) { 
-					IPv6Address newAddr = new IPv6Address(orig.getValue().add(bigInc));
-					if(!newAddr.equals(expectedResult)) {
-						addFailure(new Failure("increment creation mismatch result " + 
-								newAddr + " vs expected " + expectedResult, orig));
-					}
-				}
+				testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), expectedResult.toIPv6());
 			}
 		}
 		super.testIncrement(orig, increment, expectedResult);
@@ -3507,10 +3499,8 @@ public class IPAddressTest extends TestBase {
 
 	@Override
 	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult) {
-		if(expectedResult == null) {
-			super.testIncrement(orig.toIPv6(), increment, null);
-		} else {
-			super.testIncrement(orig.toIPv6(), increment, expectedResult);
+		super.testIncrement(orig.toIPv6(), increment, expectedResult);
+		if(expectedResult != null) {
 			if(orig.isSequential()) { 
 				IPv6Address newAddr = new IPv6Address(orig.getValue().add(increment));
 				if(!newAddr.equals(expectedResult)) {
@@ -5614,10 +5604,10 @@ public class IPAddressTest extends TestBase {
 		ip_inet_aton_test(false, "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899", false); // 57 chars
 
 		// ipv6 disallowed parsing means these are allowed when the extraneous chars ipv4 option is enabled
-		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaa7f000001", false); // 19 chars
-		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaa7f000001", false); // 31 chars
-		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001", false); // 57 chars
-		ipv4_inet_aton_test(allowExtraneous(), "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899", false); // 31 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaa7f000001"); // 19 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaa7f000001"); // 31 chars
+		ipv4_inet_aton_test(allowExtraneous(), "0xBAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa7f000001"); // 57 chars
+		ipv4_inet_aton_test(allowExtraneous(), "30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899"); // 31 chars
 
 		testMatches(allowExtraneous(), "166.84.7.99", 
 				"30109660652968258587507720208869004917586231558044182760080879711850530871933298651275092531995635415866341562622743621197068644363147150162264995175351264755702053831226873618925872264083816948685971914830816722015764794244138634937665528586884556100653009798956899",
@@ -6595,7 +6585,6 @@ public class IPAddressTest extends TestBase {
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:ffff", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:fffe", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:fffe");
 		testIncrement("::8000:0:0:0", Long.MIN_VALUE, "::");
-		testIncrement("::7fff:ffff:ffff:ffff", Long.MIN_VALUE, null);
 		testIncrement("::7fff:ffff:ffff:ffff", Long.MIN_VALUE, null);
 		testIncrement("::7fff:ffff:ffff:fffe", Long.MIN_VALUE, null);
 		testIncrement("ffff:ffff:ffff:ffff:8000::0", Long.MAX_VALUE, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");

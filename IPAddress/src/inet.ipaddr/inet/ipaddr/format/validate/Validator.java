@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -537,6 +537,7 @@ public class Validator implements HostIdentifierStringValidator {
 							} else {
 								throw new AddressStringException("ipaddress.error.too.few.segments.digit.count");
 							}
+							// single segment IPv4 or single-segment IPv6
 							isSingleSegment = true;
 							parseData.setSingleSegment();
 							checkCharCounts = false; // counted chars already

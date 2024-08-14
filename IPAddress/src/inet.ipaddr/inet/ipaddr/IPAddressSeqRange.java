@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Sean C Foley
+ * Copyright 2018-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,9 +139,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean isMultiple() {
 		BigInteger count = this.count;
 		if(count == null) {
-			return !getLower().equals(getUpper());
+			return IPAddressRange.super.isMultiple();
 		}
-		return IPAddressRange.super.isMultiple();
+		return !count.equals(BigInteger.ONE);
 	}
 	
 	/**
@@ -741,11 +741,10 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return joined;
 	}
-	
 
 	boolean isContainedBy(IPAddress other) {
 		IPAddress lower = getLower(), upper = getUpper();
-		if(!lower.getIPVersion().equals(other.getIPVersion())) {
+		if(!versionsMatch(lower, other)) {
 			return false;
 		}
 		int segCount = lower.getSegmentCount();
@@ -774,7 +773,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 	
 	/**
-	 * Returns true if this sequential range overlaps with the given address or subnet.
+	 * Returns true if this sequential range overlaps the given address or subnet.
 	 * 
 	 * @param other
 	 * @return
@@ -782,7 +781,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	@Override
 	public boolean overlaps(IPAddress other) {
 		IPAddress lower = getLower(), upper = getUpper();
-		if(!lower.getIPVersion().equals(other.getIPVersion())) {
+		if(!versionsMatch(lower, other)) {
 			return false;
 		}
 		int segCount = lower.getSegmentCount();
@@ -836,7 +835,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 	
 	/**
-	 * Returns true if this sequential range overlaps with the given sequential range.
+	 * Returns true if this sequential range overlaps the given sequential range.
 	 * 
 	 * @param other
 	 * @return
@@ -893,7 +892,13 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 */
 	@Override
 	public BigInteger enumerate(IPAddress other) {
-		return getLower().enumerate(other);
+		IPAddress lower = getLower();
+		if(other == lower) {
+			return BigInteger.ZERO;
+		} else if(other == getUpper()) { 
+			return getCount().subtract(BigInteger.ONE);
+		}
+		return lower.enumerate(other);
 	}
 
 	/**
@@ -962,7 +967,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	/**
 	 * Joins two ranges if they are contiguous ranges.
 	 * 
-	 * If this range overlaps with the given range,
+	 * If this range overlaps the given range,
 	 * or if the highest value of the lower range is one below the lowest value of the higher range,
 	 * then the two are joined into a new larger range that is returned.
 	 * <p>

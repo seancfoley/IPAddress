@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Sean C Foley
+ * Copyright 2020-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -333,6 +333,12 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 		@Override
 		public AssociativeTrieNode<K,V> longestPrefixMatchNode(K addr) {
 			return (AssociativeTrieNode<K, V>) super.longestPrefixMatchNode(addr);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> shortestPrefixMatchNode(K addr) {
+			return (AssociativeTrieNode<K, V>) super.shortestPrefixMatchNode(addr);
 		}
 
 		@Override
@@ -700,6 +706,12 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	@Override
 	public AssociativeTrieNode<K,V> longestPrefixMatchNode(K addr) {
 		return (AssociativeTrieNode<K, V>) super.longestPrefixMatchNode(addr);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> shortestPrefixMatchNode(K addr) {
+		return (AssociativeTrieNode<K, V>) super.shortestPrefixMatchNode(addr);
 	}
 
 	/**

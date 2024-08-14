@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,14 +43,14 @@ public interface AddressSection extends AddressSegmentSeries {
 	boolean contains(AddressSection other);
 
 	/**
-	 * Determines if one section overlaps with another.
+	 * Determines if one section overlaps another.
 	 * <p>
 	 * Sections must have the same number of segments to be comparable.
 	 * <p>
 	 * For sections which are aware of their position in an address (IPv6 and MAC), their respective positions must match to be comparable.
 	 * 
 	 * @param other
-	 * @return whether this section overlaps with the given address section
+	 * @return whether this section overlaps the given address section
 	 */
 	boolean overlaps(AddressSection other);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Sean C Foley
+ * Copyright 2016-2024 Sean C Foley
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2395,7 +2395,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	/**
 	 * 
 	 * @param other
-	 * @return whether this subnet overlaps with the given address
+	 * @return whether this subnet overlaps the given address
 	 */
 	@Override
 	public boolean overlaps(Address other) {
