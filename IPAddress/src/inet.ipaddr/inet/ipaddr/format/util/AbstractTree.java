@@ -152,18 +152,17 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	    return hashCode;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean equals(Object o) {
 		if (o == this) {
 			return true;
 		}
 		if(o instanceof AbstractTree) {
-			AbstractTree<E> other = (AbstractTree<E>) o;
+			AbstractTree<?> other = (AbstractTree<?>) o;
 			if(other.size() != size()) {
 				return false;
 			}
-			Iterator<? extends BinaryTreeNode<E>> these = nodeIterator(true),
+			Iterator<? extends BinaryTreeNode<?>> these = nodeIterator(true),
 					others = other.nodeIterator(true);
 			while(these.hasNext()) {
 				BinaryTreeNode<?> node = these.next(), otherNode = others.next();

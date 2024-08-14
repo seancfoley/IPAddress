@@ -506,7 +506,7 @@ public abstract class AddressDivisionBase implements AddressGenericDivision {
 				result++;
 			}
 			return result;
-		}  else if(radix == 4 && value >= 0) {
+		} else if(radix == 4 && value >= 0) {
 			return getDigitCount(4, Long.SIZE - Long.numberOfLeadingZeros(value));
 		} else if(radix == 2 && value > 0) {
 			return Long.SIZE - Long.numberOfLeadingZeros(value);

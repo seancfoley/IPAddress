@@ -101,7 +101,7 @@ You may need to run "sudo -i" first.
 11. Follow instructions here for manual deployment:
 http://central.sonatype.org/pages/manual-staging-bundle-creation-and-deployment.html
 which requires that you go here https://oss.sonatype.org/ to upload.
-	
+
  Instructions there are:
 	Once bundle.jar has been produced, log into OSSRH, and select Staging Upload in the Build Promotion menu on the left:
 

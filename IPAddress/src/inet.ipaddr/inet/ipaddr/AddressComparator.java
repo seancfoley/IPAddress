@@ -384,12 +384,12 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			boolean compareHigh = compareHighValue;
 			do {
 				int result = compareSegmentValues(compareHigh, one, two);
-					if(result != 0) {
-						if(flipSecond && compareHigh != compareHighValue) {
-							return -result;
-						}
-						return result;
+				if(result != 0) {
+					if(flipSecond && compareHigh != compareHighValue) {
+						return -result;
 					}
+					return result;
+				}
 				compareHigh = !compareHigh;
 			} while(compareHigh != compareHighValue);
 			return 0;
