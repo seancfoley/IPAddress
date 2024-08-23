@@ -187,8 +187,8 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <C> CachingIterator<MACTrieNode, MACAddress, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-			return (CachingIterator<MACTrieNode, MACAddress, C>) super.containingFirstIterator(forwardSubNodeOrder);
+		public Iterator<MACTrieNode> containingFirstIterator(boolean forwardSubNodeOrder) {
+			return (Iterator<MACTrieNode>) super.containingFirstIterator(forwardSubNodeOrder);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -379,8 +379,8 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <C> CachingIterator<MACTrieNode, MACAddress, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-		return (CachingIterator<MACTrieNode, MACAddress, C>) super.containingFirstIterator(forwardSubNodeOrder);
+	public Iterator<MACTrieNode> containingFirstIterator(boolean forwardSubNodeOrder) {
+		return (Iterator<MACTrieNode>) super.containingFirstIterator(forwardSubNodeOrder);
 	}
 
 	@SuppressWarnings("unchecked")

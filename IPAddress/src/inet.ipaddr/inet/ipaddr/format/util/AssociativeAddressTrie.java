@@ -189,8 +189,8 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <C> CachingIterator<? extends AssociativeTrieNode<K,V>, K, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-			return (CachingIterator<? extends AssociativeTrieNode<K,V>, K, C>) super.containingFirstIterator(forwardSubNodeOrder);
+		public Iterator<? extends AssociativeTrieNode<K,V>> containingFirstIterator(boolean forwardSubNodeOrder) {
+			return (Iterator<? extends AssociativeTrieNode<K,V>>) super.containingFirstIterator(forwardSubNodeOrder);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -780,8 +780,8 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <C> CachingIterator<? extends AssociativeTrieNode<K,V>, K, C> containingFirstIterator(boolean lowerSubNodeFirst) {
-		return (CachingIterator<? extends AssociativeTrieNode<K, V>, K, C>) super.containingFirstIterator(lowerSubNodeFirst);
+	public Iterator<? extends AssociativeTrieNode<K,V>> containingFirstIterator(boolean lowerSubNodeFirst) {
+		return (Iterator<? extends AssociativeTrieNode<K, V>>) super.containingFirstIterator(lowerSubNodeFirst);
 	}
 
 	@SuppressWarnings("unchecked")

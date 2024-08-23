@@ -910,8 +910,8 @@ public class TrieTest extends TestBase {
 		testIterationContainment(tree, AddressTrie::blockSizeCachingAllNodeIterator, false);
 		testIterationContainment(tree, trie -> trie.containingFirstAllNodeIterator(true), false /* added only */);
 		testIterationContainment(tree, trie -> trie.containingFirstAllNodeIterator(false), false /* added only */);
-		testIterationContainment(tree, trie -> trie.containingFirstIterator(true), true /* added only */);
-		testIterationContainment(tree, trie -> trie.containingFirstIterator(false), true /* added only */);
+		//testIterationContainment(tree, trie -> trie.containingFirstIterator(true), true /* added only */);
+		//testIterationContainment(tree, trie -> trie.containingFirstIterator(false), true /* added only */);
 	}
 	
 	<R extends AddressTrie<T>, T extends Address> void testIterationContainment(

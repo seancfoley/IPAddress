@@ -177,8 +177,8 @@ public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Ad
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <C> CachingIterator<IPv6AssociativeTrieNode<V>, IPv6Address, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-			return (CachingIterator<IPv6AssociativeTrieNode<V>, IPv6Address, C>) super.containingFirstIterator(forwardSubNodeOrder);
+		public Iterator<IPv6AssociativeTrieNode<V>> containingFirstIterator(boolean forwardSubNodeOrder) {
+			return (Iterator<IPv6AssociativeTrieNode<V>>) super.containingFirstIterator(forwardSubNodeOrder);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -375,8 +375,8 @@ public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Ad
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <C> CachingIterator<IPv6AssociativeTrieNode<V>, IPv6Address, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-		return (CachingIterator<IPv6AssociativeTrieNode<V>, IPv6Address, C>) super.containingFirstIterator(forwardSubNodeOrder);
+	public Iterator<IPv6AssociativeTrieNode<V>> containingFirstIterator(boolean forwardSubNodeOrder) {
+		return (Iterator<IPv6AssociativeTrieNode<V>>) super.containingFirstIterator(forwardSubNodeOrder);
 	}
 
 	@SuppressWarnings("unchecked")

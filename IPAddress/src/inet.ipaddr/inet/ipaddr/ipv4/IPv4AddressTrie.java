@@ -174,8 +174,8 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-			return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.containingFirstIterator(forwardSubNodeOrder);
+		public Iterator<IPv4TrieNode> containingFirstIterator(boolean forwardSubNodeOrder) {
+			return (Iterator<IPv4TrieNode>) super.containingFirstIterator(forwardSubNodeOrder);
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -385,8 +385,8 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <C> CachingIterator<IPv4TrieNode, IPv4Address, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-		return (CachingIterator<IPv4TrieNode, IPv4Address, C>) super.containingFirstIterator(forwardSubNodeOrder);
+	public Iterator<IPv4TrieNode> containingFirstIterator(boolean forwardSubNodeOrder) {
+		return (Iterator<IPv4TrieNode>) super.containingFirstIterator(forwardSubNodeOrder);
 	}
 
 	@SuppressWarnings("unchecked")

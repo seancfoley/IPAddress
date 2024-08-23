@@ -1182,7 +1182,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	}
 
 	@Override
-	public <C> CachingIterator<? extends BinaryTreeNode<E>, E, C> containingFirstIterator(boolean forwardSubNodeOrder)  {
+	public Iterator<? extends BinaryTreeNode<E>> containingFirstIterator(boolean forwardSubNodeOrder)  {
 		return containingFirstIterator(forwardSubNodeOrder, true);
 	}
 	
