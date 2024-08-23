@@ -43,6 +43,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressConverter;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
+import inet.ipaddr.IPAddressSection.SeriesCreator;
 import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
@@ -2199,6 +2200,11 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		IPAddress[] converted = getConverted(addresses);
 		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getDefaultCreator());
 		return blocks.toArray(new IPv6Address[blocks.size()]);
+	}
+
+	@Override
+	protected SeriesCreator getSequentialSeriesCreator() {
+		return getDefaultCreator()::createSequentialBlockAddress;
 	}
 
 	/**

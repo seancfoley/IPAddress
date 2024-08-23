@@ -34,6 +34,7 @@ import inet.ipaddr.AddressValueException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressConverter;
 import inet.ipaddr.IPAddressSection.IPStringBuilderOptions;
+import inet.ipaddr.IPAddressSection.SeriesCreator;
 import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
@@ -1096,6 +1097,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		IPAddress[] converted = getConverted(addresses);
 		List<IPAddressSegmentSeries> blocks = getMergedSequentialBlocks(converted, getAddressCreator());
 		return blocks.toArray(new IPv4Address[blocks.size()]);
+	}
+
+	@Override
+	protected SeriesCreator getSequentialSeriesCreator() {
+		return getAddressCreator()::createSequentialBlockAddress;
 	}
 
 	@Override

@@ -1587,9 +1587,94 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @return
 	 */
 	public abstract IPAddress[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
-	
-	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries sections[]) {
+
+	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries sections[]) {
 		return IPAddressSection.getMergedPrefixBlocks(sections);
+	}
+
+	private static final IPv6Address EMPTY_IPV6_ADDRESS[] = {};
+	private static final IPv4Address EMPTY_IPV4_ADDRESS[] = {};
+
+	public static class DualIPv4Pv6Arrays {
+		public final IPv4Address addressesIPv4[];
+		public final IPv6Address addressesIPv6[];
+		
+		DualIPv4Pv6Arrays(IPv4Address addressesIPv4[], IPv6Address addressesIPv6[]) {
+			this.addressesIPv4 = addressesIPv4;
+			this.addressesIPv6 = addressesIPv6;
+		}
+	}
+
+	/**
+	 * merges the given set of IP addresses and subnets into a minimal number of prefix blocks.
+	 * 
+	 * This function complements the MergeToPrefixBlock methods of each IP address type.
+	 * Those instance methods attempt to convert arguments that do not match the IP version of the method receiver, while this function does not.
+	 * This static method merges every non-null argument into one of the two returned slices.
+	 * 
+	 * @param addresses
+	 * @return
+	 */
+	public static DualIPv4Pv6Arrays mergeToDualSequentialBlocks(IPAddress ...addresses) {
+		Function<IPAddressSegmentSeries[], List<IPAddressSegmentSeries>> merger = (series) -> {
+			SeriesCreator seriesCreator = ((IPAddress) series[0]).getSequentialSeriesCreator();
+			return IPAddressSection.getMergedSequentialBlocks(series, seriesCreator);
+		};
+		return mergeToBlocks(addresses, merger);
+	}
+	
+	protected abstract SeriesCreator getSequentialSeriesCreator();
+	
+	/**
+	 * merges the given set of IP addresses and subnets into a minimal number of prefix blocks.
+	 * 
+	 * This function complements the MergeToPrefixBlock methods of each IP address type.
+	 * Those instance methods attempt to convert arguments that do not match the IP version of the method receiver, while this function does not.
+	 * This static method merges every non-null argument into one of the two returned slices.
+	 * 
+	 * @param addresses
+	 * @return
+	 */
+	public static DualIPv4Pv6Arrays mergeToDualPrefixBlocks(IPAddress ...addresses) {
+		return mergeToBlocks(addresses, IPAddressSection::getMergedPrefixBlocks);
+	}
+	
+	private static DualIPv4Pv6Arrays mergeToBlocks(
+			IPAddress addresses[], 
+			Function<IPAddressSegmentSeries[], List<IPAddressSegmentSeries>> merger) {
+		ArrayList<IPAddress> ipv4List = null;
+		ArrayList<IPAddress> ipv6List = null;
+		for(int i = 0; i < addresses.length; i++) {
+			IPAddress addr = addresses[i];
+			if(addr != null) {
+				if(addr.isIPv4()) {
+					if(ipv4List == null) {
+						ipv4List = new ArrayList<IPAddress>(addresses.length);
+					}
+					ipv4List.add(addr);
+				} else if(addr.isIPv6()) {
+					if(ipv6List == null) {
+						ipv6List = new ArrayList<IPAddress>(addresses.length);
+					}
+					ipv6List.add(addr);
+				}
+			}
+		}
+		IPv4Address addressesIPv4[];
+		if(ipv4List != null){
+			List<IPAddressSegmentSeries> blocks = merger.apply(ipv4List.toArray(new IPAddressSegmentSeries[ipv4List.size()]));
+			addressesIPv4 = blocks.toArray(new IPv4Address[blocks.size()]);
+		} else {
+			addressesIPv4 = EMPTY_IPV4_ADDRESS;
+		}
+		IPv6Address addressesIPv6[];
+		if(ipv6List != null){
+			List<IPAddressSegmentSeries> blocks = merger.apply(ipv6List.toArray(new IPAddressSegmentSeries[ipv6List.size()]));
+			addressesIPv6 = blocks.toArray(new IPv6Address[blocks.size()]);
+		} else {
+			addressesIPv6 = EMPTY_IPV6_ADDRESS;
+		}
+		return new DualIPv4Pv6Arrays(addressesIPv4, addressesIPv6);
 	}
 
 	/**
