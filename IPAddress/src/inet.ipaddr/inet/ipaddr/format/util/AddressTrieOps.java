@@ -273,7 +273,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	Iterator<? extends TrieNode<E>> allNodeIterator(boolean forward);
 
 	@Override
-	<C> CachingIterator<? extends TrieNode<E>, E, C> containingFirstIterator(boolean forwardSubNodeOrder);
+	Iterator<? extends TrieNode<E>> containingFirstIterator(boolean forwardSubNodeOrder);
 
 	@Override
 	<C> CachingIterator<? extends TrieNode<E>, E, C> containingFirstAllNodeIterator(boolean forwardSubNodeOrder);

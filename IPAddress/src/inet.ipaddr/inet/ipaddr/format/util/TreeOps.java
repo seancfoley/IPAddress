@@ -221,23 +221,12 @@ public interface TreeOps<E> extends Iterable<E>, Serializable, Cloneable {
 	 * <p>
 	 * This iterator supports the {@link java.util.Iterator#remove()} operation.
 	 * <p>
-	 * Once a given node is visited, the iterator allows you to cache an object corresponding to the 
-	 * lower or upper sub-node that can be retrieved when you later visit that sub-node.
-	 * <p>
-	 * Objects are cached only with nodes to be visited.  
-	 * So for this iterator that means an object will be cached with the first added lower or upper sub-node,
-	 * the next lower or upper sub-node to be visited, 
-	 * which is not necessarily the direct lower or upper sub-node of a given node. 
-	 * <p>
-	 * The caching allows you to provide iteration context from a parent to its sub-nodes when iterating.
-	 * The caching and retrieval is done in constant-time and linear space (proportional to tree size).	 
-	 * <p>
-	 * See {@link TreeOps} for more details on the ordering.
+	 * See the docs for {@link TreeOps} for more details on the ordering.
 	 * 
 	 * @param forwardSubNodeOrder if true, a left sub-node will be visited before the right sub-node of the same parent node.
 	 * @return
 	 */
-	<C> CachingIterator<? extends BinaryTreeNode<E>, E, C> containingFirstIterator(boolean forwardSubNodeOrder);	
+	Iterator<? extends BinaryTreeNode<E>> containingFirstIterator(boolean forwardSubNodeOrder);	
 
 	/**
 	 * Returns an iterator that does a pre-order binary tree traversal.

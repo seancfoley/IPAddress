@@ -42,6 +42,7 @@ import inet.ipaddr.AddressStringException;
 import inet.ipaddr.AddressValueException;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddress.DualIPv4Pv6Arrays;
 import inet.ipaddr.IPAddress.IPVersion;
 import inet.ipaddr.IPAddressNetwork;
 import inet.ipaddr.IPAddressNetwork.IPAddressCreator;
@@ -3472,6 +3473,101 @@ public class IPAddressTest extends TestBase {
 			} else {
 				if(m.isPrefixed()) {
 					addFailure(new Failure("merged addr " + m + " is prefixed", m));
+				}
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testMergeMixed(String ipv4ResultPref[], String ipv6ResultPref[], String ipv4ResultSeq[], String ipv6ResultSeq[], String ... addresses) {
+		IPAddress[] ipv4ResultsPref, ipv6ResultsPref, ipv4ResultsSeq, ipv6ResultsSeq, addrs1;
+		
+		ipv4ResultsPref = new IPAddress[ipv4ResultPref.length];
+		int i = 0;
+		for(String str: ipv4ResultPref) {
+			ipv4ResultsPref[i++] = createAddress(str).getAddress();
+		}
+		
+		ipv6ResultsPref = new IPAddress[ipv6ResultPref.length];
+		i = 0;
+		for(String str: ipv6ResultPref) {
+			ipv6ResultsPref[i++] = createAddress(str).getAddress();
+		}
+		
+		if(ipv4ResultSeq == null) {
+			ipv4ResultsSeq = ipv4ResultsPref;
+		} else {
+			ipv4ResultsSeq = new IPAddress[ipv4ResultSeq.length];
+			i = 0;
+			for(String str: ipv4ResultSeq) {
+				ipv4ResultsSeq[i++] = createAddress(str).getAddress();
+			}
+		}
+		
+		if(ipv6ResultSeq == null) {
+			ipv6ResultsSeq = ipv6ResultsPref;
+		} else {
+			ipv6ResultsSeq = new IPAddress[ipv6ResultSeq.length];
+			i = 0;
+			for(String str: ipv6ResultSeq) {
+				ipv6ResultsSeq[i++] = createAddress(str).getAddress();
+			}
+		}
+		
+		i = 0;
+		addrs1 = new IPAddress[addresses.length];
+		for(String str: addresses) {
+			if(str == null) {
+				addrs1[i++] = null;
+			} else {
+				addrs1[i++] = createAddress(str).getAddress();
+			}
+		}
+		
+		DualIPv4Pv6Arrays arrays = IPAddress.mergeToDualPrefixBlocks(addrs1);
+		if(arrays.addressesIPv4.length != ipv4ResultsPref.length) {
+			addFailure(new Failure("merged ipv4 addr len " + arrays.addressesIPv4.length + " does not match "+ ipv4ResultsPref.length, (AddressItem) null));
+		} else {
+			i = 0;
+			for(IPAddress addr : arrays.addressesIPv4) {
+				IPAddress expected = ipv4ResultsPref[i++];
+				if(!addr.equals(expected)) {
+					addFailure(new Failure("merged addr "+ addr +" does not match "+expected, expected));
+				}
+			}
+		}
+		if(arrays.addressesIPv6.length != ipv6ResultsPref.length) {
+			addFailure(new Failure("merged ipv6 addr len " + arrays.addressesIPv6.length + " does not match "+ ipv6ResultsPref.length, (AddressItem) null));
+		} else {
+			i = 0;
+			for(IPAddress addr: arrays.addressesIPv6) {
+				IPAddress expected = ipv6ResultsPref[i++];
+				if(!addr.equals(expected)) {
+					addFailure(new Failure("merged addr " + addr + " does not match "+ expected, expected));
+				}
+			}
+		}
+	
+		arrays = IPAddress.mergeToDualSequentialBlocks(addrs1);
+		if(arrays.addressesIPv4.length != ipv4ResultsSeq.length) {
+			addFailure(new Failure("merged ipv4 seq addr len " + arrays.addressesIPv4.length + " does not match " +ipv4ResultsSeq.length, (AddressItem) null));
+		} else {
+			i = 0;
+			for(IPAddress addr: arrays.addressesIPv4) {
+				IPAddress expected = ipv4ResultsSeq[i++];
+				if(!addr.equals(expected)) {
+					addFailure(new Failure("merged addr "+ addr +" does not match " + expected, expected));
+				}
+			}
+		}
+		if(arrays.addressesIPv6.length != ipv6ResultsSeq.length) {
+			addFailure(new Failure("merged ipv6 seq addr len " + arrays.addressesIPv6.length + " does not match "+ ipv6ResultsSeq.length, (AddressItem) null));
+		} else {
+			i = 0;
+			for(IPAddress addr: arrays.addressesIPv6) {
+				IPAddress expected = ipv6ResultsSeq[i++];
+				if(!addr.equals(expected)) {
+					addFailure(new Failure("merged addr " + addr + " does not match " + expected, expected));
 				}
 			}
 		}

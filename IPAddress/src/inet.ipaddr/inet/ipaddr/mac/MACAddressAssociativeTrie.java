@@ -190,8 +190,8 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <C> CachingIterator<MACAssociativeTrieNode<V>, MACAddress, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-			return (CachingIterator<MACAssociativeTrieNode<V>, MACAddress, C>) super.containingFirstIterator(forwardSubNodeOrder);
+		public Iterator<MACAssociativeTrieNode<V>> containingFirstIterator(boolean forwardSubNodeOrder) {
+			return (Iterator<MACAssociativeTrieNode<V>>) super.containingFirstIterator(forwardSubNodeOrder);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -383,8 +383,8 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <C> CachingIterator<MACAssociativeTrieNode<V>, MACAddress, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-		return (CachingIterator<MACAssociativeTrieNode<V>, MACAddress, C>) super.containingFirstIterator(forwardSubNodeOrder);
+	public Iterator<MACAssociativeTrieNode<V>> containingFirstIterator(boolean forwardSubNodeOrder) {
+		return (Iterator<MACAssociativeTrieNode<V>>) super.containingFirstIterator(forwardSubNodeOrder);
 	}
 
 	@SuppressWarnings("unchecked")

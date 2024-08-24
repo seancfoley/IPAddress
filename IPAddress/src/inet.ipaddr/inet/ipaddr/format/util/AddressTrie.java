@@ -963,8 +963,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		@SuppressWarnings("unchecked")
 		@Override
-		public <C> CachingIterator<? extends TrieNode<E>, E, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-			return (CachingIterator<? extends TrieNode<E>, E, C>) super.containingFirstIterator(forwardSubNodeOrder);
+		public Iterator<? extends TrieNode<E>> containingFirstIterator(boolean forwardSubNodeOrder) {
+			return (Iterator<? extends TrieNode<E>>) super.containingFirstIterator(forwardSubNodeOrder);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -2697,13 +2697,13 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <C> CachingIterator<? extends TrieNode<E>, E, C> containingFirstIterator(boolean forwardSubNodeOrder) {
-		CachingIterator<? extends BinaryTreeNode<E>, E, C> iterator;
+	public Iterator<? extends TrieNode<E>> containingFirstIterator(boolean forwardSubNodeOrder) {
+		Iterator<? extends BinaryTreeNode<E>> iterator;
 		if(bounds == null) {
 			iterator = absoluteRoot().containingFirstIterator(forwardSubNodeOrder);
 		} else {
 			if(forwardSubNodeOrder) {
-				iterator = new PreOrderNodeIterator<E, C>(
+				iterator = new PreOrderNodeIterator<E, Object>(
 					bounds,
 					true,
 					true, // added only
@@ -2711,7 +2711,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					null,
 					absoluteRoot().changeTracker);
 			} else {
-				iterator = new PostOrderNodeIterator<E, C>(
+				iterator = new PostOrderNodeIterator<E, Object>(
 					bounds,
 					false,
 					true, // added only
@@ -2720,7 +2720,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					absoluteRoot().changeTracker);
 			}
 		}
-		return (CachingIterator<? extends TrieNode<E>, E, C>) iterator;
+		return (Iterator<? extends TrieNode<E>>) iterator;
 	}
 
 	@SuppressWarnings("unchecked")
