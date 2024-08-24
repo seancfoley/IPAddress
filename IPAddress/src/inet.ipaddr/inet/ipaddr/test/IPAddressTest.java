@@ -3478,7 +3478,7 @@ public class IPAddressTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
+
 	void testMergeMixed(String ipv4ResultPref[], String ipv6ResultPref[], String ipv4ResultSeq[], String ipv6ResultSeq[], String ... addresses) {
 		IPAddress[] ipv4ResultsPref, ipv6ResultsPref, ipv4ResultsSeq, ipv6ResultsSeq, addrs1;
 		

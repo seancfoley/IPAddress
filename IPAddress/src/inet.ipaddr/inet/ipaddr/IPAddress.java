@@ -1587,7 +1587,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @return
 	 */
 	public abstract IPAddress[] mergeToPrefixBlocks(IPAddress ...addresses) throws AddressConversionException;
-	
+
 	protected static List<IPAddressSegmentSeries> getMergedPrefixBlocks(IPAddressSegmentSeries sections[]) {
 		return IPAddressSection.getMergedPrefixBlocks(sections);
 	}
