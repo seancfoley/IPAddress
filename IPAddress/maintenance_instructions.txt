@@ -74,6 +74,8 @@ Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant w
 
 3. Use build.xml to "create dist jar" running in jdk >= 9, maybe the same as used by the workspace.
 
+Note: last time, I could NOT run in the same JVM as the workspace.  But it worked when running in separate JRE.  So, who knows.
+
 4. Replace the checked-in file IPAddress.jar with the dist jar created.
 
 5. Commit and push the changes (build.xml and IPAddress.jar and any source file changes not yet pushed).
