@@ -74,6 +74,8 @@ Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant w
 
 3. Use build.xml to "create dist jar" running in jdk >= 9, maybe the same as used by the workspace.
 
+Note: last time, I could NOT run in the same JVM as the workspace.  But it worked when running in separate JRE.  So, who knows.
+
 4. Replace the checked-in file IPAddress.jar with the dist jar created.
 
 5. Commit and push the changes (build.xml and IPAddress.jar and any source file changes not yet pushed).
@@ -83,7 +85,7 @@ Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant w
 7. Create the release using the github releases button on the releases page, 
 which allows you to select the branch.
 This creates the tag as well (but does not create a branch).  The tags have the format vx.x.x
-Add the dist jar from (2) to the release.  
+Add the dist jar from (3) to the release.  
 The source code zip and tar files are automatically created by github.
 If something goes wrong, move the tag: https://stackoverflow.com/questions/8044583/how-can-i-move-a-tag-on-a-git-branch-to-a-different-commit
 
