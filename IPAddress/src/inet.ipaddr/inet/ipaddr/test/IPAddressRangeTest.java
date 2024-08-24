@@ -5684,6 +5684,13 @@ public class IPAddressRangeTest extends IPAddressTest {
 				new String[]{"1.2.3-5.*", "128.0.0.0"}, new String[]{"1:0-ff:*", "8::2:3-5:*"},
 				"1.2.5.0/24", "1:1:*", "1:3-ff:*", "8::2:3-5:*", "1:0:*", "1.2.4.0/24", "128.0.0.0", "1:2:ffff:*", "1.2.3.0/24", "1:2:0-1:*", "1:2:1-fffe:*", null, null);
 		}
+		
+		testMergeMixed(
+				new String[]{"1.2.3.*", "1.2.4-5.*"}, 
+				new String[]{"ffff::0-ff/120", "ffff::100"}, 
+				new String[]{"1.2.3-5.*"}, 
+				new String[]{"ffff::0-100"}, 
+				"1.2.3.*", "1.2.4.*", "1.2.5.*", "ffff::0-100");	
 
 		testMergeRange("0-127.*", "0-127.*", "1.2.3.4");
 
