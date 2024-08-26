@@ -732,6 +732,9 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * Returns whether the address subnet identified by this address string contains the address identified by the given string.
 	 * <p>
 	 * If this address string or the given address string is invalid then returns false.
+	 * <p>
+	 * With standard subnet and address formats, using the strings alone are enough for this method to return the result.
+	 * Only with non-standard strings will address objects be constructed to determine the result.
 	 * 
 	 * @param other
 	 * @return
