@@ -3,17 +3,17 @@ Version 5.6:
 -added IPAddressSeqRangeList, a collection type backed by IP address ranges, offering binary search, an alternative to tries with potentially better CPU cache coherence when searching
 -IPAddressSeqRangeList enables the arithmetic set operations add/join, intersect, remove, and complement
 -added the corresponding version-specific types IPv4AddressSeqRangeList and IPv6AddressSeqRangeList
--added IPAddressContainmentTrie, an alternative new collection option backed by CIDR prefix blocks in a trie, expanding on the existing trie functionality.
+-added IPAddressContainmentTrie, an alternative collection option backed by CIDR prefix blocks in a trie, expanding on the existing trie functionality.
 -added the corresponding version-specific types IPv4AddressContainmentTrie and IPv6AddressContainmentTrie
 -added the IPAddressCollection interface representing collections of individual addresses, implemented by all range list and containment trie types
--added the interface IPAddressAggregation representing all types which can represent a multitude of IP addresses, whether collections, ranges, or subnets
+-added the IPAddressAggregation interface representing all types which can represent a multitude of IP addresses, whether collections, ranges, or subnets
 -added new and optimized increment(), decrement() and incrementBoundary() methods to the address types, more efficient than increment(1), increment(-1), incrementBoundary(1)
 -extended increment(BigInteger) to the address/subnet types IPAddress and IPv4Address, and not just IPV6Address, for easier polymorphism
--added a complement method to IPAddress returning blocks, and a complement in IPAddressSeqRange returning ranges, in addition to the complement method included with IPAddressSeqRangeList
--added methods to IPAddressSeqRange to integrate withIPAddressSeqRangeList to create lists efficiently: subtractToList, joinToList, complementToList
+-added a complement method to IPAddress returning blocks, and a complement method to IPAddressSeqRange returning ranges, in addition to the complement method included with IPAddressSeqRangeList
+-added methods to IPAddressSeqRange to integrate withIPAddressSeqRangeList to create lists efficiently: subtractIntoList, joinIntoList, complementIntoList
 -added intoSequentialRangeList methods to IP address and range classes for polymorphic and efficient IPAddressSeqRangeList creation
 -added intoContainmentTrie methods to IP address and range classes for polymorphic IPAddressContainmentTrie creation
--added new trie types IPAddressTrie and IPAddressAssociativeTrie, simimilar to existing types, but version-polymorphic, they can become either IPv4 or IPv6 tries, but not both at the same time.
+-added new trie types IPAddressTrie and IPAddressAssociativeTrie, similar to existing types, but version-polymorphic, they can become either IPv4 or IPv6 tries, but not both at the same time
 -fixed an issue with merging addresses with prefixes into sequential blocks 
 
 Version 5.5:
