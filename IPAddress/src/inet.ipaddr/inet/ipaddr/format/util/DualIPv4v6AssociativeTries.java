@@ -113,7 +113,37 @@ public class DualIPv4v6AssociativeTries<V> extends BaseDualIPv4v6Tries<IPv4Addre
 	public AssociativeTrieNode<? extends IPAddress, V> addTrie(TrieNode<? extends IPAddress> trie) {
 		return unaryOp(trie, getIPv4Trie()::addTrie, getIPv6Trie()::addTrie);
 	}
+
+	@Override
+	public AssociativeTrieNode<? extends IPAddress, V> removeElementsIntersectedBy(IPAddress addr) { 
+		return addressFuncOp(addr, getIPv4Trie()::removeElementsIntersectedBy, getIPv6Trie()::removeElementsIntersectedBy);
+	}
+
+	@Override
+	public AssociativeTrieNode<? extends IPAddress, V> addIfNoElementsContaining(IPAddress addr) { 
+		return addressFuncOp(addr, getIPv4Trie()::addIfNoElementsContaining, getIPv6Trie()::addIfNoElementsContaining);
+	}
+
+	@Override
+	public AssociativeTrieNode<? extends IPAddress, V> containingFloorAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingFloorAddedNode, getIPv6Trie()::containingHigherAddedNode);
+	}
 	
+	@Override
+	public AssociativeTrieNode<? extends IPAddress, V> containingLowerAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingLowerAddedNode, getIPv6Trie()::containingHigherAddedNode);
+	}
+
+	@Override
+	public AssociativeTrieNode<? extends IPAddress, V> containingCeilingAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingCeilingAddedNode, getIPv6Trie()::containingHigherAddedNode);
+	}
+
+	@Override
+	public AssociativeTrieNode<? extends IPAddress, V> containingHigherAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingHigherAddedNode, getIPv6Trie()::containingHigherAddedNode);
+	}
+
 	@Override
 	public AssociativeTrieNode<? extends IPAddress, V> floorAddedNode(IPAddress addr) {
 		return addressFuncOp(addr, getIPv4Trie()::floorAddedNode, getIPv6Trie()::floorAddedNode);

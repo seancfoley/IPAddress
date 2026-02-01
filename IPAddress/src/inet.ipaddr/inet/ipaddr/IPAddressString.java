@@ -144,11 +144,11 @@ import inet.ipaddr.mac.MACAddress;
  * An IPAddressString object represents a single IP address representation that cannot be changed after construction.
  * Some of the derived state is created upon demand and cached, such as the derived IPAddress instances.
  * <p>
- * This class has a few methods with analogs in IPAddress, such as {@link #contains(IPAddressString)}, {@link #getSequentialRange()},
+ * This class has a few methods with analogs in IPAddress, such as {@link #contains(IPAddressString)}, {@link #getCoveringSequentialRange()},
  * {@link #prefixEquals(IPAddressString)}, {@link #isIPv4()}, and {@link #isIPv6()}.
  * Such methods are provided to make creating the IPAddress instance unnecessary when no such IPAddress instance is needed for other reasons.  
  * <p>
- * For some methods, like {@link #getSequentialRange()} and {@link #getDivisionGrouping()},
+ * For some methods, like {@link #getCoveringSequentialRange()} and {@link #getDivisionGrouping()},
  * there might not even be an associated IPAddress due to IncompatibleAddressException.  
  * However, this is generally only the case with subnets that have non-standard and unusual formats or masks.
  * 
@@ -829,7 +829,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * meaning that if any address has a numerical value that lies in between the numerical values of two addresses represented by this IPAddressString,
 	 * then that address is also represented by this IPAddressString.  In other words, the represented range of address values is sequential.
 	 * <p>
-	 * When the IPAddressString is sequential, it can be represented exactly by the IPAddressSeqRange returned from {@link #getSequentialRange()}.
+	 * When the IPAddressString is sequential, it can be represented exactly by the IPAddressSeqRange returned from {@link #getCoveringSequentialRange()}.
 	 * In some cases, no IPAddress instance can be obtained from {@link #getAddress()} or {@link #toAddress()}, in the cases where {@link #toAddress()} throws IncompatibleAddressException,
 	 * but if the IPAddressString is sequential, you can obtain a IPAddressSeqRange to represent the IPAddressString instead.
 	 * 
@@ -890,10 +890,10 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * The range cannot be produced for the other cases where {@link #getAddress()} returns null, those that are version-ambiguous and do not throw IncompatibleAddressException,
 	 * such as the all address '*' or the version-ambiguous prefix length '/32'.
 	 * <p>
-	 * This is similar to {@link #toSequentialRange()} except that for invalid address strings, null is returned rather than throwing an exception.
+	 * This is similar to {@link #coverWithSequentialRange()} except that for invalid address strings, null is returned rather than throwing an exception.
 	 * @return
 	 */
-	public IPAddressSeqRange getSequentialRange() {
+	public IPAddressSeqRange getCoveringSequentialRange() {
 		if(!addressProvider.isInvalid()) { // Avoid the exception the second time with this check
 			try {
 				validate();
@@ -902,6 +902,15 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 			// catching IncompatibleAddressException not necessary since it is not thrown, once parsed there is always an upper and lower
 		}
 		return null;
+	}
+	
+	/**
+	 * @deprecated renamed to getCoveringSequentialRange to reflect the fact that the returned range does not always represent the same set of addresses as the string (only when an individual address, or when the subnet is sequential)
+	 * @return
+	 */
+	@Deprecated
+	public IPAddressSeqRange getSequentialRange() {
+		return getCoveringSequentialRange();
 	}
 	
 	/**
@@ -958,13 +967,21 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 	 * subnets with non-standard masks like 0-2.2.3.4/2.0.0.0, and subnets represented with non-canonical segments like the IPv4 subnet 1.5000-6000
 	 * or the IPv6 subnet 1234567890abcdef1234567890abcdef-1234567890abcdef1234567890abcdef.
 	 * <p>
-	 * This method is equivalent to {@link #getSequentialRange()} except that for invalid address string formats, AddressStringException is thrown by this method.
+	 * This method is equivalent to {@link #getCoveringSequentialRange()} except that for invalid address string formats, AddressStringException is thrown by this method.
 	 * <p>
 	 * @return
 	 */
-	public IPAddressSeqRange toSequentialRange() throws AddressStringException {
+	public IPAddressSeqRange coverWithSequentialRange() throws AddressStringException {
 		validate();
 		return addressProvider.getProviderSeqRange();
+	}
+	
+	/**
+	 * @deprecated renamed to coverWithSequentialRange to reflect the fact the returned range does not always represent the same set of addresses  (only when an individual address, or when the subnet is sequential)
+	 */
+	@Deprecated
+	public IPAddressSeqRange toSequentialRange() throws AddressStringException {
+		return coverWithSequentialRange();
 	}
 
 	/**
@@ -1226,11 +1243,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		    	done = true;
 		    	return str;
 		    }
-
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
-		    }
 		};
 	}
 	
@@ -1280,11 +1292,6 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		    		}
 		    	}
 		    	done = true;
-		    }
-
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
 		    }
 		};
 	}

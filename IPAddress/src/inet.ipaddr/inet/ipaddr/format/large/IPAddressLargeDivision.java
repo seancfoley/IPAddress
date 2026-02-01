@@ -328,15 +328,10 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 
 	@Override
-	public boolean isMultiple() {
-		return !getValue().equals(getUpperValue());
-	}
-	
-	@Override
 	public boolean includesZero() {
 		return getValue().signum() == 0;
 	}
-	
+
 	@Override
 	public boolean includesMax() {
 		return getUpperValue().equals(maxValue);

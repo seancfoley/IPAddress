@@ -1544,6 +1544,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		return this;
 	}
 
+	@Override
 	public IPv6Address increment(BigInteger increment) {
 		return checkIdentity(getSection().increment(increment));
 	}
@@ -1556,6 +1557,21 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public IPv6Address incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));
+	}
+
+	@Override
+	public IPv6Address incrementBoundary() {
+		return wrap(getSection().incrementBoundary());
+	}
+
+	@Override
+	public IPv6Address increment() {
+		return wrap(getSection().increment());
+	}
+
+	@Override
+	public IPv6Address decrement() {
+		return wrap(getSection().decrement());
 	}
 
 	/**
@@ -1574,17 +1590,22 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
 		return conv.toIPv4(this);
 	}
-	
+
 	@Override
 	public IPv6Address toIPv6() {
 		return this;
 	}
-	
+
 	@Override
 	public boolean isIPv6() {
 		return true;
 	}
-	
+
+	@Override
+	protected boolean matchesVersion(IPAddress other) {
+		return other.isIPv6();
+	}
+
 	/**
 	 * Determines whether this address can be converted to IPv4. 
 	 * Override this method to convert in your own way.
@@ -1599,7 +1620,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
 		return conv.isIPv4Convertible(this);
 	}
-	
+
 	@Override
 	public boolean isIPv6Convertible() {
 		return true;
@@ -1852,8 +1873,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	public IPv6Address[] subtract(IPAddress other) throws AddressConversionException {
 		IPv6AddressSection thisSection = getSection();
 		IPv6AddressSection sections[] = thisSection.subtract(convertArg(other).getSection());
-		if(sections == null) {
-			return null;
+		if(sections == null || sections.length == 0) {
+			return IPv6AddressNetwork.EMPTY_ADDRESS;
 		}
 		IPv6Address result[] = new IPv6Address[sections.length];
 		for(int i = 0; i < result.length; i++) {
@@ -1866,6 +1887,10 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		if(newSection == getSection()) {
 			return this;
 		}
+		return wrap(newSection);
+	}
+	
+	private IPv6Address wrap(IPv6AddressSection newSection) {
 		return getCreator().createAddress(newSection);
 	}
 	
@@ -1917,7 +1942,32 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	
 	@Override
 	public IPv6Address withoutPrefixLength() {
-		return removePrefixLength(false);
+		if(!isPrefixed()) {
+			return this;
+		}
+		IPv6Address result = null;
+		IPv6AddressCache cache = addressCache;
+		if(cache == null || (result = cache.withoutPrefixLength) == null) {
+			synchronized(this) {
+				cache = addressCache;
+				boolean create = (cache == null);
+				if(create) {
+					cache = addressCache = new IPv6AddressCache();
+				} else {
+					create = (result = cache.withoutPrefixLength) == null;
+				}
+				if(create) {
+					IPv6AddressSection section = getSection();
+					IPv6AddressSection sectionResult = section.withoutPrefixLength();
+					if(sectionResult == section) {
+						cache.withoutPrefixLength = result = this;
+					} else {
+						cache.withoutPrefixLength = result = getCreator().createAddress(sectionResult);
+					}
+				}
+			}
+		}
+		return result;
 	}
 	
 	@Override @Deprecated
@@ -2161,7 +2211,51 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 
 	@Override
 	public IPv6AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return toSequentialRange(other);
+		return new IPv6AddressSeqRange(this, convertArg(other));
+	}
+
+	@Override
+	public IPv6AddressSeqRangeList intoSequentialRangeList() {
+		IPv6AddressSeqRangeList list = new IPv6AddressSeqRangeList();
+		list.addInternalToNewList(this);
+		return list;
+	}
+	
+	@Override
+	public IPv6AddressContainmentTrie intoContainmentTrie() {
+		IPv6AddressContainmentTrie trie = new IPv6AddressContainmentTrie();
+		trie.add(this);
+		return trie;
+	}
+
+	@Override
+	public IPv6Address[] complement() {
+		IPv6AddressNetwork network = getNetwork();
+		IPv6Address addressSpace = network.getNetworkAddress(0);
+		if(!isPrefixed()) {
+			addressSpace = addressSpace.withoutPrefixLength();
+		}
+		return addressSpace.subtract(this);
+	}
+
+	@Override
+	@Deprecated
+	public IPv6AddressSeqRange toSequentialRange(IPAddress other) {
+		return spanWithRange(other);
+	}
+
+	@Override
+	@Deprecated
+	public IPv6AddressSeqRange toSequentialRange() {
+		return coverWithSequentialRange();
+	}
+
+	@Override
+	public IPv6AddressSeqRange coverWithSequentialRange() {
+		IPv6Address thiz = removeZone().withoutPrefixLength();
+		// intentionally using subclass IPAddress here to call the right constructor
+		IPAddress lower = thiz.getLower(), upper = thiz.getUpper();
+		return new IPv6AddressSeqRange(lower, upper);
 	}
 
 	@Override
@@ -2184,7 +2278,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		converted[0] = removeZone();
 		return converted;
 	}
-	
+
 	@Override
 	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
 		if(addresses.length == 0) {
@@ -2314,7 +2408,8 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	@Override
 	public Inet6Address toInetAddress() {
 		if(hasZone()) {
-			//we cache the address in here and not in the address section if there is a zone
+			// We cache the address in here and not in the address section if there is a zone
+			// The section can be shared amongst multiple addresses, so caching in the section makes sense when no zone.
 			Inet6Address result;
 			if(hasNoValueCache() || (result = addressCache.inetAddress) == null) {
 				addressCache.inetAddress = result = (Inet6Address) toInetAddressImpl();
@@ -2366,18 +2461,6 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 			result = null;
 		}
 		return result;
-	}
-	
-	@Override
-	@Deprecated
-	public IPv6AddressSeqRange toSequentialRange(IPAddress other) {
-		return new IPv6AddressSeqRange(this, convertArg(other));
-	}
-
-	@Override
-	public IPv6AddressSeqRange toSequentialRange() {
-		IPv6Address thiz = removeZone().withoutPrefixLength();
-		return new IPv6AddressSeqRange(thiz.getLower(), thiz.getUpper(), true);
 	}
 	
 	@Override

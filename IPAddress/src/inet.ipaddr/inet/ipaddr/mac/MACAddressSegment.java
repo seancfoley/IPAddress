@@ -156,6 +156,11 @@ public class MACAddressSegment extends AddressDivision implements AddressSegment
 	}
 
 	@Override
+	public boolean isMultiple() {
+		return getSegmentValue() != getUpperSegmentValue();
+	}
+
+	@Override
 	public long getDivisionValue() {
 		return getSegmentValue();
 	}

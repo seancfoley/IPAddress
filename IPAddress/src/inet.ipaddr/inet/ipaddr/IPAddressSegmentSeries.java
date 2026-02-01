@@ -19,7 +19,6 @@
 package inet.ipaddr;
 
 import java.math.BigInteger;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -42,15 +41,6 @@ import inet.ipaddr.format.util.IPAddressPartStringCollection;
  */
 public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, AddressSegmentSeries {
 
-	/**
-	 * Returns a comparator to sort series by prefix length.
-	 * 
-	 * @return
-	 */
-	static Comparator<? super IPAddressSegmentSeries> getPrefixLenComparator() {
-		return IPAddressSection.mergeListComparator;
-	}
-	
 	/**
 	 * Returns the version of this segment series
 	 * 
@@ -433,10 +423,22 @@ public interface IPAddressSegmentSeries extends IPAddressDivisionSeries, Address
 	Iterator<? extends IPAddressSegment[]> segmentsNonZeroHostIterator();
 
 	@Override
-	IPAddressSegmentSeries increment(long increment);
+	IPAddressSegmentSeries increment(long increment) throws AddressValueException;
+	
+	@Override
+	IPAddressSegmentSeries increment(BigInteger increment) throws AddressValueException;
 
 	@Override
-	IPAddressSegmentSeries incrementBoundary(long increment);
+	IPAddressSegmentSeries incrementBoundary(long increment) throws AddressValueException;
+
+	@Override
+	IPAddressSegmentSeries increment() throws AddressValueException;
+	
+	@Override
+	IPAddressSegmentSeries decrement() throws AddressValueException;
+
+	@Override
+	IPAddressSegmentSeries incrementBoundary() throws AddressValueException;
 
 	/**
 	 * Returns the segment series with a host of zero, the host being the bits following the prefix length.

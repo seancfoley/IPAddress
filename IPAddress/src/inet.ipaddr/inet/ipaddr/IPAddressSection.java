@@ -141,10 +141,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 	}
 
-	protected static String getMessage(String key) {
-		return HostIdentifierException.getMessage(key);
-	}
-	
 	protected void initCachedValues(
 			Integer prefixLen,
 			boolean network,
@@ -1258,7 +1254,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 						blocks.add(series);
 					} else {
 						IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);
-						IPAddressSegmentSeries middleUpper = topLower.increment(-1);
+						IPAddressSegmentSeries middleUpper = topLower.decrement();
 						IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, middleUpper.getSegment(segSegment).getSegmentValue());
 						blocks.add(series);
 						lower = topLower;
@@ -1266,7 +1262,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					}
 				} else if(higherIsHighest) {
 					IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);
-					IPAddressSegmentSeries topLower = bottomUpper.increment(1);
+					IPAddressSegmentSeries topLower = bottomUpper.increment();
 					IPAddressSegmentSeries series = seriesCreator.apply(topLower, segSegment, topLower.getSegment(segSegment).getSegmentValue(), upperValue);
 					if(toAdd == null) {
 						toAdd = new ArrayDeque<>(IPv6Address.SEGMENT_COUNT);
@@ -1277,9 +1273,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				} else {	//lower 2:3:ffff:5:: to upper 2:4:1:5::      2:3:ffff:5:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:4:1:5::
 					//from top to bottom we have: top - topLower - middleUpper - middleLower - bottomUpper - lower
 					IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);//2:4::
-					IPAddressSegmentSeries middleUpper = topLower.increment(-1);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
+					IPAddressSegmentSeries middleUpper = topLower.decrement();//2:3:ffff:ffff:ffff:ffff:ffff:ffff
 					IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
-					IPAddressSegmentSeries middleLower = bottomUpper.increment(1);//2:4::
+					IPAddressSegmentSeries middleLower = bottomUpper.increment();//2:4::
 					if(middleLower.compareTo(middleUpper) <= 0) {
 						IPAddressSegmentSeries series = seriesCreator.apply(middleLower, segSegment, middleLower.getSegment(segSegment).getSegmentValue(), middleUpper.getSegment(segSegment).getSegmentValue());
 						if(toAdd == null) {
@@ -1423,7 +1419,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 						//upper bottom becomes 01111111...
 						//so in each new range, the differing bit is at least one further to the right (or more)
 						IPAddressSegmentSeries lowerTop = upper.toZeroHost(differingBitPrefixLen + 1);
-						IPAddressSegmentSeries upperBottom = lowerTop.increment(-1);
+						IPAddressSegmentSeries upperBottom = lowerTop.decrement();
 						if(differingIsLowestBit) {
 							previousSegmentBits += bitsPerSegment;
 							currentSegment++;
@@ -1449,7 +1445,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	//sort by prefix length, smallest blocks coming first
 	//so this means null prefixes come first, then largest prefix length to smallest
-	static final Comparator<? super IPAddressSegmentSeries> mergeListComparator = (one, two) ->  {
+	static final Comparator<AddressSegmentSeries> mergeListComparator = (one, two) ->  {
 		Integer prefix1 = one.getPrefixLength();
 		Integer prefix2 = two.getPrefixLength();
 		int comparison = (prefix1 == prefix2) ? 0 : ((prefix1 == null) ? -1 : ((prefix2 == null) ? 1 : prefix2.compareTo(prefix1)));
@@ -1561,7 +1557,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			// The one with the earlier range segment can only contain the other, there cannot be overlap.
 			// eg 1.a-b.*.* and 1.2.3.* overlap in range segment 2 must have a <= 2 <= b and that means 1.a-b.*.* contains 1.2.3.*
 			if(ithRangeSegmentIndex != jthRangeSegmentIndex) {
-			//if(rangeSegmentIndex != otherRangeSegmentIndex) {
 				j = i;
 				i--;
 				jthRangeSegmentIndex = ithRangeSegmentIndex;
@@ -1578,7 +1573,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			if(rangeItemUpperValue < otherRangeItemValue && rangeItemUpperValue + 1 != otherRangeItemValue) {
 				j = i;
 				i--;
-				//jthRangeSegmentIndex = ithRangeSegmentIndex;
 				ithRangeSegmentIndex = -1;
 				continue;
 			}
@@ -1888,7 +1882,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		first.checkSegmentCount(other);
 		if(!first.isMultiple()) {
 			if(other.contains(first)) {
-				return null;
+				return addrCreator.createSectionArray(0);
 			}
 			R result[] = addrCreator.createSectionArray(1);
 			result[0] = first;
@@ -1898,7 +1892,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		//   first you confirm there is an intersection in each segment.  
 		// Then you remove each intersection, one at a time, leaving the other segments the same, since only one segment needs to differ.
 		// To prevent adding the same section twice, use only the intersection (ie the relative complement of the diff) 
-		// of segments already handled and not the whole segment.
+		// of segments already handled and not all of them.
 		
 		// For example: 0-3.0-3.2.4 subtracting 1-4.1-3.2.4, the intersection is 1-3.1-3.2.4
 		// The diff of the first segment is just 0, giving 0.0-3.2.4 (subtract the first segment, leave the others the same)
@@ -1948,6 +1942,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				R section = createDiffSection(first, lower, otherLower - 1, i, addrCreator, segProducer, intersections);
 				sections.add(section);
 				if(higher <= otherHigher) {
+					//lower < otherLower <= higher <= otherHigher
 					intersections[i] = addrCreator.createSegment(otherLower, higher, null);
 				} else {
 					//lower < otherLower <= otherHigher < higher
@@ -1958,9 +1953,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			}
 		}
 		if(sections.size() == 0) {
-			return null;
+			return addrCreator.createSectionArray(0);
 		}
 		
+		if(sections.size() > 1) {
+			sections.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
+		}
+
 		//apply the prefix to the sections
 		//for each section, we figure out what each prefix length should be
 		if(first.isPrefixed()) {
@@ -2055,6 +2054,12 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract IPAddressSection toPrefixBlock(int networkPrefixLength);
 
 	@Override
+	public abstract IPAddressSection[] spanWithPrefixBlocks();
+
+	@Override
+	public abstract IPAddressSection[] spanWithSequentialBlocks();
+
+	@Override
 	public IPAddressSection getHostMask() {
 		Integer prefLen = getNetworkPrefixLength();
 		return getNetwork().getHostMask(prefLen == null ? 0 : getNetworkPrefixLength()).getSection(0, getSegmentCount());
@@ -2110,6 +2115,24 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return false;
 		}
 		return includesZeroHost(networkPrefixLength);
+	}
+
+	@Override
+	public  boolean includesZeroBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+		if(getSegmentCount() == 0) {
+			return true;
+		}
+		IPAddressSegment seg = getSegment(0);
+		return includesZeroBits(this, fromBPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
+	}
+
+	@Override
+	public boolean includesMaxBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+		if(getSegmentCount() == 0) {
+			return true;
+		}
+		IPAddressSegment seg = getSegment(0);
+		return includesMaxBits(this, fromBPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
 	}
 	
 	@Override
@@ -2690,17 +2713,29 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return (IPAddressSeqRangePrefixSpliterator<S>) super.trySplit();
 		}
 	}
-	
+
 	@Override
 	public abstract IPAddressSection increment(long increment);
-	
+
+	@Override
+	public abstract IPAddressSection increment(BigInteger increment);
+
 	@Override
 	public abstract IPAddressSection incrementBoundary(long increment);
+
+	@Override
+	public abstract IPAddressSection increment();
 	
+	@Override
+	public abstract IPAddressSection decrement();
+
+	@Override
+	public abstract IPAddressSection incrementBoundary();
+
 	public boolean isEntireAddress() {
 		return getSegmentCount() == IPAddress.getSegmentCount(getIPVersion());
 	}
-	
+
 	protected boolean isMultiple(int segmentCount) {
 		for(int i = 0; i < segmentCount; i++) {
 			if(getSegment(i).isMultiple()) {
@@ -2709,7 +2744,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Returns whether this section has a prefix length and if so, 
 	 * whether the host section is zero for this section or all sections in this set of address sections.
@@ -2723,7 +2758,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return isZeroHost(getNetworkPrefixLength());
 	}
-	
+
 	/**
 	 * Returns whether the host is zero for the given prefix length for this section or all sections in this set of address sections.
 	 * If this section already has a prefix length, then that prefix length is ignored.
@@ -2737,18 +2772,18 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return isZeroHost(prefixLength, getSegments(), getBytesPerSegment(), getBitsPerSegment(), getBitCount());
 	}
-	
+
 	protected <S extends IPAddressSegment> boolean isZeroHost(S segments[]) {
 		if(!isPrefixed()) {
 			return false;
 		}
 		return isZeroHost(getNetworkPrefixLength(), segments, getBytesPerSegment(), getBitsPerSegment(), getBitCount());
 	}
-	
+
 	protected <S extends IPAddressSegment> boolean isZeroHost(S segments[], int prefixLength) {
 		return isZeroHost(prefixLength, segments, getBytesPerSegment(), getBitsPerSegment(), getBitCount());
 	}
-	
+
 	protected static <S extends IPAddressSegment> boolean isZeroHost(int prefLen, S segments[], int bytesPerSegment, int bitsPerSegment, int bitCount) {
 		if(segments.length == 0 ) {
 			return false;
@@ -2784,13 +2819,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	////////////////string creation below ///////////////////////////////////////////////////////////////////////////////////////////
 
 	static void checkLengths(int length, StringBuilder builder) {
 		IPAddressStringParams.checkLengths(length, builder);
 	}
-	
+
 	@Override
 	public String toString() {
 		return toNormalizedString();//for ipv6, the canonical string can be the same for two different sections
@@ -2800,13 +2835,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public String[] getSegmentStrings() {
 		return getDivisionStrings();
 	}
-	
+
 	protected abstract void cacheNormalizedString(String str);
-	
+
 	protected abstract IPStringCache getStringCache();
-	
+
 	protected abstract boolean hasNoStringCache();
-	
+
 	/*
 	 * There are two approaches when going beyond the usual segment by segment approach to producing strings for IPv6 and IPv4.
 	 * We can use the inet_aton approach, creating new segments as desired (one, two or three segments instead of the usual 4).
@@ -2825,7 +2860,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * divides the total bit length, so the first segment does not end up with too many leading zeros.  
 	 * In the cases where the above approaches do not work, this approach works.
 	 */
-	
 
 	@Override
 	public String toBinaryString() throws IncompatibleAddressException {
@@ -2836,14 +2870,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	protected String toBinaryString(CharSequence zone) {
 		if(isDualString()) {
 			return toNormalizedStringRange(toIPParams(IPStringCache.binaryParams), getLower(), getUpper(), zone);
 		}
 		return toIPParams(IPStringCache.binaryParams).toString(this, zone);
 	}
-	
+
 	@Override
 	public String toOctalString(boolean with0Prefix) throws IncompatibleAddressException {  
 		String result;
@@ -2858,7 +2892,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			IPAddressSection lower = getLower();
@@ -2888,7 +2922,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	//overridden in ipv6 to handle zone
 	protected String toHexString(boolean with0xPrefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
@@ -2896,7 +2930,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return toIPParams(with0xPrefix ? IPStringCache.hexPrefixedParams : IPStringCache.hexParams).toString(this, zone);
 	}
-	
+
 	@Override
 	public String toNormalizedString(IPStringOptions stringOptions) {
 		return toNormalizedString(stringOptions, this);
@@ -2909,10 +2943,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
 		//since the params here are not dependent on the section, we could cache the params in the options 
 		//this is not true on the IPv6 side where compression settings change based on the section
-		
+	
 		@SuppressWarnings("unchecked")
 		IPAddressStringParams<IPAddressStringDivisionSeries> result = (IPAddressStringParams<IPAddressStringDivisionSeries>) getCachedParams(opts);
-			
+
 		if(result == null) {
 			result = new IPAddressStringParams<IPAddressStringDivisionSeries>(opts.base, opts.separator, opts.uppercase);
 			result.expandSegments(opts.expandSegments);
@@ -2929,7 +2963,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return result;
 	}
 
-		
+
 	/**
 	 * Returns at most a couple dozen string representations:
 	 * 
@@ -2969,7 +3003,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public IPAddressPartStringCollection toAllStringCollection() {
 		return toStringCollection(new IPStringBuilderOptions(IPStringBuilderOptions.LEADING_ZEROS_FULL_SOME_SEGMENTS));
 	}
-	
+
 	/**
 	 * Returns a set of strings for search the standard string representations in a database
 	 * 
@@ -2981,7 +3015,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public IPAddressPartStringCollection toDatabaseSearchStringCollection() {
 		return toStringCollection(new IPStringBuilderOptions());
 	}
-	
+
 	/**
 	 * Get all representations of this address including this IPAddressSection.  
 	 * This includes:
@@ -2999,7 +3033,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return EMPTY_PARTS;
 	}
-	
+
 	/**
 	 * This method gives you an SQL clause that allows you to search the database for the front part of an address or 
 	 * addresses in a given network.
@@ -3018,11 +3052,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public void getStartsWithSQLClause(StringBuilder builder, String expression) {
 		getStartsWithSQLClause(builder, expression, new MySQLTranslator());
 	}
-	
+
 	public void getStartsWithSQLClause(StringBuilder builder, String expression, IPAddressSQLTranslator translator) {
 		getStartsWithSQLClause(builder, expression, true, translator);
 	}
-	
+
 	private void getStartsWithSQLClause(StringBuilder builder, String expression, boolean isFirstCall, IPAddressSQLTranslator translator) {
 		if(isFirstCall && isMultiple()) {
 			Iterator<? extends IPAddressSection> sectionIterator = iterator();
@@ -3079,37 +3113,37 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			binaryParams = new IPStringOptions.Builder(2).setSeparator(null).setExpandedSegments(true).setWildcardOptions(allWildcards).toOptions();
 			canonicalSegmentParams = new IPStringOptions.Builder(10, ' ').toOptions();
 		}
-		
+
 		public String normalizedWildcardString;
 		public String fullString;
 		public String sqlWildcardString;
 
 		public String reverseDNSString;
-		
+
 		public String octalStringPrefixed;
 		public String octalString;
 		public String binaryString;
-		
+
 		public String segmentedBinaryString;
 	}
-	
+
 	public static class WildcardOptions {
 		public enum WildcardOption {
 			NETWORK_ONLY, //only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
 			ALL //print wildcards for any visible (non-compressed) segments
 		}
-		
+
 		public final WildcardOption wildcardOption;
 		public final Wildcards wildcards;
-		
+
 		public WildcardOptions() {
 			this(WildcardOption.NETWORK_ONLY);
 		}
-		
+
 		public WildcardOptions(WildcardOption wildcardOption) {
 			this(wildcardOption, new Wildcards());
 		}
-		
+
 		public WildcardOptions(WildcardOption wildcardOption, Wildcards wildcards) {
 			this.wildcardOption = wildcardOption;
 			this.wildcards = wildcards;
@@ -3122,11 +3156,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * @author sfoley
 	 */
 	public static class IPStringOptions extends StringOptions {
-		
+
 		public final String addrSuffix;
 		public final WildcardOption wildcardOption;
 		public final char zoneSeparator;
-		
+
 		protected IPStringOptions(
 				int base,
 				boolean expandSegments,
@@ -3145,7 +3179,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			this.wildcardOption = wildcardOption;
 			this.zoneSeparator = zoneSeparator;
 		}
-		
+
 		public static class Builder extends StringOptions.Builder {
 
 			protected String addrSuffix = "";

@@ -227,7 +227,32 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public IPv4TrieNode previousNode() {
 			return (IPv4TrieNode) super.previousNode();
 		}
+
+		@Override
+		public IPv4TrieNode removeElementsIntersectedBy(IPv4Address addr) { 
+			return (IPv4TrieNode) super.removeElementsIntersectedBy(addr);
+		}
+
+		@Override
+		public IPv4TrieNode containingFloorAddedNode(IPv4Address addr) {
+			return (IPv4TrieNode) super.containingFloorAddedNode(addr);
+		}
 		
+		@Override
+		public IPv4TrieNode containingLowerAddedNode(IPv4Address addr) {
+			return (IPv4TrieNode) super.containingLowerAddedNode(addr);
+		}
+
+		@Override
+		public IPv4TrieNode containingCeilingAddedNode(IPv4Address addr) {
+			return (IPv4TrieNode) super.containingCeilingAddedNode(addr);
+		}
+
+		@Override
+		public IPv4TrieNode containingHigherAddedNode(IPv4Address addr) {
+			return (IPv4TrieNode) super.containingHigherAddedNode(addr);
+		}
+
 		@Override
 		public IPv4TrieNode lowerAddedNode(IPv4Address addr) {
 			return (IPv4TrieNode) super.lowerAddedNode(addr);
@@ -417,6 +442,36 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 	@Override
 	public Spliterator<IPv4TrieNode> allNodeSpliterator(boolean forward) {
 		return (Spliterator<IPv4TrieNode>) super.allNodeSpliterator(forward);
+	}
+
+	@Override
+	public IPv4TrieNode removeElementsIntersectedBy(IPv4Address addr) { 
+		return (IPv4TrieNode) super.removeElementsIntersectedBy(addr);
+	}
+
+	@Override
+	public IPv4TrieNode addIfNoElementsContaining(IPv4Address addr) { 
+		return (IPv4TrieNode) super.addIfNoElementsContaining(addr);
+	}
+
+	@Override
+	public IPv4TrieNode containingFloorAddedNode(IPv4Address addr) {
+		return (IPv4TrieNode) super.containingFloorAddedNode(addr);
+	}
+	
+	@Override
+	public IPv4TrieNode containingLowerAddedNode(IPv4Address addr) {
+		return (IPv4TrieNode) super.containingLowerAddedNode(addr);
+	}
+
+	@Override
+	public IPv4TrieNode containingCeilingAddedNode(IPv4Address addr) {
+		return (IPv4TrieNode) super.containingCeilingAddedNode(addr);
+	}
+
+	@Override
+	public IPv4TrieNode containingHigherAddedNode(IPv4Address addr) {
+		return (IPv4TrieNode) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

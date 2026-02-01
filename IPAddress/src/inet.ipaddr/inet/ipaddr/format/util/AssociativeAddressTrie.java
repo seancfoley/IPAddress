@@ -28,7 +28,7 @@ import java.util.function.Supplier;
 import inet.ipaddr.Address;
 import inet.ipaddr.format.util.AddressTrieOps.AssociativeAddressTriePutOps;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
-import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
+import inet.ipaddr.format.validate.ChangeTracker.Change;
 
 /**
  * An address trie in which each node is associated with a value.
@@ -275,6 +275,36 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 			return (AssociativeTrieNode<K,V>) super.lastAddedNode();
 		}
 
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> removeElementsIntersectedBy(K addr) { 
+			return (AssociativeTrieNode<K,V>) super.removeElementsIntersectedBy(addr);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> containingFloorAddedNode(K addr) {
+			return (AssociativeTrieNode<K,V>) super.containingFloorAddedNode(addr);
+		}
+		
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> containingLowerAddedNode(K addr) {
+			return (AssociativeTrieNode<K,V>) super.containingLowerAddedNode(addr);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> containingCeilingAddedNode(K addr) {
+			return (AssociativeTrieNode<K,V>) super.containingCeilingAddedNode(addr);
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public AssociativeTrieNode<K,V> containingHigherAddedNode(K addr) {
+			return (AssociativeTrieNode<K,V>) super.containingHigherAddedNode(addr);
+		}
+		
 		@SuppressWarnings("unchecked")
 		@Override
 		public AssociativeTrieNode<K,V> lowerAddedNode(K addr) {
@@ -816,6 +846,42 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	@Override
 	public Spliterator<? extends AssociativeTrieNode<K,V>> allNodeSpliterator(boolean forward) {
 		return nodeSpliterator(forward, false);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> removeElementsIntersectedBy(K addr) { 
+		return (AssociativeTrieNode<K,V>) super.removeElementsIntersectedBy(addr);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> addIfNoElementsContaining(K addr) { 
+		return (AssociativeTrieNode<K,V>) super.addIfNoElementsContaining(addr);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> containingFloorAddedNode(K addr) {
+		return (AssociativeTrieNode<K,V>) super.containingFloorAddedNode(addr);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> containingLowerAddedNode(K addr) {
+		return (AssociativeTrieNode<K,V>) super.containingLowerAddedNode(addr);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> containingCeilingAddedNode(K addr) {
+		return (AssociativeTrieNode<K,V>) super.containingCeilingAddedNode(addr);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public AssociativeTrieNode<K,V> containingHigherAddedNode(K addr) {
+		return (AssociativeTrieNode<K,V>) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

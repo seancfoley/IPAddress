@@ -34,8 +34,8 @@ import inet.ipaddr.Address;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.format.util.AddressTrie.TrieNode;
 import inet.ipaddr.format.util.AddressTrieOps.AddressTrieAddOps;
-import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker;
-import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
+import inet.ipaddr.format.validate.ChangeTracker;
+import inet.ipaddr.format.validate.ChangeTracker.Change;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 
@@ -150,11 +150,13 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 		R1 extends TrieNode<IPv4Address>, 
 		R2 extends TrieNode<IPv6Address>> R unaryOp(T trie, UnaryOperator<R1> ipv4Op, UnaryOperator<R2> ipv6Op) {
 		IPAddress addr = trie.getKey();
-		if(addr.isIPv4()) {
-			return (R) ipv4Op.apply((R1) trie);
-		} else if(addr.isIPv6()) {
-			return (R) ipv6Op.apply((R2) trie);
-		} 
+		if(addr != null) {
+			if(addr.isIPv4()) {
+				return (R) ipv4Op.apply((R1) trie);
+			} else if(addr.isIPv6()) {
+				return (R) ipv6Op.apply((R2) trie);
+			} 
+		}
 		return null;
 	}
 
@@ -257,6 +259,10 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 	public boolean elementContains(IPAddress addr) {
 		return addressPredicateOp(addr, getIPv4Trie()::elementContains, getIPv6Trie()::elementContains);
 	}
+	
+	public boolean elementOverlaps(IPAddress addr) {
+		return addressPredicateOp(addr, getIPv4Trie()::elementOverlaps, getIPv6Trie()::elementOverlaps);
+	}
 
 	public TrieNode<? extends IPAddress> elementsContaining(IPAddress addr) {
 		return addressFuncOp(addr, getIPv4Trie()::elementsContaining, getIPv6Trie()::elementsContaining);
@@ -288,6 +294,30 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 
 	public TrieNode<? extends IPAddress> addTrie(TrieNode<? extends IPAddress> trie) {
 		return unaryOp(trie, getIPv4Trie()::addTrie, getIPv6Trie()::addTrie);
+	}
+
+	public TrieNode<? extends IPAddress> removeElementsIntersectedBy(IPAddress addr) { 
+		return addressFuncOp(addr, getIPv4Trie()::removeElementsIntersectedBy, getIPv6Trie()::removeElementsIntersectedBy);
+	}
+
+	public TrieNode<? extends IPAddress> addIfNoElementsContaining(IPAddress addr) { 
+		return addressFuncOp(addr, getIPv4Trie()::addIfNoElementsContaining, getIPv6Trie()::addIfNoElementsContaining);
+	}
+
+	public TrieNode<? extends IPAddress> containingFloorAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingFloorAddedNode, getIPv6Trie()::containingFloorAddedNode);
+	}
+	
+	public TrieNode<? extends IPAddress> containingLowerAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingLowerAddedNode, getIPv6Trie()::containingLowerAddedNode);
+	}
+
+	public TrieNode<? extends IPAddress> containingCeilingAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingCeilingAddedNode, getIPv6Trie()::containingCeilingAddedNode);
+	}
+
+	public TrieNode<? extends IPAddress> containingHigherAddedNode(IPAddress addr) {
+		return addressFuncOp(addr, getIPv4Trie()::containingHigherAddedNode, getIPv6Trie()::containingHigherAddedNode);
 	}
 
 	public TrieNode<? extends IPAddress> floorAddedNode(IPAddress addr) {
@@ -402,6 +432,10 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 		public int compare(E addr1, E addr2) {
 			if(addr1 == addr2) {
 				return 0;
+			} else if(addr1 == null) {
+				return -1;
+			} else if(addr2 == null) {
+				return 1;
 			}
 			if(addr1.isPrefixed()) {
 				if(addr2.isPrefixed()) {
@@ -431,23 +465,39 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 
 	class BaseDualIterator {
 		Change ipv4CurrentChange, ipv6CurrentChange;
-		
+
 		BaseDualIterator() {
+			initIPv4CurrentChange();
+			initIPv6CurrentChange();
+		}
+
+		void initIPv4CurrentChange() {
 			if(ipv4Tracker != null) {
 				ipv4CurrentChange = ipv4Tracker.getCurrent();
 			}
+		}
+
+		void initIPv6CurrentChange() {
 			if(ipv6Tracker != null) {
 				ipv6CurrentChange = ipv6Tracker.getCurrent();
 			}
 		}
-		
-		void changedSince() {
+
+		void ipv4ChangedSince() {
 			if(ipv4Tracker != null) {
 				ipv4Tracker.changedSince(ipv4CurrentChange);
 			}
+		}
+
+		void ipv6ChangedSince() {
 			if(ipv6Tracker != null) {
 				ipv6Tracker.changedSince(ipv6CurrentChange);
 			}
+		}
+
+		void changedSince() {
+			ipv4ChangedSince();
+			ipv6ChangedSince();
 		}
 	}
 
@@ -552,8 +602,10 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 		
 		@Override
 		public T next() {
-			if(current != last && !first.hasNext()) {
+			boolean isFirst = current != last;
+			if(isFirst && !first.hasNext()) {
 				current = last;
+				isFirst = false;
 			}
 			
 			// note that the next element is always pre-prepared for 
@@ -561,9 +613,14 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 			// so that means we know we can trust the result of hasNext
 			// even when the trie has been changed.
 			if(current.hasNext()) {
-				//TODO you really only need to check the non-current here, since current.next() checks the current, but is this optimization worth the bother? I suppose
-				changedSince();
+				// we only need to check the trie not currently being iterated, because the call to current.next() checks the one being iterated
+				if(isFirst ? firstIsIPv4 : !firstIsIPv4) {
+					ipv6ChangedSince();
+				} else {
+					ipv4ChangedSince();
+				}
 			}
+			
 			return current.next();
 		}
 		
@@ -574,11 +631,9 @@ public abstract class BaseDualIPv4v6Tries<T4 extends AddressTrie<IPv4Address>, T
 			current.remove();
 	        
 	        if(current == first ? firstIsIPv4 : !firstIsIPv4) {
-	        	if(ipv4Tracker != null) {
-    				ipv4CurrentChange = ipv4Tracker.getCurrent();
-    			}
-	        } else if(ipv6Tracker != null) {
-    			ipv6CurrentChange = ipv6Tracker.getCurrent();
+	        	initIPv4CurrentChange();
+	        } else {
+	        	initIPv6CurrentChange();
 	        }
 	    }
 	}

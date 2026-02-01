@@ -133,7 +133,7 @@ public class IPv4AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public int getMaxSegmentValue() {
-		return getMaxSegmentValue(IPVersion.IPV4);
+		return IPv4Address.MAX_VALUE_PER_SEGMENT;
 	}
 	
 	protected IPv4AddressSegment toPrefixNormalizedSeg() {

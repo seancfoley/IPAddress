@@ -852,6 +852,7 @@ public class MACAddressTest extends TestBase {
 				MACAddress.COLON_SEGMENT_SEPARATOR, true);
 	}
 	
+	@SuppressWarnings("unused")
 	void testInvalidMACValues() {
 		try {
 			byte bytes[] = new byte[9];

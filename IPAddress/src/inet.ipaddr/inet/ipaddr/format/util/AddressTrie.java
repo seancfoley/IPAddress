@@ -19,12 +19,15 @@
 package inet.ipaddr.format.util;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Function;
 
@@ -39,15 +42,15 @@ import inet.ipaddr.format.util.AssociativeAddressTrie.AssociativeTrieNode;
 import inet.ipaddr.format.util.BinaryTreeNode.BlockSizeNodeIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.Bounds;
 import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
-import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker;
-import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
 import inet.ipaddr.format.util.BinaryTreeNode.Indents;
 import inet.ipaddr.format.util.BinaryTreeNode.KeySpliterator;
 import inet.ipaddr.format.util.BinaryTreeNode.NodeIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.NodeSpliterator;
 import inet.ipaddr.format.util.BinaryTreeNode.PostOrderNodeIterator;
 import inet.ipaddr.format.util.BinaryTreeNode.PreOrderNodeIterator;
+import inet.ipaddr.format.validate.ChangeTracker;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
+import inet.ipaddr.format.validate.ChangeTracker.Change;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv6.IPv6Address;
 
@@ -133,6 +136,11 @@ import inet.ipaddr.ipv6.IPv6Address;
  * Tries are thread-safe when not being modified (elements added or removed), but are not thread-safe when one thread is modifying the trie.
  * For thread safety when modifying, one option is to use {@link Collections#synchronizedNavigableSet(java.util.NavigableSet)} on {@link #asSet()}.
  * <p>
+ * The trie is also used as the backing structure for the {@link inet.ipaddr.IPAddressContainmentTrieBase}.  
+ * With the containment trie, blocks are not considered to be the elements of the trie, instead the contained individual addresses are the elements.
+ * An individual address can appear in only one added block in a containment trie.  
+ * Direct access to the trie inside a containment trie is not allowed to ensure these structural invariants are not invalidated.
+ * <p>
  * 
  * @author scfoley
  *
@@ -174,11 +182,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		
 		E oneAboveUpperBound, oneBelowUpperBound, oneAboveLowerBound, oneBelowLowerBound;
 
-		
-		AddressBounds(E lowerBound, E upperBound, Comparator<? super E> comparator) {
-			this(lowerBound, true, upperBound, false, comparator);
-		}
-		
 		AddressBounds(E lowerBound, boolean lowerInclusive, E upperBound, boolean upperInclusive, Comparator<? super E> comparator) {
 			super(lowerBound, lowerInclusive, upperBound, upperInclusive, comparator);
 			if(lowerBound != null) {
@@ -288,13 +291,17 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	    INSERT, // add node for E if not already there
 	    REMAP, // alters nodes based on the existing nodes and their values
 	    LOOKUP, // find node for E, traversing all containing elements along the way
-	    NEAR, // closest match, going down trie to get element considered closest.
-	    	// Whether one thing is closer than another is determined by the sorted order.
-	    	// For example, for subnet 1.2.0.0/16, 1.2.128.0 is closest address on the high side, 1.2.127.255 is closest address on the low side
 	    CONTAINING, // find a single node whose key contains E
 	    ALL_CONTAINING, // list the nodes whose keys contain E
-	    INSERTED_DELETE, // remove node for E
-	    SUBTREE_DELETE // remove nodes whose keys are contained by E
+	    OVERLAPPING, // list the nodes whose keys contain E or are contained by E
+	    NEAR, // closest match, search trie to get ab added element considered closest according to the trie order.
+	    	// Whether one thing is closer than another is determined by the sorted order.
+	    	// For example, for subnet 1.2.0.0/16, 1.2.128.0 is closest address on the high side, 1.2.127.255 is closest address on the low side
+	    CONTAINMENT_NEAR, // closest to match or containment.  An address or subnet contained in an added subnet node is a match.  Otherwise, find the nearest to containment or match.
+	    DELETE, // remove node for E
+	    SUBTREE_DELETE, // remove nodes whose keys are contained by E
+	    INTERSECTING_SUBTREE_DELETE, // remove nodes whose keys intersect E
+	    ADD_UNCONTAINED // add E if not contained by an existing added node
 	}
 	
 	// not optimized for size, since only temporary, to be used for a single operation
@@ -320,11 +327,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			this(addr, op, false, false);
 		}
 
-		OpResult(E addr, boolean floor, boolean exclusive) {
-			this(addr, Operation.NEAR, floor, exclusive);
-		}
-
-		private OpResult(E addr, Operation op, boolean floor, boolean exclusive) {
+		OpResult(E addr, Operation op, boolean floor, boolean exclusive) {
 			this.addr = addr;
 			this.op = op;
 			this.nearestFloor = floor;
@@ -344,7 +347,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return reset(addr, Operation.NEAR);
 		}
 		
-		// Do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE,
+		// Do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE
 		// We'd need to do more cleaning if we did.
 		void clean() {
 			addr = null;
@@ -362,7 +365,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			
 			// deletions
 			deleted = null;
-			
+
 			// adds and puts
 			newValue = existingValue = null;
 			inserted = added = addedAlready = null;
@@ -408,8 +411,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		// this tree was deleted
 		TrieNode<E> deleted;
-
-
+		
+		// this trie node is the parent node that remains after the "deleted" node was deleted, which might not be the direct parent
+		TrieNode<E> remainingParent;
+		
 		// adds and puts:
 
 		// new and existing values for add, put and remap operations
@@ -468,6 +473,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 
 		// add to the list of tree elements that contain the supplied argument
+		// containingSub is always an "added" node
 		void addContaining(TrieNode<E> containingSub) {
 			TrieNode<E> cloned = containingSub.clone();
 			if(containing == null) {
@@ -479,7 +485,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				} else {
 					containingEnd.setUpper(cloned);
 				}
-				containingEnd.adjustCount(1);
+				// Each node in the list is an added node with size and containingCount initialized to default values or a single added node, by the call to clone().
+				// That means no changes are needed for containmentCount, just size, as we add each node to the list.
+				// The second arg here could be cloned.getKeyContainedCount() to set to the correct value,
+				// but we know that the value is already correct, so we just pass null for containmentCount instead.
+				containingEnd.setContainmentCount(1, null);
 			}
 			containingEnd = cloned;
 		}
@@ -498,6 +508,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		
 		TrieNode<E> node;
 		
+		/**
+		 * All the bits of the compared key match the same bits in the key of the existing node.
+		 * The existing node key is contained by the compared key.  
+		 */
 		@Override
 		public void bitsMatch() {
 			E existingAddr = node.getKey();
@@ -524,9 +538,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					} else {
 						node.handleNodeMatch(this);
 					}
-				} else if(existingPref == existingAddr.getBitCount()) { 
+				} else if(newPrefixLen == existingAddr.getBitCount()) { 
 					node.handleMatch(this);
-				} else { // existing prefix > newPrefixLen
+				} else { // existing prefix len > newPrefixLen
+					// the node is added or not added, either way the subtree is contained
 					node.handleContained(this, newPrefixLen);
 				}
 			}
@@ -537,11 +552,14 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			node.handleSplitNode(this, matchedBits);
 		}
 
+		/**
+		 * The existing node key's prefix bits match the same bits in the compared key, but the compared key prefix has more bits.
+		 * The existing node key contains the compared key.
+		 */
 		@Override
 		public FollowingBits bitsMatchPartially() {
 			if(node.isAdded()) {
-				node.handleContains(this);
-				if(op == Operation.CONTAINING) {
+				if(node.handleContains(this, false)) {
 					return null;
 				}
 			}
@@ -565,7 +583,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	 * If both prefix lengths match then both addresses are equal.
 	 * Otherwise it looks at bit m in the address with larger prefix.  If 1 it is larger and if 0 it is smaller than the other.
 	 * <p>
-	 * When comparing an address with a prefix p and an address without, the first p bits in both are compared, and if equal,
+	 * When comparing an address with a prefix of length p and an address without, the first p bits in both are compared, and if equal,
 	 * the bit at index p in the non-prefixed address determines the ordering, if 1 it is larger and if 0 it is smaller than the other.
 	 * <p>
 	 * When comparing an address with prefix length matching the bit count to an address with no prefix, they are considered equal if the bits match.
@@ -785,13 +803,62 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return (TrieNode<E>) super.getLowerSubNode();
 		}
 
+		@Override
+		public TrieNode<E> containingFloorAddedNode(E addr) {
+			return findNodeContainingNear(addr, true, false);
+		}
+		
+		TrieNode<E> containingFloorAddedNodeNoCheck(E addr) {
+			return findNodeContainingNearNoCheck(addr, true, false);
+		}
+		
+		@Override
+		public TrieNode<E> containingLowerAddedNode(E addr) {
+			return findNodeContainingNear(addr, true, true);
+		}
+		
+		TrieNode<E> containingLowerAddedNodeNoCheck(E addr) {
+			return findNodeContainingNearNoCheck(addr, true, true);
+		}
+
+		@Override
+		public TrieNode<E> containingCeilingAddedNode(E addr) {
+			return findNodeContainingNear(addr, false, false);
+		}
+
+		TrieNode<E> containingCeilingAddedNodeNoCheck(E addr) {
+			return findNodeContainingNearNoCheck(addr, false, false);
+		}
+		
+		@Override
+		public TrieNode<E> containingHigherAddedNode(E addr) {
+			return findNodeContainingNear(addr, false, true);
+		}
+		
+		TrieNode<E> containingHigherAddedNodeNoCheck(E addr) {
+			return findNodeContainingNearNoCheck(addr, false, true);
+		}
+		 
+		private TrieNode<E> findNodeContainingNear(E addr, boolean below, boolean exclusive) {
+			addr = checkBlockOrAddress(addr, true);
+			return findNodeNearNoCheck(addr, Operation.CONTAINMENT_NEAR, below, exclusive);
+		}
+		
+		private TrieNode<E> findNodeContainingNearNoCheck(E addr, boolean below, boolean exclusive) {
+			return findNodeNearNoCheck(addr, Operation.CONTAINMENT_NEAR, below, exclusive);
+		}
+		
 		private TrieNode<E> findNodeNear(E addr, boolean below, boolean exclusive) {
 			addr = checkBlockOrAddress(addr, true);
-			return findNodeNearNoCheck(addr, below, exclusive);
+			return findNodeNearNoCheck(addr, Operation.NEAR, below, exclusive);
 		}
 		
 		private TrieNode<E> findNodeNearNoCheck(E addr, boolean below, boolean exclusive) {
-			OpResult<E> result = new OpResult<>(addr, below, exclusive);
+			return findNodeNearNoCheck(addr, Operation.NEAR, below, exclusive);
+		}
+		
+		private TrieNode<E> findNodeNearNoCheck(E addr, Operation op, boolean below, boolean exclusive) {
+			OpResult<E> result = new OpResult<>(addr, op, below, exclusive);
 			matchBits(result);
 			TrieNode<E> backtrack = result.backtrackNode;
 			if(backtrack != null) {
@@ -1028,7 +1095,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		@Override
 		public boolean remove(E addr) {
 			addr = checkBlockOrAddress(addr, true);
-			OpResult<E> result = new OpResult<>(addr, Operation.INSERTED_DELETE);
+			OpResult<E> result = new OpResult<>(addr, Operation.DELETE);
 			matchBits(result);
 			return result.exists;
 		}
@@ -1045,7 +1112,31 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			matchBits(result);
 			return result.deleted;
 		}
-
+		
+		@Override
+		public TrieNode<E> removeElementsIntersectedBy(E addr) {
+			addr = checkBlockOrAddress(addr, true);
+			OpResult<E> result = new OpResult<>(addr, Operation.INTERSECTING_SUBTREE_DELETE);
+			matchBits(result);
+			return result.deleted;
+		}
+	
+		protected TrieNode<E>[] removeElementsIntersectedBy(E addr, boolean checkBlockOrAddress) {
+			if(checkBlockOrAddress) {
+				addr = checkBlockOrAddress(addr, true);
+			}
+			OpResult<E> result = new OpResult<>(addr, Operation.INTERSECTING_SUBTREE_DELETE);
+			matchBits(result);
+			if(result.deleted != null) {
+				@SuppressWarnings("unchecked")
+				TrieNode<E> removed[] = new TrieNode[2];
+				removed[0] = result.deleted;
+				removed[1] = result.remainingParent;
+				return removed;
+			}
+			return null;
+		}
+	
 		@Override
 		public TrieNode<E> elementsContainedBy(E addr) {
 			return doLookup(addr).containedBy;
@@ -1087,6 +1178,14 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return doElementContains(addr) != null;
 		}
 
+		@Override
+		public boolean elementOverlaps(E addr) {
+			addr = checkBlockOrAddress(addr, true);
+			OpResult<E> result = new OpResult<>(addr, Operation.OVERLAPPING);
+			matchBits(result);
+			return result.largestContaining != null || result.containedBy != null;
+		}
+
 		private TrieNode<E> doElementContains(E addr) {
 			addr = checkBlockOrAddress(addr, true);
 			OpResult<E> result = new OpResult<>(addr, Operation.CONTAINING);
@@ -1103,7 +1202,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		private void removeSubtree(OpResult<E> result) {
 			result.deleted = this;
-			clear();
+			result.remainingParent = (TrieNode<E>) replaceThis(null);
 		}
 
 		protected void removeOp(OpResult<E> result) {
@@ -1124,7 +1223,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			Operation op = result.op;
 
 			TrieKeyData newKeyData = getTrieKeyCache(newAddr);
-			boolean simpleMatch = newKeyData != null && op != Operation.INSERT && op != Operation.NEAR && op != Operation.REMAP;
+
+			// for simple match, bits not matching means nothing more to do, which is not the case for insert, add uncontained, near, and remap
+			// those four ops are about more than just matching bits
+
+			boolean simpleMatch = newKeyData != null && op != Operation.INSERT && op != Operation.ADD_UNCONTAINED && op != Operation.NEAR && op != Operation.CONTAINMENT_NEAR && op != Operation.REMAP;
 
 			E existingAddr = getKey();
 
@@ -1223,6 +1326,16 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return null;
 		}
 	
+		/**
+		 * 
+		 * @param simpleSearch
+		 * @param newAddr
+		 * @param existingAddr
+		 * @param bitIndex
+		 * @param handleMatch
+		 * @param newTrieCache
+		 * @return whether to continue to the next subnode in the trie
+		 */
 		boolean matchAddressBits(boolean simpleSearch, E newAddr, E existingAddr, int bitIndex, TrieNode.KeyCompareResult handleMatch, TrieKeyData newTrieCache)  {
 			
 			// this is the optimized path for the case where we do not need to know how many of the initial bits match in a mismatch
@@ -1441,6 +1554,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				}
 			}
 
+			if(existingAddr == null) {
+				// the root node, which has no key yet, and nothing else is added to the tree yet
+				return false;
+			}
+
 			int bitsPerSegment = existingAddr.getBitsPerSegment();
 			int bytesPerSegment = existingAddr.getBytesPerSegment();
 			int segmentIndex = ParsedAddressGrouping.getHostSegmentIndex(bitIndex, bytesPerSegment, bitsPerSegment);
@@ -1532,28 +1650,60 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			}
 		}
 
+		// The prefix of the key of an existing node matches entirely the same bits of a prefix of a given key.  The given key's prefix may be shorter.  The given key contains the key of the existing node.
 		private void handleContained(OpResult<E> result, int newPref) {
 			Operation op = result.op;
-			if(op == Operation.INSERT) {
+			if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 				// if we have 1.2.3.4 and 1.2.3.4/32, and we are looking at the last segment,
 				// then there are no more bits to look at, and this makes the former a sub-node of the latter.
 				// In most cases, however, there are more bits in existingAddr, the latter, to look at.
 				replace(result, newPref);
-			} else  if(op == Operation.SUBTREE_DELETE) {
+			} else if(op == Operation.SUBTREE_DELETE || op == Operation.INTERSECTING_SUBTREE_DELETE) {
 				removeSubtree(result);
-			} else if(op == Operation.NEAR) {
+			} else if(op == Operation.NEAR || op == Operation.CONTAINMENT_NEAR) {
 				findNearest(result, newPref);
 			} else if(op == Operation.REMAP) {
 				remapNonExistingReplace(result, newPref);
 			} 
 		}
 
-		private boolean handleContains(OpResult<E> result) {
-			if(result.op == Operation.CONTAINING) {
+		// returns true if handleMatch has nothing more to do after calling this method
+		// the prefix of the given key E is matched entirely by the same bits of the prefix of a key from an existing node.  The existing node key's prefix may be shorter.  The existing node key contains the given key.
+		private boolean handleContains(OpResult<E> result, boolean fromMatch) {
+			if(result.op == Operation.CONTAINING || result.op == Operation.OVERLAPPING) {
 				result.largestContaining = this;
 				return true;
 			} else if(result.op == Operation.ALL_CONTAINING) {
 				result.addContaining(this);
+				if(fromMatch) {
+					return true; // if called from a match, we are done, otherwise we need to continue looking for more containing nodes
+				}
+			} else if(result.op == Operation.ADD_UNCONTAINED) {
+				// the key being added is contained in the existing added node, so nothing to do
+				return true;
+			} else if(result.op == Operation.INTERSECTING_SUBTREE_DELETE) {
+				removeSubtree(result);
+				return true;
+			} else if(result.op == Operation.CONTAINMENT_NEAR) {
+				E key = result.addr;
+				int bitCount = key.getBitCount();
+				Integer prefixLen = key.getPrefixLength();
+				if(result.nearExclusive) {
+					if ((prefixLen == null || prefixLen == bitCount) && (fromMatch || 
+							(result.nearestFloor ? 
+									key.includesZeroBits(getKey().getPrefixLength(), bitCount) : 
+										key.includesMaxBits(getKey().getPrefixLength(), bitCount)))) {
+						result.backtrackNode = this;
+					} else {
+						result.nearestNode = this;  
+					}
+				} else {
+					if(fromMatch) {
+						matched(result);
+					} else {
+						result.nearestNode = this;  
+					}
+				}
 				return true;
 			}
 			result.smallestContaining = this;
@@ -1562,10 +1712,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		private void handleSplitNode(OpResult<E> result, int totalMatchingBits) {
 			E newAddr = result.addr;
-			Operation op = result.op;	
-			if(op == Operation.INSERT) {
+			Operation op = result.op;
+			if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 				split(result, totalMatchingBits, createNew(newAddr));
-			} else if(op == Operation.NEAR) {
+			} else if(op == Operation.NEAR  || op == Operation.CONTAINMENT_NEAR) {
 				findNearest(result, totalMatchingBits);
 			} else if(op == Operation.REMAP) {
 				remapNonExistingSplit(result, totalMatchingBits);
@@ -1580,9 +1730,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				result.existingNode = this;
 			} else if(op == Operation.INSERT) {
 				existingAdded(result);
-			} else if(op == Operation.SUBTREE_DELETE) {
+			} else if(op == Operation.SUBTREE_DELETE || op == Operation.INTERSECTING_SUBTREE_DELETE) {
 				removeSubtree(result);
-			} else if(op == Operation.NEAR) {
+			} else if(op == Operation.ADD_UNCONTAINED) {
+				existingAdded(result);
+			} else if(op == Operation.NEAR || op == Operation.CONTAINMENT_NEAR) {
 				findNearestFromMatch(result);
 			} else if(op == Operation.REMAP) {
 				remapNonAdded(result);
@@ -1591,13 +1743,13 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		private void handleMatch(OpResult<E> result) {
 			result.exists = true;
-			if(!handleContains(result)) {
+			if(!handleContains(result, true)) {// a match is also a contains, if two keys match, they contain each other
 				Operation op = result.op;
 				if(op == Operation.LOOKUP) {
 					matched(result);
 				} else if(op == Operation.INSERT) {
 					matchedInserted(result);
-				} else if(op == Operation.INSERTED_DELETE) {
+				} else if(op == Operation.DELETE) {
 					removeOp(result);
 				} else if(op == Operation.SUBTREE_DELETE) {
 					removeSubtree(result);
@@ -1688,8 +1840,18 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// ** overridden by map trie **
 		void added(OpResult<E> result) {
 			setNodeAdded(true);
-			adjustCount(1);
+			setContainmentCount(1, getKeyContainedCount());
 			changeTracker.changed();
+		}
+
+		@Override
+		protected BigInteger getKeyContainedCount() {
+			Address key = getKey();
+			Integer prefixLen = key.getPrefixLength();
+			if(prefixLen != null) {
+				return key.getCount();
+			}
+			return BigInteger.ONE;
 		}
 
 		/**
@@ -1736,6 +1898,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		private TrieNode<E> replaceToSub(E newAssignedAddr, int totalMatchingBits, TrieNode<E> newSubNode) {
 			TrieNode<E> newNode = createNew(newAssignedAddr);
 			newNode.size = size;
+			newNode.containedCount = containedCount;
 			TrieNode<E> parent = getParent();
 			if(parent.getUpperSubNode() == this) {
 				parent.setUpper(newNode);
@@ -1840,7 +2003,13 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			} else {
 				setLower(node);
 			}
-			size = (isAdded() ? 1 : 0) + node.size;
+			if(isAdded()) {
+				size = 1 + node.size;
+				containedCount = getKeyContainedCount();
+			} else {
+				size = node.size;
+				containedCount = node.containedCount;
+			}
 		}
 		
 		private TrieNode<E> matchSubNode(int bitIndex, OpResult<E> result) {
@@ -1848,7 +2017,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			if(!FREEZE_ROOT && isEmpty()) {
 				if(result.op == Operation.REMAP) {
 					remapNonAdded(result);
-				} else if(result.op == Operation.INSERT) {
+				} else if(result.op == Operation.INSERT || result.op == Operation.ADD_UNCONTAINED) {
 					setKey(newAddr);
 					existingAdded(result);
 				}
@@ -1862,11 +2031,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				if(upper == null) {
 					// no match
 					Operation op = result.op;
-					if(op == Operation.INSERT) {
+					if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 						upper = createNew(newAddr);
 						setUpper(upper);
 						upper.inserted(result);
-					} else if(op == Operation.NEAR) {
+					} else if(op == Operation.NEAR || op == Operation.CONTAINMENT_NEAR) {
 						if(result.nearestFloor) {
 							// With only one sub-node at most, normally that would mean this node must be added.
 							// But there is one exception, when we are the non-added root node.
@@ -1905,11 +2074,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				if(lower == null) {
 					// no match
 					Operation op = result.op;
-					if(op == Operation.INSERT) {
+					if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 						lower = createNew(newAddr);
 						setLower(lower);
 						lower.inserted(result);
-					} else if(op == Operation.NEAR) {
+					} else if(op == Operation.NEAR || op == Operation.CONTAINMENT_NEAR) {
 						if(result.nearestFloor) {
 							result.backtrackNode = this;
 						} else {
@@ -1977,6 +2146,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return (TrieNode<E>) super.clone();
 		}
 
+		TrieNode<E> cloneTreeTracker(ChangeTracker tracker) {
+			return (TrieNode<E>) super.cloneTree(tracker, null);
+		}
+
 		@Override
 		TrieNode<E> cloneTreeBounds(Bounds<E> bounds) {
 			return (TrieNode<E>) super.cloneTreeBounds(bounds);
@@ -1998,8 +2171,12 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	private Change subRootChange; // if trie was modified since last check for subroot, must check for new subroot
 
 	protected AddressTrie(TrieNode<E> root) {
+		this(root, new ChangeTracker());
+	}
+
+	protected AddressTrie(TrieNode<E> root, ChangeTracker changeTracker) {
 		super(root);
-		root.changeTracker = new ChangeTracker();
+		root.changeTracker = changeTracker;
 	}
 
 	protected AddressTrie(TrieNode<E> root, AddressBounds<E> bounds) {
@@ -2112,7 +2289,51 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return totalCount;
 	}
-	
+
+	@Override
+	public BigInteger getMatchingAddressCount() {
+		if(bounds == null) {
+			return super.getMatchingAddressCount();
+		}
+		// ensure all containedCount values are initialized
+		TrieNode<E> root = getRoot();
+		root.size();
+
+		HashMap<TrieNode<E>, BigInteger> countMap = new HashMap<>();
+		
+		// we want to cover all nodes, not just those in bounds, so use the iterator from the root, not the trie iterator, otherwise a node can have more than two subnodes
+		Iterator<? extends TrieNode<E>> iterator = root.containedFirstAllNodeIterator(true);
+		TrieNode<E> next;
+		while(iterator.hasNext()) {
+			next = iterator.next();
+			if(next.isAdded() && bounds.isInBounds(next.getKey())) {
+				countMap.put(next, next.containedCount);
+			} else {
+				TrieNode<E> lower = next.getLowerSubNode();
+				BigInteger count;
+				if(lower != null) {
+					count = countMap.get(lower);
+				} else {
+					count = null;
+				}
+				TrieNode<E> upper = next.getUpperSubNode();
+				if(upper != null) {
+					if(count == null) {
+						count = countMap.get(upper);
+					} else {
+						count = count.add(countMap.get(upper));
+					}
+				}
+				countMap.put(next, count);
+			}
+			if(next == root) {
+				break;
+			}
+		}
+		BigInteger count = countMap.get(root);
+		return count == null ? BigInteger.ZERO : count;
+	}
+
 	@Override
 	public boolean add(E addr) {
 		addr = checkBlockOrAddress(addr, true);
@@ -2128,10 +2349,17 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return !result.exists;
 	}
 
+	protected boolean addFromParent(TrieNode<E> parent, E addr) {
+		OpResult<E> result = new OpResult<>(addr, Operation.INSERT);
+		parent.matchBits(result);
+		return !result.exists;
+	}
+
 	static void throwOutOfBounds() {
 		throw new IllegalArgumentException(getMessage("ipaddress.error.address.out.of.range"));
 	}
 
+	// Some tries wait until the first node is added before deciding what the root should be
 	protected void adjustRoot(E addr) {}
 
 	@Override
@@ -2153,7 +2381,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return node;
 	}
 
-	static abstract class SubNodesMapping<E extends Address, N extends SubNodesMapping<E, N>> {
+	public static abstract class SubNodesMapping<E extends Address, N extends SubNodesMapping<E, N>> {
 		// subNodes is the list of direct and indirect added sub-nodes in the original trie
 		ArrayList<AssociativeTrieNode<E, N>> subNodes;
 		
@@ -2336,9 +2564,9 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		OpResult<E> result = new OpResult<>(toAdd.getKey(), Operation.INSERT);
 		TrieNode<E> firstNode;
 		TrieNode<E> root = absoluteRoot();
-		boolean firstAdded = toAdd.isAdded();
+		boolean firstIsAdded = toAdd.isAdded();
 		boolean addedOne = false;
-		if(firstAdded) {
+		if(firstIsAdded) {
 			addedOne = true;
 			adjustRoot(toAdd.getKey());
 			firstNode = addNode(result, root, toAdd, withValues);
@@ -2366,8 +2594,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				lastAddedNode = cachedNode;
 			}
 		}
-		if(!firstAdded) {
-			firstNode = getNode(tree.getKey());
+		if(!firstIsAdded) {
+			E firstKey = tree.getKey();
+			if(firstKey != null) {
+				firstNode = getNode(firstKey);
+			}
 		}
 		return firstNode;
 	}
@@ -2412,6 +2643,23 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	}
 
 	@Override
+	public TrieNode<E> removeElementsIntersectedBy(E addr) {  
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().removeElementsIntersectedBy(addr);
+	}
+	
+	protected TrieNode<E>[] removeElementsIntersectedBy(E addr, boolean checkBlockOrAddress) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().removeElementsIntersectedBy(addr, checkBlockOrAddress);
+	}
+
+	@Override
 	public TrieNode<E> elementsContainedBy(E addr) {
 		if(bounds != null) {
 			// should never reach here when there are bounds, since this is not exposed from set/map code
@@ -2428,7 +2676,35 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().elementsContaining(addr);
 	}
+
+	@Override
+	public TrieNode<E> addIfNoElementsContaining(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return addIfNoElementsContaining(addr, true);
+	}
 	
+	protected TrieNode<E> addIfNoElementsContaining(E addr, boolean checkBlockOrAddress) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		if(checkBlockOrAddress) {
+			addr = checkBlockOrAddress(addr, true);
+		}
+		adjustRoot(addr);
+		TrieNode<E> root = absoluteRoot();
+		OpResult<E> result = new OpResult<>(addr, Operation.ADD_UNCONTAINED);
+		root.matchBits(result);
+		TrieNode<E> node = result.existingNode;
+		if(node == null) {
+			node = result.inserted;
+		} 
+		return node;
+	}
+
 	@Override
 	public E longestPrefixMatch(E addr) {
 		if(bounds != null) {
@@ -2464,6 +2740,15 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			throw new Error();
 		}
 		return absoluteRoot().shortestPrefixMatchNode(addr);
+	}
+
+	@Override
+	public boolean elementOverlaps(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().elementOverlaps(addr);
 	}
 
 	@Override
@@ -2507,7 +2792,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		if(node == null) {
 			return createNew(bounds);
 		}
-		if (size() == node.size()) {
+		int nodeSize = node.size();
+		if (size() == nodeSize) {
 			return this;
 		}
 		return createNewSameBoundsFromList(node);
@@ -2541,7 +2827,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		if(node == null) {
 			return null;
 		}
-		if(!bounds.isInBounds(node.getKey())) {
+		E nodeKey = node.getKey();
+		if(nodeKey != null && !bounds.isInBounds(nodeKey)) {
 			node = subRoot.elementsContaining(addr); // creates the new containing linked list
 			TrieNode<E> next, lastInBounds = bounds.isInBounds(node.getKey()) ? node : null;
 			do {
@@ -2576,7 +2863,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	private AddressTrie<E> createNewSameBoundsFromList(TrieNode<E> node) {
 		AddressTrie<E> newTrie = createNew(bounds);
 		TrieNode<E> root = newTrie.absoluteRoot();
-		if(node.getKey().equals(root.getKey())) {
+		E nodeKey = node.getKey();
+		// With the new tries, we need to adjust the root before adding another node.
+		// We must also do this so the comparison uses the correct key.
+		newTrie.adjustRoot(nodeKey); 
+		if(Objects.equals(nodeKey, root.getKey())) {
 			newTrie.root = node;
 		} else {
 			root.init(node);
@@ -2975,17 +3266,19 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 	@Override
 	public TrieNode<E> getRoot() {
-		if(bounds == null) {
-			return absoluteRoot();
-		}
-		if(subRootChange != null && !absoluteRoot().changeTracker.isChangedSince(subRootChange)) {
-			// was previously calculated and there has been no change to the trie since then
-			return subRoot;
-		}
 		TrieNode<E> current = absoluteRoot();
+		if(bounds == null || current == null) {
+			return current;
+		} else if(subRootChange != null && !current.changeTracker.isChangedSince(subRootChange)) {
+			// was previously calculated and there has been no change to the trie since then
+			return subRoot; 
+		}
 		do {
 			E currentKey = current.getKey();
-			if(bounds.isLowerBounded() && bounds.isBelowLowerBound(currentKey)) {
+			if(currentKey == null) {
+				// initial trie
+				break;
+			} else if(bounds.isLowerBounded() && bounds.isBelowLowerBound(currentKey)) {
 				current = current.getUpperSubNode();
 			} else if(bounds.isUpperBounded() && bounds.isAboveUpperBound(currentKey)) {
 				current = current.getLowerSubNode();
@@ -3095,6 +3388,74 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return getNodeKey(ceilingAddedNode(addr));
 	}
 
+	@Override
+	public TrieNode<E> containingFloorAddedNode(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingFloorAddedNode(addr);
+	}
+
+	protected TrieNode<E> containingFloorAddedNodeNoCheck(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingFloorAddedNodeNoCheck(addr);
+	}
+
+	@Override
+	public TrieNode<E> containingLowerAddedNode(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingLowerAddedNode(addr);
+	}
+
+	protected TrieNode<E> containingLowerAddedNodeNoCheck(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingLowerAddedNodeNoCheck(addr);
+	}
+
+	@Override
+	public TrieNode<E> containingCeilingAddedNode(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingCeilingAddedNode(addr);
+	}
+
+	protected TrieNode<E> containingCeilingAddedNodeNoCheck(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingCeilingAddedNodeNoCheck(addr);
+	}
+
+	@Override
+	public TrieNode<E> containingHigherAddedNode(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingHigherAddedNode(addr);
+	}
+
+	protected TrieNode<E> containingHigherAddedNodeNoCheck(E addr) {
+		if(bounds != null) {
+			// should never reach here when there are bounds, since this is not exposed from set/map code
+			throw new Error();
+		}
+		return absoluteRoot().containingHigherAddedNodeNoCheck(addr);
+	}
+
 	static <E extends Address> E getNodeKey(TrieNode<E> node) {
 		return (node == null) ? null : node.getKey();
 	}
@@ -3107,13 +3468,20 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			Iterator<? extends BinaryTreeNode<E>> iterator = nodeIterator(true);
 			while(iterator.hasNext()) {
 				BinaryTreeNode<E> node = iterator.next();
-				if(bounds.isInBounds(node.getKey())) {
+				E key = node.getKey();
+				if(key != null && bounds.isInBounds(key)) {
 					iterator.remove();
 				}
 			}
 		}
 	}
 
+	protected AddressTrie<E> clone(ChangeTracker tracker) {
+		AddressTrie<E> result = (AddressTrie<E>) super.clone();
+		result.root = getRoot().cloneTreeTracker(tracker);
+		return result;
+	}
+	
 	@Override
 	public AddressTrie<E> clone() {
 		AddressTrie<E> result = (AddressTrie<E>) super.clone();
@@ -3122,7 +3490,8 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			result.root = getRoot().cloneTree();
 		} else {
 			TrieNode<E> root = absoluteRoot();
-			if(bounds.isInBounds(root.getKey())) {
+			E rootKey = root.getKey();
+			if(rootKey != null && bounds.isInBounds(rootKey)) {
 				result.root = root.cloneTreeBounds(bounds);
 			} else {
 				// clone the root ourselves, then clone the trie starting from the subroot, and make it a child of the root
@@ -3137,10 +3506,12 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 					if(subCloned != null) {
 						result.absoluteRoot().init(subCloned);// attach cloned sub-root to root
 					} else {
-						clonedRoot.size = clonedRoot.isAdded() ? 1 : 0;
+						clonedRoot.containedCount = BigInteger.ZERO;
+						clonedRoot.size = 0;
 					}
 				} else {
-					clonedRoot.size = clonedRoot.isAdded() ? 1 : 0;
+					clonedRoot.containedCount = BigInteger.ZERO;
+					clonedRoot.size = 0;
 				}
 			}
 			result.bounds = null;
@@ -3183,7 +3554,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		if(subRoot == null) {
 			return;
 		}
-		subRoot.printTree(builder, indents, withNonAddedKeys, true, 
+		subRoot.printTree(builder, indents, withNonAddedKeys, true, false,
 				this.<Indents>containingFirstAllNodeIterator(true));
 	}
 

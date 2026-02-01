@@ -163,6 +163,7 @@ public class SpecialTypesTest extends TestBase {
 		incrementTestCount();
 	}
 	
+	@SuppressWarnings("deprecation")
 	void testAllValues(IPVersion version, BigInteger count) {
 		HostName hostAll = createHost("*", HOST_OPTIONS);
 		IPAddressString addressAllStr = createAddress("*", ADDRESS_OPTIONS);

@@ -49,6 +49,7 @@ import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSection;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IPAddressSeqRange;
+import inet.ipaddr.IPAddressSeqRangeList;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
@@ -56,8 +57,10 @@ import inet.ipaddr.format.AddressItem;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.ipv4.IPv4Address;
 import inet.ipaddr.ipv4.IPv4AddressSection;
+import inet.ipaddr.ipv4.IPv4AddressSeqRangeList;
 import inet.ipaddr.ipv6.IPv6Address;
 import inet.ipaddr.ipv6.IPv6AddressSection;
+import inet.ipaddr.ipv6.IPv6AddressSeqRangeList;
 import inet.ipaddr.mac.MACAddressSection;
 
 
@@ -871,6 +874,24 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 	}
 	
+	//testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff", 120, true, true); // test containsPrefixBlock, containsSinglePrefixBlock
+	void testRangeBlock(String addr1Str, String addr2Str, int prefixLen, boolean isPrefixBlock, boolean isSinglePrefixBlock) {
+		IPAddress addr = createAddress(addr1Str).getAddress();
+		IPAddress addr2 = createAddress(addr2Str).getAddress();
+		IPAddressSeqRange range = addr.spanWithRange(addr2);
+		
+		boolean containsBlock = range.containsPrefixBlock(prefixLen);
+		if(containsBlock != isPrefixBlock) {
+			addFailure(new Failure("block mismatch, got " + containsBlock + " instead of expected " + isPrefixBlock + " for prefix " + prefixLen, range));
+		}
+		
+		boolean containsSingleBlock = range.containsSinglePrefixBlock(prefixLen);
+		if(containsSingleBlock != isSinglePrefixBlock) {
+			addFailure(new Failure("single block mismatch, got " + containsSingleBlock + " instead of expected " + isSinglePrefixBlock + " for prefix " + prefixLen, range));
+		}
+	}
+	
+	
 	void testRangeCount(String low, String high, long number) {
 		IPAddressString w = createAddress(low);
 		IPAddressString w2 = createAddress(high);
@@ -948,8 +969,6 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		IPAddressSeqRange val = w.getAddress().spanWithRange(high.getAddress());
 		BigInteger count = val.getPrefixCount(prefixLength);
-//		Set<IPAddress> prefixBlockSet = new HashSet<IPAddress>();
-//		Set<IPAddressSeqRange> prefixSet = new HashSet<IPAddressSeqRange>();
 		Set<AddressItem> prefixBlockSet = new HashSet<AddressItem>();
 		Set<AddressItem> prefixSet = new HashSet<AddressItem>();
 		if(!count.equals(BigInteger.valueOf(number))) {
@@ -1268,7 +1287,8 @@ public class IPAddressRangeTest extends IPAddressTest {
 			IPAddressSeqRange val = w.getAddress().spanWithRange(w2.getAddress());
 			rangeList.add(val);
 		}
-		IPAddressSeqRange[] result = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
+		IPAddressSeqRange[] args = rangeList.toArray(new IPAddressSeqRange[rangeList.size()]);
+		IPAddressSeqRange[] result = IPAddressSeqRange.join(args);
 		rangeList.clear();
 		for(int i = 1; i < expected.length; i += 2) {
 			IPAddressString w = createAddress(expected[i-1]);
@@ -1282,6 +1302,48 @@ public class IPAddressRangeTest extends IPAddressTest {
 		for(int i = 0; i < result.length; i++) {
 			if(!result[i].equals(rangeList.get(i))) {
 				addFailure(new Failure("failed expected: " + rangeList.get(i) + " actual: " + result[i], result[i]));
+			}
+		}
+		incrementTestCount();
+		IPAddressSeqRangeList[] secondResult = IPAddressSeqRange.joinIntoList(args);
+		if(secondResult.length == 0) {
+			if(result.length != 0) {
+				addFailure(new Failure("failed expected non-empty list: " + Arrays.asList(result) + " actual: zero-length array", result[0]));
+			}
+		} else if(secondResult.length == 1) {
+			IPAddressSeqRangeList firstResult = new IPAddressSeqRangeList(result.length);
+			for(int i = 0; i < result.length; i++) {
+				firstResult.add(result[i]);
+			}
+			if(!firstResult.equals(secondResult[0])) {
+				addFailure(new Failure("failed expected single version list: " + firstResult + " actual: " + secondResult[0], secondResult[0]));
+			}
+		} else {
+			// handle cases of both IPv4 and IPv6 in the join
+			IPv4AddressSeqRangeList firstResultv4 = new IPv4AddressSeqRangeList(result.length);
+			IPv6AddressSeqRangeList firstResultv6 = new IPv6AddressSeqRangeList(result.length);
+			for(int i = 0; i < result.length; i++) {
+				if(result[i].isIPv4()) {
+					firstResultv4.add(result[i]);
+				} else {
+					firstResultv6.add(result[i]);
+				}
+			}
+			if(!firstResultv4.equals(secondResult[0])) {
+				addFailure(new Failure("failed expected IPv4 list: " + firstResultv4 + " actual: " + secondResult[0], secondResult[0]));
+			}
+			if(!firstResultv6.equals(secondResult[1])) {
+				addFailure(new Failure("failed expected IPv6 list: " + firstResultv6 + " actual: " + secondResult[1], secondResult[1]));
+			}
+		}
+		if(args.length == 2 && args[0] != null && args[1] != null) {
+			IPAddressSeqRangeList anotherResult = args[0].joinIntoList(args[1]);
+			IPAddressSeqRangeList firstResult = new IPAddressSeqRangeList(result.length);
+			for(int i = 0; i < result.length; i++) {
+				firstResult.add(result[i]);
+			}
+			if(!firstResult.equals(anotherResult)) {
+				addFailure(new Failure("failed expected single version list: " + firstResult + " actual: " + anotherResult, anotherResult));
 			}
 		}
 		incrementTestCount();
@@ -1330,7 +1392,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		incrementTestCount();
 	}
-	
+
 	void testTree(String start, String parents[]) {
 		IPAddressString str = createAddress(start, WILDCARD_AND_RANGE_ADDRESS_OPTIONS);
 		IPAddressString originaLabelStr = str;
@@ -5428,6 +5490,21 @@ public class IPAddressRangeTest extends IPAddressTest {
 		});
 		testSub("10.0.0.0/22", "10.0.0.0/24", isNoAutoSubnets ? null : new String[] {"10.0.1-3.0/24"});//[10.0.1-3.0/24]
 		
+		testComplement("1.2.3.4", new String[]{"0.*.*.*", "1.0-1.*.*", "1.2.0-2.*", "1.2.3.0-3", "1.2.3.5-255", "1.2.4-255.*", "1.3-255.*.*", "2-255.*.*.*"});
+		if(!isNoAutoSubnets) {
+			testComplement("0.0.0.0/0", new String[0]);
+			testComplement("::/0", new String[0]);
+			testComplement("10.0.0.0/22", new String[]{"0-8.0.0.0/7", "10.0.4-252.0/22", "10.1-255.0.0/16", "11-255.0.0.0/8"});
+		} else {
+			testComplement("*.*.*.*/0", new String[0]);
+			testComplement("*:*:*:*:*:*:*:*/0", new String[0]);
+			testComplement("10.0.0-3.*/22", new String[]{"0-9.*.*.*/7", "10.0.4-255.*/22", "10.1-255.*.*/16", "11-255.*.*.*/8"});
+		}
+		testComplement("1.2-3.3.4-5", new String[]{"0.*.*.*", "1.0-1.*.*", "1.2-3.0-2.*", "1.2-3.3.0-3", "1.2-3.3.6-255", "1.2-3.4-255.*", "1.4-255.*.*", "2-255.*.*.*"});
+		testComplement("1:1:2-4:1:1:1:1:1", new String[]{"0:*:*:*:*:*:*:*", "1:0:*:*:*:*:*:*", "1:1:0-1:*:*:*:*:*", "1:1:2-4:0:*:*:*:*", "1:1:2-4:1:0:*:*:*",
+				"1:1:2-4:1:1:0:*:*", "1:1:2-4:1:1:1:0:*", "1:1:2-4:1:1:1:1:0", "1:1:2-4:1:1:1:1:2-ffff", "1:1:2-4:1:1:1:2-ffff:*", "1:1:2-4:1:1:2-ffff:*:*", 
+				"1:1:2-4:1:2-ffff:*:*:*", "1:1:2-4:2-ffff:*:*:*:*", "1:1:5-ffff:*:*:*:*:*", "1:2-ffff:*:*:*:*:*:*", "2-ffff:*:*:*:*:*:*:*"});
+		
 		testIntersect("1:1:1-3:1:1:1:1:1", "1:1:2-4:1:1:1:1:1", "1:1:2-3:1:1:1:1:1");
 		testIntersect("1:1:1-3:1:0:1:1:1", "1:1:2-4:1:1:1:1:1", null);
 		
@@ -5819,13 +5896,26 @@ public class IPAddressRangeTest extends IPAddressTest {
 			testMergeRange("1:0-ff:*", "1:1-fe:1-fffe:*", "1:1-fe:0-1:*", "1:1-fe:ffff:*", "1:0:*", "1:0-ff:*");
 		}
 		
+		if(!allPrefixesAreSubnets) {
+			testIncrement("0.0.0.0/1", -1, null);
+			testIncrement("0.1.0.1/1", -1, "0.1.0.0/1");
+			testIncrement("1.0.0.0/1", -1, "0.255.255.255/1");
+			testIncrement("0.0.0.0/1", 1, "0.0.0.1/1");
+		}
+		
 		testIncrement("1.2.*.*/16", 0, "1.2.0.0");
 		testIncrement("1.2.*.*/16", 1, "1.2.0.1");
-		testIncrement("1.2.*.*/16", 65535, "1.2.255.255");
+		testIncrement("1.2.*.*/16", 65535, "1.2.255.255"); 
 		testIncrement("1.2.*.*/16", 65536, "1.3.0.0");
 		testIncrement("1.2.*.*/16", -1, "1.1.255.255");
 		testIncrement("1.2.*.*/16", -65536, "1.1.0.0");
 		testIncrement("1.2.*.*/16", -65537, "1.0.255.255");
+		
+		testIncrement("0.0.2-3.1", 0, "0.0.2.1");
+		testIncrement("0.0.2-3.1", 1, "0.0.3.1");
+		testIncrement("2-3.1.1.1", 0, "2.1.1.1");
+		testIncrement("2-3.1.1.1", 1, "3.1.1.1");
+		testIncrement("2-3.1.1-2.1", 1, "2.1.2.1");
 		
 		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 0, "ffff:ffff:ffff:ffff:ffff:1:2:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:ffff:1-2:2-3:ffff", 1, "ffff:ffff:ffff:ffff:ffff:1:3:ffff");
@@ -6022,6 +6112,26 @@ public class IPAddressRangeTest extends IPAddressTest {
 		testRangeCount("::1:2:3:4", "::1:2:3:5", 2);
 		testRangeCount("::1:2:3:4", "::1:2:3:6", 3);
 		
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aa00", "aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aaff", 120, true, true);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aa00", "aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aaff", 121, true, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aa00", "bbbb:bbbb:cccc:dddd:eeee:ffff:bbbb:aaff", 120, true, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aa00", "aaaa:bbbb:cccc:dddd:eeee:ffff:bbbb:aaff", 64, false, false);
+		
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 104, true, true);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 105, true, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "bbbb:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 104, true, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 64, false, false);
+
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:fffe", 104, false, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:fffe", 105, false, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "bbbb:bbbb:cccc:dddd:eeee:ffff:aaff:fffe", 104, false, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00::", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:fffe", 64, false, false);
+		
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00:1", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 104, false, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00:1", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 105, false, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00:1", "bbbb:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 104, false, false);
+		testRangeBlock("aaaa:bbbb:cccc:dddd:eeee:ffff:aa00:1", "aaaa:bbbb:cccc:dddd:eeee:ffff:aaff:ffff", 64, false, false);
+
 		testLeadingZeroAddr("00-1.1.2.3", true);
 		testLeadingZeroAddr("1.00-1.2.3", true);
 		testLeadingZeroAddr("1.2.00-1.3", true);

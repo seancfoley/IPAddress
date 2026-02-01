@@ -86,14 +86,14 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 		BigInteger lower = getValue(), upper = getUpperValue();
 		return upper.shiftRight(shiftAdjustment).subtract(lower.shiftRight(shiftAdjustment)).add(BigInteger.ONE);
 	}
-	
+
 	/**
 	 * Provides the number of bits comprising this address item
 	 * 
 	 * @return the number of bits
 	 */
 	int getBitCount();
-	
+
 	/**
 	 * Provides the number of bytes required for this address item, rounding up if the bit count is not a multiple of 8
 	 * 
@@ -102,20 +102,20 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	default int getByteCount() {
 		return (getBitCount() + (Byte.SIZE - 1)) >>> 3;
 	}
-	
+
 	/**
 	 * Whether this represents multiple potential values (eg a prefixed address or a segment representing a range of values)
 	 */
 	default boolean isMultiple() {
 		return !getUpperValue().equals(getValue());
 	}
-	
+
 	/**
 	 * 
 	 * @return the bytes of the lowest address item represented by this address item
 	 */
 	byte[] getBytes();
-	
+
 	/**
 	 * Copies the bytes of the lowest address item represented by this address item into the supplied array,
 	 * and returns that array.
@@ -125,7 +125,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	 * @return the bytes of the lowest address represented by this address item.
 	 */
 	byte[] getBytes(byte bytes[]);
-	
+
 	/**
 	 * Copies the bytes of the lowest address item represented by this address item into the supplied array starting at the given index,
 	 * and returns that array.
@@ -135,13 +135,13 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	 * @return the bytes of the lowest address represented by this address item.
 	 */
 	byte[] getBytes(byte bytes[], int index);
-	
+
 	/**
 	 * 
 	 * @return the bytes of the largest address item represented by this address item
 	 */
 	byte[] getUpperBytes();
-	
+
 	/**
 	 * Copies the bytes of the largest address item represented by this address item into the supplied array,
 	 * and returns that array.
@@ -151,7 +151,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	 * @return the bytes of the largest address represented by this address item.
 	 */
 	byte[] getUpperBytes(byte bytes[]);
-	
+
 	/**
 	 * Copies the bytes of the largest address item represented by this address item into the supplied array at the given index,
 	 * and returns that array.
@@ -161,49 +161,49 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	 * @return the bytes of the largest address represented by this address item.
 	 */
 	byte[] getUpperBytes(byte bytes[], int index);
-	
+
 	/**
 	 * Returns the lowest value represented by this address item, the lowest value included in the range of values
 	 * 
 	 * @return the lowest value represented by this address item
 	 */
 	BigInteger getValue();
-	
+
 	/**
 	 * Returns the highest value represented by this address item, the highest value included in the range of values
 	 * 
 	 * @return the highest value represented by this address item
 	 */
 	BigInteger getUpperValue();
-		
+	
 	/**
 	 * Returns whether this item matches the value of zero
 	 * 
 	 * @return whether this item matches the value of zero
 	 */
 	boolean isZero();
-	
+
 	/**
 	 * Returns whether this item includes the value of zero within its range
 	 * 
 	 * @return whether this item includes the value of zero within its range
 	 */
 	boolean includesZero();
-	
+
 	/**
 	 * Returns whether this item matches the maximum possible value for the address type or version
 	 * 
 	 * @return whether this item matches the maximum possible value
 	 */
 	boolean isMax();
-	
+
 	/**
 	 * Returns whether this item includes the maximum possible value for the address type or version within its range
 	 * 
 	 * @return whether this item includes the maximum possible value within its range
 	 */
 	boolean includesMax();
-	
+
 	/**
 	 * whether this address item represents all possible values attainable by an address item of this type
 	 * 
@@ -215,7 +215,8 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	}
 
 	/**
-	 * Returns whether the values of this series contains the prefix block for the given prefix length.
+	 * Returns whether the values of this series contains the prefix block for the given prefix length,
+	 * which means it contains all addresses with the same prefix.
 	 * <p>
 	 * Use {@link #getMinPrefixLengthForBlock()} to determine the smallest prefix length for which this method returns true.
 	 * 
@@ -230,7 +231,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 		BigInteger upper = getUpperValue();
 		return AddressDivisionBase.testRange(getValue(), upper, upper, getBitCount(), divisionPrefixLen);
 	}
-	
+
 	/**
 	 * Returns whether the values of this series contains a single prefix block for the given prefix length.
 	 * <p>
@@ -247,7 +248,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 		BigInteger lower = getValue(), upper = getUpperValue();
 		return AddressDivisionBase.testRange(lower, lower, upper, getBitCount(), divisionPrefixLen);
 	}
-	
+
 	/**
 	 * Returns the smallest prefix length possible such that this item includes the block of all values for that prefix length.
 	 * <p>
@@ -285,7 +286,7 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Returns a prefix length for which the range of this item matches the block of all values for that prefix length.
 	 * <p>
@@ -325,9 +326,9 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	public static BigInteger getBlockSize(int bitCount) {
 		return BigInteger.ONE.shiftLeft(bitCount);
 	}
-	
+
 	/**
-	 * BitsForCount returns the number of bits required outside the prefix length 
+	 * getBitsForCount returns the number of bits required outside the prefix length 
 	 * for a single prefix block to span at least as many addresses as the given count. 
 	 * Mathematically, it is the ceiling of the base 2 logarithm of the given count. 
 	 * A count of zero or less than zero returns null.

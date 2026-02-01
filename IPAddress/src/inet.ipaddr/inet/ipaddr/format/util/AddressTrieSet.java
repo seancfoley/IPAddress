@@ -505,6 +505,8 @@ public class AddressTrieSet<E extends Address> extends AbstractSet<E> implements
 		return trie.toString();
 	}
 
+	// was not necessary to add the methods below
+
 	/**
 	 * Returns a subset consisting of those addresses in the set contained by the given address.
 	 * The subset will have a restricted range matching the range of the given subnet or address.
@@ -558,7 +560,7 @@ public class AddressTrieSet<E extends Address> extends AbstractSet<E> implements
 	public boolean elementContains(E addr) {
 		return trie.elementContainsBounds(addr);
 	}
-	
+
 	/**
 	 * Returns the element with the longest prefix match with the given address.
 	 * @param addr

@@ -18,9 +18,7 @@
 
 package inet.ipaddr.format.util;
 
-import java.math.BigInteger;
 import java.util.Comparator;
-import java.util.Spliterator;
 
 import inet.ipaddr.format.AddressComponentRange;
 
@@ -49,14 +47,7 @@ import inet.ipaddr.format.AddressComponentRange;
  *
  * @param <T>
  */
-public interface AddressComponentRangeSpliterator<S extends AddressComponentRange, T> extends Spliterator<T> {
-	
-	/**
-	 * Returns an exact count of the number of elements that would be
-     * encountered by a {@link #forEachRemaining} traversal.
-	 * @return
-	 */
-	BigInteger getSize();
+public interface AddressComponentRangeSpliterator<S extends AddressComponentRange, T> extends BigSpliterator<T> {
 
 	/**
 	 * @return the item corresponding to this spliterator when it was last split or created

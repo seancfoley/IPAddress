@@ -52,6 +52,7 @@ import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSegment;
 import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.IPAddressSeqRange;
+import inet.ipaddr.IPAddressSeqRangeList;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IPAddressStringParameters.IPAddressStringFormatParameters;
@@ -100,11 +101,11 @@ public class IPAddressTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
+
 	void testNormalized(String original, String expected) {
 		testNormalized(original, expected, false, true);
 	}
-	
+
 	void testMask(String original, String mask, String expected) {
 		IPAddressString w = createAddress(original);
 		IPAddress orig = w.getAddress();
@@ -118,7 +119,7 @@ public class IPAddressTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
+
 	void testNormalized(String original, String expected, boolean keepMixed, boolean compress) {
 		IPAddressString w = createAddress(original);
 		String normalized;
@@ -146,7 +147,7 @@ public class IPAddressTest extends TestBase {
 		}
 		incrementTestCount();
 	}
-	
+
 	void testCompressed(String original, String expected) {
 		IPAddressString w = createAddress(original);
 		String normalized;
@@ -485,8 +486,11 @@ public class IPAddressTest extends TestBase {
 	}
 	
 	public String convertToMask(IPAddressString str, IPVersion version) throws AddressStringException {
-		IPAddress address =str.toAddress(version);
+		IPAddress address = str.toAddress(version);
 		if(address != null) {
+			if(address.getNetwork().getPrefixConfiguration().prefixedSubnetsAreExplicit()) {
+				return address.getLower().toNormalizedString();
+			}
 			return address.toNormalizedString();
 		}
 		return null;
@@ -2352,6 +2356,7 @@ public class IPAddressTest extends TestBase {
 				f.isIPv4() ? IPv4Address.SEGMENT_SEPARATOR : IPv6Address.SEGMENT_SEPARATOR, false);
 	}
 	
+	@SuppressWarnings("unused")
 	void testInvalidIpv4Values() {
 		try {
 			byte bytes[] = new byte[5];
@@ -2508,6 +2513,7 @@ public class IPAddressTest extends TestBase {
 		
 	}
 	
+	@SuppressWarnings("unused")
 	void testInvalidIpv6Values() {
 		try {
 			byte bytes[] = new byte[17];
@@ -2701,8 +2707,8 @@ public class IPAddressTest extends TestBase {
 		try {
 			IPAddress res[] = addr.subtract(subAddr);
 			if(resultStrings == null) {
-				if(res != null ) {	
-					addFailure(new Failure("non-null subtraction with " + addr, subAddr));
+				if(res.length != 0) {	
+					addFailure(new Failure("non-empty subtraction with " + addr, subAddr));
 				}
 			} else {
 				if(resultStrings.length != res.length) {
@@ -2728,6 +2734,35 @@ public class IPAddressTest extends TestBase {
 			}
 		} catch(IncompatibleAddressException e) {
 			addFailure(new Failure("threw " + e + " when subtracting " + subAddr, addr));
+		}
+		incrementTestCount();
+	}
+	
+	public void testComplement(String one, String resultAddrs[]) { //
+		IPAddressString string = createAddress(one);
+		IPAddress addr = string.getAddress();
+		
+		IPAddress results[] = new IPAddress[resultAddrs.length];
+		for(int i = 0; i < results.length; i++) {
+			results[i] = createAddress(resultAddrs[i]).getAddress();
+		}
+		try {
+			IPAddress res[] = addr.complement();
+			if(!Arrays.equals(results, res)) {
+				addFailure(new Failure("complement mismatch: " + Arrays.asList(res) + " does not match " + Arrays.asList(results), addr));
+			}
+			IPAddressSeqRangeList list = new IPAddressSeqRangeList();
+			list.add(addr);
+			IPAddressSeqRangeList complement = list.complementIntoList();
+			IPAddressSeqRangeList complement2 = new IPAddressSeqRangeList();
+			for(int i = 0; res != null && i < res.length; i++) {
+				complement2.add(res[i]);
+			}
+			if(!complement.equals(complement2)) {
+				addFailure(new Failure("complement mismatch: " + complement + " does not match " + complement2, list));
+			}
+		} catch(IncompatibleAddressException e) {
+			addFailure(new Failure("threw " + e + " when getting complement of " + addr, addr));
 		}
 		incrementTestCount();
 	}
@@ -2919,7 +2954,7 @@ public class IPAddressTest extends TestBase {
 		
 		addr = createAddress(lower1).getAddress();
 		if(higher1 == null) {
-			range = addr.toSequentialRange();
+			range = addr.coverWithSequentialRange();
 		} else {
 			addr2 = createAddress(higher1).getAddress();
 			range = addr.spanWithRange(addr2);
@@ -2928,7 +2963,7 @@ public class IPAddressTest extends TestBase {
 		addr = createAddress(lower2).getAddress();
 		if(higher2 == null) {
 			result2 = range.extend(addr);
-			range2 = addr.toSequentialRange();
+			range2 = addr.coverWithSequentialRange();
 		} else {
 			addr2 = createAddress(higher2).getAddress();
 			range2 = addr.spanWithRange(addr2);
@@ -2975,12 +3010,112 @@ public class IPAddressTest extends TestBase {
 			if(result != null) {
 				addFailure(new Failure("mismatch result " + result + " expected null joining '" + addr + "' with '" + addr2 + "'", addr));
 			}
+			IPAddressSeqRangeList secondResult = range.joinIntoList(range2);
+			// slight difference in behaviour, when no overlap, range join returns null, but join into list returns it all
+			IPAddressSeqRangeList firstResult = new IPAddressSeqRangeList();
+			firstResult.add(range2);
+			firstResult.add(range);
+			if(!firstResult.equals(secondResult)) {
+				addFailure(new Failure("failed expected list when not overlapping or connecting: " + firstResult + " actual: " + secondResult, secondResult));
+			}
+			
 		} else {
 			addr = createAddress(resultLower).getAddress();
 			addr2 = createAddress(resultHigher).getAddress();
 			IPAddressSeqRange expectedResult = addr.spanWithRange(addr2);
 			if(!result.equals(expectedResult)) {
 				addFailure(new Failure("mismatch result '" + result + "' expected '" + expectedResult + "' joining '" + addr + "' with '" + addr2 + "'", addr));
+			}
+
+			incrementTestCount();
+
+			IPAddressSeqRangeList secondResult = range.joinIntoList(range2);
+			IPAddressSeqRangeList firstResult = new IPAddressSeqRangeList();
+			firstResult.add(result);
+			if(!firstResult.equals(secondResult)) {
+				addFailure(new Failure("failed expected list: " + firstResult + " actual: " + secondResult, secondResult));
+			}
+		}
+		
+		incrementTestCount();
+	}
+	
+	void testRangeCompareCount(String lower1, String higher1, String lower2, String higher2, int result) {
+		testRangeCompareCount(lower1, higher1, lower2, higher2, result, true);
+	}
+	
+	private static boolean signcmp(int x, int y) {
+	    return ((x >> 31) | (-x >>> 31)) == ((y >> 31) | (-y >>> 31)); 
+	}
+	
+	void testRangeCompareCount(String lower1, String higher1, String lower2, String higher2, int result, boolean recurse) {
+		IPAddress addr = createAddress(lower1).getAddress();
+		IPAddress addr2 = createAddress(higher1).getAddress();
+		IPAddressSeqRange range1 = addr.spanWithRange(addr2);
+		
+		addr = createAddress(lower2).getAddress();
+		addr2 = createAddress(higher2).getAddress();
+		IPAddressSeqRange range2 = addr.spanWithRange(addr2);
+		
+		if(!signcmp(range1.compareCounts(range2), result)) {
+			addFailure(new Failure("sign mismatch  '" + range1.compareCounts(range2) + "' expected '" + result, range1));
+		}
+		BigInteger count1 = range1.getCount();
+		BigInteger count2 = range2.getCount();
+		if(!signcmp(range1.compareCounts(range2), result)) {
+			addFailure(new Failure("sign mismatch  '" + range1.compareCounts(range2) + "' expected '" + result + "' counts " + count1 + ", " + count2, range1));
+		}
+		if(recurse) {
+			testRangeCompareCount(lower2, higher2, lower1, higher1, -result, false);
+		}
+	}
+	
+	void testRangeSplit(String lower1, String higher1, String splitStr, String resultLowerSplitLower, String resultLowerSplitHigher, String resultHigherSplitLower, String resultHigherSplitHigher) {
+		IPAddress addr = createAddress(lower1).getAddress();
+		IPAddress addr2 = createAddress(higher1).getAddress();
+		IPAddressSeqRange range = addr.spanWithRange(addr2);
+		
+		IPAddress split = createAddress(splitStr).getAddress();
+		
+		IPAddressSeqRange splits[] = range.split(split);
+		
+		IPAddressSeqRange lowerSplit = range.lowerFromSplit(split);
+		
+		IPAddressSeqRange upperSplit = range.upperFromSplit(split);
+		
+		if(resultLowerSplitLower == null) {
+			if(lowerSplit != null) {
+				addFailure(new Failure("lower split mismatch '" + lowerSplit + "' expected '" + resultLowerSplitLower + "'", range));
+			} else if(splits[0] != null) {
+				addFailure(new Failure("lower split mismatch from split '" + splits[0] + "' expected '" + resultLowerSplitLower + "'", range));
+			}
+		} else {
+			addr = createAddress(resultLowerSplitLower).getAddress();
+			addr2 = createAddress(resultLowerSplitHigher).getAddress();
+			IPAddressSeqRange expectedLowerSplit = addr.spanWithRange(addr2);
+			
+			if(!Objects.equals(lowerSplit, expectedLowerSplit)) {
+				addFailure(new Failure("lower split mismatch '" + lowerSplit + "' expected '" + expectedLowerSplit + "'", range));
+			} else if(!Objects.equals(splits[0], expectedLowerSplit)) {
+				addFailure(new Failure("lower split mismatch from split '" + splits[0] + "' expected '" + expectedLowerSplit + "'", range));
+			}
+		}
+		
+		if(resultHigherSplitLower == null) {
+			if(upperSplit != null) {
+				addFailure(new Failure("upper split mismatch '" + upperSplit + "' expected '" + resultHigherSplitLower, range));
+			} else if(splits[1] != null) {
+				addFailure(new Failure("upper split mismatch from split  '" + splits[1] + "' expected '" + resultHigherSplitLower, range));
+			}
+		} else {
+			addr = createAddress(resultHigherSplitLower).getAddress();
+			addr2 = createAddress(resultHigherSplitHigher).getAddress();
+			IPAddressSeqRange expectedUpperSplit = addr.spanWithRange(addr2);
+			
+			if(!Objects.equals(upperSplit, expectedUpperSplit)) {
+				addFailure(new Failure("upper split mismatch '" + upperSplit + "' expected '" + expectedUpperSplit, range));
+			} else if(!Objects.equals(splits[1], expectedUpperSplit)) {
+				addFailure(new Failure("upper split mismatch from split  '" + splits[1] + "' expected '" + expectedUpperSplit, range));
 			}
 		}
 		incrementTestCount();
@@ -3037,7 +3172,7 @@ public class IPAddressTest extends TestBase {
 			IPAddressSeqRange expectedResult = addr.spanWithRange(addr2);
 			if(result.length == 0 || !result[0].equals(expectedResult)) {
 				addFailure(new Failure("mismatch result '" + Arrays.asList(result) + "' expected '" + expectedResult + "' subtracting '" + addr2 + "' from '" + addr + "'", addr));
-			} else if (resultPairs.length == 4){
+			} else if (resultPairs.length == 4) {
 				addr = createAddress(resultPairs[2]).getAddress();
 				addr2 = createAddress(resultPairs[3]).getAddress();
 				expectedResult = addr.spanWithRange(addr2);
@@ -3046,6 +3181,28 @@ public class IPAddressTest extends TestBase {
 				}
 			} else if(result.length > 1) {
 				addFailure(new Failure("mismatch result '" + Arrays.asList(result) + "' expected " + (resultPairs.length / 2) + " ranges subtracting '" + addr2 + "' from '" + addr + "'", addr));
+			}
+		}
+		
+		IPAddressSeqRangeList listResult = range.subtractIntoList(range2);
+		if(resultPairs.length == 0) {
+			if(!listResult.isEmpty()) {
+				addFailure(new Failure("mismatch result " + result + " expected zero length result subtracting '" + addr2 + "' from '" + addr + "'", addr));
+			}
+		} else { //resultPairs.length >= 2
+			IPAddressSeqRangeList expected = new IPAddressSeqRangeList();
+			addr = createAddress(resultPairs[0]).getAddress();
+			addr2 = createAddress(resultPairs[1]).getAddress();
+			IPAddressSeqRange expectedResultx = addr.spanWithRange(addr2);
+			expected.add(expectedResultx);
+			if (resultPairs.length == 4) {
+				addr = createAddress(resultPairs[2]).getAddress();
+				addr2 = createAddress(resultPairs[3]).getAddress();
+				expectedResultx = addr.spanWithRange(addr2);
+				expected.add(expectedResultx);
+			} 
+			if(!listResult.equals(expected)) {
+				addFailure(new Failure("mismatch result '" + listResult + "' expected '" + expected + "' subtracting '" + addr2 + "' from '" + addr + "'", addr));
 			}
 		}
 		incrementTestCount();
@@ -3220,7 +3377,7 @@ public class IPAddressTest extends TestBase {
 		
 		List<IPAddressSeqRange> rangeList = new ArrayList<>();
 		for(IPAddress a : result) {
-			IPAddressSeqRange range = a.toSequentialRange();
+			IPAddressSeqRange range = a.coverWithSequentialRange();
 			rangeList.add(range);
 		}
 		IPAddressSeqRange joined[] = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
@@ -3229,7 +3386,7 @@ public class IPAddressTest extends TestBase {
 		}
 		rangeList.clear();
 		for(IPAddress a : result2) {
-			IPAddressSeqRange range = a.toSequentialRange();
+			IPAddressSeqRange range = a.coverWithSequentialRange();
 			rangeList.add(range);
 		}
 		joined = IPAddressSeqRange.join(rangeList.toArray(new IPAddressSeqRange[rangeList.size()]));
@@ -3307,7 +3464,7 @@ public class IPAddressTest extends TestBase {
 		for(IPAddress addr : addresses) {
 			Iterator<? extends IPAddress> iter = addr.sequentialBlockIterator();
 			while(iter.hasNext()) {
-				IPAddressSeqRange next = iter.next().toSequentialRange();
+				IPAddressSeqRange next = iter.next().coverWithSequentialRange();
 				ranges.add(next);
 			}
 		}
@@ -3327,7 +3484,7 @@ public class IPAddressTest extends TestBase {
 		for(IPAddress addr : addresses) {
 			Iterator<? extends IPAddress> iter = addr.sequentialBlockIterator();
 			while(iter.hasNext()) {
-				IPAddressSeqRange next = iter.next().toSequentialRange();
+				IPAddressSeqRange next = iter.next().coverWithSequentialRange();
 				ranges.add(next);
 			}
 		}
@@ -3579,29 +3736,31 @@ public class IPAddressTest extends TestBase {
 	}
 	
 	void testIncrement(IPAddress orig, long increment, IPAddress expectedResult) {
-		if(orig.isIPv6()) { // test the variant that takes BigInteger increments
-			if(expectedResult == null) {
-				testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), null);
-			} else {
-				testIncrement(orig.toIPv6(), BigInteger.valueOf(increment), expectedResult.toIPv6());
-			}
-		}
+		testIncrement(orig, BigInteger.valueOf(increment), expectedResult);
 		super.testIncrement(orig, increment, expectedResult);
 	}
 
 	void testIncrement(String originalStr, BigInteger increment, String resultStr) {
-		testIncrement(createAddress(originalStr).getAddress().toIPv6(), increment, resultStr == null ? null : createAddress(resultStr).getAddress().toIPv6());
+		testIncrement(createAddress(originalStr).getAddress().toIPv6(), increment, resultStr == null ? null : createAddress(resultStr).getAddress());
 	}
 
 	@Override
-	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult) {
-		super.testIncrement(orig.toIPv6(), increment, expectedResult);
+	void testIncrement(IPAddress orig, BigInteger increment, IPAddress expectedResult) {
+		super.testIncrement(orig, increment, expectedResult);
 		if(expectedResult != null) {
-			if(orig.isSequential()) { 
-				IPv6Address newAddr = new IPv6Address(orig.getValue().add(increment));
-				if(!newAddr.equals(expectedResult)) {
-					addFailure(new Failure("increment creation mismatch result " + 
-							newAddr + " vs expected " + expectedResult, orig));
+			if(orig.isSequential()) {
+				if(orig.isIPv6()) {
+					IPv6Address newAddr = new IPv6Address(orig.getValue().add(increment));
+					if(!newAddr.equals(expectedResult)) {
+						addFailure(new Failure("increment creation mismatch result " + 
+								newAddr + " vs expected " + expectedResult, orig));
+					}
+				} else {
+					IPv4Address newAddr = new IPv4Address(orig.getValue().add(increment).intValue());
+					if(!newAddr.equals(expectedResult)) {
+						addFailure(new Failure("increment creation mismatch result " + 
+								newAddr + " vs expected " + expectedResult, orig));
+					}
 				}
 			}
 		}
@@ -3719,27 +3878,12 @@ public class IPAddressTest extends TestBase {
 			e.printStackTrace();
 			addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
 		} catch(RuntimeException e) {
-		// address 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 threw java.lang.NullPointerException when getting grouping , 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 address 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 threw java.lang.NullPointerException when getting grouping , 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 address 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0 threw java.lang.NullPointerException when getting grouping , 1234567890abcdef1234567890abcdef-2234567890abcdef1234567890abcdef/ffff:0:ffff:0:ffff:0:ffff:0
-				e.printStackTrace();
-				/*
-				 address 0.0.0.* /0.0.0.128 threw java.lang.NullPointerException when getting grouping , 0.0.0.* /0.0.0.128
-				 
-				 java.lang.NullPointerException
-	at inet.ipaddr.format.validate.ParsedIPAddress.getDivisionGrouping(ParsedIPAddress.java:608)
-	at inet.ipaddr.IPAddressString.toDivisionGrouping(IPAddressString.java:860)
-	at inet.ipaddr.test.IPAddressTest.testAddressStringRange(IPAddressTest.java:3115)
-	at inet.ipaddr.test.IPAddressTest.testMaskedIncompatibleAddress(IPAddressTest.java:3075)
-	at inet.ipaddr.test.IPAddressRangeTest.runTest(IPAddressRangeTest.java:5571)
-	at inet.ipaddr.test.TestRunner.testAll(TestRunner.java:676)
-	at inet.ipaddr.test.TestRunner$9.run(TestRunner.java:584)
-	at inet.ipaddr.test.TestRunner$11.run(TestRunner.java:648)	
-				 */
 			addFailure(new Failure("address " + addrStr + " threw " + e + " when getting grouping ", addrStr));
 		}
 		IPAddressString rangeString = createAddress(address);
 		try {
 			// go directly to getting the range which should never throw IncompatibleAddressException even for incompatible addresses
-			IPAddressSeqRange range = rangeString.getSequentialRange();
+			IPAddressSeqRange range = rangeString.getCoveringSequentialRange();
 			IPAddress low = createAddress(lower).getAddress().getLower(); // getLower() needed for auto subnets
 			IPAddress up = createAddress(upper).getAddress().getUpper(); // getUpper() needed for auto subnets
 			if(!range.getLower().equals(low)) {
@@ -3755,7 +3899,7 @@ public class IPAddressTest extends TestBase {
 				if(isIncompatibleAddress) {
 					addFailure(new Failure("address " + address + " not identified as an incompatible address, instead it is " + addr, addr));
 				}
-				IPAddressSeqRange addrRange = addr.toSequentialRange();
+				IPAddressSeqRange addrRange = addr.coverWithSequentialRange();
 				if(!range.equals(addrRange) || !addrRange.equals(range)) {
 					addFailure(new Failure("address range from " + addr + " (" + addrRange.getLower() + "," + addrRange.getUpper() + ")" + 
 							" does not match range from address string " + rangeString + " (" + range.getLower() + "," + range.getUpper() + ")", addr));
@@ -3773,7 +3917,7 @@ public class IPAddressTest extends TestBase {
 				// now get the range from a string after you get the address first, which should get it a different way, from the address
 				IPAddressString oneMore = createAddress(address);
 				oneMore.getAddress();
-				IPAddressSeqRange rangeAfterAddr = oneMore.getSequentialRange();
+				IPAddressSeqRange rangeAfterAddr = oneMore.getCoveringSequentialRange();
 				if(!range.equals(rangeAfterAddr) || !rangeAfterAddr.equals(range)) {
 					addFailure(new Failure("address range from " + rangeString + " after address (" + rangeAfterAddr.getLower() + "," + rangeAfterAddr.getUpper() + ")" + 
 							" does not match range from address string " + rangeString + " before address (" + range.getLower() + "," + range.getUpper() + ")", addr));
@@ -3786,7 +3930,7 @@ public class IPAddressTest extends TestBase {
 				if(!isIncompatibleAddress) {
 					addFailure(new Failure("address " + addrStr + " identified as an incompatible address", addrStr));
 				}
-				IPAddressSeqRange addrRange = addrStr.toSequentialRange();
+				IPAddressSeqRange addrRange = addrStr.coverWithSequentialRange();
 				if(!range.equals(addrRange) || !addrRange.equals(range)) {
 					addFailure(new Failure("address range from " + addrStr + " (" + addrRange.getLower() + "," + addrRange.getUpper() + ")" + 
 							" does not match range from address string " + rangeString + " (" + range.getLower() + "," + range.getUpper() + ")", addrStr));
@@ -6422,7 +6566,6 @@ public class IPAddressTest extends TestBase {
 		BigInteger one28 = thirtyTwo.shiftLeft(96).or(thirtyTwo.shiftLeft(64).or(thirtyTwo.shiftLeft(32).or(thirtyTwo)));
 		testIPv6Values(new int[] {0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}, one28.toString());
 
-
 		testSub("10.0.0.0/22", "10.0.1.0/24", isNoAutoSubnets ?  new String[] {"10.0.0.0/22"} : new String[] {"10.0.0.0/24", "10.0.2.0/23"});
 
 		testIntersect("1:1::/32", "1:1:1:1:1:1:1:1", isNoAutoSubnets ? null : "1:1:1:1:1:1:1:1");//1:1:0:0:0:0:0:0/32
@@ -6656,6 +6799,11 @@ public class IPAddressTest extends TestBase {
 		});
 
 
+		testIncrement("0.0.0.0", -1, null);
+		testIncrement("0.0.0.1", -1, "0.0.0.0");
+		testIncrement("1.0.0.0", -1, "0.255.255.255");
+		testIncrement("0.0.0.0", 1, "0.0.0.1");
+		testIncrement("0.0.0.0", 0, "0.0.0.0");
 		testIncrement("1.2.3.4", 0, "1.2.3.4");
 		testIncrement("1.2.3.4", 1, "1.2.3.5");
 		testIncrement("1.2.3.4", -1, "1.2.3.3");
@@ -6673,18 +6821,26 @@ public class IPAddressTest extends TestBase {
 		testIncrement("1.2.3.4", 4278058236L, null);
 		testIncrement("255.0.0.4", -4278190084L, "0.0.0.0");
 		testIncrement("255.0.0.4", -4278190085L, null);
+		testIncrement("255.255.255.255", 1, null);
+		testIncrement("255.255.255.254", 1, "255.255.255.255");
+		testIncrement("254.255.255.255", 1, "255.0.0.0");
+		
 
 		testIncrement("ffff:ffff:ffff:ffff:f000::0", 1, "ffff:ffff:ffff:ffff:f000::1");
 		testIncrement("ffff:ffff:ffff:ffff:f000::0", -1, "ffff:ffff:ffff:ffff:efff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE, "ffff:ffff:ffff:ffff::");
 		testIncrement("ffff:ffff:ffff:ffff:8000::", Long.MIN_VALUE + 1, "ffff:ffff:ffff:ffff::1");
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:ffff", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:ffff");
+		testIncrement("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 1, null);
 		testIncrement("ffff:ffff:ffff:ffff:7fff:ffff:ffff:fffe", Long.MIN_VALUE, "ffff:ffff:ffff:fffe:ffff:ffff:ffff:fffe");
 		testIncrement("::8000:0:0:0", Long.MIN_VALUE, "::");
 		testIncrement("::7fff:ffff:ffff:ffff", Long.MIN_VALUE, null);
 		testIncrement("::7fff:ffff:ffff:fffe", Long.MIN_VALUE, null);
 		testIncrement("ffff:ffff:ffff:ffff:8000::0", Long.MAX_VALUE, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 		testIncrement("ffff:ffff:ffff:ffff:8000::1", Long.MAX_VALUE, null);
+		testIncrement("::", -1, null);
+		testIncrement("ffff::", -1, "fffe:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
+		testIncrement("::", 1, "::1");
 		testIncrement("::1", 1, "::2");
 		testIncrement("::1", 0, "::1");
 		testIncrement("::1", -1, "::");
@@ -6784,15 +6940,34 @@ public class IPAddressTest extends TestBase {
 		testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", null, null);
 		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.3");
+		testRangeCompareCount("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", -1);
+		testRangeSplit("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.4.3", null, null);
+		testRangeSplit("1.2.3.4", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.3", null, null);
 
 		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", null, "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
 
+		
+		//a b x y
+		testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.4.4", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.4.4", "1.2.5.6", null, null);
+		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.4.4", "1.2.5.6", "1.2.3.4", "1.2.4.3");
+		testRangeCompareCount("1.2.3.4", "1.2.4.3", "1.2.4.4", "1.2.5.6", -1);
+		testRangeSplit("1.2.3.4", "1.2.4.3", "1.2.4.4", "1.2.3.4", "1.2.4.3", null, null);
+		testRangeSplit("1.2.3.4", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.3", null, null);
+
+		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.4.4", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+				
+				
 		//a x b y
 		testRangeJoin("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeIntersect("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.4.3", "1.2.4.5");
 		testRangeSubtract("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.4.2");
+		testRangeCompareCount("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", -1);
+		testRangeSplit("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.3.4", "1.2.4.2", "1.2.4.3", "1.2.4.5");
+		testRangeSplit("1.2.3.4", "1.2.4.5", "1.2.5.6", "1.2.3.4", "1.2.4.5", null, null);
+		
 
 		testRangeExtend("1.2.3.4", "1.2.4.5", "1.2.4.3", "1.2.5.6", "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", null, "1.2.5.6", null, "1.2.3.4", "1.2.5.6");
@@ -6802,14 +6977,32 @@ public class IPAddressTest extends TestBase {
 		testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
 		testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.4.3", "1.2.4.5");
 		testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.4.2", "1.2.4.6", "1.2.5.6");
-
+		testRangeCompareCount("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", 1);
+		testRangeSplit("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.3.4", "1.2.4.2", "1.2.4.3", "1.2.5.6");
+		testRangeSplit("1.2.3.4", "1.2.5.6", "1.2.4.5", "1.2.3.4", "1.2.4.4", "1.2.4.5", "1.2.5.6");
+		
+		
 		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", "1.2.4.5", "1.2.3.4", "1.2.5.6");
 		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.4.3", null, "1.2.3.4", "1.2.5.6");
 
+		
+		testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.3.3", "1.2.5.5", "1.2.3.3", "1.2.5.6");
+		testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.3.3", "1.2.5.5", "1.2.3.4", "1.2.5.5");
+		testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.3.3", "1.2.5.5", "1.2.5.6", "1.2.5.6");
+		testRangeCompareCount("1.2.3.4", "1.2.5.6", "1.2.3.3", "1.2.5.5", 0);
+
+		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.3.3", "1.2.5.5", "1.2.3.3", "1.2.5.6");
+		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.3.3", null, "1.2.3.3", "1.2.5.6");
+
+		
 		//a b x y
 		testRangeJoin("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
 		testRangeIntersect("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", null, null);
 		testRangeSubtract("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:4:3::");
+		testRangeCompareCount("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", -1);
+		testRangeSplit("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:3::", null, null);
+		testRangeSplit("1:2:3:4::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:4:3::", null, null);
+		
 
 		testRangeExtend("1:2:3:4::", "1:2:4:3::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:3:4::", null, "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
@@ -6819,6 +7012,10 @@ public class IPAddressTest extends TestBase {
 		testRangeJoin("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeIntersect("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::");
 		testRangeSubtract("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff");
+		testRangeCompareCount("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", -1);
+		testRangeSplit("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:3::", "1:2:4:5::");
+		testRangeSplit("1:2:3:4::", "1:2:4:5::", "1:2:5:6::", "1:2:3:4::", "1:2:4:5::", null, null);
+		
 
 		testRangeExtend("1:2:3:4::", "1:2:4:5::", "1:2:4:3::", "1:2:5:6::", "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:3:4::", null, "1:2:5:6::", null, "1:2:3:4::", "1:2:5:6::");
@@ -6827,12 +7024,76 @@ public class IPAddressTest extends TestBase {
 		//a x y b
 		testRangeJoin("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
 		testRangeIntersect("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:4:3::", "1:2:4:5::");
-		testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:5::1", "1:2:5:6::");	
-
+		testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:5::1", "1:2:5:6::");
+		testRangeCompareCount("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", 1);
+		testRangeSplit("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:3:4::", "1:2:4:2:ffff:ffff:ffff:ffff", "1:2:4:3::", "1:2:5:6::");
+		testRangeSplit("1:2:3:4::", "1:2:5:6::", "1:2:4:5::", "1:2:3:4::", "1:2:4:4:ffff:ffff:ffff:ffff", "1:2:4:5::", "1:2:5:6::");
+		
 		testRangeExtend("1:2:3:4::", "1:2:5:6::", "1:2:4:3::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:5:6::", null, "1:2:3:4::", null, "1:2:3:4::", "1:2:5:6::");
 		testRangeExtend("1:2:5:6::", null, "1:2:3:4::", "1:2:4:5::", "1:2:3:4::", "1:2:5:6::");
+		
+		//x a y b
+		testRangeJoin("1:2:3:4::", "1:2:5:6::", "1:2:3::", "1:2:5::", "1:2:3::", "1:2:5:6::");
+		testRangeIntersect("1:2:3:4::", "1:2:5:6::", "1:2:3::", "1:2:5::", "1:2:3:4::", "1:2:5::");
+		testRangeSubtract("1:2:3:4::", "1:2:5:6::", "1:2:3::", "1:2:5::", "1:2:5::1", "1:2:5:6::");
+		testRangeCompareCount("1:2:3:4::", "1:2:5:6::", "1:2:3::", "1:2:5::", 1);
+		testRangeSplit("1:2:3:4::", "1:2:5:6::", "1:2:3::", null, null, "1:2:3:4::", "1:2:5:6::");
+		testRangeSplit("1:2:3:4::", "1:2:5:6::", "1:2:5::", "1:2:3:4::", "1:2:4:ffff:ffff:ffff:ffff:ffff", "1:2:5::", "1:2:5:6::");
+				
+		testRangeExtend("1:2:3:4::", "1:2:5:6::", "1:2:3::", "1:2:5::", "1:2:3::", "1:2:5:6::");
+		
+		
+		// x x y y
+		testRangeJoin("1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeIntersect("1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeSubtract("1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeCompareCount("1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6", 0);
 
+		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6", "1.2.3.4", "1.2.5.6");
+		testRangeExtend("1.2.3.4", "1.2.5.6", "1.2.3.4", null, "1.2.3.4", "1.2.5.6");
+		
+		
+		// x x x x
+		testRangeJoin("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4");
+		testRangeIntersect("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4");
+		testRangeSubtract("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4");
+		testRangeCompareCount("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", 0);
+
+		testRangeExtend("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.4");
+		testRangeExtend("1.2.3.4", "1.2.3.4", "1.2.3.4", null, "1.2.3.4", "1.2.3.4");
+		
+		// x x x y
+		testRangeJoin("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.5", "1.2.3.4", "1.2.3.5");
+		testRangeIntersect("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.5", "1.2.3.4", "1.2.3.4");
+		testRangeSubtract("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.5");
+		testRangeCompareCount("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.5", -1);
+
+		testRangeExtend("1.2.3.4", "1.2.3.4", "1.2.3.4", "1.2.3.5", "1.2.3.4", "1.2.3.5");
+		testRangeExtend("1.2.3.4", "1.2.3.4", "1.2.3.5", null, "1.2.3.4", "1.2.3.5");
+		
+		// x x y x
+		testRangeJoin("1.2.3.4", "1.2.3.4", "1.2.3.3", "1.2.3.4", "1.2.3.3", "1.2.3.4");
+		testRangeIntersect("1.2.3.4", "1.2.3.4", "1.2.3.3", "1.2.3.4", "1.2.3.4", "1.2.3.4");
+		testRangeSubtract("1.2.3.4", "1.2.3.4", "1.2.3.3", "1.2.3.4");
+		testRangeCompareCount("1.2.3.4", "1.2.3.4", "1.2.3.3", "1.2.3.4", -1);
+
+		testRangeExtend("1.2.3.4", "1.2.3.4", "1.2.3.3", "1.2.3.4", "1.2.3.3", "1.2.3.4");
+		testRangeExtend("1.2.3.4", "1.2.3.4", "1.2.3.3", null, "1.2.3.3", "1.2.3.4");
+
+		
+		// x y a b
+		testRangeJoin("1.2.3.4", "1.2.4.3", "1.2.2.2", "1.2.3.0", null, null); 
+		testRangeIntersect("1.2.3.4", "1.2.4.3", "1.2.2.2", "1.2.3.0", null, null);
+		testRangeSubtract("1.2.3.4", "1.2.4.3", "1.2.2.2", "1.2.3.0", "1.2.3.4", "1.2.4.3");
+		testRangeCompareCount("1.2.3.4", "1.2.4.3", "1.2.2.2", "1.2.3.0", 1);
+		testRangeSplit("1.2.3.4", "1.2.4.3", "1.2.2.2", null, null, "1.2.3.4", "1.2.4.3");
+		testRangeSplit("1.2.3.4", "1.2.4.3", "1.2.3.0", null, null, "1.2.3.4", "1.2.4.3");
+
+		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.2.2", "1.2.3.0", "1.2.2.2", "1.2.4.3");
+		testRangeExtend("1.2.3.4", "1.2.4.3", "1.2.2.2", null, "1.2.2.2", "1.2.4.3");
+				
+				
 		testCustomNetwork(prefixConfiguration);
 
 		testAddressStringRange("1.2.3.4", new Object[] {1, 2, 3, 4});
