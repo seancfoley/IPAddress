@@ -67,7 +67,6 @@ import inet.ipaddr.ipv4.IPv4AddressSeqRange;
  * 
  * @author scfoley
  *
- * @param <E>
  */
 public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPAddressSeqRange> {
 
@@ -137,7 +136,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given address or subnet contains addresses of a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses would have to be inserted in order to contain the given address or subnet.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in the list contain the given address or subnet.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in the list contain the given address or subnet.
 	 *
 	 * @param address
 	 * @return
@@ -184,13 +183,13 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given trie contains addresses of a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses would have to be inserted in order to contain the given containment trie.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in the list contain the addresses in the given containment trie.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in the list contain the addresses in the given containment trie.
 	 *
-	 * @param address
+	 * @param containmentTrie
 	 * @return
 	 */
-	public int indexOfContainingSeqRange(IPAddressContainmentTrieBase<? extends IPAddress, ?> trie) {
-		return indexOfContainingSeqRange(trie.trie);
+	public int indexOfContainingSeqRange(IPAddressContainmentTrieBase<? extends IPAddress, ?> containmentTrie) {
+		return indexOfContainingSeqRange(containmentTrie.trie);
 	}
 
 	/**
@@ -211,9 +210,9 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given trie contains addresses of a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses would have to be inserted in order to contain the given trie.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in the list contain the addresses in the given trie.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in the list contain the addresses in the given trie.
 	 *
-	 * @param address
+	 * @param trie
 	 * @return
 	 */
 	public int indexOfContainingSeqRange(AddressTrie<? extends IPAddress> trie) {
@@ -251,9 +250,9 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given list contains addresses of a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses would have to be inserted in order to contain the given list.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in the list contain the given list.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in the list contain the given list.
 	 *
-	 * @param address
+	 * @param list
 	 * @return
 	 */
 	public int indexOfContainingSeqRange(IPAddressSeqRangeList list) {
@@ -289,9 +288,9 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given list contains addresses of a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses from the given sequential range would have to be inserted in order to contain the given sequential range.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if a range in the list contain the given sequential range.
+	 * This means that the returned value will be &gt;= 0 if and only if a range in the list contain the given sequential range.
 	 *
-	 * @param address
+	 * @param seqRange
 	 * @return
 	 */
 	public int indexOfContainingSeqRange(IPAddressSeqRange seqRange) {
@@ -338,9 +337,9 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given sequential range contains addresses that are a different version from those in this list, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses could be inserted to result in overlap.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in this list overlap with the given sequential range.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in this list overlap with the given sequential range.
 	 *
-	 * @param address
+	 * @param seqRange
 	 * @return
 	 */
 	public int indexOfOverlappingSeqRange(IPAddressSeqRange seqRange) {
@@ -359,7 +358,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given address or subnet is a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses could be inserted to result in overlap.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in this list overlap with the given address or subnet.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in this list overlap with the given address or subnet.
 	 *
 	 * @param address
 	 * @return
@@ -414,9 +413,9 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * If the given list is empty or contains addresses of a different version, then -1 is returned.
 	 * Otherwise, the returned negative number is (-(insertion index) - 1), where the insertion index is the lowest index in this list where addresses could be inserted to result in overlap.
 	 * <p>
-	 * This means that the returned value will be >= 0 if and only if the ranges in this list overlap with the given list.
+	 * This means that the returned value will be &gt;= 0 if and only if the ranges in this list overlap with the given list.
 	 *
-	 * @param address
+	 * @param list
 	 * @return
 	 */
 	public int indexOfOverlappingSeqRange(IPAddressSeqRangeList list) {
@@ -1128,7 +1127,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * Returns whether addresses in the range were added, whether the list was changed.
 	 * 
-	 * @param address
+	 * @param seqRange
 	 * @return
 	 */
 	@Override
@@ -1275,7 +1274,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * Intersects this list with the given sequential range.  
 	 * Afterwards, this list will include only those addresses in both.
 	 * 
-	 * @param address
+	 * @param seqRange
 	 * @return true if the sequential list was altered by the intersection
 	 */
 	public boolean intersect(IPAddressSeqRange seqRange) {
@@ -1487,7 +1486,6 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * Equivalent to calling remove(getSeqRange(index)), but does not throw when index is out of bounds
 	 * Returns true if the list was changed, which is true if and only if the index was not out of bounds.
 	 * @param index
-	 * @return
 	 */
 	public void removeSeqRange(int index) {
 		ranges.removeRange(index, index + 1);
@@ -1502,7 +1500,6 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * 
 	 * @param fromIndex
 	 * @param toIndex
-	 * @return
 	 */
 	public void removeSeqRanges(int fromIndex, int toIndex) {
 		ranges.removeRange(fromIndex, toIndex);
@@ -1627,7 +1624,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * To get the sequential range at a given address index, use {@link #getContainingSeqRange(BigInteger)}
 	 * 
 	 * @throws ArrayIndexOutOfBoundsException if index is outside the bounds or the existing ranges
-	 * @param index
+	 * @param rangeIndex
 	 * @return
 	 */
 	public IPAddressSeqRange getSeqRange(int rangeIndex) {
@@ -1784,7 +1781,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * If the index is negative or larger than {@link #getCount() - 1}, this method throws IndexOutOfBoundsException.
 	 * 
-	 * @param index
+	 * @param addressIndex
 	 * @return
 	 */
 	public IPAddress remove(BigInteger addressIndex) {
@@ -1806,13 +1803,13 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * A positive increment value is equivalent to the same number of values from the {@link #iterator()}
 	 * For instance, a increment of 0 is the first value from the iterator, an increment of 1 is the second value from the iterator, and so on. 
-	 * A negative increment added to the total count returned by {@link #getCount(BigInteger)} is equivalent to the same number of values preceding the upper bound of the iterator.
+	 * A negative increment added to the total count returned by {@link #getCount()} is equivalent to the same number of values preceding the upper bound of the iterator.
 	 * For instance, an increment of count - 1 is the last value from the iterator, an increment of count - 2 is the second last value, and so on.
 	 * <p>
 	 * An increment of size matching the count gives you the address just above the highest address in the list of sequential ranges.
 	 * To get the address just below the lowest address in the list of sequential ranges, use the increment -1.
 	 * 
-	 * @param increment
+	 * @param addressIndex
 	 * @throws AddressValueException in case of underflow or overflow
 	 * @return the incremented address, or null if this list is empty.
 	 */
@@ -1829,7 +1826,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * Otherwise this returns the address that is the given increment upwards into the list of sequential ranges, with the increment of 0
 	 * returning the first address.
 	 * 
-	 * @param index
+	 * @param addressIndex
 	 * @return
 	 */
 	public IPAddress get(BigInteger addressIndex) {
@@ -1841,7 +1838,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * To get the sequential range at a sequential range index, use {@link #getSeqRange(int)}
 	 * 
-	 * @param index
+	 * @param addressIndex
 	 * @return
 	 */
 	public IPAddressSeqRange getContainingSeqRange(BigInteger addressIndex) {
@@ -1857,7 +1854,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * To get the sequential range at a sequential range index, use {@link #getSeqRange(int)}
 	 * 
-	 * @param index
+	 * @param addressIndex
 	 * @return
 	 */
 	public IPAddressSeqRange getContainingSeqRange(long addressIndex) {
@@ -1874,7 +1871,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * If the index is negative or larger than {@link #getCount() - 1}, this method throws IndexOutOfBoundsException.
 	 * 
-	 * @param index
+	 * @param addressIndex
 	 * @return
 	 */
 	public IPAddress remove(long addressIndex) {
@@ -1896,7 +1893,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p>
 	 * A positive increment value is equivalent to the same number of values from the {@link #iterator()}
 	 * For instance, a increment of 0 is the first value from the iterator, an increment of 1 is the second value from the iterator, and so on. 
-	 * A negative increment added to the total count returned by {@link #getCount(BigInteger)} is equivalent to the same number of values preceding the upper bound of the iterator.
+	 * A negative increment added to the total count returned by {@link #getCount()} is equivalent to the same number of values preceding the upper bound of the iterator.
 	 * For instance, an increment of count - 1 is the last value from the iterator, an increment of count - 2 is the second last value, and so on.
 	 * <p>
 	 * An increment of size matching the count gives you the address just above the highest address in the list of sequential ranges.
@@ -1904,7 +1901,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * <p> 
 	 * An increment that goes beyond the minimum or maximum address values results in an AddressValueException being thrown.
 	 * 
-	 * @param increment
+	 * @param addressIndex
 	 * @throws AddressValueException in case of underflow or overflow in the address space
 	 * @return the incremented address, or null if this list is empty.
 	 */
@@ -1920,7 +1917,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	 * Otherwise, this returns the address that is the given index upwards into the list of sequential ranges, with the increment of zero
 	 * returning the first address.
 	 * 
-	 * @param index
+	 * @param addressIndex
 	 * @return
 	 */
 	public IPAddress get(long addressIndex) {

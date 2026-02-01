@@ -92,7 +92,6 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	
 	/**
 	 * Returns the total number of addresses covered by prefix block subnets added to the trie, including individual addresses added as well.
-	 * Any address included in that count will return true when used as the argument to {@link #elementContains(Address)}.
 	 * @return
 	 */
 	public BigInteger getMatchingAddressCount() {

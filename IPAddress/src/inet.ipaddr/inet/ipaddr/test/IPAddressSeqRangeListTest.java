@@ -1732,6 +1732,7 @@ public class IPAddressSeqRangeListTest extends TestBase {
 			return res;
 		}
 		
+		@SuppressWarnings("unlikely-arg-type")
 		private void testCollectionOpSingleRange(IPAddressSeqRangeList list, IPAddressSeqRange rng, IPAddressContainmentTrie containmentTrie, BiPredicate<IPAddressCollection<IPAddress, IPAddressSeqRange>, IPAddressSeqRange> op, String opName, IPAddressSeqRangeList expected) {
 			rangeListTestCount++;
 			IPAddressSeqRangeList res = list.clone();
@@ -2287,6 +2288,7 @@ public class IPAddressSeqRangeListTest extends TestBase {
 			}
 		}
 
+		@SuppressWarnings("unlikely-arg-type")
 		private void testCollectionOpSingleAddress(IPAddressSeqRangeList list, IPAddress addr, IPAddressContainmentTrie containmentTrie, BiPredicate<IPAddressCollection<IPAddress, IPAddressSeqRange>, IPAddress> op, String opName, IPAddressSeqRangeList expected) {
 			rangeListTestCount++;
 			IPAddressSeqRangeList res = list.clone();

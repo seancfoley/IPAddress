@@ -566,7 +566,6 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	/**
 	 * Returns the total number of addresses covered by prefix block subnets added to the sub-tree starting from this node as root and moving downwards to sub-nodes.
 	 * This count includes individual addresses added as well.
-	 * Any address included in that count will return true when used as the argument to {@link #elementContains(Address)}.
 	 * 
 	 * @return
 	 */

@@ -59,8 +59,8 @@ import inet.ipaddr.format.validate.ChangeTracker;
  * 
  * @author scfoley
  *
- * @param <T>
- * @param <R>
+ * @param <T> the address type
+ * @param <R> the address sequential range type
  */
 public class IPAddressContainmentTrieBase<T extends IPAddress, R extends IPAddressSeqRange> implements IPAddressCollection<T, R> {
 
@@ -265,7 +265,7 @@ public class IPAddressContainmentTrieBase<T extends IPAddress, R extends IPAddre
 	 * <p>
 	 * In a trie of prefix blocks, for a block to overlap with another block means that one of the two blocks contains the other, or they are equal.
 	 * 
-	 * @param addr
+	 * @param rng
 	 * @return
 	 */
 	@Override

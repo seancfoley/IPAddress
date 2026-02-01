@@ -2290,6 +2290,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		return totalCount;
 	}
 
+	/**
+	 * Returns the total number of addresses covered by prefix block subnets added to the trie, including individual addresses added as well.
+	 * Any address included in that count will return true when used as the argument to {@link #elementContains(Address)}.
+	 * @return
+	 */
 	@Override
 	public BigInteger getMatchingAddressCount() {
 		if(bounds == null) {

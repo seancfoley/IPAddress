@@ -138,7 +138,7 @@ public interface IPAddressAggregation<T extends IPAddress, R extends IPAddressSe
 	 * Returns the unique sequential range of minimal size that includes all the addresses in this aggregation.
 	 * If there are no addresses in this aggregation, then null is returned.
 	 * <p>
-	 * The result will represent the same set of addresses if and only if the set of addresses in this aggregation are sequential, in which {@link #isSequential() is true. 
+	 * The result will represent the same set of addresses if and only if the set of addresses in this aggregation are sequential, in which {@link #isSequential()} is true. 
 	 */
 	IPAddressSeqRange coverWithSequentialRange();
 

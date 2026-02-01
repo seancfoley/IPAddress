@@ -165,7 +165,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 
 	/**
-	 * If this sequential range is IPv4, or can be converted to IPv4 by applying the same conversion to all address in the range, returns that {@link IPv4AddressSeqRane}.  Otherwise, returns null.
+	 * If this sequential range is IPv4, or can be converted to IPv4 by applying the same conversion to all address in the range, returns that {@link IPv4AddressSeqRange}.  Otherwise, returns null.
 	 * 
 	 * @return the range
 	 */
@@ -174,7 +174,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	}
 	
 	/**
-	 * If this sequential range is IPv6, or can be converted to IPv6 by applying the same conversion to all address in the range, returns that {@link IPv6AddressSeqRane}.  Otherwise, returns null.
+	 * If this sequential range is IPv6, or can be converted to IPv6 by applying the same conversion to all address in the range, returns that {@link IPv6AddressSeqRange}.  Otherwise, returns null.
 	 * 
 	 * @return the range
 	 */

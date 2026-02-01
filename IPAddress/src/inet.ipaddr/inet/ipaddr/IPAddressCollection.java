@@ -41,6 +41,8 @@ import java.io.Serializable;
  * 
  * @author scfoley
  *
+ * @param <T> the address type
+ * @param <R> the address sequential range type
  */
 public interface IPAddressCollection<T extends IPAddress, R extends IPAddressSeqRange> extends IPAddressAggregation<T, R>, Cloneable, Serializable {
 	/**
@@ -56,7 +58,7 @@ public interface IPAddressCollection<T extends IPAddress, R extends IPAddressSeq
 	 * Adds all the addresses in the sequential range to the collection.
 	 * Returns true if the collection was changed.
 	 * 
-	 * @param addr
+	 * @param rng
 	 * @return
 	 */
 	boolean add(R rng);
@@ -74,7 +76,7 @@ public interface IPAddressCollection<T extends IPAddress, R extends IPAddressSeq
 	 * Removes all the addresses in the sequential range from the collection.
 	 * Returns true if the collection was changed.
 	 * 
-	 * @param addr
+	 * @param rng
 	 * @return
 	 */
 	boolean remove(R rng);
@@ -129,4 +131,13 @@ public interface IPAddressCollection<T extends IPAddress, R extends IPAddressSeq
 	 * @return
 	 */
 	IPAddressCollection<T, R> clone();
+	
+	/**
+	 * Returns true if the given argument is an instance of IPAddressCollection containing the same addresses.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	@Override
+	public boolean equals(Object other);
 }
