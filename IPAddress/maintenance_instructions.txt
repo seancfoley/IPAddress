@@ -70,7 +70,7 @@ Make sure you choose a non-plugin JDK.  It can be a Mac OS VM if you want.  It n
 b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  
 Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-2. Use build.xml to first "create javadoc" running in separate Java 8 JRE.  You may need to comment out module-info.java.  If any javadoc errors, fix them and retry.
+2. Use build.xml to first "create javadoc" running in separate Java 8 JRE - in fact needs to be Java SE for the doclet classes.  You may need to comment out module-info.java.  If any javadoc errors, fix them and retry.
 
 3. Use build.xml to "create dist jar" running in jdk >= 9, maybe the same as used by the workspace.
 
