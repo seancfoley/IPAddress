@@ -117,6 +117,7 @@ public class IPAddressContainmentTrieBase<T extends IPAddress, R extends IPAddre
 	private ChangeTracker changeTracker = new ChangeTracker();
 	CollectionTrie trie = new CollectionTrie(changeTracker);
 
+	@SuppressWarnings("unchecked")
 	private boolean removeBlock(T block) {
 		TrieNode<IPAddress> nodes[] = trie.removeElementsIntersected(block);
 		if(nodes != null) {
@@ -129,7 +130,11 @@ public class IPAddressContainmentTrieBase<T extends IPAddress, R extends IPAddre
 				for(int i = 0; i < remainder.length; i++) {
 					IPAddress newBlocks[] = remainder[i].spanWithPrefixBlocks();
 					for(int j = 0; j < newBlocks.length; j++) {
-						trie.addFromParent(parentNode, newBlocks[j]);
+						IPAddress newBlock = newBlocks[j];
+						if(newBlock.isPrefixed() && !newBlock.isMultiple()) {
+							newBlock = (T) newBlock.withoutPrefixLength();
+						}
+						trie.addFromParent(parentNode, newBlock);
 					}
 				}
 			}
