@@ -1641,6 +1641,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return IPAddressSection.getMergedPrefixBlocks(sections);
 	}
 
+	/**
+	 * @custom.core
+	 */
 	public static class DualIPv4Pv6Arrays {
 		public final IPv4Address addressesIPv4[];
 		public final IPv6Address addressesIPv6[];

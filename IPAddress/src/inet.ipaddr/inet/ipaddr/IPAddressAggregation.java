@@ -31,8 +31,8 @@ import java.util.stream.Stream;
  * 
  * @author scfoley
  *
- * @param <T>
- * @param <R>
+ * @param <T> the address type
+ * @param <R> the address sequential range type
  */
 public interface IPAddressAggregation<T extends IPAddress, R extends IPAddressSeqRange> {
 	/**

@@ -22,7 +22,7 @@ import java.io.Serializable;
 /**
  * IPAddressCollection represents a collection of individual IP addresses.
  * <p>
- * An IPAddressCollection represents a collection that is more expansive and encompassing that an instance of IPAddress or IPAddressSeqRange.  
+ * An IPAddressCollection represents a collection that is more expansive and encompassing than an instance of IPAddress or IPAddressSeqRange.  
  * IPAddress represents a IP address subnet or a single IP address, expressed as an address, a CIDR prefix block, or as a subnet with specified segment ranges.  
  * IPAddressSeqRange represents a sequence of one or more consecutive IP addresses, with a starting and ending address.
  * Both can represent a single address.  Both can represent the entire address space for a given IP version.
@@ -31,13 +31,13 @@ import java.io.Serializable;
  * <p>
  * It is also possible to maintain collections of individual IP addresses using the Java Collections types,
  * storing addresses individually.  But this is not efficient in terms of performance or memory.
- * Instances of IPAddressCollection are more efficient, storing addresses into a minimal number of prefix blocks or sequential ranges as possible.
+ * Instances of IPAddressCollection are more efficient, storing addresses into the minimal number of prefix blocks or sequential ranges possible.
  * <p>
  * Two implementations of this interface are provided: IPAddressSeqRangeList and IPAddressContainmentTrie.  They both have IPv4-specific and IPv6-specific counterparts.  
  * IPAddressSeqRangeList is backed by an array of sequential ranges.  IPAddressContainmentTrie is backed by a trie of CIDR prefix blocks.
  * Both offer binary search for containment queries.  
  * Whether one is better than the other may depend on the data set or the underlying processor, 
- * or whether you may need additional operations needed that are specific to one collection or the other.
+ * or whether you may need additional operations that are specific to one collection or the other.
  * 
  * @author scfoley
  *

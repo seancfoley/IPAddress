@@ -43,7 +43,7 @@ import inet.ipaddr.ipv4.IPv4AddressSeqRange;
 /**
  * IPAddressSeqRangeList maintains a sorted list of sequential address ranges.  
  * It consists of a series of IPAddressSeqRange instances to describe a range of addresses that is non-sequential if more than one IPAddressSeqRange is in the list.  
- * As addresses are added and removed, the lost of IPAddressSeqRange instances are adjusted, 
+ * As addresses are added and removed, the list of IPAddressSeqRange instances are adjusted, 
  * so that it is always the minimal list of sequential ranges that includes all the specified addresses.
  * <p>
  * It is one of the efficient options provided by this library implementing {@link IPAddressCollection} to maintain sets of individual IP addresses, 
@@ -174,7 +174,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	public boolean contains(IPAddressContainmentTrieBase<? extends IPAddress, ?> trie) {
 		return indexOfContainingSeqRange(trie) >= 0;
 	}
-	
+
 	/**
 	 * If this list contains all the addresses in the given containment trie, returns the index of the lowest sequential range in this list containing some elements of the containment trie.
 	 * It returns 0 if both this list and the given containment trie are empty. 
@@ -238,6 +238,12 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 		return result;
 	}
 
+	/**
+	 * Returns whether this sequential range list contains all addresses in the given sequential range list
+	 * 
+	 * @param list
+	 * @return
+	 */
 	public boolean contains(IPAddressSeqRangeList list) {
 		return indexOfContainingSeqRange(list) >= 0;
 	}
@@ -630,7 +636,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	}
 
 	/**
-	 * Produces a new IPAddressSeqRangeList that has all the addressed in the given list removed from this list.
+	 * Produces a new IPAddressSeqRangeList that has the addresses in this list that are not in the given list.
 	 * Neither this list nor the given list are altered, instead a new list is created and returned.
 	 * @param list
 	 * @return
@@ -897,7 +903,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	}
 
 	/**
-	 * Creates a list that was all addresses in this list and the provided list.
+	 * Creates a list that has all addresses in this list and the provided list.
 	 * 
 	 * @param list
 	 * @return
