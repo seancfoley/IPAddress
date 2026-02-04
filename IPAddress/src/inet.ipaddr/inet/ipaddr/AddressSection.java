@@ -174,7 +174,7 @@ public interface AddressSection extends AddressSegmentSeries {
 
 	@Override
 	AddressSection increment(long increment);
-	
+
 	@Override
 	AddressSection increment(BigInteger increment);
 

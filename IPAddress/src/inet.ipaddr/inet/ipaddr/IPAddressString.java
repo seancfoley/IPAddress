@@ -975,7 +975,7 @@ public class IPAddressString implements HostIdentifierString, Comparable<IPAddre
 		validate();
 		return addressProvider.getProviderSeqRange();
 	}
-	
+
 	/**
 	 * @deprecated renamed to coverWithSequentialRange to reflect the fact the returned range does not always represent the same set of addresses  (only when an individual address, or when the subnet is sequential)
 	 */

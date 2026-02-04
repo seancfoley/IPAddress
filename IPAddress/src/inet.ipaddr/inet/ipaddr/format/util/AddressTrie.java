@@ -346,7 +346,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			this.nearExclusive = exclusive;
 			return reset(addr, Operation.NEAR);
 		}
-		
+
 		// Do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE
 		// We'd need to do more cleaning if we did.
 		void clean() {
@@ -411,10 +411,10 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		// this tree was deleted
 		TrieNode<E> deleted;
-		
+
 		// this trie node is the parent node that remains after the "deleted" node was deleted, which might not be the direct parent
 		TrieNode<E> remainingParent;
-		
+
 		// adds and puts:
 
 		// new and existing values for add, put and remap operations
@@ -1112,7 +1112,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			matchBits(result);
 			return result.deleted;
 		}
-		
+
 		@Override
 		public TrieNode<E> removeElementsIntersectedBy(E addr) {
 			addr = checkBlockOrAddress(addr, true);
@@ -3276,7 +3276,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			return current;
 		} else if(subRootChange != null && !current.changeTracker.isChangedSince(subRootChange)) {
 			// was previously calculated and there has been no change to the trie since then
-			return subRoot; 
+			return subRoot;
 		}
 		do {
 			E currentKey = current.getKey();

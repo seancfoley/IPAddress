@@ -181,7 +181,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public IPv6AddressSeqRange toIPv6() {
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @deprecated use {@link #compareCounts(IPAddressSeqRange)} instead

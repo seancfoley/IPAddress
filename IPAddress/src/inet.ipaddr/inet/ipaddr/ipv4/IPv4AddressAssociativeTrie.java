@@ -230,7 +230,7 @@ public class IPv4AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv4Ad
 		public IPv4AssociativeTrieNode<V> previousNode() {
 			return (IPv4AssociativeTrieNode<V>) super.previousNode();
 		}
-		
+
 		@Override
 		public IPv4AssociativeTrieNode<V> removeElementsIntersectedBy(IPv4Address addr) { 
 			return (IPv4AssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);

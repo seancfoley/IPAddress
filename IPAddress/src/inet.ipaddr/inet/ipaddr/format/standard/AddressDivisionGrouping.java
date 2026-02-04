@@ -1767,7 +1767,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		}
 		throw new AddressValueException(increment ? 1 : -1);
 	}
-	
+
 	// Use this for IPv4 and also for when IPv6 has the first 5 segments with no diff (seg equal to getLower), 
 	// and if MAC is 6 segments or the first segment of 8 has no diff.
 	// Callers should have checked for matching segment counts.

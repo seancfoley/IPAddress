@@ -379,7 +379,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public MACAddress incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));
 	}
-	
+
 	@Override
 	public MACAddress incrementBoundary() {
 		return checkIdentity(getSection().incrementBoundary());

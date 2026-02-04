@@ -38,15 +38,15 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  */
 public interface IPAddressRange extends IPAddressAggregation<IPAddress, IPAddressSeqRange>, AddressComponentRange {
 	/**
-	  * Returns the number of individual addresses in this range.
-	  * 
-	  * @return
-	  */
+	 * Returns the number of individual addresses in this range.
+	 * 
+	 * @return
+	 */
 	@Override
 	default BigInteger getCount() {
 		return AddressComponentRange.super.getCount();
 	}
-    
+
     /**
 	 * Returns true if there is more than one address in this range.
 	 * 
@@ -161,7 +161,7 @@ public interface IPAddressRange extends IPAddressAggregation<IPAddress, IPAddres
 	 * @return
 	 */
 	IPAddressSeqRangeList intoSequentialRangeList();
-	
+
 	/**
 	 * Creates a containment trie from the address, which will contain the same set of individual addresses as this range of addresses.
 	 * <p>
@@ -171,7 +171,7 @@ public interface IPAddressRange extends IPAddressAggregation<IPAddress, IPAddres
 	 * @return
 	 */
 	IPAddressContainmentTrieBase<? extends IPAddress, ? extends IPAddressSeqRange> intoContainmentTrie();
-	
+
 	/**
 	 * Returns the complement of the address range within the address space.
 	 * <p>

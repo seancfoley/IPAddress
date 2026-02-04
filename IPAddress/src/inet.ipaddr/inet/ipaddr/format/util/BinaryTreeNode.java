@@ -562,7 +562,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		}
 		return storedSize;
 	}
-	
+
 	/**
 	 * Returns the total number of addresses covered by prefix block subnets added to the sub-tree starting from this node as root and moving downwards to sub-nodes.
 	 * This count includes individual addresses added as well.
@@ -745,7 +745,6 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			result = parent.adjustTree(size, containedCount, replacement, additionalSizeDecrement, additionalContainmentCountDecrement, true);
 			setParent(null);
 			parent.setUpper(replacement);
-			
 		} else if(parent.getLowerSubNode() == this) {
 			result = parent.adjustTree(size, containedCount, replacement, additionalSizeDecrement, additionalContainmentCountDecrement, false);
 			setParent(null);
@@ -2443,7 +2442,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		printTree(builder, new Indents(), withNonAddedKeys, withSizes, withMatchingAddressCounts, this.<Indents>containingFirstAllNodeIterator(true));
 		return builder.toString();
 	}
-	
+
 	void printTree(StringBuilder builder, 
 			Indents initialIndents,
 			boolean withNonAdded, 
@@ -2474,7 +2473,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 						builder.append(next.getMatchingAddressCount());
 					}
 					builder.append(')');
-				} 
+				}
 				builder.append('\n');
 			} else {
 				builder.append(nodeIndent).append(NON_ADDED_NODE_CIRCLE + "\n");
@@ -2499,7 +2498,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			}
 		}
 	}
-	
+
 	/**
 	 * Returns a visual representation of this node including the key, with an open circle indicating this node is not an added node,
 	 * a closed circle indicating this node is an added node.

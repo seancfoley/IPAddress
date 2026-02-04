@@ -49,7 +49,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	private static final long serialVersionUID = 1L;
 
 	static final IPv4AddressSeqRange EMPTY[] = {};
-	
+
 	public IPv4AddressSeqRange(IPv4Address first, IPv4Address second) {
 		super(
 			first,

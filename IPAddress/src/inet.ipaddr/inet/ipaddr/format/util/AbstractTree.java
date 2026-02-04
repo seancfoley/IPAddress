@@ -89,7 +89,7 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	public int nodeSize() {
 		return getRoot().nodeSize();
 	}
-	
+
 	/**
 	 * Returns the total number of addresses covered by prefix block subnets added to the trie, including individual addresses added as well.
 	 * @return
@@ -217,7 +217,7 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	public String toString(boolean withNonAddedKeys, boolean withSizes, boolean withMatchingAddressCounts) {
 		return getRoot().toTreeString(withNonAddedKeys, withSizes, withMatchingAddressCounts);
 	}
-	
+
 	/**
 	 * Copies the trie, but not the keys or values.
 	 */

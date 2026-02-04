@@ -1205,7 +1205,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		}
 		return getUpper().increment(increment);
 	}
-	
+
 	@Override
 	public IPv4AddressSection increment(BigInteger increment) {
 		return increment(checkOverflow(increment));

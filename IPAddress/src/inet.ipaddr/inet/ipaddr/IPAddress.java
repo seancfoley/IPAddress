@@ -1784,7 +1784,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @return the difference
 	 */
 	public abstract IPAddress[] subtract(IPAddress other) throws AddressConversionException; 
-	
+
 	/**
 	 * Equivalent to calling {@link #mask(IPAddress, boolean)} with the second argument as false.
 	 *<p>

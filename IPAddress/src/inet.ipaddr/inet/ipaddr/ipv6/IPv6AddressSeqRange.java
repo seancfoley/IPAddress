@@ -223,7 +223,7 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv6AddressSeqRange coverWithSequentialRange() {
 		return this;
 	}
-	
+
 	@Override
 	public IPv6AddressSeqRangeList intoSequentialRangeList() {
 		return (IPv6AddressSeqRangeList) super.intoSequentialRangeList();

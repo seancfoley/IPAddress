@@ -70,7 +70,7 @@ public abstract class IPAddressNetwork<
 	private final int hostSegmentMasks[];
 	private transient T loopback;
 	private transient String loopbackStrings[];
-	
+
 	static final IPAddress EMPTY_ADDRESS[] = {};
 	protected static final IPv6Address EMPTY_IPV6_ADDRESS[] = {};
 	protected static final IPv4Address EMPTY_IPV4_ADDRESS[] = {};
@@ -532,7 +532,7 @@ public abstract class IPAddressNetwork<
 						} else if(getPrefixConfiguration().zeroHostsAreSubnets()) {
 							// not a network address
 							subnet = (T) subnet.getLower();
-						} 
+						}
 					} else {
 						subnet = creator.createAddressInternal(newSegments); /* address creation */
 					}

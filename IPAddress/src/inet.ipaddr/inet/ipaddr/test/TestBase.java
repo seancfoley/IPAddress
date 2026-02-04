@@ -126,7 +126,7 @@ public abstract class TestBase {
 			this.str = str;
 			this.addr = addr;
 		}
-		
+
 		public Failure(String str, IPAddressCollection<? extends IPAddress, ? extends IPAddressSeqRange> collection) {
 			this.str = str;
 			this.collection = collection;
