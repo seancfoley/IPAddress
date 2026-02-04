@@ -847,7 +847,7 @@ public abstract class AssociativeAddressTrie<K extends Address, V> extends Addre
 	public Spliterator<? extends AssociativeTrieNode<K,V>> allNodeSpliterator(boolean forward) {
 		return nodeSpliterator(forward, false);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public AssociativeTrieNode<K,V> removeElementsIntersectedBy(K addr) { 

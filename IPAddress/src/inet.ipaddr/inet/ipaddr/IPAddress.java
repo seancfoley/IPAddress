@@ -1783,7 +1783,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @throws AddressConversionException if the address argument could not be converted to the same address version as this
 	 * @return the difference
 	 */
-	public abstract IPAddress[] subtract(IPAddress other) throws AddressConversionException; 
+	public abstract IPAddress[] subtract(IPAddress other) throws AddressConversionException;
 
 	/**
 	 * Equivalent to calling {@link #mask(IPAddress, boolean)} with the second argument as false.
