@@ -99,7 +99,7 @@ public class IPAddressSeqRangeList implements IPAddressCollection<IPAddress, IPA
 	// If entry at index i exists, then it represents the total count of addresses in range 0, range 1, ..., range i.
 	// It is cleared with calls to remove or add addresses.
 	// It is regenerated with calls to getCount(int).
-	protected transient RangeList<BigInteger> rangeSizes;
+	protected RangeList<BigInteger> rangeSizes;
 
 	protected ChangeTracker changeTracker;
 

@@ -2861,7 +2861,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * In the cases where the above approaches do not work, this approach works.
 	 */
 
-
 	@Override
 	public String toBinaryString() throws IncompatibleAddressException {
 		String result;
