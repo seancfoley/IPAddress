@@ -29,7 +29,7 @@ import inet.ipaddr.format.util.BinaryTreeNode.CachingIterator;
 
 /**
  * A MAC address trie in which each node can be associated with a value.
- * 
+ * <p>
  * See {@link AssociativeAddressTrie} for more details.
  * 
  * @author scfoley
@@ -59,8 +59,12 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 	// if the very first address inserted into the trie is 64-bit, the trie is 64 bit
 	@Override
 	protected void adjustRoot(MACAddress addr) {
-		if(isEmpty() && addr.getSegmentCount() == MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
+		if(isInitialRoot()) {
+			if(addr.getSegmentCount() == MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
 			absoluteRoot().setExtendedRootKey();
+			} else {
+				absoluteRoot().setRootKey();
+			}
 		}
 	}
 
@@ -93,16 +97,20 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 		}
 
 		public MACAssociativeTrieNode() { // root node
-			super(INIT_ROOT);
+			super(null);
 		}
 
 		@Override
 		protected void replaceThisRoot(BinaryTreeNode<MACAddress> replacement) {
 			super.replaceThisRoot(replacement);
-			if(!FREEZE_ROOT && replacement == null) {
-				setKey(INIT_ROOT);
+			if(replacement == null) {
+				setKey(null);
 			}
 		}
+
+		void setRootKey() {
+				setKey(INIT_ROOT);
+			}
 
 		void setExtendedRootKey() {
 			setKey(INIT_ROOT_EXTENDED);
@@ -244,6 +252,31 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 			return (MACAssociativeTrieNode<V>) super.previousNode();
 		}
 
+		@Override
+		public MACAssociativeTrieNode<V> removeElementsIntersectedBy(MACAddress addr) { 
+			return (MACAssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);
+		}
+
+		@Override
+		public MACAssociativeTrieNode<V> containingFloorAddedNode(MACAddress addr) {
+			return (MACAssociativeTrieNode<V>) super.containingFloorAddedNode(addr);
+		}
+		
+		@Override
+		public MACAssociativeTrieNode<V> containingLowerAddedNode(MACAddress addr) {
+			return (MACAssociativeTrieNode<V>) super.containingLowerAddedNode(addr);
+		}
+
+		@Override
+		public MACAssociativeTrieNode<V> containingCeilingAddedNode(MACAddress addr) {
+			return (MACAssociativeTrieNode<V>) super.containingCeilingAddedNode(addr);
+		}
+
+		@Override
+		public MACAssociativeTrieNode<V> containingHigherAddedNode(MACAddress addr) {
+			return (MACAssociativeTrieNode<V>) super.containingHigherAddedNode(addr);
+		}
+	
 		@Override
 		public MACAssociativeTrieNode<V> lowerAddedNode(MACAddress addr) {
 			return (MACAssociativeTrieNode<V>) super.lowerAddedNode(addr);
@@ -415,6 +448,36 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 	@Override
 	public Spliterator<MACAssociativeTrieNode<V>> allNodeSpliterator(boolean forward) {
 		return (Spliterator<MACAssociativeTrieNode<V>>) super.allNodeSpliterator(forward);
+	}
+
+	@Override
+	public MACAssociativeTrieNode<V> removeElementsIntersectedBy(MACAddress addr) { 
+		return (MACAssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);
+	}
+
+	@Override
+	public MACAssociativeTrieNode<V> addIfNoElementsContaining(MACAddress addr) { 
+		return (MACAssociativeTrieNode<V>) super.addIfNoElementsContaining(addr);
+	}
+
+	@Override
+	public MACAssociativeTrieNode<V> containingFloorAddedNode(MACAddress addr) {
+		return (MACAssociativeTrieNode<V>) super.containingFloorAddedNode(addr);
+	}
+	
+	@Override
+	public MACAssociativeTrieNode<V> containingLowerAddedNode(MACAddress addr) {
+		return (MACAssociativeTrieNode<V>) super.containingLowerAddedNode(addr);
+	}
+
+	@Override
+	public MACAssociativeTrieNode<V> containingCeilingAddedNode(MACAddress addr) {
+		return (MACAssociativeTrieNode<V>) super.containingCeilingAddedNode(addr);
+	}
+
+	@Override
+	public MACAssociativeTrieNode<V> containingHigherAddedNode(MACAddress addr) {
+		return (MACAssociativeTrieNode<V>) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

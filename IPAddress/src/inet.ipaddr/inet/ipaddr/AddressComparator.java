@@ -618,15 +618,15 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 			super(equalsConsistent);
 		}
 		
-		private static int compareCount(AddressDivisionSeries one, AddressDivisionSeries two) {
-			return one.isMore(two);
+		private static int compareCounts(AddressDivisionSeries one, AddressDivisionSeries two) {
+			return one.compareCounts(two);
 		}
 		
 		@Override
 		protected int compareParts(AddressSection one, AddressSection two) {
 			int result = one.getBitCount() - two.getBitCount();
 			if(result == 0) {
-				result = compareCount(one, two);
+				result = compareCounts(one, two);
 				if(result == 0) {
 					result = compareEqualSizedSections(one, two);
 				}
@@ -638,7 +638,7 @@ public abstract class AddressComparator implements Comparator<AddressItem> {
 		protected int compareParts(AddressDivisionSeries one, AddressDivisionSeries two) {
 			int result = one.getBitCount() - two.getBitCount();
 			if(result == 0) {
-				result = compareCount(one, two);
+				result = compareCounts(one, two);
 				if(result == 0) {
 					result = compareDivisionGroupings(one, two);
 				}

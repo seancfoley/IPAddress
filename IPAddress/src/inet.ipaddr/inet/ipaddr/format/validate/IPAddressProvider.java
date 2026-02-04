@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Objects;
 
+import inet.ipaddr.AddressNetwork.PrefixConfiguration;
 import inet.ipaddr.HostIdentifierString;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPVersion;
@@ -113,7 +114,7 @@ public interface IPAddressProvider extends Serializable {
 	default IPAddressSeqRange getProviderSeqRange() {
 		IPAddress addr = getProviderAddress();
 		if(addr != null) {
-			return addr.toSequentialRange();
+			return addr.coverWithSequentialRange();
 		}
 		return null;
 	}
@@ -637,6 +638,10 @@ public interface IPAddressProvider extends Serializable {
 
 		private IPAddress createVersionedMask(IPVersion version, int bits, boolean withPrefixLength) {
 			IPAddressNetwork<?, ?, ?, ?, ?> network = version.isIPv4() ? options.getIPv4Parameters().getNetwork() : options.getIPv6Parameters().getNetwork();
+			PrefixConfiguration config = network.getPrefixConfiguration();
+			if(config.prefixedSubnetsAreExplicit()) {
+				return network.getNetworkMask(bits, withPrefixLength);
+			}
 			return withPrefixLength ? network.getNetworkAddress(bits) : network.getNetworkMask(bits, false);
 		}
 

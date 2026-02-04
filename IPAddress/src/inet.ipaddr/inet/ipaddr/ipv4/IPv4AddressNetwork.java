@@ -47,7 +47,7 @@ public class IPv4AddressNetwork extends IPAddressNetwork<IPv4Address, IPv4Addres
 	
 	private static final IPv4AddressSegment EMPTY_SEGMENTS[] = {};
 	private static final IPv4AddressSection EMPTY_SECTION[] = {};
-	private static final IPv4Address EMPTY_ADDRESS[] = {};
+	static final IPv4Address EMPTY_ADDRESS[] = EMPTY_IPV4_ADDRESS;
 	
 	public static class IPv4AddressCreator extends IPAddressCreator<IPv4Address, IPv4AddressSection, IPv4AddressSection, IPv4AddressSegment, Inet4Address> {
 		

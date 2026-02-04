@@ -232,6 +232,31 @@ public class IPv4AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv4Ad
 		}
 
 		@Override
+		public IPv4AssociativeTrieNode<V> removeElementsIntersectedBy(IPv4Address addr) { 
+			return (IPv4AssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);
+		}
+
+		@Override
+		public IPv4AssociativeTrieNode<V> containingFloorAddedNode(IPv4Address addr) {
+			return (IPv4AssociativeTrieNode<V>) super.containingFloorAddedNode(addr);
+		}
+		
+		@Override
+		public IPv4AssociativeTrieNode<V> containingLowerAddedNode(IPv4Address addr) {
+			return (IPv4AssociativeTrieNode<V>) super.containingLowerAddedNode(addr);
+		}
+
+		@Override
+		public IPv4AssociativeTrieNode<V> containingCeilingAddedNode(IPv4Address addr) {
+			return (IPv4AssociativeTrieNode<V>) super.containingCeilingAddedNode(addr);
+		}
+
+		@Override
+		public IPv4AssociativeTrieNode<V> containingHigherAddedNode(IPv4Address addr) {
+			return (IPv4AssociativeTrieNode<V>) super.containingHigherAddedNode(addr);
+		}
+
+		@Override
 		public IPv4AssociativeTrieNode<V> lowerAddedNode(IPv4Address addr) {
 			return (IPv4AssociativeTrieNode<V>) super.lowerAddedNode(addr);
 		}
@@ -407,6 +432,36 @@ public class IPv4AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv4Ad
 	@Override
 	public Spliterator<IPv4AssociativeTrieNode<V>> allNodeSpliterator(boolean forward) {
 		return (Spliterator<IPv4AssociativeTrieNode<V>>) super.allNodeSpliterator(forward);
+	}
+
+	@Override
+	public IPv4AssociativeTrieNode<V> removeElementsIntersectedBy(IPv4Address addr) { 
+		return (IPv4AssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);
+	}
+
+	@Override
+	public IPv4AssociativeTrieNode<V> addIfNoElementsContaining(IPv4Address addr) { 
+		return (IPv4AssociativeTrieNode<V>) super.addIfNoElementsContaining(addr);
+	}
+
+	@Override
+	public IPv4AssociativeTrieNode<V> containingFloorAddedNode(IPv4Address addr) {
+		return (IPv4AssociativeTrieNode<V>) super.containingFloorAddedNode(addr);
+	}
+	
+	@Override
+	public IPv4AssociativeTrieNode<V> containingLowerAddedNode(IPv4Address addr) {
+		return (IPv4AssociativeTrieNode<V>) super.containingLowerAddedNode(addr);
+	}
+
+	@Override
+	public IPv4AssociativeTrieNode<V> containingCeilingAddedNode(IPv4Address addr) {
+		return (IPv4AssociativeTrieNode<V>) super.containingCeilingAddedNode(addr);
+	}
+
+	@Override
+	public IPv4AssociativeTrieNode<V> containingHigherAddedNode(IPv4Address addr) {
+		return (IPv4AssociativeTrieNode<V>) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

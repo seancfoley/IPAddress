@@ -56,8 +56,12 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 	// if the very first address inserted into the trie is 64-bit, the trie is 64 bit
 	@Override
 	protected void adjustRoot(MACAddress addr) {
-		if(isEmpty() && addr.getSegmentCount() == MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
+		if(isInitialRoot()) {
+			if(addr.getSegmentCount() == MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
 			absoluteRoot().setExtendedRootKey();
+			} else {
+				absoluteRoot().setRootKey();
+			}
 		}
 	}
 
@@ -90,19 +94,23 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 		}
 
 		public MACTrieNode() { // root node
-			super(INIT_ROOT);
+			super(null);
 		}
 
 		@Override
 		protected void replaceThisRoot(BinaryTreeNode<MACAddress> replacement) {
 			super.replaceThisRoot(replacement);
-			if(!FREEZE_ROOT && replacement == null) {
-				setKey(INIT_ROOT);
+			if(replacement == null) {
+				setKey(null);
 			}
 		}
 
 		void setExtendedRootKey() {
 			setKey(INIT_ROOT_EXTENDED);
+		}
+
+		void setRootKey() {
+			setKey(INIT_ROOT);
 		}
 
 		@Override
@@ -239,6 +247,31 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 		@Override
 		public MACTrieNode previousNode() {
 			return (MACTrieNode) super.previousNode();
+		}
+
+		@Override
+		public MACTrieNode removeElementsIntersectedBy(MACAddress addr) { 
+			return (MACTrieNode) super.removeElementsIntersectedBy(addr);
+		}
+
+		@Override
+		public MACTrieNode containingFloorAddedNode(MACAddress addr) {
+			return (MACTrieNode) super.containingFloorAddedNode(addr);
+		}
+		
+		@Override
+		public MACTrieNode containingLowerAddedNode(MACAddress addr) {
+			return (MACTrieNode) super.containingLowerAddedNode(addr);
+		}
+
+		@Override
+		public MACTrieNode containingCeilingAddedNode(MACAddress addr) {
+			return (MACTrieNode) super.containingCeilingAddedNode(addr);
+		}
+
+		@Override
+		public MACTrieNode containingHigherAddedNode(MACAddress addr) {
+			return (MACTrieNode) super.containingHigherAddedNode(addr);
 		}
 
 		@Override
@@ -411,6 +444,36 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 	@Override
 	public Spliterator<MACTrieNode> allNodeSpliterator(boolean forward) {
 		return (Spliterator<MACTrieNode>) super.allNodeSpliterator(forward);
+	}
+
+	@Override
+	public MACTrieNode removeElementsIntersectedBy(MACAddress addr) { 
+		return (MACTrieNode) super.removeElementsIntersectedBy(addr);
+	}
+
+	@Override
+	public MACTrieNode addIfNoElementsContaining(MACAddress addr) { 
+		return (MACTrieNode) super.addIfNoElementsContaining(addr);
+	}
+
+	@Override
+	public MACTrieNode containingFloorAddedNode(MACAddress addr) {
+		return (MACTrieNode) super.containingFloorAddedNode(addr);
+	}
+	
+	@Override
+	public MACTrieNode containingLowerAddedNode(MACAddress addr) {
+		return (MACTrieNode) super.containingLowerAddedNode(addr);
+	}
+
+	@Override
+	public MACTrieNode containingCeilingAddedNode(MACAddress addr) {
+		return (MACTrieNode) super.containingCeilingAddedNode(addr);
+	}
+
+	@Override
+	public MACTrieNode containingHigherAddedNode(MACAddress addr) {
+		return (MACTrieNode) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

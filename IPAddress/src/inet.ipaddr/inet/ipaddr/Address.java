@@ -153,10 +153,6 @@ public abstract class Address implements AddressSegmentSeries {
 		return macNetwork;
 	}
 
-	protected static String getMessage(String key) {
-		return HostIdentifierException.getMessage(key);
-	}
-
 	@Override
 	public int getSegmentCount() {
 		return getSection().getSegmentCount();
@@ -226,8 +222,20 @@ public abstract class Address implements AddressSegmentSeries {
 	public abstract Address increment(long increment) throws AddressValueException;
 	
 	@Override
+	public abstract Address increment(BigInteger increment) throws AddressValueException;
+
+	@Override
 	public abstract Address incrementBoundary(long increment) throws AddressValueException;
 	
+	@Override
+	public abstract Address increment();
+
+	@Override
+	public abstract Address decrement();
+
+	@Override
+	public abstract Address incrementBoundary();
+
 	@Override
 	public abstract Address getLower();
 	
@@ -458,6 +466,16 @@ public abstract class Address implements AddressSegmentSeries {
 		return getSection().isFullRange();
 	}
 	
+	@Override
+	public boolean includesZeroBits(int prefixBitStart, int prefixBitEnd) {
+		return getSection().includesZeroBits(prefixBitStart, prefixBitEnd);
+	}
+
+	@Override
+	public boolean includesMaxBits(int prefixBitStart, int prefixBitEnd) {
+		return getSection().includesMaxBits(prefixBitStart, prefixBitEnd);
+	}
+
 	/**
 	 * Whether the address can be considered a local address (as opposed to a global one)
 	 * @return

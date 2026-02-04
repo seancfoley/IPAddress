@@ -280,7 +280,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 			creator = creators[ext][startIndex];
 		}
 		if(creator != null) {
-			useCached |= creator.getNetwork().equals(getNetwork());
+			useCached = useCached || creator.getNetwork().equals(getNetwork());
 			if(useCached) {
 				return creator;
 			}
@@ -503,6 +503,35 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 	@Override
 	public boolean isPrefixed() {
 		return getPrefixLength() != null;
+	}
+	
+	@Override
+	public  boolean includesZeroBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+		if(getSegmentCount() == 0) {
+			return true;
+		}
+		MACAddressSegment seg = getSegment(0);
+		int fullMask = ~(~0 << seg.getBitCount());
+		return includesZeroBits(
+				this,
+				fromBPrefixBitIndex,
+				toPrefixBitIndex, 
+				prefBits ->  fullMask & ~(fullMask >>> prefBits),
+				prefBits -> fullMask >> prefBits);
+	}
+
+	@Override
+	public boolean includesMaxBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+		if(getSegmentCount() == 0) {
+			return true;
+		}
+		MACAddressSegment seg = getSegment(0);
+		int fullMask = ~(~0 << seg.getBitCount());
+		return includesMaxBits(this,
+				fromBPrefixBitIndex,
+				toPrefixBitIndex, 
+				prefBits -> fullMask & ~(fullMask >>> prefBits),
+				prefBits -> fullMask >> prefBits);
 	}
 	
 	public int getOUISegmentCount() {
@@ -1541,6 +1570,33 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 				this::getLower,
 				this::getUpper,
 				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
+	}
+
+	@Override
+	public MACAddressSection increment(BigInteger increment) {
+		return increment(checkOverflow(increment));
+	}
+
+	static long checkOverflow(BigInteger increment) {
+		if(increment.compareTo(LONG_MAX) > 0 || increment.compareTo(LONG_MIN) < 0) {
+			throw new AddressValueException(increment);
+		}
+		return increment.longValue();
+	}
+
+	@Override
+	public MACAddressSection incrementBoundary() {
+		return incrementBoundaryOne(this, getAddressCreator(), getPrefixLength());
+	}
+
+	@Override
+	public MACAddressSection increment() {
+		return incrementOne(this, getAddressCreator(), getPrefixLength());
+	}
+
+	@Override
+	public MACAddressSection decrement() {
+		return decrementOne(this, getAddressCreator(), getPrefixLength());
 	}
 
 	protected boolean hasNoStringCache() {

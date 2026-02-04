@@ -135,7 +135,7 @@ public class IPv6AddressSegment extends IPAddressSegment implements Iterable<IPv
 	
 	@Override
 	public int getMaxSegmentValue() {
-		return getMaxSegmentValue(IPVersion.IPV6);
+		return IPv6Address.MAX_VALUE_PER_SEGMENT;
 	}
 	
 	protected IPv6AddressSegment toPrefixNormalizedSeg() {

@@ -344,6 +344,11 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
+	protected boolean matchesVersion(IPAddress other) {
+		return other.isIPv4();
+	}
+
+	@Override
 	public IPv4Address toIPv4() {
 		return this;
 	}
@@ -544,6 +549,10 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		if(newSection == section) {
 			return this;
 		}
+		return wrap(newSection);
+	}
+
+	private IPv4Address wrap(IPv4AddressSection newSection) {
 		return getAddressCreator().createAddress(newSection);
 	}
 	
@@ -595,7 +604,32 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4Address withoutPrefixLength() {
-		return removePrefixLength(false);
+		if(!isPrefixed()) {
+			return this;
+		}
+		IPv4Address result = null;
+		IPv4AddressCache cache = addressCache;
+		if(cache == null || (result = cache.withoutPrefixLength) == null) {
+			synchronized(this) {
+				cache = addressCache;
+				boolean create = (cache == null);
+				if(create) {
+					cache = addressCache = new IPv4AddressCache();
+				} else {
+					create = (result = cache.withoutPrefixLength) == null;
+				}
+				if(create) {
+					IPv4AddressSection section = getSection();
+					IPv4AddressSection sectionResult = section.withoutPrefixLength();
+					if(sectionResult == section) {
+						cache.withoutPrefixLength = result = this;
+					} else {
+						cache.withoutPrefixLength = result = getAddressCreator().createAddress(sectionResult);
+					}
+				}
+			}
+		}
+		return result;
 	}
 
 	@Override
@@ -753,8 +787,28 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	}
 	
 	@Override
+	public IPv4Address increment(BigInteger increment) throws AddressValueException {
+		return increment(IPv4AddressSection.checkOverflow(increment));
+	}
+	
+	@Override
 	public IPv4Address incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));
+	}
+
+	@Override
+	public IPv4Address incrementBoundary() {
+		return wrap(getSection().incrementBoundary());
+	}
+
+	@Override
+	public IPv4Address increment() {
+		return wrap(getSection().increment());
+	}
+
+	@Override
+	public IPv4Address decrement() {
+		return wrap(getSection().decrement());
 	}
 
 	/**
@@ -825,8 +879,8 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4Address[] subtract(IPAddress other)  throws AddressConversionException {
 		IPv4AddressSection thisSection = getSection();
 		IPv4AddressSection sections[] = thisSection.subtract(convertArg(other).getSection());
-		if(sections == null) {
-			return null;
+		if(sections == null  || sections.length == 0) {
+			return IPv4AddressNetwork.EMPTY_ADDRESS;
 		}
 		IPv4AddressCreator creator = getAddressCreator();
 		IPv4Address result[] = new IPv4Address[sections.length];
@@ -1063,7 +1117,51 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	
 	@Override
 	public IPv4AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
-		return toSequentialRange(other);
+		return new IPv4AddressSeqRange(this, convertArg(other));
+	}
+
+	@Override
+	@Deprecated
+	public IPv4AddressSeqRange toSequentialRange(IPAddress other) {
+		return spanWithRange(other);
+	}
+
+	@Override
+	@Deprecated
+	public IPv4AddressSeqRange toSequentialRange() {
+		return coverWithSequentialRange();
+	}
+
+	@Override
+	public IPv4AddressSeqRange coverWithSequentialRange() {
+		IPv4Address thiz = withoutPrefixLength();
+		// intentionally using subclass IPAddress here to call the right constructor in IPv4AddressSeqRange
+		IPAddress lower = thiz.getLower(), upper = thiz.getUpper();
+		return new IPv4AddressSeqRange(lower, upper);
+	}
+
+	@Override
+	public IPv4AddressSeqRangeList intoSequentialRangeList() {
+		IPv4AddressSeqRangeList list = new IPv4AddressSeqRangeList();
+		list.addInternalToNewList(this);
+		return list;
+	}
+
+	@Override
+	public IPv4AddressContainmentTrie intoContainmentTrie() {
+		IPv4AddressContainmentTrie trie = new IPv4AddressContainmentTrie();
+		trie.add(this);
+		return trie;
+	}
+
+	@Override
+	public IPv4Address[] complement() {
+		IPv4AddressNetwork network = getNetwork();
+		IPv4Address addressSpace = network.getNetworkAddress(0);
+		if(!isPrefixed()) {
+			addressSpace = addressSpace.withoutPrefixLength();
+		}
+		return addressSpace.subtract(this);
 	}
 
 	@Override
@@ -1114,18 +1212,6 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		return (Inet4Address) super.toInetAddress();
 	}
 	
-	@Override
-	@Deprecated
-	public IPv4AddressSeqRange toSequentialRange(IPAddress other) {
-		return new IPv4AddressSeqRange(this, convertArg(other));
-	}
-	
-	@Override
-	public IPv4AddressSeqRange toSequentialRange() {
-		IPv4Address thiz = withoutPrefixLength();
-		return new IPv4AddressSeqRange(thiz.getLower(), thiz.getUpper(), true);
-	}
-
 	@Override
 	public boolean isLocal() {
 		if(isMulticast()) {

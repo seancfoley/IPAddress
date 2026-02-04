@@ -230,6 +230,31 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 		}
 
 		@Override
+		public IPv6TrieNode removeElementsIntersectedBy(IPv6Address addr) { 
+			return (IPv6TrieNode) super.removeElementsIntersectedBy(addr);
+		}
+
+		@Override
+		public IPv6TrieNode containingFloorAddedNode(IPv6Address addr) {
+			return (IPv6TrieNode) super.containingFloorAddedNode(addr);
+		}
+		
+		@Override
+		public IPv6TrieNode containingLowerAddedNode(IPv6Address addr) {
+			return (IPv6TrieNode) super.containingLowerAddedNode(addr);
+		}
+
+		@Override
+		public IPv6TrieNode containingCeilingAddedNode(IPv6Address addr) {
+			return (IPv6TrieNode) super.containingCeilingAddedNode(addr);
+		}
+
+		@Override
+		public IPv6TrieNode containingHigherAddedNode(IPv6Address addr) {
+			return (IPv6TrieNode) super.containingHigherAddedNode(addr);
+		}
+
+		@Override
 		public IPv6TrieNode lowerAddedNode(IPv6Address addr) {
 			return (IPv6TrieNode) super.lowerAddedNode(addr);
 		}
@@ -438,6 +463,36 @@ public class IPv6AddressTrie extends AddressTrie<IPv6Address> {
 	@Override
 	public Spliterator<IPv6TrieNode> allNodeSpliterator(boolean forward) {
 		return (Spliterator<IPv6TrieNode>) super.allNodeSpliterator(forward);
+	}
+
+	@Override
+	public IPv6TrieNode removeElementsIntersectedBy(IPv6Address addr) { 
+		return (IPv6TrieNode) super.removeElementsIntersectedBy(addr);
+	}
+
+	@Override
+	public IPv6TrieNode addIfNoElementsContaining(IPv6Address addr) { 
+		return (IPv6TrieNode) super.addIfNoElementsContaining(addr);
+	}
+
+	@Override
+	public IPv6TrieNode containingFloorAddedNode(IPv6Address addr) {
+		return (IPv6TrieNode) super.containingFloorAddedNode(addr);
+	}
+	
+	@Override
+	public IPv6TrieNode containingLowerAddedNode(IPv6Address addr) {
+		return (IPv6TrieNode) super.containingLowerAddedNode(addr);
+	}
+
+	@Override
+	public IPv6TrieNode containingCeilingAddedNode(IPv6Address addr) {
+		return (IPv6TrieNode) super.containingCeilingAddedNode(addr);
+	}
+
+	@Override
+	public IPv6TrieNode containingHigherAddedNode(IPv6Address addr) {
+		return (IPv6TrieNode) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

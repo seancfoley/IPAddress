@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressConverter;
 import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.NetworkMismatchException;
 import inet.ipaddr.PrefixLenException;
@@ -31,6 +32,8 @@ import inet.ipaddr.format.standard.AddressCreator;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
+import inet.ipaddr.ipv4.IPv4Address;
+import inet.ipaddr.ipv4.IPv4AddressSeqRange;
 import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
 
 /**
@@ -47,11 +50,7 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	private static final long serialVersionUID = 1L;
 
 	private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-	private static final IPv6AddressSeqRange EMPTY[] = {};
-
-	IPv6AddressSeqRange(IPv6Address first, IPv6Address second, boolean preSet) {
-		super(first, second, preSet);
-	}
+	static final IPv6AddressSeqRange EMPTY[] = {};
 
 	public IPv6AddressSeqRange(IPv6Address first, IPv6Address second) {
 		super(
@@ -65,10 +64,33 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		}
 	}
 	
-	private IPv6AddressSeqRange(IPAddress first, IPAddress second) {
+	IPv6AddressSeqRange(IPAddress first, IPAddress second) {
 		super(first, second);
 	}
 	
+	@Override
+	public boolean isIPv6() {
+		return true;
+	}
+
+	@Override
+	public IPv4AddressSeqRange toIPv4() {
+		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
+		IPv6Address lower = getLower();
+		if(conv.isIPv4Convertible(lower)) {
+			IPv4Address upperConverted = conv.toIPv4(getUpper());
+			if(upperConverted != null) {
+				return conv.toIPv4(lower).spanWithRange(upperConverted);
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public IPv6AddressSeqRange toIPv6() {
+		return this;
+	}
+
 	@Override
 	public IPv6Address getLower() {
 		return (IPv6Address) super.getLower();
@@ -79,6 +101,26 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 		return (IPv6Address) super.getUpper();
 	}
 	
+	@Override
+	public IPv6Address get(BigInteger index) {
+		if(index.signum() < 0 || index.compareTo(getCount()) >= 0) {
+			throw new IndexOutOfBoundsException();
+		}
+		return getLower().increment(index);
+	}
+	
+	@Override
+	public IPv6Address get(long index) {
+		if(index < 0) {
+			throw new IndexOutOfBoundsException();
+		}
+		BigInteger count = getCount();
+		if(count.compareTo(LONG_MAX) <= 0 && index >= count.longValue()) {
+			throw new IndexOutOfBoundsException();
+		}
+		return getLower().increment(index);
+	}
+
 	private IPv6AddressCreator getAddressCreator() {
 		return getLower().getDefaultCreator();
 	}
@@ -159,34 +201,44 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 
 	@Override
 	protected IPv6AddressSeqRange create(IPAddress lower, IPAddress upper) {
+		// uses a constructor taking IPAddress that does not check for prefixes, ordering, or containment, 
 		return new IPv6AddressSeqRange(lower, upper);
 	}
 
-	/* (non-Javadoc)
-	 * @see inet.ipaddr.IPAddressRange#createPair(inet.ipaddr.IPAddress, inet.ipaddr.IPAddress, inet.ipaddr.IPAddress, inet.ipaddr.IPAddress)
-	 */
 	@Override
-	protected IPv6AddressSeqRange[] createPair(IPAddress lower1, IPAddress upper1,
-			IPAddress lower2, IPAddress upper2) {
-		return new IPv6AddressSeqRange[] { create(lower1, upper1), create(lower2, upper2) };
+	protected IPv6AddressSeqRange[] createArray(int capacity) {
+		if(capacity == 0) {
+			return EMPTY;
+		}
+		return new IPv6AddressSeqRange[capacity];
+	}
+	
+	@Override
+	@Deprecated
+	public IPv6AddressSeqRange toSequentialRange() {
+		return this;
+	}
+	
+	@Override
+	public IPv6AddressSeqRange coverWithSequentialRange() {
+		return this;
 	}
 
-	/* (non-Javadoc)
-	 * @see inet.ipaddr.IPAddressRange#createSingle(inet.ipaddr.IPAddress, inet.ipaddr.IPAddress)
-	 */
 	@Override
-	protected IPv6AddressSeqRange[] createSingle(IPAddress lower, IPAddress upper) {
-		return new IPv6AddressSeqRange[] { create(lower, upper) };
+	public IPv6AddressSeqRangeList intoSequentialRangeList() {
+		return (IPv6AddressSeqRangeList) super.intoSequentialRangeList();
 	}
 	
 	@Override
-	protected IPv6AddressSeqRange[] createSingle() {
-		return new IPv6AddressSeqRange[] { this };
+	public IPv6AddressContainmentTrie intoContainmentTrie() {
+		IPv6AddressContainmentTrie trie = new IPv6AddressContainmentTrie();
+		trie.add(this);
+		return trie;
 	}
 	
 	@Override
-	protected IPv6AddressSeqRange[] createEmpty() {
-		return EMPTY;
+	protected IPv6AddressSeqRangeList createList() {
+		return new IPv6AddressSeqRangeList();
 	}
 
 	/* (non-Javadoc)
@@ -339,12 +391,42 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	}
 	
 	@Override
+	public IPv6AddressSeqRangeList joinIntoList(IPAddressSeqRange other) {
+		return (IPv6AddressSeqRangeList) super.joinIntoList(other);
+	}
+
+	@Override
 	public IPv6AddressSeqRange[] subtract(IPAddressSeqRange other) {
 		return (IPv6AddressSeqRange[]) super.subtract(other);
 	}
 
 	@Override
-	public IPv6AddressSeqRange toSequentialRange() {
-		return this;
+	public IPv6AddressSeqRangeList subtractIntoList(IPAddressSeqRange other) {
+		return (IPv6AddressSeqRangeList) super.subtractIntoList(other);
+	}
+
+	@Override
+	public IPv6AddressSeqRange[] split(IPAddress other) {
+		return (IPv6AddressSeqRange[]) super.split(other);
+	}
+
+	@Override
+	public IPv6AddressSeqRange lowerFromSplit(IPAddress other) {
+		return (IPv6AddressSeqRange) super.lowerFromSplit(other);
+	}
+
+	@Override
+	public IPv6AddressSeqRange upperFromSplit(IPAddress other) {
+		return (IPv6AddressSeqRange) super.upperFromSplit(other);
+	}
+
+	@Override
+	public IPv6AddressSeqRange[] complement() {
+		return (IPv6AddressSeqRange[]) super.complement();
+	}
+
+	@Override
+	public IPv6AddressSeqRangeList complementIntoList() {
+		return (IPv6AddressSeqRangeList) super.complementIntoList();
 	}
 }

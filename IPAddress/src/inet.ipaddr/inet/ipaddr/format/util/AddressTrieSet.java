@@ -505,6 +505,8 @@ public class AddressTrieSet<E extends Address> extends AbstractSet<E> implements
 		return trie.toString();
 	}
 
+	// was not necessary to add the methods below
+
 	/**
 	 * Returns a subset consisting of those addresses in the set contained by the given address.
 	 * The subset will have a restricted range matching the range of the given subnet or address.

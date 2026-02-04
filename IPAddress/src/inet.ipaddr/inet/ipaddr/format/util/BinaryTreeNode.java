@@ -20,9 +20,9 @@ package inet.ipaddr.format.util;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Comparator;
-import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Spliterator;
 import java.util.function.BinaryOperator;
@@ -31,7 +31,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import inet.ipaddr.Address;
-import inet.ipaddr.format.util.BinaryTreeNode.ChangeTracker.Change;
+import inet.ipaddr.format.validate.ChangeTracker;
+import inet.ipaddr.format.validate.ChangeTracker.Change;
 import inet.ipaddr.ipv6.IPv6Address;
 
 /**
@@ -398,85 +399,6 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		}
 	}
 
-	static class ChangeTracker implements Serializable {
-
-		private static final long serialVersionUID = 1L;
-
-		static class Change implements Cloneable, Serializable {
-
-			private static final long serialVersionUID = 1L;
-
-			boolean shared;
-
-			private BigInteger big = BigInteger.ZERO;
-			private int small;
-
-			void increment() {
-				if(++small == 0) {
-					big = big.add(BigInteger.ONE);
-				}
-			}
-
-			@Override
-			public boolean equals(Object o) {
-				return o instanceof Change && equalsChange((Change) o);
-			}
-
-			public boolean equalsChange(Change change) {
-				return small == change.small && big.equals(change.big);
-			}
-
-			@Override
-			public Change clone() {
-				try {
-					return (Change) super.clone();
-				} catch (CloneNotSupportedException cannotHappen) {
-					return null;
-				}
-			}
-
-			@Override
-			public String toString() {
-				return big + " " + small;
-			}
-		}
-
-		ChangeTracker() {}
-
-		private Change currentChange = new Change();
-
-		void changedSince(Change change) throws ConcurrentModificationException {
-			if(isChangedSince(change)) {
-				throw new ConcurrentModificationException();
-			}
-		}
-
-		boolean isChangedSince(Change otherChange) {
-			return !currentChange.equalsChange(otherChange);
-		}
-
-		Change getCurrent() {
-			Change change = this.currentChange;
-			change.shared = true;
-			return change;
-		}
-
-		void changed() {
-			Change change = this.currentChange;
-			if(change.shared) {
-				change = change.clone();
-				change.shared = false;
-				change.increment();
-				this.currentChange = change;
-			} // else nobody is watching the current change, so no need to do anything
-		}
-
-		@Override
-		public String toString() {
-			return "current change: " + currentChange;
-		}
-	}
-
 	/**
 	 * When set to true, the root is always 0.0.0.0/0 or ::/0 and setItem is never called,
 	 * so the keys of a node never change.  This can make code that accessed nodes directly more predictable,
@@ -499,6 +421,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	private E item;
 	private BinaryTreeNode<E> parent, lower, upper;
 	int size;
+	BigInteger containedCount;
 	ChangeTracker changeTracker;
 
 	// some nodes represent elements added to the tree and others are nodes generated internally when other nodes are added
@@ -600,10 +523,11 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	public void setAdded() {
 		if(!added) {
 			setNodeAdded(true);
-			adjustCount(1);
+			setContainmentCount(1, getKeyContainedCount());
 		}
 	}
 
+	// note all callers to this set containment count afterwards, so no need to add it to this method, like we do for setAdded() above
 	protected void setNodeAdded(boolean added) {
 		this.added = added;
 	}
@@ -620,20 +544,42 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			while(iterator.hasNext()) {
 				BinaryTreeNode<E> next = iterator.next();
 				int nodeSize = next.isAdded() ? 1 : 0;
+				BigInteger containedCount = next.isAdded() ? next.getKeyContainedCount() : BigInteger.ZERO;
 				BinaryTreeNode<E> lower = next.getLowerSubNode();
 				if(lower != null) {
 					nodeSize += lower.size;
+					containedCount = containedCount.add(lower.containedCount);
 				}
 				BinaryTreeNode<E> upper = next.getUpperSubNode();
 				if(upper != null) {
 					nodeSize += upper.size;
+					containedCount = containedCount.add(upper.containedCount);
 				}
 				next.size = nodeSize;
+				next.containedCount = containedCount;
 			}
 			storedSize = size;
 		}
 		return storedSize;
 	}
+
+	/**
+	 * Returns the total number of addresses covered by prefix block subnets added to the sub-tree starting from this node as root and moving downwards to sub-nodes.
+	 * This count includes individual addresses added as well.
+	 * 
+	 * @return
+	 */
+	public BigInteger getMatchingAddressCount() {
+		if(size == SIZE_UNKNOWN) {
+			size();
+		}
+		BigInteger count = containedCount;
+		if(count == null) { // in an empty trie with adjusting roots, it can have no contained count yet
+			return containedCount = BigInteger.ZERO;
+		}
+		return count;
+	}
+
 
 	/**
 	 * Returns the count of all nodes in the tree starting from this node and extending to all sub-nodes.
@@ -650,14 +596,99 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		return totalCount;
 	}
 
-	void adjustCount(int delta) {
-		if(delta != 0) {
-			BinaryTreeNode<E> node = this;
-			do {
-				node.size += delta;
-				node = node.getParent();
-			} while(node != null);
+	public boolean containingMaxElements() {
+		BigInteger maxContainedCount = getKeyContainedCount();
+		return maxContainedCount != null && containedCount != null && containedCount.equals(maxContainedCount);
+	}
+
+	/**
+	 * Returns the count of potential elements matched by the key
+	 * @return
+	 */
+	protected BigInteger getKeyContainedCount() {
+		return null;
+	}
+
+	private void addContainedCount(BigInteger containedCountDelta) {
+		BigInteger count = containedCount;
+		containedCount = (count == null) ? containedCountDelta : count.add(containedCountDelta);
+	}
+	
+	// returns the delta between new and old, newCount - oldCount
+	private BigInteger setContainedCount(BigInteger newContainedCount) {
+		BigInteger count = containedCount;
+		containedCount = newContainedCount;
+		return count == null ? newContainedCount : newContainedCount.subtract(count);
+	}
+	
+	private BigInteger getSubNodeContainedCount() {
+		BinaryTreeNode<E> lowerNode = getLowerSubNode(), upperNode = getUpperSubNode();
+		if(lowerNode == null) {
+			if(upperNode == null) {
+				return BigInteger.ZERO;
+			}
+			return upperNode.containedCount;
+		} else if(upperNode == null) {
+			return lowerNode.containedCount;
 		}
+		return upperNode.containedCount.add(lowerNode.containedCount);
+	}
+
+	void setContainmentCount(int addedNodeDelta, BigInteger newContainedCount) {
+		if(newContainedCount == null || newContainedCount.signum() == 0) {
+			if(addedNodeDelta != 0) {
+				incrementCounts(addedNodeDelta);
+			}
+			return;
+		}
+		BigInteger containedCountDelta = setContainedCount(newContainedCount);
+		if(containedCountDelta.signum() == 0) {
+			if(addedNodeDelta != 0) {
+				incrementCounts(addedNodeDelta);
+			}
+			return;
+		}
+		BinaryTreeNode<E> node = getParent();
+		if(addedNodeDelta == 0) {
+			while(node != null) {
+				if(node.isAdded()) {
+					break;
+				}
+				node.addContainedCount(containedCountDelta);
+				node = node.getParent();
+			}
+		} else {
+			size += addedNodeDelta;
+			while(node != null) {
+				if(node.isAdded()) {
+					node.incrementCounts(addedNodeDelta);
+					break;
+				}
+				node.addContainedCount(containedCountDelta);
+				node.size += addedNodeDelta;
+				node = node.getParent();
+			}
+		}
+	}
+
+	/**
+	 * Removes both child nodes of this node, if any exist.
+	 * Returns whether one was removed.
+	 */
+	public boolean removeChildren() {
+		BinaryTreeNode<E> lower = getLowerSubNode();
+		BinaryTreeNode<E> upper = getUpperSubNode();
+		if(lower != null) {
+			lower.clear();
+			if(upper != null) {
+				upper.clear();
+			}
+			return true;
+		} else if(upper != null) {
+			upper.clear();
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -683,8 +714,8 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	}
 
 	void removed() {
-		adjustCount(-1);
 		setNodeAdded(false);
+		setContainmentCount(-1, getSubNodeContainedCount());
 		changeTracker.changed();
 	}
 
@@ -692,47 +723,129 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	 * Makes the parent of this point to something else, thus removing this and all sub-nodes from the tree
 	 * @param replacement
 	 */
-	void replaceThis(BinaryTreeNode<E> replacement) {
-		replaceThisRecursive(replacement, 0);
+	BinaryTreeNode<E> replaceThis(BinaryTreeNode<E> replacement) {
+		BinaryTreeNode<E> result = replaceThisRecursive(replacement, 0, null);
 		changeTracker.changed();
+		return result;
 	}
 
-	void replaceThisRecursive(BinaryTreeNode<E> replacement, int additionalSizeAdjustment) {
+	private BinaryTreeNode<E> replaceThisRecursive(BinaryTreeNode<E> replacement, int additionalSizeDecrement, BigInteger additionalContainmentCountDecrement) {
 		if(isRoot()) {
 			replaceThisRoot(replacement);
-			return;
+			return this;
 		}
 		BinaryTreeNode<E> parent = getParent();
+		BinaryTreeNode<E> result;
 		if(parent.getUpperSubNode() == this) {
 			// we adjust parents first, using the size and other characteristics of ourselves,
 			// before the parent severs the link to ourselves with the call to setUpper,
 			// since the setUpper call is allowed to change the characteristics of the child,
 			// and in some cases this does adjust the size of the child.
-			adjustTree(parent, replacement, additionalSizeAdjustment, true);
+			
+			result = parent.adjustTree(size, containedCount, replacement, additionalSizeDecrement, additionalContainmentCountDecrement, true);
+			setParent(null);
 			parent.setUpper(replacement);
 		} else if(parent.getLowerSubNode() == this) {
-			adjustTree(parent, replacement, additionalSizeAdjustment, false);
+			result = parent.adjustTree(size, containedCount, replacement, additionalSizeDecrement, additionalContainmentCountDecrement, false);
+			setParent(null);
 			parent.setLower(replacement);
 		} else {
 			throw new Error(); // will never reach here, indicates tree is corrupted somehow
 		}
+		return result;
 	}
 
-	private void adjustTree(BinaryTreeNode<E> parent, BinaryTreeNode<E> replacement, int additionalSizeAdjustment, boolean replacedUpper) {
-		int sizeAdjustment = -size;
-		if(replacement == null) {
-			if(!parent.isAdded() && (!FREEZE_ROOT || !parent.isRoot())) {
-				parent.size += sizeAdjustment;
-				BinaryTreeNode<E> parentReplacement = 
-						replacedUpper ? parent.getLowerSubNode() : parent.getUpperSubNode();
-				parent.replaceThisRecursive(parentReplacement, sizeAdjustment);
+	private BinaryTreeNode<E> adjustTree(int childSizeDecrement, BigInteger childContainmentDecrement, BinaryTreeNode<E> childReplacement, int additionalSizeDecrement, BigInteger additionalContainmentCountDecrement, boolean replacedUpper) {
+		boolean isAdded = isAdded();
+		if(childReplacement == null) {
+			// the child node is being removed
+			if(!isAdded && (!FREEZE_ROOT || !isRoot())) {
+				// parent is not added and thus can be replaced by its only remaining child, the one not being removed, or with nothing, if no remaining child
+				size -= childSizeDecrement;
+				containedCount = subtractBigs(containedCount, childContainmentDecrement);
+				BinaryTreeNode<E> parentReplacement = replacedUpper ? getLowerSubNode() : getUpperSubNode();
+				return replaceThisRecursive(parentReplacement, childSizeDecrement, childContainmentDecrement);
 			} else {
-				parent.adjustCount(sizeAdjustment + additionalSizeAdjustment);
+				// parent is an added node or it is the root, so we just adjust the counts
+				adjustContainmentCount(childSizeDecrement + additionalSizeDecrement, 
+						isAdded ? null : addBigs(childContainmentDecrement, additionalContainmentCountDecrement));
+				return this;
 			}
 		} else {
-			parent.adjustCount(replacement.size + sizeAdjustment + additionalSizeAdjustment);
+			// the child node is being replaced with a different node
+			adjustContainmentCount((childSizeDecrement + additionalSizeDecrement) - childReplacement.size, 
+					isAdded ? null : subtractBigs(addBigs(childContainmentDecrement, additionalContainmentCountDecrement), childReplacement.containedCount));
+			return this;
 		}
-		setParent(null);
+	}
+
+	private void adjustContainmentCount(int addedNodeDecrement, BigInteger containedCountDecrement) {
+		if(containedCountDecrement == null || containedCountDecrement.signum() == 0) {
+			if(addedNodeDecrement != 0) {
+				decrementCounts(addedNodeDecrement);
+			}
+			return;
+		}
+		
+		BinaryTreeNode<E> node = this;
+		if(addedNodeDecrement == 0) {
+			while(true) {
+				node.subtractContainedCount(containedCountDecrement);
+				node = node.getParent();
+				if(node == null || node.isAdded()) {
+					break;
+				}
+			}
+		} else while(true) {
+			node.subtractContainedCount(containedCountDecrement);
+			node.size -= addedNodeDecrement;
+			node = node.getParent();
+			if(node == null) {
+				break;
+			} else if(node.isAdded()) {
+				node.decrementCounts(addedNodeDecrement);
+				break;
+			}
+		}
+	}
+
+	private void decrementCounts(int nodeDecrement) {
+		BinaryTreeNode<E> node = this;
+		do {
+			node.size -= nodeDecrement;
+			node = node.getParent();
+		} while(node != null);
+	}
+
+	private void incrementCounts(int nodeIncrement) {
+		BinaryTreeNode<E> node = this;
+		do {
+			node.size += nodeIncrement;
+			node = node.getParent();
+		} while(node != null);
+	}
+
+	private void subtractContainedCount(BigInteger containedCountDecrement) {
+		BigInteger count = containedCount;
+		containedCount = (count == null) ? containedCountDecrement.negate() : count.subtract(containedCountDecrement);
+	}
+
+	private static BigInteger addBigs(BigInteger one, BigInteger two) {
+		if(one == null) {
+			return two;
+		} else if(two == null) {
+			return one;
+		}
+		return one.add(two);
+	}
+	
+	private static BigInteger subtractBigs(BigInteger one, BigInteger two) {
+		if(one == null) {
+			return two.negate();
+		} else if(two == null) {
+			return one;
+		}
+		return one.subtract(two);
 	}
 
 	protected void replaceThisRoot(BinaryTreeNode<E> replacement) {
@@ -744,6 +857,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 				setKey(null);
 			}
 			size = 0;
+			containedCount = BigInteger.ZERO;
 		} else {
 			// We never go here when FREEZE_ROOT is true
 			setNodeAdded(replacement.isAdded());
@@ -751,6 +865,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			setLower(replacement.getLowerSubNode());
 			setKey(replacement.getKey());
 			size = replacement.size;
+			containedCount = replacement.containedCount;
 		}
 	}
 
@@ -761,11 +876,15 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		replaceThis(null);
 	}
 
+	protected boolean isInitialRoot() {
+		return getLowerSubNode() == null && getUpperSubNode() == null && !isAdded();
+	}
+
 	/**
 	 * Returns where there are not any elements in the sub-tree with this node as the root.
 	 */
 	public boolean isEmpty() {
-		return !isAdded() && getUpperSubNode() == null && getLowerSubNode() == null;
+		return isInitialRoot();
 	}
 
 	/**
@@ -1079,10 +1198,8 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 				if(nextNext == null) {
 					return next;
 				}
-				//next = nextNext;
-			} //else {
-				next = nextNext;
-			//}
+			}
+			next = nextNext;
 		}
 	}
 
@@ -1121,7 +1238,10 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	}
 	
 	private BinaryTreeNode<E> nextInBounds(BinaryTreeNode<E> end, BinaryOperator<BinaryTreeNode<E>> nextOperator, Bounds<E> bounds) {
-		return nextTest(this, end, nextOperator, node -> bounds.isInBounds(node.getKey()));
+		return nextTest(this, end, nextOperator, node -> {
+			E key = node.getKey();
+			return key != null && bounds.isInBounds(key);
+		});
 	}
 
 	/**
@@ -1457,6 +1577,10 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 				E addr1 = node1.getKey(), addr2 = node2.getKey();
 				if(addr1 == addr2) {
 					return 0;
+				} else if(addr1 == null) {
+					return -1;
+				} else if(addr2 == null) {
+					return 1;
 				}
 				if(addr1.isPrefixed()) {
 					if(addr2.isPrefixed()) {
@@ -1832,7 +1956,6 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 					if(firstNode != null) {
 						// the lower sub-node is always next if it exists
 						nextKey = firstNode.getKey();
-						//System.out.println(current + " cached with " + firstNode + ": " + object);
 						nextCached = object;
 						return true;
 					}
@@ -1936,7 +2059,8 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 				return null;
 			}
 			if(!addedOnly || start.isAdded()) {
-				if(bounds == null || bounds.isInBounds(start.getKey())) {
+				E startKey;
+				if(bounds == null || ((startKey = start.getKey()) != null && bounds.isInBounds(startKey))) {
 					return start;
 				}
 			}
@@ -2302,8 +2426,20 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	 * @return
 	 */
 	public String toTreeString(boolean withNonAddedKeys, boolean withSizes) {
+		return toTreeString(withNonAddedKeys, withSizes, false);
+	}
+
+	/**
+	 * Returns a visual representation of the sub-tree with this node as root, with one node per line.
+	 * 
+	 * @param withNonAddedKeys whether to show nodes that are not added nodes
+	 * @param withSizes whether to include the counts of added nodes in each sub-tree
+	 * @param withMatchingAddressCounts whether to include the counts of keys that can be matched by each sub-tree
+	 * @return
+	 */
+	public String toTreeString(boolean withNonAddedKeys, boolean withSizes, boolean withMatchingAddressCounts) {
 		StringBuilder builder = new StringBuilder("\n");
-		printTree(builder, new Indents(), withNonAddedKeys, withSizes, this.<Indents>containingFirstAllNodeIterator(true));
+		printTree(builder, new Indents(), withNonAddedKeys, withSizes, withMatchingAddressCounts, this.<Indents>containingFirstAllNodeIterator(true));
 		return builder.toString();
 	}
 
@@ -2311,6 +2447,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			Indents initialIndents,
 			boolean withNonAdded, 
 			boolean withSizes,
+			boolean withMatchingAddressCounts,
 			CachingIterator<? extends BinaryTreeNode<E>, E, Indents> iterator) {
 		while(iterator.hasNext()) {
 			BinaryTreeNode<E> next = iterator.next();
@@ -2325,8 +2462,17 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			}
 			if(withNonAdded || next.isAdded()) {
 				builder.append(nodeIndent).append(next); // appending next adds the ADDED_NODE_CIRCLE first
-				if(withSizes) {
-					builder.append(" (").append(next.size()).append(')');
+				if(withSizes || withMatchingAddressCounts) {
+					builder.append(" (");
+					if(withSizes) {
+						builder.append(next.size());
+						if(withMatchingAddressCounts) {
+							builder.append(", ").append(next.getMatchingAddressCount());
+						}
+					} else { // withMatchingAddressCounts is true
+						builder.append(next.getMatchingAddressCount());
+					}
+					builder.append(')');
 				}
 				builder.append('\n');
 			} else {
@@ -2363,9 +2509,12 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	}
 
 	static <E, V> StringBuilder toNodeString(StringBuilder builder, boolean isAdded, E key, V value) {
-		builder.append(isAdded ? ADDED_NODE_CIRCLE: NON_ADDED_NODE_CIRCLE).append(' ').append(key);
-		if(value != null) {
-			builder.append(" = ").append(value);
+		builder.append(isAdded ? ADDED_NODE_CIRCLE: NON_ADDED_NODE_CIRCLE);
+		if(key != null ) {
+			builder.append(' ').append(key);
+			if(value != null) {
+				builder.append(" = ").append(value);
+			}
 		}
 		return builder;
 	}
@@ -2382,7 +2531,13 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 			result.setParent(null);
 			result.setLower(null);
 			result.setUpper(null);
-			result.size = isAdded() ? 1 : 0;
+			if(isAdded()) {
+				result.size = 1;
+				result.containedCount = getKeyContainedCount();
+			} else {
+				result.size = 0;
+				result.containedCount = BigInteger.ZERO;
+			}
 			result.changeTracker = null;
 			return result;
 		} catch (CloneNotSupportedException e) {
@@ -2395,8 +2550,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		try {
 			BinaryTreeNode<E> result = (BinaryTreeNode<E>) super.clone();
 			result.setParent(null);
-			//result.setLower(null);
-			//result.setUpper(null);
+			// intentionally not clearing lower or upper
 			result.changeTracker = changeTracker;
 			return result;
 		} catch (CloneNotSupportedException e) {
@@ -2416,7 +2570,9 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 				while(true) {
 					if(lower == null) {
 						break;
-					} else if(bounds.isWithinLowerBound(lower.getKey())) {
+					} else {
+						E lowerKey = lower.getKey();
+						if(lowerKey != null && bounds.isWithinLowerBound(lowerKey)) {
 						if(!lower.isAdded()) {
 							BinaryTreeNode<E> next = lower.getLowerSubNode();
 							while(bounds.isBelowLowerBound(next.getKey())) {
@@ -2429,6 +2585,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 							}
 						}
 						break;
+					}
 					}
 					recalculateSize = true;
 					// outside bounds, try again
@@ -2505,7 +2662,11 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	 */
 	@Override
 	public int hashCode() {
-		return getKey().hashCode();
+		Object key = getKey();
+		if(key == null) {
+			return super.hashCode();
+		}
+		return key.hashCode();
     }
 
 	/**
@@ -2531,7 +2692,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 		}
 		if(o instanceof BinaryTreeNode<?>) {
 			BinaryTreeNode<?> other = (BinaryTreeNode<?>) o;
-			return getKey().equals(other.getKey());
+			return Objects.equals(getKey(), other.getKey());
 		}
 		return false;
 	}

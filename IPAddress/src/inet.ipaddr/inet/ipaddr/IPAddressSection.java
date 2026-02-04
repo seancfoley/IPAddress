@@ -141,10 +141,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 	}
 
-	protected static String getMessage(String key) {
-		return HostIdentifierException.getMessage(key);
-	}
-	
 	protected void initCachedValues(
 			Integer prefixLen,
 			boolean network,
@@ -1258,7 +1254,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 						blocks.add(series);
 					} else {
 						IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);
-						IPAddressSegmentSeries middleUpper = topLower.increment(-1);
+						IPAddressSegmentSeries middleUpper = topLower.decrement();
 						IPAddressSegmentSeries series = seriesCreator.apply(lower, segSegment, lowerValue, middleUpper.getSegment(segSegment).getSegmentValue());
 						blocks.add(series);
 						lower = topLower;
@@ -1266,7 +1262,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 					}
 				} else if(higherIsHighest) {
 					IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);
-					IPAddressSegmentSeries topLower = bottomUpper.increment(1);
+					IPAddressSegmentSeries topLower = bottomUpper.increment();
 					IPAddressSegmentSeries series = seriesCreator.apply(topLower, segSegment, topLower.getSegment(segSegment).getSegmentValue(), upperValue);
 					if(toAdd == null) {
 						toAdd = new ArrayDeque<>(IPv6Address.SEGMENT_COUNT);
@@ -1277,9 +1273,9 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				} else {	//lower 2:3:ffff:5:: to upper 2:4:1:5::      2:3:ffff:5:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:3:ffff:ffff:ffff:ffff:ffff:ffff and 2:4:: to 2:4:1:5::
 					//from top to bottom we have: top - topLower - middleUpper - middleLower - bottomUpper - lower
 					IPAddressSegmentSeries topLower = upper.toZeroHost(previousSegmentBits);//2:4::
-					IPAddressSegmentSeries middleUpper = topLower.increment(-1);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
+					IPAddressSegmentSeries middleUpper = topLower.decrement();//2:3:ffff:ffff:ffff:ffff:ffff:ffff
 					IPAddressSegmentSeries bottomUpper = lower.toMaxHost(previousSegmentBits);//2:3:ffff:ffff:ffff:ffff:ffff:ffff
-					IPAddressSegmentSeries middleLower = bottomUpper.increment(1);//2:4::
+					IPAddressSegmentSeries middleLower = bottomUpper.increment();//2:4::
 					if(middleLower.compareTo(middleUpper) <= 0) {
 						IPAddressSegmentSeries series = seriesCreator.apply(middleLower, segSegment, middleLower.getSegment(segSegment).getSegmentValue(), middleUpper.getSegment(segSegment).getSegmentValue());
 						if(toAdd == null) {
@@ -1423,7 +1419,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 						//upper bottom becomes 01111111...
 						//so in each new range, the differing bit is at least one further to the right (or more)
 						IPAddressSegmentSeries lowerTop = upper.toZeroHost(differingBitPrefixLen + 1);
-						IPAddressSegmentSeries upperBottom = lowerTop.increment(-1);
+						IPAddressSegmentSeries upperBottom = lowerTop.decrement();
 						if(differingIsLowestBit) {
 							previousSegmentBits += bitsPerSegment;
 							currentSegment++;
@@ -1449,7 +1445,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	
 	//sort by prefix length, smallest blocks coming first
 	//so this means null prefixes come first, then largest prefix length to smallest
-	static final Comparator<? super IPAddressSegmentSeries> mergeListComparator = (one, two) ->  {
+	static final Comparator<AddressSegmentSeries> mergeListComparator = (one, two) ->  {
 		Integer prefix1 = one.getPrefixLength();
 		Integer prefix2 = two.getPrefixLength();
 		int comparison = (prefix1 == prefix2) ? 0 : ((prefix1 == null) ? -1 : ((prefix2 == null) ? 1 : prefix2.compareTo(prefix1)));
@@ -1561,7 +1557,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			// The one with the earlier range segment can only contain the other, there cannot be overlap.
 			// eg 1.a-b.*.* and 1.2.3.* overlap in range segment 2 must have a <= 2 <= b and that means 1.a-b.*.* contains 1.2.3.*
 			if(ithRangeSegmentIndex != jthRangeSegmentIndex) {
-			//if(rangeSegmentIndex != otherRangeSegmentIndex) {
 				j = i;
 				i--;
 				jthRangeSegmentIndex = ithRangeSegmentIndex;
@@ -1578,7 +1573,6 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			if(rangeItemUpperValue < otherRangeItemValue && rangeItemUpperValue + 1 != otherRangeItemValue) {
 				j = i;
 				i--;
-				//jthRangeSegmentIndex = ithRangeSegmentIndex;
 				ithRangeSegmentIndex = -1;
 				continue;
 			}
@@ -1888,7 +1882,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		first.checkSegmentCount(other);
 		if(!first.isMultiple()) {
 			if(other.contains(first)) {
-				return null;
+				return addrCreator.createSectionArray(0);
 			}
 			R result[] = addrCreator.createSectionArray(1);
 			result[0] = first;
@@ -1898,7 +1892,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		//   first you confirm there is an intersection in each segment.  
 		// Then you remove each intersection, one at a time, leaving the other segments the same, since only one segment needs to differ.
 		// To prevent adding the same section twice, use only the intersection (ie the relative complement of the diff) 
-		// of segments already handled and not the whole segment.
+		// of segments already handled and not all of them.
 		
 		// For example: 0-3.0-3.2.4 subtracting 1-4.1-3.2.4, the intersection is 1-3.1-3.2.4
 		// The diff of the first segment is just 0, giving 0.0-3.2.4 (subtract the first segment, leave the others the same)
@@ -1948,6 +1942,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 				R section = createDiffSection(first, lower, otherLower - 1, i, addrCreator, segProducer, intersections);
 				sections.add(section);
 				if(higher <= otherHigher) {
+					//lower < otherLower <= higher <= otherHigher
 					intersections[i] = addrCreator.createSegment(otherLower, higher, null);
 				} else {
 					//lower < otherLower <= otherHigher < higher
@@ -1958,7 +1953,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			}
 		}
 		if(sections.size() == 0) {
-			return null;
+			return addrCreator.createSectionArray(0);
+		}
+		
+		if(sections.size() > 1) {
+			sections.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
 		}
 		
 		//apply the prefix to the sections
@@ -2055,6 +2054,12 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract IPAddressSection toPrefixBlock(int networkPrefixLength);
 
 	@Override
+	public abstract IPAddressSection[] spanWithPrefixBlocks();
+
+	@Override
+	public abstract IPAddressSection[] spanWithSequentialBlocks();
+
+	@Override
 	public IPAddressSection getHostMask() {
 		Integer prefLen = getNetworkPrefixLength();
 		return getNetwork().getHostMask(prefLen == null ? 0 : getNetworkPrefixLength()).getSection(0, getSegmentCount());
@@ -2110,6 +2115,24 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return false;
 		}
 		return includesZeroHost(networkPrefixLength);
+	}
+	
+	@Override
+	public  boolean includesZeroBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+		if(getSegmentCount() == 0) {
+			return true;
+		}
+		IPAddressSegment seg = getSegment(0);
+		return includesZeroBits(this, fromBPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
+	}
+
+	@Override
+	public boolean includesMaxBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+		if(getSegmentCount() == 0) {
+			return true;
+		}
+		IPAddressSegment seg = getSegment(0);
+		return includesMaxBits(this, fromBPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
 	}
 	
 	@Override
@@ -2695,8 +2718,20 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public abstract IPAddressSection increment(long increment);
 	
 	@Override
+	public abstract IPAddressSection increment(BigInteger increment);
+
+	@Override
 	public abstract IPAddressSection incrementBoundary(long increment);
 	
+	@Override
+	public abstract IPAddressSection increment();
+	
+	@Override
+	public abstract IPAddressSection decrement();
+
+	@Override
+	public abstract IPAddressSection incrementBoundary();
+
 	public boolean isEntireAddress() {
 		return getSegmentCount() == IPAddress.getSegmentCount(getIPVersion());
 	}

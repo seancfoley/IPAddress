@@ -43,7 +43,7 @@ import inet.ipaddr.format.AddressItem;
 public class PrefixBlockAllocator<E extends IPAddress> {
 	private static final IPAddress emptyBlocks[] = new IPAddress[0];
 	private IPVersion version;
-	private ArrayDeque<E> blocks[];
+	private ArrayDeque<E> blocks[]; // blocks[i] are the blocks with prefix length i
 	int reservedCount, totalBlockCount;
 	
 	/**

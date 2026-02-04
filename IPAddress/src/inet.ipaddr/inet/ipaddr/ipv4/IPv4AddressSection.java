@@ -47,6 +47,7 @@ import inet.ipaddr.PrefixLenException;
 import inet.ipaddr.SizeMismatchException;
 import inet.ipaddr.format.AddressDivisionGroupingBase;
 import inet.ipaddr.format.standard.AddressCreator;
+import inet.ipaddr.format.standard.AddressDivisionGrouping;
 import inet.ipaddr.format.standard.AddressDivisionGrouping.StringOptions.Wildcards;
 import inet.ipaddr.format.standard.IPAddressDivision;
 import inet.ipaddr.format.standard.IPAddressDivisionGrouping;
@@ -76,6 +77,8 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	private static final long serialVersionUID = 4L;
 	
 	private static final long MAX_VALUES[] = new long[] {0, IPv4Address.MAX_VALUE_PER_SEGMENT, 0xffff, 0xffffff, 0xffffffffL};
+
+	static BigInteger LONG_MAX = AddressDivisionGrouping.LONG_MAX, LONG_MIN = AddressDivisionGrouping.LONG_MIN;
 
 	static class IPv4StringCache extends IPStringCache {
 		// a set of pre-defined string types
@@ -172,7 +175,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 	
 	IPv4AddressSection(IPv4AddressSegment segments[], boolean cloneSegments, boolean normalizeSegments) throws AddressValueException {
-		//super(segments, cloneSegments, normalizeSegments);
 		super(segments, cloneSegments, true);
 		if(normalizeSegments && isPrefixed()) {
 			normalizePrefixBoundary(getNetworkPrefixLength(), getSegmentsInternal(), IPv4Address.BITS_PER_SEGMENT, IPv4Address.BYTES_PER_SEGMENT, IPv4AddressSegment::toPrefixNormalizedSeg);
@@ -370,7 +372,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
 			IPv4AddressCache cache = thisAddr.addressCache;
 			if(cache == null || (lower != null && cache.lower == null) || (upper != null && cache.upper == null)) {
-				synchronized(this) {
+				synchronized(thisAddr) {
 					cache = thisAddr.addressCache;
 					boolean create = (cache == null);
 					if(create) {
@@ -473,7 +475,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		IPv4AddressCache cache = addr.addressCache;
 		if(cache == null || 
 				(result = lowest ? (excludeZeroHost ? cache.lowerNonZeroHost : cache.lower) : cache.upper) == null) {
-			synchronized(this) {
+			synchronized(addr) {
 				cache = addr.addressCache;
 				boolean create = (cache == null);
 				if(create) {
@@ -721,7 +723,6 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 		} else {
 			longSizer = addr -> longCount(addr.getSection(), segmentCount);
 			iteratorProvider = (isLowest, isHighest, addr) -> addr.iterator();
-			//iteratorProvider = IPv4Address::iterator;
 		}
 		int networkSegIndex = segmentCount - 1;
 		int hostSegIndex = segmentCount;
@@ -1206,9 +1207,22 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	}
 
 	@Override
+	public IPv4AddressSection increment(BigInteger increment) {
+		return increment(checkOverflow(increment));
+	}
+
+	@Override
 	public IPv4AddressSection increment(long increment) {
-		if(increment == 0 && !isMultiple()) {
-			return this;
+		if(increment <= 1) {
+			if(increment == 0) {
+				if(!isMultiple()) {
+					return this;
+				}
+			} else if(increment == 1) {
+				return increment();
+			} else if(increment == -1) {
+				return decrement();
+			}
 		}
 		checkOverflow(increment, this::longValue, this::upperLongValue, () -> getCount().longValue(), this::isSequential, () -> getMaxValue(getSegmentCount()));
 		return increment(
@@ -1221,6 +1235,28 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 				this::getLower,
 				this::getUpper,
 				getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength());
+	}
+
+	static long checkOverflow(BigInteger increment) {
+		if(increment.compareTo(LONG_MAX) > 0 || increment.compareTo(LONG_MIN) < 0) {
+			throw new AddressValueException(increment);
+		}
+		return increment.longValue();
+	}
+
+	@Override
+	public IPv4AddressSection incrementBoundary() {
+		return incrementBoundaryOneIP(this, getAddressCreator(), getPrefixLength());
+	}
+
+	@Override
+	public IPv4AddressSection increment() {
+		return incrementOneIP(this, getAddressCreator(), getPrefixLength());
+	}
+
+	@Override
+	public IPv4AddressSection decrement() {
+		return decrementOneIP(this, getAddressCreator(), getPrefixLength());
 	}
 
 	public long getIPv4Count(boolean excludeZeroHosts) {
@@ -1651,7 +1687,26 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	
 	@Override
 	public IPv4AddressSection withoutPrefixLength() {
-		return removePrefixLength(false);
+		if(!isPrefixed()) {
+			return this;
+		}
+		IPv4AddressSection result = null;
+		SectionCache<IPv4AddressSection> cache = sectionCache;
+		if(cache == null || (result = cache.withoutPrefixLength) == null) {
+			synchronized(this) {
+				cache = sectionCache;
+				boolean create = (cache == null);
+				if(create) {
+					cache = sectionCache = new SectionCache<IPv4AddressSection>();
+				} else {
+					create = (result = cache.withoutPrefixLength) == null;
+				}
+				if(create) {
+					cache.withoutPrefixLength = result = removePrefixLength(false);
+				}
+			}
+		}
+		return result;
 	}
 	
 	@Override @Deprecated

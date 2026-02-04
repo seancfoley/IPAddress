@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="5.5.0"/>
+	<property name="version" value="5.6.1"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -222,12 +222,14 @@ Export-Package: *;version=${version}</concat>
 	
 	<!-- define Maven coordinates -->
 	<property name="groupId" value="com.github.seancfoley" />
+	<property name="groupIdPath" value="com/github/seancfoley" />
 	<property name="artifactId" value="ipaddress" />
 			
 	<!-- define artifacts' name, which follows the convention of Maven -->
 	<property name="jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}.jar" />
 	<property name="javadoc-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-javadoc.jar" />
 	<property name="sources-jar" value="${rootdistdir}/mavenlib/${artifactId}-${version}-sources.jar" />	
+	<property name="pom" value="${rootdistdir}/mavenlib/${artifactId}-${version}.pom" />
 			
 	<target name="create maven artifacts" depends="create dist jar, create pom">
 		
@@ -248,7 +250,7 @@ Export-Package: *;version=${version}</concat>
 	</target>
 
 	<target name="create pom">
-		<property name="pomfile" location="${rootdistdir}/mavenlib/pom.xml" />
+		<property name="pomfile" location="${pom}" />
 		<concat destfile="${pomfile}"><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" 
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -313,11 +315,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 			gpg -ab ${jar}
 			gpg -ab ${javadoc-jar}
 			gpg -ab ${sources-jar}
-			gpg -ab ${rootdistdir}/mavenlib/pom.xml
+			gpg -ab ${pom}
 			gpg --verify ${jar}.asc
 			gpg --verify ${javadoc-jar}.asc
 			gpg --verify ${sources-jar}.asc
-			gpg --verify ${rootdistdir}/mavenlib/pom.xml.asc
+			gpg --verify ${pom}.asc
 		</echo>
 		<property name="batch" location="${rootdistdir}/mavenlib/sign.bat" />
 		<concat destfile="${batch}">
@@ -326,11 +328,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 gpg -ab ${jar}
 gpg -ab ${javadoc-jar}
 gpg -ab ${sources-jar}
-gpg -ab ${rootdistdir}/mavenlib/pom.xml
+gpg -ab ${pom}
 gpg --verify ${jar}.asc
 gpg --verify ${javadoc-jar}.asc
 gpg --verify ${sources-jar}.asc
-gpg --verify ${rootdistdir}/mavenlib/pom.xml.asc
+gpg --verify ${pom}.asc
 		</concat>
 		<fixcrlf file="${batch}" eol="crlf"/>
 		<echo message="created ${batch}"/>
@@ -342,12 +344,70 @@ gpg --verify ${rootdistdir}/mavenlib/pom.xml.asc
 		-->
 	</target>
 	
-	<target name="create maven bundle" >
-		<jar destfile="${rootdistdir}/bundle.jar" filesonly="true">
+	<target name="create maven folders">
+		<checksum algorithm="md5" fileext=".md5">
+		  <fileset dir="${rootdistdir}/mavenlib">
+		    <include name="${artifactId}-${version}*"/>
+		  </fileset>
+		</checksum>
+		
+		<move todir="${rootdistdir}/mavenlib/${groupIdPath}/ipaddress/${version}">
 			<fileset dir="${rootdistdir}/mavenlib">
-				<include name="*" />
+				<include name="*.md5" />
 			</fileset>
-		</jar>
+		</move>
+		
+		<checksum algorithm="sha-1" fileext=".sha1">
+		  <fileset dir="${rootdistdir}/mavenlib">
+		    <include name="${artifactId}-${version}*"/>
+		  </fileset>
+		</checksum>
+		
+		<move todir="${rootdistdir}/mavenlib/${groupIdPath}/ipaddress/${version}">
+			<fileset dir="${rootdistdir}/mavenlib">
+				<include name="*.sha1" />
+			</fileset>
+		</move>
+			
+		<checksum algorithm="sha-256" fileext=".sha256">
+		  <fileset dir="${rootdistdir}/mavenlib">
+		    <include name="${artifactId}-${version}*"/>
+		  </fileset>
+		</checksum>
+		
+		<move todir="${rootdistdir}/mavenlib/${groupIdPath}/ipaddress/${version}">
+			<fileset dir="${rootdistdir}/mavenlib">
+				<include name="*.sha256" />
+			</fileset>
+		</move>
+			
+		<checksum algorithm="sha-512" fileext=".sha512">
+		  <fileset dir="${rootdistdir}/mavenlib">
+		    <include name="${artifactId}-${version}*"/>
+		  </fileset>
+		</checksum>
+		
+		<move todir="${rootdistdir}/mavenlib/${groupIdPath}/ipaddress/${version}">
+			<fileset dir="${rootdistdir}/mavenlib">
+				<include name="*.sha512" />
+			</fileset>
+		</move>
+		  	
+		<move todir="${rootdistdir}/mavenlib/${groupIdPath}/ipaddress/${version}">
+			<fileset dir="${rootdistdir}/mavenlib">
+				<include name="${artifactId}*" />
+			</fileset>
+		</move>
+	</target>
+	
+	
+		
+	<target name="create maven bundle" >
+		<zip destfile="${rootdistdir}/bundle.zip" filesonly="true">
+			<fileset dir="${rootdistdir}/mavenlib">
+				<include name="**/*" />
+			</fileset>
+		</zip>
 	</target>
 	
 	<!--

@@ -232,6 +232,31 @@ public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Ad
 		}
 
 		@Override
+		public IPv6AssociativeTrieNode<V> removeElementsIntersectedBy(IPv6Address addr) { 
+			return (IPv6AssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);
+		}
+
+		@Override
+		public IPv6AssociativeTrieNode<V> containingFloorAddedNode(IPv6Address addr) {
+			return (IPv6AssociativeTrieNode<V>) super.containingFloorAddedNode(addr);
+		}
+		
+		@Override
+		public IPv6AssociativeTrieNode<V> containingLowerAddedNode(IPv6Address addr) {
+			return (IPv6AssociativeTrieNode<V>) super.containingLowerAddedNode(addr);
+		}
+
+		@Override
+		public IPv6AssociativeTrieNode<V> containingCeilingAddedNode(IPv6Address addr) {
+			return (IPv6AssociativeTrieNode<V>) super.containingCeilingAddedNode(addr);
+		}
+
+		@Override
+		public IPv6AssociativeTrieNode<V> containingHigherAddedNode(IPv6Address addr) {
+			return (IPv6AssociativeTrieNode<V>) super.containingHigherAddedNode(addr);
+		}
+
+		@Override
 		public IPv6AssociativeTrieNode<V> lowerAddedNode(IPv6Address addr) {
 			return (IPv6AssociativeTrieNode<V>) super.lowerAddedNode(addr);
 		}
@@ -407,6 +432,36 @@ public class IPv6AddressAssociativeTrie<V> extends AssociativeAddressTrie<IPv6Ad
 	@Override
 	public Spliterator<IPv6AssociativeTrieNode<V>> allNodeSpliterator(boolean forward) {
 		return (Spliterator<IPv6AssociativeTrieNode<V>>) super.allNodeSpliterator(forward);
+	}
+
+	@Override
+	public IPv6AssociativeTrieNode<V> removeElementsIntersectedBy(IPv6Address addr) { 
+		return (IPv6AssociativeTrieNode<V>) super.removeElementsIntersectedBy(addr);
+	}
+
+	@Override
+	public IPv6AssociativeTrieNode<V> addIfNoElementsContaining(IPv6Address addr) { 
+		return (IPv6AssociativeTrieNode<V>) super.addIfNoElementsContaining(addr);
+	}
+
+	@Override
+	public IPv6AssociativeTrieNode<V> containingFloorAddedNode(IPv6Address addr) {
+		return (IPv6AssociativeTrieNode<V>) super.containingFloorAddedNode(addr);
+	}
+	
+	@Override
+	public IPv6AssociativeTrieNode<V> containingLowerAddedNode(IPv6Address addr) {
+		return (IPv6AssociativeTrieNode<V>) super.containingLowerAddedNode(addr);
+	}
+
+	@Override
+	public IPv6AssociativeTrieNode<V> containingCeilingAddedNode(IPv6Address addr) {
+		return (IPv6AssociativeTrieNode<V>) super.containingCeilingAddedNode(addr);
+	}
+
+	@Override
+	public IPv6AssociativeTrieNode<V> containingHigherAddedNode(IPv6Address addr) {
+		return (IPv6AssociativeTrieNode<V>) super.containingHigherAddedNode(addr);
 	}
 
 	@Override

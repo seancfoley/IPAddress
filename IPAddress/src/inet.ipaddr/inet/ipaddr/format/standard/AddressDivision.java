@@ -1122,11 +1122,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		    	done = true;
 		    	return original;
 	    	}
-	
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
-		    }
 		};
 	}
 
@@ -1187,11 +1182,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 			    	}
 			    	return original;
 			    }
-		
-			    @Override
-				public void remove() {
-			    	throw new UnsupportedOperationException();
-			    }
 			};
 		}
 		if(isPrefixIterator) {
@@ -1222,11 +1212,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		    				current = cur;
 		    			}
 				    	return result;
-				    }
-				
-				    @Override
-					public void remove() {
-				    	throw new UnsupportedOperationException();
 				    }
 				};
 			}
@@ -1267,11 +1252,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		    		}
 		    		return creator.createSegment(low, high, segmentPrefixLength);
 			    }
-			
-			    @Override
-				public void remove() {
-			    	throw new UnsupportedOperationException();
-			    }
 			};
 		}
 		return new Iterator<S>() {
@@ -1291,11 +1271,6 @@ public abstract class AddressDivision extends AddressDivisionBase {
 		    	S result = creator.createSegment(current, segmentPrefixLength);
 		    	notDone = ++current <= last;
 		    	return result;
-		    }
-		
-		    @Override
-			public void remove() {
-		    	throw new UnsupportedOperationException();
 		    }
 		};
 	}

@@ -1381,9 +1381,20 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 		return getUpper().increment(increment);
 	}
 
+	private static final BigInteger NEGATIVE_ONE = BigInteger.valueOf(-1);
+	
+	@Override
 	public IPv6AddressSection increment(BigInteger bigIncrement) {
-		if(bigIncrement.signum() == 0 && !isMultiple()) {
-			return this;
+		if(bigIncrement.compareTo(BigInteger.ONE) <= 0) {
+			if(bigIncrement.signum() == 0) {
+				if(!isMultiple()) {
+					return this;
+				}
+			} else if(bigIncrement.signum() == 1) {
+				return increment();
+			} else if(bigIncrement.equals(NEGATIVE_ONE)) {
+				return decrement();
+			}
 		}
 		checkOverflow(bigIncrement, this::getValue, this::getUpperValue, this::getCount, this::isSequential, () -> getMaxValue(getSegmentCount()));
 		Integer prefixLength = getNetwork().getPrefixConfiguration().allPrefixedAddressesAreSubnets() ? null : getPrefixLength();
@@ -1398,8 +1409,16 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 	@Override
 	public IPv6AddressSection increment(long increment) {
-		if(increment == 0 && !isMultiple()) {
-			return this;
+		if(increment <= 1) {
+			if(increment == 0) {
+				if(!isMultiple()) {
+					return this;
+				}
+			} else if(increment == 1) {
+				return increment();
+			} else if(increment == -1) {
+				return decrement();
+			}
 		}
 		BigInteger bigIncrement = BigInteger.valueOf(increment);
 		checkOverflow(increment, bigIncrement, this::getValue, this::getUpperValue, this::getCount, this::isSequential, () -> getMaxValue(getSegmentCount()));
@@ -1422,6 +1441,21 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 				this::getLower,
 				this::getUpper,
 				prefixLength);
+	}
+
+	@Override
+	public IPv6AddressSection incrementBoundary() {
+		return incrementBoundaryOneIP(this, getAddressCreator(), getPrefixLength());
+	}
+
+	@Override
+	public IPv6AddressSection increment() {
+		return incrementOneIP(this, getAddressCreator(), getPrefixLength());
+	}
+
+	@Override
+	public IPv6AddressSection decrement() {
+		return decrementOneIP(this, getAddressCreator(), getPrefixLength());
 	}
 
 	@Override
@@ -1503,7 +1537,7 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 			creator = creators[startIndex];
 		}
 		if(creator != null) {
-			useCached |= creator.getNetwork().equals(getNetwork());
+			useCached = useCached || creator.getNetwork().equals(getNetwork());
 			if(useCached) {
 				return creator;
 			}
@@ -2193,7 +2227,26 @@ public class IPv6AddressSection extends IPAddressSection implements Iterable<IPv
 
 	@Override
 	public IPv6AddressSection withoutPrefixLength() {
-		return removePrefixLength(false);
+		if(!isPrefixed()) {
+			return this;
+		}
+		IPv6AddressSection result = null;
+		SectionCache<IPv6AddressSection> cache = sectionCache;
+		if(cache == null || (result = cache.withoutPrefixLength) == null) {
+			synchronized(this) {
+				cache = sectionCache;
+				boolean create = (cache == null);
+				if(create) {
+					cache = sectionCache = new SectionCache<IPv6AddressSection>();
+				} else {
+					create = (result = cache.withoutPrefixLength) == null;
+				}
+				if(create) {
+					cache.withoutPrefixLength = result = removePrefixLength(false);
+				}
+			}
+		}
+		return result;
 	}
 
 	@Override @Deprecated

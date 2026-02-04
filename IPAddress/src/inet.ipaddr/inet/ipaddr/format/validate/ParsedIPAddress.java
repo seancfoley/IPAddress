@@ -254,7 +254,7 @@ public class ParsedIPAddress extends IPAddressParseData implements IPAddressProv
 				val = values;
 				if(val == null || val.range == null) {
 					if(val != null && !val.withoutSections() && val.withoutAddressException()) {
-						val.range = val.getAddress().toSequentialRange();
+						val.range = val.getAddress().coverWithSequentialRange();
 					} else {
 						createSections(false, true, true);
 						val = values;

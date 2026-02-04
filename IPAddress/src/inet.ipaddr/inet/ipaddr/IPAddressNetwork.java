@@ -62,7 +62,7 @@ public abstract class IPAddressNetwork<
 	
 	private static final long serialVersionUID = 4L;
 
-	private final T subnetsMasksWithPrefix[];
+	private final T subnetMasksWithPrefix[];
 	private final T subnetMasks[];
 	private final T networkAddresses[];
 	private final T hostMasks[];
@@ -70,6 +70,10 @@ public abstract class IPAddressNetwork<
 	private final int hostSegmentMasks[];
 	private transient T loopback;
 	private transient String loopbackStrings[];
+
+	static final IPAddress EMPTY_ADDRESS[] = {};
+	protected static final IPv6Address EMPTY_IPV6_ADDRESS[] = {};
+	protected static final IPv4Address EMPTY_IPV4_ADDRESS[] = {};
 
 	public static abstract class IPAddressCreator<T extends IPAddress, R extends IPAddressSection, E extends IPAddressSection, S extends IPAddressSegment, J extends InetAddress> extends AddressCreator<T, R, E, S> {
 
@@ -245,9 +249,16 @@ public abstract class IPAddressNetwork<
 			return createSectionInternal(segments);
 		}
 
+		@SuppressWarnings("unchecked")
 		private S[] createSequentialBlockSegments(IPAddressSegmentSeries series, int index, int lowerVal, int upperVal) {
-			S segments[] = createSegmentArray(series.getSegmentCount());
+			int length = series.getSegmentCount();
+			S segments[] = createSegmentArray(length);
 			series.getSegments(0, index, segments, 0);
+			if(series.isPrefixed()) {
+				for(int i = 0; i < index; i++) {
+					segments[i] = (S) segments[i].withoutPrefixLength();
+				}
+			}
 			segments[index] = createSegment(lowerVal, upperVal, null);
 			if(++index < segments.length) {
 				S allRangeSegment = createSegment(0, getMaxValuePerSegment(), null);
@@ -265,10 +276,10 @@ public abstract class IPAddressNetwork<
 	protected IPAddressNetwork(Class<T> addressType) {
 		IPVersion version = getIPVersion();
 		int bitSize = IPAddress.getBitCount(version);
-		this.subnetsMasksWithPrefix = (T[]) Array.newInstance(addressType, bitSize + 1);
-		this.subnetMasks = this.subnetsMasksWithPrefix.clone();
-		this.networkAddresses = this.subnetsMasksWithPrefix.clone();
-		this.hostMasks = this.subnetsMasksWithPrefix.clone();
+		this.subnetMasksWithPrefix = (T[]) Array.newInstance(addressType, bitSize + 1);
+		this.subnetMasks = this.subnetMasksWithPrefix.clone();
+		this.networkAddresses = this.subnetMasksWithPrefix.clone();
+		this.hostMasks = this.subnetMasksWithPrefix.clone();
 		this.creator = createAddressCreator();
 		int segmentBitSize = IPAddressSegment.getBitCount(version);
 		int fullMask = ~(~0 << segmentBitSize); // segmentBitSize must be 5 bits at most for this shift to work per the java spec integer shift ishl operation (so it must be less than 2^5 = 32)
@@ -282,7 +293,7 @@ public abstract class IPAddressNetwork<
 	
 	@Override
 	public void clearCaches() {
-		Arrays.fill(subnetsMasksWithPrefix, null);//this cache has prefixed addresses
+		Arrays.fill(subnetMasksWithPrefix, null);//this cache has prefixed addresses
 		Arrays.fill(subnetMasks, null);
 		Arrays.fill(networkAddresses, null);
 		Arrays.fill(hostMasks, null);
@@ -358,7 +369,7 @@ public abstract class IPAddressNetwork<
 	}
 	
 	/**
-	 * The network address is the subnet of all address with the same network mask.
+	 * The network address is the subnet of all addresses with the same network mask.
 	 * For example, 1.2.0.0/16 is a network address when it includes all addresses 1.2.*.*,
 	 * rather than just being the single address, the mask 1.2.0.0
 	 * <p>
@@ -371,7 +382,7 @@ public abstract class IPAddressNetwork<
 	}
 	
 	public T getNetworkMask(int networkPrefixLength, boolean withPrefixLength) {
-		return getMask(networkPrefixLength, withPrefixLength ? subnetsMasksWithPrefix : subnetMasks, true, withPrefixLength, false);
+		return getMask(networkPrefixLength, withPrefixLength ? subnetMasksWithPrefix : subnetMasks, true, withPrefixLength, false);
 	}
 	
 	public R getNetworkMaskSection(int networkPrefixLength) {
@@ -440,7 +451,12 @@ public abstract class IPAddressNetwork<
 							seg = creator.createSegment(0, IPAddressSection.getSegmentPrefixLength(bitsPerSegment, 0) /* 0 */);
 							Arrays.fill(newSegments, seg);
 							zerosSubnet = creator.createAddressInternal(newSegments, cacheBits(0)); /* address creation */
-							if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
+							if(networkAddress) {
+								if(getPrefixConfiguration().prefixedSubnetsAreExplicit()) {
+									zerosSubnet = (T) zerosSubnet.toPrefixBlock();
+								}
+							} else if(getPrefixConfiguration().zeroHostsAreSubnets()) {
+								// not a network address, just a mask
 								zerosSubnet = (T) zerosSubnet.getLower();
 							}
 						} else {
@@ -509,7 +525,12 @@ public abstract class IPAddressNetwork<
 					segmentList.toArray(newSegments);
 					if(network && withPrefixLength) {
 						subnet = creator.createAddressInternal(newSegments, cacheBits(prefix)); /* address creation */
-						if(getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress) {
+						if(networkAddress) {
+							if(getPrefixConfiguration().prefixedSubnetsAreExplicit()) {
+								subnet = (T) subnet.toPrefixBlock();
+							}
+						} else if(getPrefixConfiguration().zeroHostsAreSubnets()) {
+							// not a network address
 							subnet = (T) subnet.getLower();
 						}
 					} else {
@@ -556,7 +577,8 @@ public abstract class IPAddressNetwork<
 		}
 		Integer npl = cacheBits(networkPrefixLength);
 		if(network && withPrefixLength) {
-			if(getPrefixConfiguration().prefixedSubnetsAreExplicit() || (getPrefixConfiguration().zeroHostsAreSubnets() && !networkAddress)) {
+			PrefixConfiguration conf = getPrefixConfiguration();
+			if(!networkAddress && !conf.allPrefixedAddressesAreSubnets()) {
 				cachedEquivalentPrefix = cachedMinPrefix = cacheBits(addressBitLength);
 				cachedNetworkPrefix = npl;
 				cachedCount = BigInteger.ONE;

@@ -198,10 +198,6 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		return addr.getAddressCreator().createSection(bytes, 0, segCount, segCount == EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT);
 	}
 	
-	protected static String getMessage(String key) {
-		return Address.getMessage(key);
-	}
-	
 	@Override
 	public BigInteger enumerate(Address other) {
 		if(other instanceof MACAddress) {
@@ -209,7 +205,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		}
 		return null;
 	}
-
+	
 	@Override
 	public MACAddressNetwork getNetwork() {
 		return defaultMACNetwork();
@@ -375,8 +371,28 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	}
 
 	@Override
+	public MACAddress increment(BigInteger increment) throws AddressValueException {
+		return increment(MACAddressSection.checkOverflow(increment));
+	}
+
+	@Override
 	public MACAddress incrementBoundary(long increment) {
 		return checkIdentity(getSection().incrementBoundary(increment));
+	}
+
+	@Override
+	public MACAddress incrementBoundary() {
+		return checkIdentity(getSection().incrementBoundary());
+	}
+
+	@Override
+	public MACAddress increment() {
+		return checkIdentity(getSection().increment());
+	}
+
+	@Override
+	public MACAddress decrement() {
+		return checkIdentity(getSection().decrement());
 	}
 
 	@Override

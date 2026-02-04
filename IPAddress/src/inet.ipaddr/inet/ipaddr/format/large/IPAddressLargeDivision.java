@@ -328,11 +328,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	}
 
 	@Override
-	public boolean isMultiple() {
-		return !getValue().equals(getUpperValue());
-	}
-	
-	@Override
 	public boolean includesZero() {
 		return getValue().signum() == 0;
 	}
@@ -506,7 +501,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	 * Produces a normalized string to represent the segment.
 	 * If the segment CIDR prefix length covers the range, then it is assumed to be a CIDR, and the string has only the lower value of the CIDR range.
 	 * Otherwise, the explicit range will be printed.
-	 * @return
 	 */
 	@Override
 	public String getString() {
@@ -548,7 +542,6 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	/**
 	 * Produces a string to represent the segment, favouring wildcards and range characters over the network prefix to represent subnets.
 	 * If it exists, the segment CIDR prefix is ignored and the explicit range is printed.
-	 * @return
 	 */
 	@Override
 	public String getWildcardString() {

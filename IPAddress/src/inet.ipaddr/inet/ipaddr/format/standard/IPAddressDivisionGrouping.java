@@ -132,7 +132,7 @@ public class IPAddressDivisionGrouping extends AddressDivisionGrouping implement
 	}
 	
 	@Override
-	public int isMore(AddressDivisionSeries other) {
+	public int compareCounts(AddressDivisionSeries other) {
 		if(!isMultiple()) {
 			return other.isMultiple() ? -1 : 0;
 		}

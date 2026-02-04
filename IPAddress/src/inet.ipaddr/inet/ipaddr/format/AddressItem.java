@@ -215,7 +215,8 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	}
 
 	/**
-	 * Returns whether the values of this series contains the prefix block for the given prefix length.
+	 * Returns whether the values of this series contains the prefix block for the given prefix length,
+	 * which means it contains all addresses with the same prefix.
 	 * <p>
 	 * Use {@link #getMinPrefixLengthForBlock()} to determine the smallest prefix length for which this method returns true.
 	 * 
@@ -325,9 +326,9 @@ public interface AddressItem extends Comparable<AddressItem>, Serializable {
 	public static BigInteger getBlockSize(int bitCount) {
 		return BigInteger.ONE.shiftLeft(bitCount);
 	}
-	
+
 	/**
-	 * BitsForCount returns the number of bits required outside the prefix length 
+	 * getBitsForCount returns the number of bits required outside the prefix length 
 	 * for a single prefix block to span at least as many addresses as the given count. 
 	 * Mathematically, it is the ceiling of the base 2 logarithm of the given count. 
 	 * A count of zero or less than zero returns null.

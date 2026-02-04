@@ -85,6 +85,22 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	boolean elementContains(E addr);
 
 	/**
+	 * Checks if a prefix block subnet or address in the trie contains the given subnet or address.
+	 * When it comes to prefix blocks, a prefix block overlapping another means one contains the other.
+	 * <p>
+	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException.
+	 * <p>
+	 * If not a single address nor prefix block, the {@link Partition} class can be used to convert the address before calling this method.  
+	 * See {@link AddressTrieAddOps#add(Address)} for more details.
+	 * <p>
+	 * Returns true if the subnet or address overlaps a trie element, false otherwise.
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	boolean elementOverlaps(E addr);
+
+	/**
 	 * Returns whether the given address or prefix block subnet is in the trie (as an added element).
 	 * <p>
 	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException.
@@ -127,7 +143,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	/**
 	 * Removes any single address or prefix block subnet from the trie that is contained in the given individual address or prefix block subnet.
 	 * <p>
-	 * Goes further than {@link #remove(Address)}, not requiring a match to an inserted node, and also removing all the sub-nodes of any removed node or sub-node.
+	 * This goes further than {@link #remove(Address)}, not requiring a match to an inserted node, and also removing all the sub-nodes of any removed node or sub-node.
 	 * <p>
 	 * For example, after inserting 1.2.3.0 and 1.2.3.1, passing 1.2.3.0/31 to {@link #removeElementsContainedBy(Address)} will remove them both,
 	 * while {@link #remove(Address)} will remove nothing.  
@@ -147,6 +163,22 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	 * @return
 	 */
 	TrieNode<E> removeElementsContainedBy(E addr);
+
+	/**
+	 * Removes any single address or prefix block subnet from the trie that is contained in or contained by the given individual address or prefix block subnet.
+	 * When it comes to CIDR prefix blocks, two blocks intersecting implies that one contains the other, or they both match (contain each other).
+	 * <p>
+	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException. 
+	 * <p>
+	 * If not a single address nor prefix block, the {@link Partition} class can be used to convert the address before calling this method.  
+	 * See {@link AddressTrieAddOps#add(Address)} for more details.
+	 * <p>
+	 * Returns the root node of the subtrie that was removed from the trie, or null if nothing was removed.
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	TrieNode<E> removeElementsIntersectedBy(E addr);
 
 	/**
 	 * Checks if a part of this trie is contained by the given prefix block subnet or individual address.
@@ -319,35 +351,35 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	TrieNode<E> lastAddedNode();
 
 	/**
-	 * Returns the added node whose address is the highest address less than or equal to the given address.
+	 * Returns the added node whose address or subnet is the highest less than or equal to the given address or subnet, according to the trie ordering.
 	 * @param addr
 	 * @return
 	 */
 	TrieNode<E> floorAddedNode(E addr);
 
 	/**
-	 * Returns the added node whose address is the highest address strictly less than the given address.
+	 * Returns the added node whose address or subnet is the highest strictly less than the given address or subnet, according to the trie ordering.
 	 * @param addr
 	 * @return
 	 */
 	TrieNode<E> lowerAddedNode(E addr);
 
 	/**
-	 * Returns the added node whose address is the lowest address greater than or equal to the given address.
+	 * Returns the added node whose address or subnet is the lowest greater than or equal to the given address or subnet, according to the trie ordering.
 	 * @param addr
 	 * @return
 	 */
 	TrieNode<E> ceilingAddedNode(E addr);
 
 	/**
-	 * Returns the added node whose address is the lowest address strictly greater than the given address.
+	 * Returns the added node whose address or subnet is the lowest strictly greater than the given address or subnet, according to the trie ordering.
 	 * @param addr
 	 * @return
 	 */
 	TrieNode<E> higherAddedNode(E addr);
 
 	/**
-	 * Returns the highest added address less than or equal to the given address.
+	 * Returns the highest added address or subnet less than or equal to the given address, according to the trie ordering.
 	 * 
 	 * @param addr
 	 * @return
@@ -355,7 +387,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	E floor(E addr);
 
 	/**
-	 * Returns the highest added address strictly less than the given address.
+	 * Returns the highest added address or subnet strictly less than the given address, according to the trie ordering.
 	 * 
 	 * @param addr
 	 * @return
@@ -363,7 +395,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	E lower(E addr);
 
 	/**
-	 * Returns the lowest added address greater than or equal to the given address.
+	 * Returns the lowest added address or subnet greater than or equal to the given address, according to the trie ordering.
 	 * 
 	 * @param addr
 	 * @return
@@ -371,12 +403,44 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	E ceiling(E addr);
 
 	/**
-	 * Returns the lowest added address strictly greater than the given address.
+	 * Returns the lowest added address or subnet strictly greater than the given address, according to the trie ordering.
 	 * 
 	 * @param addr
 	 * @return
 	 */
 	E higher(E addr);
+
+	/**
+	 * Returns the added node containing the highest added address or subnet less than or equal to the given address or subnet, according to the trie ordering.
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	TrieNode<E> containingFloorAddedNode(E addr);
+
+	/**
+	 * Returns the added node containing the highest added address or subnet strictly less than the given address or subnet, according to the trie ordering.
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	TrieNode<E> containingLowerAddedNode(E addr);
+
+	/**
+	 * Returns the added node containing the lowest added address or subnet greater than or equal to the given address or subnet, according to the trie ordering.
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	TrieNode<E> containingCeilingAddedNode(E addr);
+
+	/**
+	 * Returns the added node containing the lowest added address or subnet strictly greater than the given address or subnet, according to the trie ordering.
+	 * 
+	 * @param addr
+	 * @return
+	 */
+	TrieNode<E> containingHigherAddedNode(E addr);
 
 	/**
 	 * Provides an interface to the trie add operations.<p>
@@ -389,7 +453,7 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	 */
 	public static interface AddressTrieAddOps<E extends Address> extends AddressTrieOps<E> {
 		/**
-		 * Adds the given single address or prefix block subnet to the trie.
+		 * Adds the given single address or prefix block subnet to the trie, if not already there.
 		 * <p>
 		 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException. 
 		 * <p>
@@ -442,6 +506,21 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 		 * @return
 		 */
 		TrieNode<E> addTrie(TrieNode<E> trie);
+
+		/**
+		 * Adds the given single address or prefix block subnet to the trie, if there is no added node in the trie containing the subnet or address.
+		 * <p>
+		 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException. 
+		 * <p>
+		 * If not a single address nor prefix block, the {@link Partition} class can be used to convert the address before calling this method.  
+		 * See {@link #add(Address)} for more details.
+		 * <p>
+		 * Returns the node for the added address, or the existing node that contains or matches it.
+		 * 
+		 * @param addr
+		 * @return
+		 */
+		TrieNode<E> addIfNoElementsContaining(E addr);
 	}
 
 	/**

@@ -73,7 +73,7 @@ import inet.ipaddr.ipv6.IPv6Address;
  * 
  */
 /*
- * Internal details of how this works:
+ * Internal details outlining how this works:
  * 
  * 1. Building single strings steps:
  * StringOptions, IPv6StringOptions provides options for a user to specify a single string to be produced for a given address or section of an address.
@@ -470,8 +470,20 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public abstract IPAddress increment(long increment) throws AddressValueException;
 
 	@Override
+	public abstract IPAddress increment(BigInteger increment) throws AddressValueException;
+
+	@Override
 	public abstract IPAddress incrementBoundary(long increment) throws AddressValueException;
 	
+	@Override
+	public abstract IPAddress incrementBoundary();
+
+	@Override
+	public abstract IPAddress increment();
+
+	@Override
+	public abstract IPAddress decrement();
+
 	@Override
 	public boolean isIPAddress() {
 		return true;
@@ -489,6 +501,8 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	public boolean isIPv6(){
 		return false;
 	}
+	
+	protected abstract boolean matchesVersion(IPAddress other);
 	
 	@Override
 	public IPVersion getIPVersion() {
@@ -613,7 +627,24 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @return
 	 */
 	@Override
+	public abstract IPAddressSeqRange coverWithSequentialRange();
+	
+	/**
+	 * @deprecated renamed to coverWithSequentialRange to reflect the fact that the returned range does not always represent the same set of addresses (only when an individual address, or when the subnet is sequential)
+	 */
+	@Deprecated
+	@Override
 	public abstract IPAddressSeqRange toSequentialRange();
+
+	/**
+	 * Creates a sequential range list instance from the address, which will contain the same set of individual addresses as this subnet.
+	 * <p>
+	 * Unlike {@link #coverWithSequentialRange()}, the returned list will always contain the same set of addresses as this subnet or individual address, regardless of whether this subnet is sequential or not.
+	 * 
+	 * @return
+	 */
+	@Override
+	public abstract IPAddressSeqRangeList intoSequentialRangeList();
 
 	/**
 	 * Creates a sequential range instance from this and the given address, 
@@ -1285,7 +1316,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		T result = null;
 		if(container.isPrefixed() && container.isSinglePrefixBlock()) {
 			result = container;
-		} else if(checkEqual && contained.isPrefixed() && container.isMore(contained) == 0 && contained.isSinglePrefixBlock()) {
+		} else if(checkEqual && contained.isPrefixed() && container.compareCounts(contained) == 0 && contained.isSinglePrefixBlock()) {
 			result = contained;
 		} else {
 			result = prefixAdder.apply(container); // the functor is assignPrefixForSingleBlock, which returns null if cannot be a prefix block
@@ -1464,7 +1495,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
-	 * From the list of returned subnets you can recover the original range (this to other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
+	 * From the list of returned subnets you can recover the original range (this to other) by converting each to IPAddressRange with {@link IPAddress#coverWithSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * <p>
 	 * When you have multiple subnets, span with:<br>
@@ -1490,7 +1521,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * The resulting array is sorted from lowest address value to highest, regardless of the size of each prefix block.
 	 * <p>
-	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#toSequentialRange()}
+	 * From the list of returned subnets you can recover the original range (this and other) by converting each to IPAddressRange with {@link IPAddress#coverWithSequentialRange()}
 	 * and them joining them into a single range with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}
 	 * <p>
 	 * When you have multiple subnets, span with:<br>
@@ -1504,6 +1535,12 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 */
 	public abstract IPAddress[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException;
 	
+	@Override
+	public abstract IPAddress[] spanWithPrefixBlocks();
+
+	@Override
+	public abstract IPAddress[] spanWithSequentialBlocks();
+
 	protected List<? extends IPAddressSegmentSeries> spanWithBlocks(boolean prefixBlocks) {
 		return spanWithBlocks(this, prefixBlocks);
 	}
@@ -1538,6 +1575,19 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 */
 	public abstract IPAddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException;
 	
+	/**
+	 * Returns the complement of the individual address or subnet within the address space.
+	 * <p>
+	 * If an individual address, returns all other addresses in the address space.  If a subnet, returns all addresses not contained within the subnet.
+	 * <p>
+	 * This method returns the complement as minimal array of sequential block subnets.  To get the complement as a list of sequential ranges,
+	 * convert this address to a sequential range list using {@link #intoSequentialRangeList()} and call {@link IPAddressSeqRangeList#complementIntoList()}
+	 * 
+	 * @return
+	 */
+	@Override
+	public abstract IPAddress[] complement();
+
 	/**
 	 * Merges this with the list of addresses to produce the smallest list of prefix blocks.
 	 * <p>
@@ -1576,7 +1626,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * <p>
 	 * Sequential ranges provide another option.
 	 * You can convert to sequential blocks first with {@link #sequentialBlockIterator()}, 
-	 * then convert each sequential block to {@link IPAddressSeqRange} with {@link #toSequentialRange()}, 
+	 * then convert each sequential block to {@link IPAddressSeqRange} with {@link #coverWithSequentialRange()}, 
 	 * then join those sequential ranges with {@link IPAddressSeqRange#join(IPAddressSeqRange...)}, 
 	 * then convert them to CIDR prefix blocks with {@link IPAddressSeqRange#spanWithPrefixBlocks()},
 	 * giving the same result as this method.
@@ -1592,9 +1642,9 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 		return IPAddressSection.getMergedPrefixBlocks(sections);
 	}
 
-	private static final IPv6Address EMPTY_IPV6_ADDRESS[] = {};
-	private static final IPv4Address EMPTY_IPV4_ADDRESS[] = {};
-
+	/**
+	 * @custom.core
+	 */
 	public static class DualIPv4Pv6Arrays {
 		public final IPv4Address addressesIPv4[];
 		public final IPv6Address addressesIPv6[];
@@ -1665,20 +1715,20 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 			List<IPAddressSegmentSeries> blocks = merger.apply(ipv4List.toArray(new IPAddressSegmentSeries[ipv4List.size()]));
 			addressesIPv4 = blocks.toArray(new IPv4Address[blocks.size()]);
 		} else {
-			addressesIPv4 = EMPTY_IPV4_ADDRESS;
+			addressesIPv4 = IPAddressNetwork.EMPTY_IPV4_ADDRESS;
 		}
 		IPv6Address addressesIPv6[];
 		if(ipv6List != null){
 			List<IPAddressSegmentSeries> blocks = merger.apply(ipv6List.toArray(new IPAddressSegmentSeries[ipv6List.size()]));
 			addressesIPv6 = blocks.toArray(new IPv6Address[blocks.size()]);
 		} else {
-			addressesIPv6 = EMPTY_IPV6_ADDRESS;
+			addressesIPv6 = IPAddressNetwork.EMPTY_IPV6_ADDRESS;
 		}
 		return new DualIPv4Pv6Arrays(addressesIPv4, addressesIPv6);
 	}
 
 	/**
-	 * Merges this with the list of subnets to produce the smallest list of block subnets that are sequential.
+	 * Merges this with the list of subnets to produce the smallest number of block subnets that are sequential.
 	 * <p>
 	 * Block subnets come in the form 1-3.1-4.5.6-8, however that subnet is not sequential since address 1.1.5.8 is in the subnet,
 	 * the next sequential address 1.1.5.9 is not in the subnet, and a higher address 1.2.5.6 is in the subnet.
@@ -1691,7 +1741,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * If any other address in the list is a different version than this, then the default conversion is applied to the other address first using {@link #toIPv4()} or {@link #toIPv6()},
 	 * which can result in AddressConversionException
 	 * <p>
-	 * The resulting array is sorted by lower address, regardless of the size of each prefix block.
+	 * The resulting array is sorted by lower address, regardless of the size of each sequential block.
 	 * <p>
 	 * In version 5.3.1 and earlier, the result was sorted from single address to smallest blocks to largest blocks.
 	 * For that ordering, sort with {@link IPAddressSegmentSeries#getPrefixLenComparator()}:<br>
@@ -1711,7 +1761,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	}
 	
 	/**
-	 * Produces the subnet whose addresses are found in both this and the given subnet argument, or null if no such addresses.
+	 * Produces the subnet whose addresses are found in both this and the given subnet argument, or null if there are no such addresses.
 	 * <p>
 	 * This is also known as the conjunction of the two sets of addresses.
 	 * <p>
@@ -1937,7 +1987,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 */
 	public IPAddress removeBitCountPrefixLength() {
 		if(isPrefixed() && getNetworkPrefixLength() == getBitCount()) {
-			return this.withoutPrefixLength();
+			return withoutPrefixLength();
 		}
 		return this;
 	}

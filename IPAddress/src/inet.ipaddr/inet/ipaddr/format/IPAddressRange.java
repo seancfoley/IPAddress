@@ -23,7 +23,10 @@ import java.util.Iterator;
 import java.util.stream.Stream;
 
 import inet.ipaddr.IPAddress;
+import inet.ipaddr.IPAddressAggregation;
+import inet.ipaddr.IPAddressContainmentTrieBase;
 import inet.ipaddr.IPAddressSeqRange;
+import inet.ipaddr.IPAddressSeqRangeList;
 import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 
@@ -33,39 +36,24 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  * @author seancfoley
  *
  */
-public interface IPAddressRange extends AddressComponentRange {
-
+public interface IPAddressRange extends IPAddressAggregation<IPAddress, IPAddressSeqRange>, AddressComponentRange {
 	/**
-	 * Returns whether this range contains all addresses in the given sequential range
+	  * Returns the number of individual addresses in this range.
 	 * 
-	 * @param other
 	 * @return
 	 */
-	boolean contains(IPAddressSeqRange other);
+	@Override
+	default BigInteger getCount() {
+		return AddressComponentRange.super.getCount();
+	}
 
-	/**
-	 * Returns whether this range contains all addresses in the given address or subnet
+    /**
+	 * Returns true if there is more than one address in this range.
 	 * 
-	 * @param other
 	 * @return
 	 */
-	boolean contains(IPAddress other);
-
-	/**
-	 * Returns whether this range overlaps the given sequential range
-	 * 
-	 * @param other
-	 * @return
-	 */
-	boolean overlaps(IPAddressSeqRange other);
-
-	/**
-	 * Returns whether this range overlaps the addresses in the given address or subnet
-	 * 
-	 * @param other
-	 * @return
-	 */
-	boolean overlaps(IPAddress other);
+    @Override
+	boolean isMultiple();
 	
 	/**
 	 * Indicates where an address sits relative to the range ordering.
@@ -88,22 +76,6 @@ public interface IPAddressRange extends AddressComponentRange {
 	BigInteger enumerate(IPAddress other);
 
 	/**
-	 * Returns the address in the range with the lowest numeric value.
-	 * 
-	 * @return
-	 */
-	@Override
-	IPAddress getLower();
-
-	/**
-	 * Returns the address in the range with the highest numeric value.
-	 * 
-	 * @return
-	 */
-	@Override
-	IPAddress getUpper();
-
-	/**
 	 * Useful for using an instance in a "for-each loop", as in <code>for(addr : address.getIterable()) { ... }</code>
 	 * <p>
 	 * Otherwise just call {@link #iterator()} directly.
@@ -111,16 +83,6 @@ public interface IPAddressRange extends AddressComponentRange {
 	 */
 	@Override
 	Iterable<? extends IPAddress> getIterable();
-
-	/**
-	 * Iterates through the individual addresses of this address or subnet.
-	 * <p>
-	 * Call {@link #isMultiple()} to determine if this instance represents multiple, or {@link #getCount()} for the count.
-	 * 
-	 * @return
-	 */
-	@Override
-	Iterator<? extends IPAddress> iterator();
 
 	/**
 	 * Partitions and traverses through the individual addresses.
@@ -175,35 +137,49 @@ public interface IPAddressRange extends AddressComponentRange {
 	Stream<? extends IPAddressRange> prefixStream(int prefLength);
 
 	/**
-	 * Returns the minimal-size prefix block that covers all the addresses in this range.
-	 * The resulting block will have a larger address count than this range, unless this range is already a prefix block.
-	 */
-	IPAddress coverWithPrefixBlock();
-
-	/**
-	 * Produces an array of prefix blocks that spans the same set of addresses.
+	 * Produces a minimal array of prefix blocks that spans the same set of addresses.
 	 */
 	IPAddress[] spanWithPrefixBlocks();
 
 	/**
-	 * Produces an array of blocks that are sequential that cover the same set of addresses.
+	 * Produces a minimal array of blocks that are sequential that cover the same set of addresses.
 	 * This array can be shorter than that produced by {@link #spanWithPrefixBlocks()} and is never longer.
 	 */
 	IPAddress[] spanWithSequentialBlocks();
 
 	/**
-	 * Returns whether this range represents a range of values that are sequential.
+	 * @deprecated renamed to coverWithSequentialRange to reflect the fact that the returned range does not always represent the same set of addresses 
+	 */
+	@Deprecated
+	IPAddressSeqRange toSequentialRange();
+
+	/**
+	 * Creates a sequential range list from the address, which will contain the same set of individual addresses as this range of addresses.
+	 * <p>
+	 * Unlike {@link #coverWithSequentialRange()}, the returned list will always contain the same set of addresses as this range, regardless of whether this range of addresses is sequential or not.
 	 * 
 	 * @return
 	 */
-	boolean isSequential();
+	IPAddressSeqRangeList intoSequentialRangeList();
 
 	/**
-	 * Converts to a sequential range from the lowest and highest addresses in this range, returns "this" if one already
+	 * Creates a containment trie from the address, which will contain the same set of individual addresses as this range of addresses.
 	 * <p>
-	 * The result will represent the same set of addresses if and only if {@link #isSequential()} is true
+	 * While the trie will contain blocks that will differ from this address if this address is not a prefix block or individual address, 
+	 * the returned trie will always contain the same set of individual addresses as this range, regardless of whether this range of addresses is sequential or not.
+	 * 
+	 * @return
 	 */
-	IPAddressSeqRange toSequentialRange();
+	IPAddressContainmentTrieBase<? extends IPAddress, ? extends IPAddressSeqRange> intoContainmentTrie();
+
+	/**
+	 * Returns the complement of the address range within the address space.
+	 * <p>
+	 * Returns a minimal array of IP address sequential ranges instances containing the addresses not contained within this address range.
+	 * 
+	 * @return
+	 */
+	IPAddressRange[] complement();
 	
 	/**
 	 * Produces a string that is unique and consistent for all instances.

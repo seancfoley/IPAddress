@@ -55,7 +55,7 @@ public class IPv6AddressNetwork extends IPAddressNetwork<IPv6Address, IPv6Addres
 
 	static final IPv6AddressSegment EMPTY_SEGMENTS[] = {};
 	private static final IPv6AddressSection EMPTY_SECTION[] = {};
-	private static final IPv6Address EMPTY_ADDRESS[] = {};
+	static final IPv6Address EMPTY_ADDRESS[] = EMPTY_IPV6_ADDRESS;
 	
 	private static boolean CACHE_SEGMENTS_BY_PREFIX = true;
 	

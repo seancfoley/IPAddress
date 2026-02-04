@@ -702,6 +702,7 @@ public class TestRunner extends TestBase implements AddressCreator {
 					new MACAddressRangeTest(this),
 					new AddressOrderTest(this),
 					new TrieTest(this),
+					new IPAddressSeqRangeListTest(this),
 				};
 		for(TestBase test : tests) {
 			test.fullTest = fullTest;

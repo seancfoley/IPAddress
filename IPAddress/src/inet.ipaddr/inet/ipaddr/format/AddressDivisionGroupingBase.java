@@ -66,7 +66,7 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 
 	static final BigInteger ALL_ONES = BigInteger.ZERO.not();
 	
-	protected static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+	protected static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE), LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
 	
 	static ResourceBundle bundle;
 	
@@ -86,7 +86,10 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 		public byte[] lowerBytes, upperBytes;
 		public BigInteger value, upperValue;
 		
-		/* only used when address section is full section owned by an address */
+		/* only used when address section is owned by an address 
+		 * 
+		 * located here because it is derived from the bytes, so makes sense to use the same caching object
+		 */
 		public InetAddress inetAddress;
 	}
 	

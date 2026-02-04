@@ -70,7 +70,7 @@ Make sure you choose a non-plugin JDK.  It can be a Mac OS VM if you want.  It n
 b. Then switch over the job to jre >= 9.  Then ensure your module-info.java is uncommented.  
 Then create the dist jar with java 9 in the same JVM as Eclipse, otherwise ant won't work.
 
-2. Use build.xml to first "create javadoc" running in separate Java 8 JRE.  If any javadoc errors, fix them and retry.
+2. Use build.xml to first "create javadoc" running in separate Java 8 JRE - in fact needs to be Java SE for the doclet classes.  You may need to comment out module-info.java.  If any javadoc errors, fix them and retry.
 
 3. Use build.xml to "create dist jar" running in jdk >= 9, maybe the same as used by the workspace.
 
@@ -80,7 +80,7 @@ Note: last time, I could NOT run in the same JVM as the workspace.  But it worke
 
 5. Commit and push the changes (build.xml and IPAddress.jar and any source file changes not yet pushed).
 
-6. Edit the readme.md of the branch you are releasing from (the latest version), as well as on master if not the same.
+6. Edit the readme.md of the branch you are releasing from (the latest version), as well as on master if not the same.  If releasing from non-master branch, delaying the changes to master README can help ensure everything goes smoothly first.
 
 7. Create the release using the github releases button on the releases page, 
 which allows you to select the branch.
@@ -90,6 +90,38 @@ The source code zip and tar files are automatically created by github.
 If something goes wrong, move the tag: https://stackoverflow.com/questions/8044583/how-can-i-move-a-tag-on-a-git-branch-to-a-different-commit
 
 C Maven
+
+NEW
+
+8. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created (in the dir mavenlib).
+
+The signing will create a batch file to do the signing.  Running gpg directly from the Ant JVM seems to result in gpg hanging.  So run the same gpg commands from the command prompt or use the batch file.
+
+9. Complete the signing using batch file or command line.  You should see the signed artifacts created, for each artifact another file is created with the ".asc" extension added to the artifact name.
+You may need to run "sudo -i" first.
+
+10. Remove the batch file sign.bat.
+
+11. Create the directory structure and the checksum files by running "create maven folders" in build.xml, which will create and move the checksums first.
+
+12. Create the bundle bundle.jar using build.xml to "create maven bundle".
+
+13. go to https://central.sonatype.com/ and log in.
+
+14. Click "publish component" button
+Name it com.github.seancfoley:ipaddress:version (eg com.github.seancfoley:ipaddress:5.6.0)
+Description: Release of IPAddress version 5.6.0
+
+When validated, click "Publish" button
+
+15. Go to maven central repository, https://search.maven.org/, and browse or search for your release.  It will not show up immediately.
+It may take about 10 minutes.
+
+16. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
+
+
+
+OLD
 
 8. Use build.xml to "sign maven artifacts", which will also run "create maven artifacts" first.  You should see the maven artifacts created (in the dir mavenlib).
 
@@ -124,13 +156,10 @@ Your original sonatype JIRA issue is https://issues.sonatype.org/browse/OSSRH-28
 
 Use your sonatype user/pw.
 
+
 12. Go to maven central repository, https://search.maven.org/, and browse or search for your release.  It will not show up immediately.
 It may take about 10 minutes.
 
 13. Once they are there, use an eclipse maven project to add as a dependency and check it shows up.  You can run some code in a main method as well for further testing.
-
-
-
-
 
 

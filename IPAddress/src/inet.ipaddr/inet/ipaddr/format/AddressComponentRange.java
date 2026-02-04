@@ -84,6 +84,8 @@ public interface AddressComponentRange extends AddressItem, AddressItemRange {
 	/**
 	 * Given a list of components, and a lambda that returns a stream for that component type, 
 	 * returns a combined stream produced by applying that lambda to all the components.
+	 * <p>
+	 * In other words, combines multiple component streams into one.
 	 * 
 	 * @param addrStreamFunc
 	 * @param components
@@ -97,6 +99,9 @@ public interface AddressComponentRange extends AddressItem, AddressItemRange {
 	/**
 	 * Given a list of components, and a lambda that returns a stream for that component type, 
 	 * returns a sequential combined stream produced by applying that lambda to all the components.
+	 * <p>
+	 * In other words, combines multiple component streams into one.
+	 * <p>
 	 * For a parallel stream, call {@link Stream#parallel()} on the returned stream.
 	 * 
 	 * @param addrStreamFunc

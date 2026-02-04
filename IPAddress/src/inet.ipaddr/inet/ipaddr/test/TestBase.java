@@ -44,7 +44,9 @@ import inet.ipaddr.HostNameParameters;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddress.IPAddressValueProvider;
 import inet.ipaddr.IPAddress.IPVersion;
+import inet.ipaddr.IPAddressCollection;
 import inet.ipaddr.IPAddressNetwork.IPAddressStringGenerator;
+import inet.ipaddr.IPAddressSeqRange;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
 import inet.ipaddr.IncompatibleAddressException;
@@ -80,6 +82,7 @@ public abstract class TestBase {
 		BaseDualIPv4v6Tries<?,?> dualTrie;
 		Set<?> set;
 		Map<?, ?> map;
+		IPAddressCollection<? extends IPAddress, ? extends IPAddressSeqRange> collection;
 		
 		
 		public Failure(String str) {
@@ -122,6 +125,11 @@ public abstract class TestBase {
 		public Failure(String str, HostIdentifierString addr) {
 			this.str = str;
 			this.addr = addr;
+		}
+
+		public Failure(String str, IPAddressCollection<? extends IPAddress, ? extends IPAddressSeqRange> collection) {
+			this.str = str;
+			this.collection = collection;
 		}
 
 		String getObjectDescriptor() {
@@ -167,6 +175,10 @@ public abstract class TestBase {
 		
 		void incrementTestCount() {
 			numTested++;
+		}
+		
+		void incrementTestCount(int count) {
+			numTested += count;
 		}
 		
 		synchronized void add(Failures fails) {
@@ -535,6 +547,10 @@ public abstract class TestBase {
 	
 	void incrementTestCount() {
 		failures.incrementTestCount();
+	}
+	
+	void incrementTestCount(int count) {
+		failures.incrementTestCount(count);
 	}
 	
 	void report() {
@@ -1635,6 +1651,11 @@ public abstract class TestBase {
 	}
 	
 	void testIncrement(Address orig, long increment, Address expectedResult, boolean first) {
+		if(increment == 1) {
+			testSingleIncrement(orig, expectedResult);
+		} else if(increment == -1) {
+			testSingleDecrement(orig, expectedResult);
+		}
 		try {
 			Address result = orig.increment(increment);
 			if(expectedResult == null) {
@@ -1666,13 +1687,20 @@ public abstract class TestBase {
 		incrementTestCount();
 	}
 	
-	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult) {
+	void testIncrement(IPAddress orig, BigInteger increment, IPAddress expectedResult) {
 		testIncrement(orig, increment, expectedResult, true);
 	}
 	
-	void testIncrement(IPv6Address orig, BigInteger increment, IPv6Address expectedResult, boolean first) {
+	private static final BigInteger NEGATIVE_ONE = BigInteger.valueOf(-1);
+	
+	void testIncrement(IPAddress orig, BigInteger increment, IPAddress expectedResult, boolean first) {
+		if(increment.equals(BigInteger.ONE)) {
+			testSingleIncrement(orig, expectedResult);
+		} else if(increment.equals(NEGATIVE_ONE)) {
+			testSingleDecrement(orig, expectedResult);
+		}
 		try {
-			IPv6Address result = orig.increment(increment);
+			IPAddress result = orig.increment(increment);
 			if(expectedResult == null) {
 				addFailure(new Failure("increment mismatch result " +  result + " vs none expected", orig));
 			} else {
@@ -1686,6 +1714,42 @@ public abstract class TestBase {
 				}
 				if(first && !orig.isMultiple()) {
 					testIncrement(expectedResult, increment.negate(), orig, false);
+				}
+			}
+		} catch(AddressValueException e) {
+			if(expectedResult != null) {
+				addFailure(new Failure("increment mismatch exception " +  e + ", expected " + expectedResult, orig));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testSingleIncrement(Address orig, Address expectedResult) {
+		try {
+			Address result = orig.increment();
+			if(expectedResult == null) {
+				addFailure(new Failure("increment mismatch result " +  result + " vs none expected", orig));
+			} else {
+				if(!result.equals(expectedResult)) {
+					addFailure(new Failure("increment mismatch result " +  result + " vs expected " + expectedResult, orig));
+				}
+			}
+		} catch(AddressValueException e) {
+			if(expectedResult != null) {
+				addFailure(new Failure("increment mismatch exception " +  e + ", expected " + expectedResult, orig));
+			}
+		}
+		incrementTestCount();
+	}
+	
+	void testSingleDecrement(Address orig, Address expectedResult) {
+		try {
+			Address result = orig.decrement();
+			if(expectedResult == null) {
+				addFailure(new Failure("increment mismatch result " +  result + " vs none expected", orig));
+			} else {
+				if(!result.equals(expectedResult)) {
+					addFailure(new Failure("increment mismatch result " +  result + " vs expected " + expectedResult, orig));
 				}
 			}
 		} catch(AddressValueException e) {

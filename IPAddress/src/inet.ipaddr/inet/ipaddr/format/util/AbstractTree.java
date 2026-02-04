@@ -17,6 +17,7 @@
  */
 package inet.ipaddr.format.util;
 
+import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -90,6 +91,14 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	}
 
 	/**
+	 * Returns the total number of addresses covered by prefix block subnets added to the trie, including individual addresses added as well.
+	 * @return
+	 */
+	public BigInteger getMatchingAddressCount() {
+		return getRoot().getMatchingAddressCount();
+	}
+
+	/**
 	 * Ensures the address is either an individual address or a prefix block subnet.
 	 * 
 	 * @param <E>
@@ -147,7 +156,7 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 		Iterator<? extends BinaryTreeNode<E>> these = nodeIterator(true);
 		while(these.hasNext()) {
 			BinaryTreeNode<?> node = these.next();
-			hashCode += node.hashCode();
+			hashCode = 31 * hashCode + node.hashCode();
 		}
 	    return hashCode;
 	}
@@ -175,11 +184,16 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 		return false;
 	}
 
+	protected boolean isInitialRoot() {
+		return root.isInitialRoot();
+	}
+	
 	/**
 	 * Returns true if there are not any added nodes within this tree
 	 */
 	public boolean isEmpty() {
-		return size() == 0;
+		return isInitialRoot(); // possibly faster for bounded trees than using size() == 0
+		//return size() == 0; 
 	}
 
 	/**
@@ -194,7 +208,14 @@ abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 	 * Returns a visual representation of the tree with one node per line, with or without the non-added keys.
 	 */
 	public String toString(boolean withNonAddedKeys) {
-		return getRoot().toTreeString(withNonAddedKeys, true);
+		return toString(withNonAddedKeys, true, false);
+	}
+
+	/**
+	 * Returns a customized visual representation of the tree with one node per line, with or without the non-added keys.
+	 */
+	public String toString(boolean withNonAddedKeys, boolean withSizes, boolean withMatchingAddressCounts) {
+		return getRoot().toTreeString(withNonAddedKeys, withSizes, withMatchingAddressCounts);
 	}
 
 	/**

@@ -41,7 +41,7 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 	 * 
 	 * @return a positive integer if this AddressDivisionSeries has a larger count than the provided, 0 if they are the same, a negative integer if the other has a larger count.
 	 */
-	default int isMore(AddressDivisionSeries other) {
+	default int compareCounts(AddressDivisionSeries other) {
 		if(!isMultiple()) {
 			return other.isMultiple() ? -1 : 0;
 		}
@@ -49,6 +49,16 @@ public interface AddressDivisionSeries extends AddressItem, AddressStringDivisio
 			return 1;
 		}
 		return getCount().compareTo(other.getCount());
+	}
+	
+	/**
+	 * @deprecated renamed to {@link #compareCounts(AddressDivisionSeries)}
+	 * @param other
+	 * @return
+	 */
+	@Deprecated
+	default int isMore(AddressDivisionSeries other) {
+		return compareCounts(other);
 	}
 	
 	/**

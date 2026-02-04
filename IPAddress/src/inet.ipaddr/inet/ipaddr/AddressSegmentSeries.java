@@ -18,6 +18,8 @@
 
 package inet.ipaddr;
 
+import java.math.BigInteger;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
@@ -35,6 +37,15 @@ import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
  *
  */
 public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComponent {
+	/**
+	 * Returns a comparator to sort series by prefix length.
+	 * 
+	 * @return
+	 */
+	static Comparator<AddressSegmentSeries> getPrefixLenComparator() {
+		return IPAddressSection.mergeListComparator;
+	}
+	
 	/**
 	 * Returns the number of segments in this series.
 	 * @return
@@ -188,6 +199,26 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 		return (value & (1 << (bitsPerSegment - (segmentBitIndex + 1)))) != 0;
 	}
 	
+	/**
+	 * Returns true if the bits in the lower value of this series between the indicated indices are all zero.
+	 * Index 0 is the most significant bit.  The bits are checked from fromBPrefixBitIndex inclusive to toPrefixBitIndex exclusive.
+	 * 
+	 * @param fromBPrefixBitIndex
+	 * @param toPrefixBitIndex
+	 * @return
+	 */
+	boolean includesZeroBits(int fromBPrefixBitIndex, int toPrefixBitIndex);
+
+	/**
+	 * Returns true if the bits in the upper value of this series between the indicated indices are all one.
+	 * Index 0 is the most significant bit.  The bits are checked from fromBPrefixBitIndex inclusive to toPrefixBitIndex exclusive.
+	 * 
+	 * @param fromBPrefixBitIndex
+	 * @param toPrefixBitIndex
+	 * @return
+	 */
+	boolean includesMaxBits(int fromBPrefixBitIndex, int toPrefixBitIndex);
+
 	@Override
 	Iterable<? extends AddressSegmentSeries> getIterable();
 	
@@ -278,7 +309,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * A negative increment added to the subnet count is equivalent to the same number of values preceding the upper bound of the iterator.
 	 * For instance, an increment of count - 1 is the last value from the iterator, an increment of count - 2 is the second last value, and so on.
 	 * <p>
-	 * An increment of size count gives you the series just above the highest series of the subnet.
+	 * An increment of size matching the count gives you the series just above the highest series of the subnet.
 	 * To get the series just below the lowest series of the subnet, use the increment -1.
 	 * 
 	 * @param increment
@@ -286,6 +317,15 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * @return
 	 */
 	AddressSegmentSeries increment(long increment) throws AddressValueException;
+
+	/**
+	 * Similar to {@link #increment(long)}
+	 * 
+	 * @param increment
+	 * @return
+	 * @throws AddressValueException
+	 */
+	AddressSegmentSeries increment(BigInteger increment) throws AddressValueException;
 
 	/**
 	 * If the given increment is positive, adds the value to the upper series ({@link #getUpper()}) in the subnet range to produce a new series.
@@ -300,6 +340,30 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 	 * @return
 	 */
 	AddressSegmentSeries incrementBoundary(long increment) throws AddressValueException;
+
+	/**
+	 * Increments the address by 1 to produce a new series.  Equivalent to increment(1).
+	 * 
+	 * @throws AddressValueException if the series is the max series, resulting in overflow.
+	 * @return
+	 */
+	AddressSegmentSeries increment() throws AddressValueException;
+
+	/**
+	 * Decrements the address by 1 to produce a new series.  Equivalent to increment(-1) or incrementBoundary(-1).
+	 * 
+	 * @throws AddressValueException if the series includes the zero series, resulting in underflow.
+	 * @return
+	 */
+	AddressSegmentSeries decrement() throws AddressValueException;
+
+	/**
+	 * Increments the boundary by 1 to produce a new series.  Equivalent to incrementBoundary(1).
+	 * 
+	 * @throws AddressValueException if the series includes the max series, resulting in overflow.
+	 * @return
+	 */
+	AddressSegmentSeries incrementBoundary() throws AddressValueException;
 
 	/**
 	 * Produces the canonical representation of the address
