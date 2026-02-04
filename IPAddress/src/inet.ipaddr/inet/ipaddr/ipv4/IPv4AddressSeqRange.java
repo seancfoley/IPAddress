@@ -49,7 +49,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	private static final long serialVersionUID = 1L;
 
 	static final IPv4AddressSeqRange EMPTY[] = {};
-		
+
 	public IPv4AddressSeqRange(IPv4Address first, IPv4Address second) {
 		super(
 			first,
@@ -437,7 +437,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv4AddressSeqRange join(IPAddressSeqRange other) {
 		return (IPv4AddressSeqRange) super.join(other);
 	}
-	
+
 	@Override
 	public IPv4AddressSeqRangeList joinIntoList(IPAddressSeqRange other) {
 		return (IPv4AddressSeqRangeList) super.joinIntoList(other);
@@ -447,7 +447,7 @@ public class IPv4AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv4AddressSeqRange[] subtract(IPAddressSeqRange other) {
 		return (IPv4AddressSeqRange[]) super.subtract(other);
 	}
-	
+
 	@Override
 	public IPv4AddressSeqRangeList subtractIntoList(IPAddressSeqRange other) {
 		return (IPv4AddressSeqRangeList) super.subtractIntoList(other);

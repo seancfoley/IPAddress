@@ -1959,7 +1959,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		if(sections.size() > 1) {
 			sections.sort(Address.ADDRESS_LOW_VALUE_COMPARATOR);
 		}
-		
+
 		//apply the prefix to the sections
 		//for each section, we figure out what each prefix length should be
 		if(first.isPrefixed()) {
@@ -2116,7 +2116,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return includesZeroHost(networkPrefixLength);
 	}
-	
+
 	@Override
 	public  boolean includesZeroBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
 		if(getSegmentCount() == 0) {
@@ -2713,16 +2713,16 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			return (IPAddressSeqRangePrefixSpliterator<S>) super.trySplit();
 		}
 	}
-	
+
 	@Override
 	public abstract IPAddressSection increment(long increment);
-	
+
 	@Override
 	public abstract IPAddressSection increment(BigInteger increment);
 
 	@Override
 	public abstract IPAddressSection incrementBoundary(long increment);
-	
+
 	@Override
 	public abstract IPAddressSection increment();
 	
@@ -2735,7 +2735,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public boolean isEntireAddress() {
 		return getSegmentCount() == IPAddress.getSegmentCount(getIPVersion());
 	}
-	
+
 	protected boolean isMultiple(int segmentCount) {
 		for(int i = 0; i < segmentCount; i++) {
 			if(getSegment(i).isMultiple()) {
@@ -2744,7 +2744,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Returns whether this section has a prefix length and if so, 
 	 * whether the host section is zero for this section or all sections in this set of address sections.
@@ -2758,7 +2758,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return isZeroHost(getNetworkPrefixLength());
 	}
-	
+
 	/**
 	 * Returns whether the host is zero for the given prefix length for this section or all sections in this set of address sections.
 	 * If this section already has a prefix length, then that prefix length is ignored.
@@ -2772,18 +2772,18 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return isZeroHost(prefixLength, getSegments(), getBytesPerSegment(), getBitsPerSegment(), getBitCount());
 	}
-	
+
 	protected <S extends IPAddressSegment> boolean isZeroHost(S segments[]) {
 		if(!isPrefixed()) {
 			return false;
 		}
 		return isZeroHost(getNetworkPrefixLength(), segments, getBytesPerSegment(), getBitsPerSegment(), getBitCount());
 	}
-	
+
 	protected <S extends IPAddressSegment> boolean isZeroHost(S segments[], int prefixLength) {
 		return isZeroHost(prefixLength, segments, getBytesPerSegment(), getBitsPerSegment(), getBitCount());
 	}
-	
+
 	protected static <S extends IPAddressSegment> boolean isZeroHost(int prefLen, S segments[], int bytesPerSegment, int bitsPerSegment, int bitCount) {
 		if(segments.length == 0 ) {
 			return false;
@@ -2819,13 +2819,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	////////////////string creation below ///////////////////////////////////////////////////////////////////////////////////////////
 
 	static void checkLengths(int length, StringBuilder builder) {
 		IPAddressStringParams.checkLengths(length, builder);
 	}
-	
+
 	@Override
 	public String toString() {
 		return toNormalizedString();//for ipv6, the canonical string can be the same for two different sections
@@ -2835,13 +2835,13 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public String[] getSegmentStrings() {
 		return getDivisionStrings();
 	}
-	
+
 	protected abstract void cacheNormalizedString(String str);
-	
+
 	protected abstract IPStringCache getStringCache();
-	
+
 	protected abstract boolean hasNoStringCache();
-	
+
 	/*
 	 * There are two approaches when going beyond the usual segment by segment approach to producing strings for IPv6 and IPv4.
 	 * We can use the inet_aton approach, creating new segments as desired (one, two or three segments instead of the usual 4).
@@ -2860,7 +2860,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * divides the total bit length, so the first segment does not end up with too many leading zeros.  
 	 * In the cases where the above approaches do not work, this approach works.
 	 */
-	
+
 
 	@Override
 	public String toBinaryString() throws IncompatibleAddressException {
@@ -2871,14 +2871,14 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	protected String toBinaryString(CharSequence zone) {
 		if(isDualString()) {
 			return toNormalizedStringRange(toIPParams(IPStringCache.binaryParams), getLower(), getUpper(), zone);
 		}
 		return toIPParams(IPStringCache.binaryParams).toString(this, zone);
 	}
-	
+
 	@Override
 	public String toOctalString(boolean with0Prefix) throws IncompatibleAddressException {  
 		String result;
@@ -2893,7 +2893,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	protected String toOctalString(boolean with0Prefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
 			IPAddressSection lower = getLower();
@@ -2923,7 +2923,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return result;
 	}
-	
+
 	//overridden in ipv6 to handle zone
 	protected String toHexString(boolean with0xPrefix, CharSequence zone) throws IncompatibleAddressException {
 		if(isDualString()) {
@@ -2931,7 +2931,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return toIPParams(with0xPrefix ? IPStringCache.hexPrefixedParams : IPStringCache.hexParams).toString(this, zone);
 	}
-	
+
 	@Override
 	public String toNormalizedString(IPStringOptions stringOptions) {
 		return toNormalizedString(stringOptions, this);
@@ -2944,10 +2944,10 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	protected static IPAddressStringParams<IPAddressStringDivisionSeries> toIPParams(IPStringOptions opts) {
 		//since the params here are not dependent on the section, we could cache the params in the options 
 		//this is not true on the IPv6 side where compression settings change based on the section
-		
+	
 		@SuppressWarnings("unchecked")
 		IPAddressStringParams<IPAddressStringDivisionSeries> result = (IPAddressStringParams<IPAddressStringDivisionSeries>) getCachedParams(opts);
-			
+
 		if(result == null) {
 			result = new IPAddressStringParams<IPAddressStringDivisionSeries>(opts.base, opts.separator, opts.uppercase);
 			result.expandSegments(opts.expandSegments);
@@ -2964,7 +2964,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		return result;
 	}
 
-		
+
 	/**
 	 * Returns at most a couple dozen string representations:
 	 * 
@@ -3004,7 +3004,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public IPAddressPartStringCollection toAllStringCollection() {
 		return toStringCollection(new IPStringBuilderOptions(IPStringBuilderOptions.LEADING_ZEROS_FULL_SOME_SEGMENTS));
 	}
-	
+
 	/**
 	 * Returns a set of strings for search the standard string representations in a database
 	 * 
@@ -3016,7 +3016,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public IPAddressPartStringCollection toDatabaseSearchStringCollection() {
 		return toStringCollection(new IPStringBuilderOptions());
 	}
-	
+
 	/**
 	 * Get all representations of this address including this IPAddressSection.  
 	 * This includes:
@@ -3034,7 +3034,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 		}
 		return EMPTY_PARTS;
 	}
-	
+
 	/**
 	 * This method gives you an SQL clause that allows you to search the database for the front part of an address or 
 	 * addresses in a given network.
@@ -3053,11 +3053,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	public void getStartsWithSQLClause(StringBuilder builder, String expression) {
 		getStartsWithSQLClause(builder, expression, new MySQLTranslator());
 	}
-	
+
 	public void getStartsWithSQLClause(StringBuilder builder, String expression, IPAddressSQLTranslator translator) {
 		getStartsWithSQLClause(builder, expression, true, translator);
 	}
-	
+
 	private void getStartsWithSQLClause(StringBuilder builder, String expression, boolean isFirstCall, IPAddressSQLTranslator translator) {
 		if(isFirstCall && isMultiple()) {
 			Iterator<? extends IPAddressSection> sectionIterator = iterator();
@@ -3114,37 +3114,37 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			binaryParams = new IPStringOptions.Builder(2).setSeparator(null).setExpandedSegments(true).setWildcardOptions(allWildcards).toOptions();
 			canonicalSegmentParams = new IPStringOptions.Builder(10, ' ').toOptions();
 		}
-		
+
 		public String normalizedWildcardString;
 		public String fullString;
 		public String sqlWildcardString;
 
 		public String reverseDNSString;
-		
+
 		public String octalStringPrefixed;
 		public String octalString;
 		public String binaryString;
-		
+
 		public String segmentedBinaryString;
 	}
-	
+
 	public static class WildcardOptions {
 		public enum WildcardOption {
 			NETWORK_ONLY, //only print wildcards that are part of the network portion (only possible with subnet address notation, otherwise this option is ignored)
 			ALL //print wildcards for any visible (non-compressed) segments
 		}
-		
+
 		public final WildcardOption wildcardOption;
 		public final Wildcards wildcards;
-		
+
 		public WildcardOptions() {
 			this(WildcardOption.NETWORK_ONLY);
 		}
-		
+
 		public WildcardOptions(WildcardOption wildcardOption) {
 			this(wildcardOption, new Wildcards());
 		}
-		
+
 		public WildcardOptions(WildcardOption wildcardOption, Wildcards wildcards) {
 			this.wildcardOption = wildcardOption;
 			this.wildcards = wildcards;
@@ -3157,11 +3157,11 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	 * @author sfoley
 	 */
 	public static class IPStringOptions extends StringOptions {
-		
+
 		public final String addrSuffix;
 		public final WildcardOption wildcardOption;
 		public final char zoneSeparator;
-		
+
 		protected IPStringOptions(
 				int base,
 				boolean expandSegments,
@@ -3180,7 +3180,7 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 			this.wildcardOption = wildcardOption;
 			this.zoneSeparator = zoneSeparator;
 		}
-		
+
 		public static class Builder extends StringOptions.Builder {
 
 			protected String addrSuffix = "";

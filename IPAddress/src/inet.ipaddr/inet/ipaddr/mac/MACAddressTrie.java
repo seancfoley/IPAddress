@@ -58,7 +58,7 @@ public class MACAddressTrie extends AddressTrie<MACAddress> {
 	protected void adjustRoot(MACAddress addr) {
 		if(isInitialRoot()) {
 			if(addr.getSegmentCount() == MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
-			absoluteRoot().setExtendedRootKey();
+				absoluteRoot().setExtendedRootKey();
 			} else {
 				absoluteRoot().setRootKey();
 			}

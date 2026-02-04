@@ -1530,7 +1530,7 @@ public class MACAddressSection extends AddressDivisionGrouping implements Addres
 		}
 		return getUpper().increment(increment);
 	}
-	
+
 	@Override
 	public MACAddressSection increment(long increment) {
 		if(increment == 0 && !isMultiple()) {

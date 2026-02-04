@@ -331,7 +331,7 @@ public class IPAddressLargeDivision extends AddressDivisionBase implements IPAdd
 	public boolean includesZero() {
 		return getValue().signum() == 0;
 	}
-	
+
 	@Override
 	public boolean includesMax() {
 		return getUpperValue().equals(maxValue);

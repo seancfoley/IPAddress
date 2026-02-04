@@ -1590,7 +1590,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
 		return conv.toIPv4(this);
 	}
-	
+
 	@Override
 	public IPv6Address toIPv6() {
 		return this;
@@ -1605,7 +1605,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 	protected boolean matchesVersion(IPAddress other) {
 		return other.isIPv6();
 	}
-	
+
 	/**
 	 * Determines whether this address can be converted to IPv4. 
 	 * Override this method to convert in your own way.
@@ -1620,7 +1620,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		IPAddressConverter conv = DEFAULT_ADDRESS_CONVERTER;
 		return conv.isIPv4Convertible(this);
 	}
-	
+
 	@Override
 	public boolean isIPv6Convertible() {
 		return true;
@@ -2278,7 +2278,7 @@ public class IPv6Address extends IPAddress implements Iterable<IPv6Address> {
 		converted[0] = removeZone();
 		return converted;
 	}
-	
+
 	@Override
 	public IPv6Address[] mergeToSequentialBlocks(IPAddress ...addresses) throws AddressConversionException {
 		if(addresses.length == 0) {

@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package inet.ipaddr;
 
 import java.math.BigInteger;
@@ -145,7 +144,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * The default way by which addresses are converted, initialized to an instance of {@link DefaultAddressConverter}
 	 */
 	public static final IPAddressConverter DEFAULT_ADDRESS_CONVERTER = new DefaultAddressConverter();
-	
+
 	/* a Host representing the address, which is the one used to construct the address if the address was resolved from a Host.  
 	 * Note this is different than if the Host was an address itself, in which case the Host holds a reference to the address
 	 * but there is no backwards reference to the Host.
@@ -474,7 +473,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	@Override
 	public abstract IPAddress incrementBoundary(long increment) throws AddressValueException;
-	
+
 	@Override
 	public abstract IPAddress incrementBoundary();
 
@@ -1534,7 +1533,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	 * @return
 	 */
 	public abstract IPAddress[] spanWithSequentialBlocks(IPAddress other) throws AddressConversionException;
-	
+
 	@Override
 	public abstract IPAddress[] spanWithPrefixBlocks();
 
@@ -1759,7 +1758,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	protected static <T extends IPAddress, S extends IPAddressSegment> List<IPAddressSegmentSeries> getMergedSequentialBlocks(IPAddressSegmentSeries sections[], IPAddressCreator<T, ?, ?, S, ?> creator) {
 		return IPAddressSection.getMergedSequentialBlocks(sections, creator::createSequentialBlockAddress);
 	}
-	
+
 	/**
 	 * Produces the subnet whose addresses are found in both this and the given subnet argument, or null if there are no such addresses.
 	 * <p>

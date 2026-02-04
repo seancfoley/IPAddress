@@ -38,7 +38,7 @@ import inet.ipaddr.format.util.AddressComponentSpliterator;
  */
 public interface IPAddressRange extends IPAddressAggregation<IPAddress, IPAddressSeqRange>, AddressComponentRange {
 	/**
-	  * Returns the number of individual addresses in this range.
+	 * Returns the number of individual addresses in this range.
 	 * 
 	 * @return
 	 */
@@ -180,7 +180,7 @@ public interface IPAddressRange extends IPAddressAggregation<IPAddress, IPAddres
 	 * @return
 	 */
 	IPAddressRange[] complement();
-	
+
 	/**
 	 * Produces a string that is unique and consistent for all instances.
 	 * @return

@@ -205,7 +205,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public MACAddressNetwork getNetwork() {
 		return defaultMACNetwork();

@@ -157,12 +157,12 @@ public abstract class Address implements AddressSegmentSeries {
 	public int getSegmentCount() {
 		return getSection().getSegmentCount();
 	}
-	
+
 	@Override
 	public int getDivisionCount() {
 		return getSection().getDivisionCount();
 	}
-	
+
 	@Override
 	public int getBitCount() {
 		return getSection().getBitCount();
@@ -220,13 +220,13 @@ public abstract class Address implements AddressSegmentSeries {
 
 	@Override
 	public abstract Address increment(long increment) throws AddressValueException;
-	
+
 	@Override
 	public abstract Address increment(BigInteger increment) throws AddressValueException;
 
 	@Override
 	public abstract Address incrementBoundary(long increment) throws AddressValueException;
-	
+
 	@Override
 	public abstract Address increment();
 
@@ -238,7 +238,7 @@ public abstract class Address implements AddressSegmentSeries {
 
 	@Override
 	public abstract Address getLower();
-	
+
 	@Override
 	public abstract Address getUpper();
 
@@ -445,27 +445,27 @@ public abstract class Address implements AddressSegmentSeries {
 	public boolean isZero() {
 		return getSection().isZero();
 	}
-	
+
 	@Override
 	public boolean includesZero() {
 		return getSection().includesZero();
 	}
-	
+
 	@Override
 	public boolean isMax() {
 		return getSection().isMax();
 	}
-	
+
 	@Override
 	public boolean includesMax() {
 		return getSection().includesMax();
 	}
-	
+
 	@Override
 	public boolean isFullRange() {
 		return getSection().isFullRange();
 	}
-	
+
 	@Override
 	public boolean includesZeroBits(int prefixBitStart, int prefixBitEnd) {
 		return getSection().includesZeroBits(prefixBitStart, prefixBitEnd);
@@ -678,7 +678,7 @@ public abstract class Address implements AddressSegmentSeries {
 	public boolean isSinglePrefixBlock() {
 		return getSection().isSinglePrefixBlock();
 	}
-	
+
 	@Override
 	public boolean containsSinglePrefixBlock(int prefixLength) {
 		return getSection().containsSinglePrefixBlock(prefixLength);
@@ -686,16 +686,16 @@ public abstract class Address implements AddressSegmentSeries {
 
 	@Override
 	public abstract Address toPrefixBlock();
-	
+
 	@Override @Deprecated
 	public abstract Address removePrefixLength();
-	
+
 	@Override
 	public abstract Address withoutPrefixLength();
-	
+
 	@Override @Deprecated
 	public abstract Address removePrefixLength(boolean zeroed);
-	
+
 	@Override
 	public abstract Address adjustPrefixBySegment(boolean nextSegment);
 
@@ -710,14 +710,14 @@ public abstract class Address implements AddressSegmentSeries {
 
 	@Override
 	public abstract Address setPrefixLength(int prefixLength);
-	
+
 	@Override
 	public abstract Address setPrefixLength(int prefixLength, boolean zeroed);
-	
+
 	@Deprecated
 	@Override
 	public abstract Address applyPrefixLength(int networkPrefixLength);
-	
+
 	/** 
 	 * Checks if the two arrays share the same list of addresses, subnets, or address collections, in any order, using address equality.
 	 * The function can handle duplicates, ignoring them.
@@ -745,7 +745,7 @@ public abstract class Address implements AddressSegmentSeries {
 		}
 		return result;
 	}
-	
+
 	private static HashSet<Address> asSet(Address addrs[])  {
 		int addrLen = addrs.length;
 		if(addrLen > 0) {
@@ -758,7 +758,7 @@ public abstract class Address implements AddressSegmentSeries {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Checks if the two arrays share the same ordered list of addresses, subnets, or address collections, using address equality.
 	 * Duplicates are allowed, but must match their counterpart in the other array with each occurrence.

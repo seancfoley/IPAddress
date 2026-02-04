@@ -1392,7 +1392,7 @@ public class IPAddressRangeTest extends IPAddressTest {
 		}
 		incrementTestCount();
 	}
-	
+
 	void testTree(String start, String parents[]) {
 		IPAddressString str = createAddress(start, WILDCARD_AND_RANGE_ADDRESS_OPTIONS);
 		IPAddressString originaLabelStr = str;

@@ -220,7 +220,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 		}
 		return true;
 	}
-	
+
 	protected static <R extends AddressSection> boolean includesZeroBits(
 			R section,
 			int prefixBitStart,
@@ -1345,7 +1345,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 			if(bigIncrement.compareTo(maxValue.get().subtract(lower.get())) > 0) {
 				throw new AddressValueException(bigIncrement);
 			}
-		} else{
+		} else {
 			BigInteger count = counter.get();
 			if(bigIncrement.compareTo(count) >= 0 && bigIncrement.subtract(count.subtract(BigInteger.ONE)).compareTo(maxValue.get().subtract(upper.get())) > 0) {
 				throw new AddressValueException(bigIncrement);
@@ -1628,7 +1628,7 @@ public class AddressDivisionGrouping extends AddressDivisionGroupingBase {
 					prefixLength);
 		return createIteratedSection(newSegs, addrCreator, prefixLength);
 	}
-	
+
 	protected static <R extends AddressSection, S extends AddressSegment> R incrementBoundaryOne(
 			R section,
 			AddressCreator<?, R, ?, S> addrCreator, 

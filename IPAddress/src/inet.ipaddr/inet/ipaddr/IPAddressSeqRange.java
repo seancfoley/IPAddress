@@ -63,7 +63,7 @@ import inet.ipaddr.ipv6.IPv6AddressSeqRange;
  *
  */
 public abstract class IPAddressSeqRange implements IPAddressRange {
-	
+
 	private static final long serialVersionUID = 1L;
 
 	private static final IPAddressSeqRange EMPTY_RANGES[] = new IPAddressSeqRange[0];
@@ -106,7 +106,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			this.upper = prefixLenRemover.apply(upper);
 		}
 	}
-	
+
 	protected <T extends IPAddress> IPAddressSeqRange(
 			T first, 
 			T second) {
@@ -673,7 +673,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public IPAddress getLower() {
 		return lower;
 	}
-	
+
 	/**
 	 * Returns the highest address in the sequential range, the one with the highest numeric value
 	 */
@@ -681,7 +681,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public IPAddress getUpper() {
 		return upper;
 	}
-	
+
 	/**
 	 * Returns the individual address at the given index into this sequential range.
 	 * <p>
@@ -1090,7 +1090,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	public boolean isSequential() {
 		return true;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		int res = hashCode;
@@ -1113,7 +1113,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 			}
 			return false;
 	}
-	
+
 	/**
 	 * Returns the intersection of this range with the given range, a range which includes those addresses in both this and the given range.
 	 * @param other
@@ -1141,7 +1141,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		}
 		return create(lower, otherUpper);
 	}
-	
+
 	/**
 	 * Joins two ranges if they are contiguous ranges.
 	 * 
@@ -1149,7 +1149,7 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 	 * or if the highest value of the lower range is one below the lowest value of the higher range,
 	 * then the two are joined into a new larger range that is returned.
 	 * <p>
-	  * Otherwise, null is returned.
+	 * Otherwise, null is returned.
 	 * <p>
 	 * Use {@link #joinIntoList(IPAddressSeqRange)} if you wish the result to match the original inputs. 
 	 * That method returns a list which contains both this and the given range, regardless of whether they can be joined into a single range. 
@@ -1526,9 +1526,9 @@ public abstract class IPAddressSeqRange implements IPAddressRange {
 		arr[asUpper ? 1 : 0] = this;
 		return arr;
 	}
-	
+
 	protected abstract IPAddressSeqRange create(IPAddress lower, IPAddress upper);
-	
+
 	protected abstract IPAddressSeqRange[] createArray(int capacity);
 
 	protected abstract IPAddressSeqRangeList createList();

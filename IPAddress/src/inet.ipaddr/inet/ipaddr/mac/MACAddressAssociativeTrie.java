@@ -61,7 +61,7 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 	protected void adjustRoot(MACAddress addr) {
 		if(isInitialRoot()) {
 			if(addr.getSegmentCount() == MACAddress.EXTENDED_UNIQUE_IDENTIFIER_64_SEGMENT_COUNT) {
-			absoluteRoot().setExtendedRootKey();
+				absoluteRoot().setExtendedRootKey();
 			} else {
 				absoluteRoot().setRootKey();
 			}
@@ -109,8 +109,8 @@ public class MACAddressAssociativeTrie<V> extends AssociativeAddressTrie<MACAddr
 		}
 
 		void setRootKey() {
-				setKey(INIT_ROOT);
-			}
+			setKey(INIT_ROOT);
+		}
 
 		void setExtendedRootKey() {
 			setKey(INIT_ROOT_EXTENDED);

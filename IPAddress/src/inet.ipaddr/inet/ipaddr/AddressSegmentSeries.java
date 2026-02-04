@@ -198,7 +198,7 @@ public interface AddressSegmentSeries extends AddressDivisionSeries, AddressComp
 		int value = segment.getSegmentValue();
 		return (value & (1 << (bitsPerSegment - (segmentBitIndex + 1)))) != 0;
 	}
-	
+
 	/**
 	 * Returns true if the bits in the lower value of this series between the indicated indices are all zero.
 	 * Index 0 is the most significant bit.  The bits are checked from fromBPrefixBitIndex inclusive to toPrefixBitIndex exclusive.

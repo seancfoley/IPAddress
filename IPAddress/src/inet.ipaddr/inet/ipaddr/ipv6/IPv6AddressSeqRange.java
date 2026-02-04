@@ -46,7 +46,7 @@ import inet.ipaddr.ipv6.IPv6AddressNetwork.IPv6AddressCreator;
  *
  */
 public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<IPv6Address> {
-	
+
 	private static final long serialVersionUID = 1L;
 
 	private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
@@ -63,11 +63,11 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 			throw new NetworkMismatchException(first, second);
 		}
 	}
-	
+
 	IPv6AddressSeqRange(IPAddress first, IPAddress second) {
 		super(first, second);
 	}
-	
+
 	@Override
 	public boolean isIPv6() {
 		return true;
@@ -100,7 +100,7 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv6Address getUpper() {
 		return (IPv6Address) super.getUpper();
 	}
-	
+
 	@Override
 	public IPv6Address get(BigInteger index) {
 		if(index.signum() < 0 || index.compareTo(getCount()) >= 0) {
@@ -389,7 +389,7 @@ public class IPv6AddressSeqRange extends IPAddressSeqRange implements Iterable<I
 	public IPv6AddressSeqRange join(IPAddressSeqRange other) {
 		return (IPv6AddressSeqRange) super.join(other);
 	}
-	
+
 	@Override
 	public IPv6AddressSeqRangeList joinIntoList(IPAddressSeqRange other) {
 		return (IPv6AddressSeqRangeList) super.joinIntoList(other);

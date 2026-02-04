@@ -337,11 +337,11 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			cachedPrefixLength = NO_PREFIX_LENGTH;
 		}
 	}
-	
+
 	public IPv4AddressSection(int value) {
 		this(value, null);
 	}
-	
+
 	@Override
 	public IPv4AddressSegment[] getSegments() {
 		return (IPv4AddressSegment[]) getDivisionsInternal().clone();
@@ -351,7 +351,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPv4AddressSection getSection() {
 		return this;
 	}
-	
+
 	@Override
 	public IPv4AddressSection getSection(int index) {
 		return getSection(index, getSegmentCount());
@@ -361,12 +361,12 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 	public IPv4AddressSection getSection(int index, int endIndex) {
 		return getSection(index, endIndex, this, getAddressCreator());
 	}
-	
+
 	@Override
 	protected void setInetAddress(InetAddress addr) {
 		super.setInetAddress(addr);
 	}
-	
+
 	void cache(IPv4Address thisAddr, IPv4Address lower, IPv4Address upper) {
 		if((lower != null || upper != null) && getSingleLowestOrHighestSection(this) == null) {
 			getSection().cache(lower != null ? lower.getSection() : null, upper != null ? upper.getSection() : null);
@@ -391,7 +391,7 @@ public class IPv4AddressSection extends IPAddressSection implements Iterable<IPv
 			}
 		}
 	}
-	
+
 	void cache(IPv4AddressSection lower, IPv4AddressSection upper) {
 		SectionCache<IPv4AddressSection> cache = sectionCache;
 		if((lower != null || upper != null) && 

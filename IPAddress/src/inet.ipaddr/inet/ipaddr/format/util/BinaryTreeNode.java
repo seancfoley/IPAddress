@@ -2505,7 +2505,7 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 	 */
 	@Override
 	public String toString() {
-		return toNodeString(new StringBuilder(50), isAdded(), getKey(),  null).toString();
+		return toNodeString(new StringBuilder(50), isAdded(), getKey(), null).toString();
 	}
 
 	static <E, V> StringBuilder toNodeString(StringBuilder builder, boolean isAdded, E key, V value) {
@@ -2573,19 +2573,19 @@ public class BinaryTreeNode<E> implements TreeOps<E> {
 					} else {
 						E lowerKey = lower.getKey();
 						if(lowerKey != null && bounds.isWithinLowerBound(lowerKey)) {
-						if(!lower.isAdded()) {
-							BinaryTreeNode<E> next = lower.getLowerSubNode();
-							while(bounds.isBelowLowerBound(next.getKey())) {
-								next = next.getUpperSubNode();
-								if(next == null) {
-									lower = lower.getUpperSubNode();
-									recalculateSize = true;
-									break;
+							if(!lower.isAdded()) {
+								BinaryTreeNode<E> next = lower.getLowerSubNode();
+								while(bounds.isBelowLowerBound(next.getKey())) {
+									next = next.getUpperSubNode();
+									if(next == null) {
+										lower = lower.getUpperSubNode();
+										recalculateSize = true;
+										break;
+									}
 								}
 							}
+							break;
 						}
-						break;
-					}
 					}
 					recalculateSize = true;
 					// outside bounds, try again

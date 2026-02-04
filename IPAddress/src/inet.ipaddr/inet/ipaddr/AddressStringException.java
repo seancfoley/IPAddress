@@ -26,30 +26,30 @@ package inet.ipaddr;
 public class AddressStringException extends HostIdentifierException {
 
 	private static final long serialVersionUID = 4L;
-	
+
 	private static final String errorMessage = getMessage("ipaddress.address.error");
-	
+
 	public AddressStringException(CharSequence str, String key, Throwable cause) {
 		super(str, errorMessage, key, cause);
 	}
-	
+
 	public AddressStringException(CharSequence str, String key) {
 		super(str, errorMessage, key);
 	}
-	
+
 	public AddressStringException(CharSequence str, String key, int characterIndex) {
 		super(str.toString() + ' ' + errorMessage + ' ' + getMessage(key) + ' ' + characterIndex);
 	}
-	
+
 	public AddressStringException(CharSequence str, int characterIndex) {
 		this(str, characterIndex, false);
 	}
-	
+
 	public AddressStringException(CharSequence str, int characterIndex, boolean combo) {
 		super(str.toString() + ' ' + errorMessage + ' ' + 
 				getMessage(combo ? "ipaddress.error.invalid.character.combination.at.index" : "ipaddress.error.invalid.character.at.index") + ' ' + characterIndex);
 	}
-	
+
 	public AddressStringException(String key) {
 		super(errorMessage, key);
 	}

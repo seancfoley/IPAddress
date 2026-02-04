@@ -227,7 +227,7 @@ public class IPv4AddressTrie extends AddressTrie<IPv4Address> {
 		public IPv4TrieNode previousNode() {
 			return (IPv4TrieNode) super.previousNode();
 		}
-		
+
 		@Override
 		public IPv4TrieNode removeElementsIntersectedBy(IPv4Address addr) { 
 			return (IPv4TrieNode) super.removeElementsIntersectedBy(addr);

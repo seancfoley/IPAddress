@@ -346,7 +346,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 			this.nearExclusive = exclusive;
 			return reset(addr, Operation.NEAR);
 		}
-	
+
 		// Do not use with Operation.NEAR, INSERT, REMAP, INSERTED_DELETE, SUBTREE_DELETE
 		// We'd need to do more cleaning if we did.
 		void clean() {
@@ -1712,7 +1712,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 
 		private void handleSplitNode(OpResult<E> result, int totalMatchingBits) {
 			E newAddr = result.addr;
-			Operation op = result.op;	
+			Operation op = result.op;
 			if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 				split(result, totalMatchingBits, createNew(newAddr));
 			} else if(op == Operation.NEAR  || op == Operation.CONTAINMENT_NEAR) {
@@ -2289,7 +2289,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return totalCount;
 	}
-	
+
 	/**
 	 * Returns the total number of addresses covered by prefix block subnets added to the trie, including individual addresses added as well.
 	 * Any address included in that count will return true when used as the argument to {@link #elementContains(Address)}.
@@ -2681,7 +2681,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		}
 		return absoluteRoot().elementsContaining(addr);
 	}
-	
+
 	@Override
 	public TrieNode<E> addIfNoElementsContaining(E addr) {
 		if(bounds != null) {

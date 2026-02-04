@@ -332,17 +332,17 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public int getByteCount() {
 		return BYTE_COUNT;
 	}
-	
+
 	@Override
 	public int getBitCount() {
 		return BIT_COUNT;
 	}
-	
+
 	@Override
 	public boolean isIPv4() {
 		return true;
 	}
-	
+
 	@Override
 	protected boolean matchesVersion(IPAddress other) {
 		return other.isIPv4();
@@ -352,12 +352,12 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 	public IPv4Address toIPv4() {
 		return this;
 	}
-	
+
 	@Override
 	public boolean isIPv4Convertible() {
 		return true;
 	}
-	
+
 	/**
 	 * Create an IPv6 mixed address using the given ipv6 segments and using this address for the embedded IPv4 segments
 	 * 
@@ -889,7 +889,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public IPv4Address toZeroHost() {
 		return toZeroHost(false);
@@ -1114,7 +1114,7 @@ public class IPv4Address extends IPAddress implements Iterable<IPv4Address> {
 				IPv4Address::withoutPrefixLength,
 				getAddressCreator());
 	}
-	
+
 	@Override
 	public IPv4AddressSeqRange spanWithRange(IPAddress other) throws AddressConversionException {
 		return new IPv4AddressSeqRange(this, convertArg(other));
