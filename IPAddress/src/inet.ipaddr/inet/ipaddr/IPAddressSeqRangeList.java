@@ -41,7 +41,7 @@ import inet.ipaddr.format.validate.ChangeTracker.Change;
 import inet.ipaddr.ipv4.IPv4AddressSeqRange;
 
 /**
- * IPAddressSeqRangeList maintains a sorted list of sequential address ranges.  
+ * IPAddressSeqRangeList is an IPAddressCollection backed by a sorted list of sequential IP address ranges.  
  * It consists of a series of IPAddressSeqRange instances to describe a range of addresses that is non-sequential if more than one IPAddressSeqRange is in the list.  
  * As addresses are added and removed, the list of IPAddressSeqRange instances are adjusted, 
  * so that it is always the minimal list of sequential ranges that includes all the specified addresses.
