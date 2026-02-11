@@ -37,7 +37,7 @@ by Sean C Foley
 
 [Address Tries](#address-tries)
 
-[IP Address Collections](#address-collections)
+[IP Address Collections](#ip-address-collections)
 
 [IP Address Operations](#ip-address-operations)
 
