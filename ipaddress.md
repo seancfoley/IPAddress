@@ -37,6 +37,8 @@ by Sean C Foley
 
 [Address Tries](#address-tries)
 
+[IP Address Collections](#address-collections)
+
 [IP Address Operations](#ip-address-operations)
 
 [Parse String Representations of MAC Address](#parse-string-representations-of-mac-address)
@@ -137,7 +139,7 @@ The IPAddress library was intended to satisfy the following primary goals:
 
   - **Sorting and comparison** of host names, addresses, address strings and subnets
 
-  - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals
+  - **Address data structures** including the trie, associative trie, corresponding sets and maps, providing additional address operations such as group containment operations, sorting operations, prefix block operations, and alternative subnet traversals.  Also, the two collections options, the IP address sequential range list backed by an array of sequential ranges, and the IP address containment trie backed by a trie, both optimized and efficient types to maintain collections of addresses.
 
   - **Integrate with standard types.**  For Java, this includes the primitive signed types and the standard library classes `java.net.InetAddress`, `java.net.Inet6Address`, `java.net.Inet4Address`, and `java.math.BigInteger`.  For Go, this includes the primitive unsigned types and the Go standard library types `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `net.TCPAddr`, `net.UDPAddr`, `net/netip.Addr`, `net/netip.AddrPort`, `net/netip.Prefix`, and `big.Int`.
 
@@ -178,15 +180,15 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | Framework of address interfaces for polymorphic code |  ✅ | ✅ |
 | Address tries | ✅ |  ✅ |
 | Associative address tries | ✅ |  ✅ |
+| Containment trie IP Address collection | ✅ | Future |
+| Sequential range list IP address collection | ✅ | Future |
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
-| Parse IP strings directly to division groupings | ✅ | Future |
+| Parse IP strings directly to division groupings | ✅ |  |
 | Prefix Block Allocator | ✅ | ✅ |
 | Serialization | ✅  |  |
 
-
-Note that this document is being expanded to include more Go code examples and references.
 
 &#8203;
 ## Code Examples
@@ -1015,13 +1017,14 @@ The Go language has the concept of [comparable types, those types that can be co
 
 Each of the address and range core types provides an associated key type, a value type, that is comparable with comparison operators and usable as keys for the Go built-in map type.  Use the ToKey methods to obtain the corresponding key, and use each key's ToAddress method to get back the corresponding address.
 
-You can see [an example using address keys in the example wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing#use-addresses-or-address-ranges-as-keys-for-go-built-in-maps).
+You can see [an example using address keys for sets using maps in the example wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing#use-addresses-or-address-ranges-as-keys-for-go-built-in-maps).
 
+Address, subnet and range keys are also useful for data transfer across networks.  They are simple and compact value types (primarily integers) that are ideal for including in protobuf, json, or other network formats and protocols.  Once transmitted they can be easily converted back to the library's default type allowing for complex address and subnet manipulations and transformations.
 
 &#8203;
 ## Golang Zero Values
 
-The following Go code reveals the zero values for the address and sequential range core types, as well as some other related types:
+The following Go code reveals the zero values for the address and sequential range core types, as well as some other related types.  As you might expect, the zero values for addresses and segments are zero-valued addresses and segments:
 ```go
 strip := func(s string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(s, "ipaddr.", ""),
@@ -1776,12 +1779,46 @@ all inserted: true
 ```
 The two tries illustrate how the two partitions differ.
 
+
+&#8203;
+## IP Address Collections
+
+A collection of IP addresses is more expansive and encompassing than a single subnet or sequential range, and can represent any arbitrary set of IP addresses.
+
+While it is possible to maintain collections of individual IP addresses using the Java Collections types,
+storing addresses individually is not efficient in terms of performance or memory.
+
+Instances of `IPAddressCollection` are more efficient, backed by prefix blocks or sequential ranges, storing addresses into the minimal number of prefix blocks or sequential ranges possible.
+
+The library contains two options for maintaining space-efficient and performance-optimized collections of IP addresses, `IPAddressSeqRangeList` and `IPAddressContainmentTrie`.
+
+`IPAddressSeqRangeList` is backed by an array of sequential ranges.  `IPAddressContainmentTrie` is backed by a trie of CIDR prefix blocks.  Both offer binary search for containment queries.  Whether one is better than the other may depend on the data set or the underlying processor, or whether you may need additional operations that are specific to one collection or the other.  In particular, `IPAddressSeqRangeList` is likely to offer better cache coherency in CPU processors, which may result in better overall performance in searching.  However, when dealing with CIDR prefix blocks as your input and output, it may be more efficient to go with IPAddressContainmentTrie since the elements in the collection are also stored as prefix blocks, requiring little to no conversion when adding or removing.
+
+Both collection options change shape internally as addresses are added and removed, and for this reason they do not allow direct access to the backing list or the backing trie.  The backing data structures change shape so that they always contain the minimal number of sequential ranges or prefix blocks to represent the collection of addresses.
+
+When adding to either collection option, whether adding an IP address, subnet, or sequential range, the argument is converted to the data types used by the collection's backing data structure.  So, in particular, unlike address tries, which require that callers convert to prefix blocks or individual address first, the containment trie does this conversion for you, allowing an argument to be an address, subnet, or range of any shape.
+
+Containment tries also differ from regular address tries in that the elements of containment tries are the individual addresses.  With address tries, the elements are both prefix blocks and individual addresses.   In an address trie, an individual address might be added individually to the trie, while it can also exist in the trie as part of an added subnet, at the same time.   With a containment trie, that is not the case.  Any address element might not remain in the same block in the backing trie as it changes shape, but there will always be at most one block or address holding that address element.
+
+Another difference between address tries and containment tries is that when producing a string of an address trie, the counts associated with each node are the added node counts, because the elements are the added nodes which represent either prefix blocks or individual addresses, while in a containment trie the counts associated with each node are the address counts, because the elements are the individual addresses contained in any prefix block or individual address that is part of the backing trie.
+
+Both collection options implement the interface `IPAddressCollection`.  `IPAddressSeqRangeList` offers a number of additional operations such as intersect, or quick retrieval of addresses by index.  In fact, you can do set arithmetic with `IPAddressSeqRangeList` quite easily, and you can choose to do so either by operating on an instance in place, or by producing new lists with each operation.   For instance, see the [example illustrating De Morgan's laws of set theory](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations#de-morgans-laws-of-set-theory).
+
+Equality of an `IPAddressCollection` instance with another instance of `IPAddressCollection` is determined by the contents of the collections.  They are equal if the collections contain the same set of individual addresses.
+
+
+&#8203;
+#### IP Address Aggregations
+
+The IPAddressAggregation interface represents all types that can represent a multitude of individual addresses.   This includes subnets (`IPAddress`), sequential ranges (`IPAddressSeqRange`), and address collections (`IPAddressSeqRangeList` and `IPAddressContainmentTrie`).
+
+
 &#8203;
 ## IP Address Operations
 
 Here we summarize the operations on IP Addresses, Subnets, and Sequential Ranges.  Many of these operations are also available on other address items, such as sections and segments.
 
-We start with the more general operations, those that do not involve prefixes, prefix blocks, or segment blocks, followed by operations involving prefixes and prefix blocks, and the operations involving segment blocks.  Segment block subnets are those subnets which have value ranges by segment.  Prefix blocks are subnets that have a value range corresponding to a specified prefix length, the subnet containing the full block of addresses according to that prefix.
+We start with the more general operations, those that do not involve prefixes, prefix blocks, or segment blocks, followed by operations involving prefixes and prefix blocks, followed the operations involving segment blocks.  Segment block subnets are those subnets which have value ranges by segment.  Prefix blocks are subnets that have a value range corresponding to a specified prefix length, the subnet containing the full block of addresses according to that prefix.
 
 &#8203;
 
@@ -1981,7 +2018,7 @@ fmt.Println("masked address", maskedAddress,
 	"equals lowest address in subnet", lowestAddrInSubnet,
 	"is", maskedAddress.Equal(lowestAddrInSubnet))
 
-	// get the zero host
+// get the zero host
 
 zeroHost, _ := subnet.ToZeroHost()
 fmt.Println("zero host is", zeroHost)
@@ -2140,9 +2177,28 @@ The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Su
 
 &#8203;
 
+#### Operations with Tries
+
+Java tries and associative tries can be converted into sets and maps that are backed by the original trie instances.  The set and map types integrate with the types in the Java collections framework.  In fact, the AddressTrieSet type implements the Java collections framework interfaces Collection, NavigableSet, Set, and SortedSet.  The AddressTrieMap type implements the Java collections framework interfaces Map, NavigableMap, SortedMap.  
+
+The address trie types provides additional operations based on address containment, operations not available from the map and set types, while the map and set types can be used with code that operates on Java collections framework interfaces.  Note that the Map.Entry instances from the maps correspond to the AssociativeTrieNode instances from the maps' backing associative tries.
+
+Operations *in italics* are Java collections framework operations on the trie-backed sets and maps.
+
+| Java | Go | Description |
+| --- | --- | --- |
+| add, addNode, addTrie, *add*, *addAll* | Add, AddNode, AddTrie | Insert one or more nodes into the trie for the given individual address(es) or CIDR prefix block(s). |
+| put, putNew, putNode, putTrie, *put*, *putAll* | Put, PutNode, PutTrie | Insert one or more nodes into the trie for the given individual address(es) or CIDR prefix block(s), along with the given associated value.  If the address or subnet already exists in the trie, the associated value, if any, is replaced. |
+| remove, *remove*, *removeAll* | Remove | Removes from the trie the nodes whose keys are the given individual addresses or CIDR prefix blocks. |
+| ceilingAddedNode, floorAddedNode, higherAddedNode, lowerAddedNode, *ceiling*, *floor*, *higher*, *lower*, *ceilingKey*, *floorKey*, *higherKey*, *lowerKey*, *ceilingEntry*, *floorEntry*, *higherEntry*, *lowerEntry* | CeilingAddedNode, FloorAddedNode, HigherAddedNode, LowerAddedNode | Finds the node whose key is closest (in terms of trie order) to the given individual address or CIDR prefix block.  `Ceiling` matches the lowest key greater than or equal to the given address or CIDR prefix block.  `Floor` matches the highest key less than or equal to the given address or CIDR prefix block.  `Higher` matches the lowest key greater than the given address or CIDR prefix block.  `Lower` matches the highest key less than the given address or CIDR prefix block. |
+|  |  |  |
+|  |  |  |
+|  |  |  |
+
+
 #### Trie Operations
 
-Most of these operations are methods that operate directly on `AddressTrie` or `AssociativeAddressTrie` instances, but some are available from their associated `AddressTrieSet` or  `AddressTrieMap` instances available from `asSet` or `asMap`, in which case the methods would still be operating on the same backing trie.
+Most of these operations are methods that operate directly on `AddressTrie` or `AssociativeAddressTrie` instances, but some are available from their associated `AddressTrieSet` or `AddressTrieMap` instances available from `asSet` or `asMap`, in which case the methods would still be operating on the same backing trie.
 
 - **add**, **addNode**, **addTrie**, **addAll**, **put**, **putNew**, **putNode**, **putTrie**, **putAll**: Insert one or more nodes into the trie for the given individual address(es) or CIDR prefix block(s).  The put methods associate a value with the node.
 
@@ -2151,7 +2207,9 @@ Retrieves or checks for the existence of one or more nodes in the trie whose key
 
 - **remove**, **removeAll**: Removes from the trie the nodes whose keys are the given individual addresses or CIDR prefix blocks, if any.
 
-xxx Entry? xxxx
+xxx Entry? xxxx Was this a reference to map entry?  Not sure what I meant by "Entry?".
+we do have lots of methods like lastEntry and lowerEntry - but then again I did put those methods below.  Actually, I just added this, meaning I put it tht there a few months ago when I was working on adding the go stuff.  Maybe I just could not remember what the Entry methods were.  Yeah, I probably forgot they existed and was surprised to see them.
+Or maybe I was thinking that they do not exist on the Go side and that I need to take care of that properly, putting them only on the Java side in the table.
 
 - **ceilingAddedNode**, **floorAddedNode**, **higherAddedNode**, **lowerAddedNode**, **ceiling**, **floor**, **higher**, **lower**, **ceilingKey**, **floorKey**, **higherKey**, **lowerKey**, **ceilingEntry**, **floorEntry**, **higherEntry**, **lowerEntry**: Finds nodes whose keys are closest to the given individual address or CIDR prefix block.  These are implementations of methods defined by `java.util.NavigableSet` and `java.util.NavigableMap`.
 
