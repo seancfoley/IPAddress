@@ -51,11 +51,11 @@ by Sean C Foley
 
 [Conversion to String Representation of Address](#conversion-to-string-representation-of-address)
 
-[Containment and Subnet Membership](#containment-and-subnet-membership)
-
-[DNS Resolution and URLs](#dns-resolution-and-urls)
+[Containment and Membership](#containment-and-subnet-membership)
 
 [Sorting and Comparisons](#sorting-and-comparisons)
+
+[DNS Resolution and URLs](#dns-resolution-and-urls)
 
 [Make your IPv4 App work with IPv6](#make-your-ipv4-app-work-with-ipv6)
 
@@ -919,7 +919,7 @@ Output from both the Java and Go code:
 ```
 When parsing a range of single-segment values, it might not be possible to represent the range as a series of segments of range values, which is what is needed to be represented by an `IPv6Address` of 8 segment ranges, or an `IPv4Address` of 4 segment ranges.
 
-However, the string can still be parsed.  In Java, the parsed result can be obtained using `toDivisionGrouping`, `getDivisionGrouping`, providing an exact representation of the string divisions.  In both Java and Go, you can call the method `getSequentialRange` or `toSequentialRange` providing an `IPAddressSeqRange` instance with the range of addresses from the lower to the upper value of the range expressed by the string.  From the range, a series of `IPAddress` instances can be obtained using `spanWithPrefixBlocks` or `spanWithSequentialBlocks`.
+However, the string can still be parsed.  In Java, the parsed result can be obtained using `toDivisionGrouping`, `getDivisionGrouping`, providing an exact representation of the string divisions.  In both Java and Go, you can call the method `getSequentialRange` or `coverWithSequentialRange` providing an `IPAddressSeqRange` instance with the range of addresses from the lower to the upper value of the range expressed by the string.  From the range, a series of `IPAddress` instances can be obtained using `spanWithPrefixBlocks` or `spanWithSequentialBlocks`.
 
 &#8203;
 
@@ -1314,7 +1314,7 @@ available as those available with addresses themselves.
 
 An `IPAddress` or `IPAddressString` instance can represent any individual
 address or any range of addresses in which each segment specifies a
-range of sequential values. Such a range can be called a segment block, a block of values within the segment's range of possible values.  A subnet that contains segment blocks for any of its segments can be called a segment block subnet.  An individual address is one in which each segment is a segment block of size one, just a single value.
+range of sequential values. Such a range can be called a segment block, a block of values within a given segment's range of possible values.  A subnet that contains segment blocks for any of its segments can be called a segment block subnet, or a block subnet.  An individual address is one in which each segment is a segment block of size one, just a single value.
 
 Any CIDR prefix block can be specified as segment blocks.  However, a prefix block is a more specific type of subnet, a subnet that contains the full range of values for its prefix.  So any segment outside the prefix is a segment block containing all possible values for the segment.
 
@@ -1418,7 +1418,7 @@ Any `IPAddressSeqRange` instance can be converted to the minimal list of
 `IPAddress` sequential blocks or prefix blocks that cover the exact same range of
 addresses, providing a couple of different ways to go from `IPAddressSeqRange` to
 `IPAddress` instances. To go in the reverse direction, from `IPAddress` to
-`IPAddressSeqRange`, you can start with a sequential block iterator to convert any `IPAddress` instance to a series of `IPAddress` sequential blocks.  Then you can convert each `IPAddress` sequential block to an `IPAddressSeqRange` with the method `toSequentialRange`.
+`IPAddressSeqRange`, you can start with a sequential block iterator to convert any `IPAddress` instance to a series of `IPAddress` sequential blocks.  Then you can convert each `IPAddress` sequential block to an `IPAddressSeqRange` with the method `coverWithSequentialRange`.
 Finally, to eliminate overlap and obtain a minimal list of `IPAddressSeqRange` instances, you can use the `join` method of `IPAddressSeqRange`.
 
 Here we show code examples of a round-trip from a sequential range to a list of sequential or prefix blocks, and then back again, merging the list of blocks back to the original sequential range.
@@ -1440,7 +1440,7 @@ static void spanAndMergePrefixBlocks(IPAddressSeqRange range) {
 	System.out.println("Prefix blocks: " + Arrays.asList(result));
 	List<IPAddressSeqRange> rangeList = new ArrayList<>();
 	for(IPAddress a : result) {
-		rangeList.add(a.toSequentialRange());
+		rangeList.add(a.coverWithSequentialRange());
 	}
 	mergeBack(rangeList);
 }
@@ -1450,7 +1450,7 @@ static void spanAndMergeSequentialBlocks(IPAddressSeqRange range) {
 	System.out.println("Sequential blocks: " + Arrays.asList(result));
 	List<IPAddressSeqRange> rangeList = new ArrayList<>();
 	for(IPAddress a : result) {
-		rangeList.add(a.toSequentialRange());
+		rangeList.add(a.coverWithSequentialRange());
 	}
 	mergeBack(rangeList);
 }
@@ -1513,8 +1513,8 @@ Merged back again: [2:3:ffff:5:: -> 2:4:1:5::]
 As you can see in the example above, you can generally describe a range
 with fewer sequential blocks than prefix blocks.
 
-&#8203;
 
+&#8203;
 ## Address Tries
 
 The trie data structure is particularly useful when working with addresses.  For that reason this library includes compact binary address tries (aka compact binary prefix tree or binary radix trie, amongst other names).  Tries provide efficient re**trie**val operations, hence the name *trie*, but what makes them additionally useful for addresses is the fact that prefix tries are organized by the bits in the prefix of each key, the keys being addresses in this case, which mirrors the way that CIDR subnets and addresses are organized by prefix.  So you can use tries for efficient subnet containment checks on many addresses or subnets at once in constant time (such as with a routing table). A trie is useful for efficient lookups, for efficiently dividing and subdividing subnets, for sorting addresses, and for traversing through subnets in different ways.
@@ -1709,7 +1709,7 @@ An address trie stores individual addresses or CIDR prefix blocks subnets.  Ther
 
 The `Partition` type encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used only once.  Simply create another whenever that may be necessary.
 
-The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which frequently results in a smaller total number of blocks.
+The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which frequently results in a smaller total number of blocks.  In fact, it results in the minimal number of prefix blocks, and is used elsewhere in the library to span address ranges with prefix blocks.  For instance, it is used by containment tries when converting to prefix blocks.
 
 Here we partition an IPv4 subnet with `partitionWithSingleBlockSize` and then check for the partitioned elements in the trie, first in Java:
 ```java
@@ -1798,11 +1798,68 @@ Both collection options change shape internally as addresses are added and remov
 
 When adding to either collection option, whether adding an IP address, subnet, or sequential range, the argument is converted to the data types used by the collection's backing data structure.  So, in particular, unlike address tries, which require that callers convert to prefix blocks or individual address first, the containment trie does this conversion for you, allowing an argument to be an address, subnet, or range of any shape.
 
-Containment tries also differ from regular address tries in that the elements of containment tries are the individual addresses.  With address tries, the elements are both prefix blocks and individual addresses.   In an address trie, an individual address might be added individually to the trie, while it can also exist in the trie as part of an added subnet, at the same time.   With a containment trie, that is not the case.  Any address element might not remain in the same block in the backing trie as it changes shape, but there will always be at most one block or address holding that address element.
+Containment tries also differ from regular address tries in that the elements of containment tries are the individual addresses.  With address tries, the elements are both prefix blocks and individual addresses.   In an address trie, an individual address might be added individually to the trie, while it can also exist in the trie as part of an added subnet, at the same time.   With a containment trie, that is not the case.  An address element that is part of the collection might not remain in the same location in the backing trie as the trie changes shape.  However, there will always be exactly one block or address in the backing trie holding that address element.
 
-Another difference between address tries and containment tries is that when producing a string of an address trie, the counts associated with each node are the added node counts, because the elements are the added nodes which represent either prefix blocks or individual addresses, while in a containment trie the counts associated with each node are the address counts, because the elements are the individual addresses contained in any prefix block or individual address that is part of the backing trie.
+Another difference between address tries and containment tries is that when producing a string of an address trie, the counts associated with each node are the added node counts, because the elements are the added nodes which represent either prefix blocks or individual addresses, while in a containment trie the counts associated with each node are the address counts, because the elements are the individual addresses contained in any prefix block or individual address that was added.  
 
-Both collection options implement the interface `IPAddressCollection`.  `IPAddressSeqRangeList` offers a number of additional operations such as intersect, or quick retrieval of addresses by index.  In fact, you can do set arithmetic with `IPAddressSeqRangeList` quite easily, and you can choose to do so either by operating on an instance in place, or by producing new lists with each operation.   For instance, see the [example illustrating De Morgan's laws of set theory](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations#de-morgans-laws-of-set-theory).
+To illustrate, here we add the same set of addresses and blocks to a trie, a containment trie collection, and a range list collection.  In the trie, the blocks and addresses are the elements, and the bracketed roll-up counts shown with each node show the count of those elements, showing that we added 11 blocks and addresses.  With the containment trie, the elements are the individual addresses of each added subnet and address, so the original blocks and addresses are not present in the trie as the trie has changed shape to have with the minimal number of nodes.  Also, the roll-up shows the count of individual addresses added, which totals 4608.  The list also changes shape as the subnets and addresses are added, so as to contain the minimal number of sequential range lists.
+```java
+String addrStrs[] = {
+		"10.172.80.0/21", "10.172.88.0/24", "10.172.89.0/24", "10.172.88.0",
+		"10.172.88.3", "10.172.88.5", "10.172.96.0/21", "10.172.89.1",
+		"10.172.81.0/24", "10.172.82.0/24", "10.172.83.0/24"};
+IPAddressTrie trie = new IPAddressTrie();
+IPAddressContainmentTrie trieCollection = new IPAddressContainmentTrie();
+IPAddressSeqRangeList listCollection = new IPAddressSeqRangeList();
+for(String str : addrStrs) {
+	IPAddress addr = new IPAddressString(str).getAddress();
+	trie.add(addr);
+	trieCollection.add(addr);
+	listCollection.add(addr);
+}
+System.out.println("trie with " + trie.size() + " elements: " + trie);
+System.out.println("containment trie collection with " +
+		trieCollection.getCount() + " elements: " + trieCollection);
+System.out.println("sequential range list collection with " +
+		listCollection.getCount() + " elements:\n" + listCollection);
+```
+Output:
+```
+trie with 11 elements:
+○ 0.0.0.0/0 (11)
+└─○ 10.172.64.0/18 (11)
+  ├─○ 10.172.80.0/20 (10)
+  │ ├─● 10.172.80.0/21 (4)
+  │ │ └─○ 10.172.80.0/22 (3)
+  │ │   ├─● 10.172.81.0/24 (1)
+  │ │   └─○ 10.172.82.0/23 (2)
+  │ │     ├─● 10.172.82.0/24 (1)
+  │ │     └─● 10.172.83.0/24 (1)
+  │ └─○ 10.172.88.0/23 (6)
+  │   ├─● 10.172.88.0/24 (4)
+  │   │ └─○ 10.172.88.0/29 (3)
+  │   │   ├─○ 10.172.88.0/30 (2)
+  │   │   │ ├─● 10.172.88.0 (1)
+  │   │   │ └─● 10.172.88.3 (1)
+  │   │   └─● 10.172.88.5 (1)
+  │   └─● 10.172.89.0/24 (2)
+  │     └─● 10.172.89.1 (1)
+  └─● 10.172.96.0/21 (1)
+
+containment trie collection with 4608 elements:
+○ 0.0.0.0/0 (4608)
+└─○ 10.172.64.0/18 (4608)
+  ├─○ 10.172.80.0/20 (2560)
+  │ ├─● 10.172.80.0/21 (2048)
+  │ └─● 10.172.88.0/23 (512)
+  └─● 10.172.96.0/21 (2048)
+
+sequential range list collection with 4608 elements:
+[10.172.80.0 -> 10.172.89.255, 10.172.96.0 -> 10.172.103.255]
+```
+Both collection options `IPAddressSeqRangeList` and `IPAddressContainmentTrie` implement the interface `IPAddressCollection`, sharing the same collection operations.  
+
+`IPAddressSeqRangeList` offers a number of additional operations.  It has operations offering quick retrieval of addresses by index.  It has additional set operations such as `intersect`.  In fact, you can do set arithmetic with `IPAddressSeqRangeList` quite easily, and you can choose to do so either by operating on an instance in place, or by producing new lists with each operation.   For instance, see the [example illustrating De Morgan's laws of set theory](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations#de-morgans-laws-of-set-theory).
 
 Equality of an `IPAddressCollection` instance with another instance of `IPAddressCollection` is determined by the contents of the collections.  They are equal if the collections contain the same set of individual addresses.
 
@@ -1810,13 +1867,15 @@ Equality of an `IPAddressCollection` instance with another instance of `IPAddres
 &#8203;
 #### IP Address Aggregations
 
-The IPAddressAggregation interface represents all types that can represent a multitude of individual addresses.   This includes subnets (`IPAddress`), sequential ranges (`IPAddressSeqRange`), and address collections (`IPAddressSeqRangeList` and `IPAddressContainmentTrie`).
+As you an see in this document, there are multple ways in this library to represent a multitude of addresses with a single object, whether it be a subnet, a sequential range, or a collection.  There are also options allowing you to convert from one to the other, or to compare.
+
+The IPAddressAggregation interface represents all types that can represent a multitude of individual addresses.   This includes subnets (`IPAddress`), sequential ranges (`IPAddressSeqRange`), and address collections (`IPAddressSeqRangeList` and `IPAddressContainmentTrie`).   
 
 
 &#8203;
 ## IP Address Operations
 
-Here we summarize the operations on IP Addresses, Subnets, and Sequential Ranges.  Many of these operations are also available on other address items, such as sections and segments.
+Here we summarize the operations on addresses, subnets, sequential ranges, and collections.  Many of these operations are also available on other address items, such as sections and segments.
 
 We start with the more general operations, those that do not involve prefixes, prefix blocks, or segment blocks, followed by operations involving prefixes and prefix blocks, followed the operations involving segment blocks.  Segment block subnets are those subnets which have value ranges by segment.  Prefix blocks are subnets that have a value range corresponding to a specified prefix length, the subnet containing the full block of addresses according to that prefix.
 
@@ -1852,12 +1911,12 @@ Many of these operations are available on address sections as well.  You can obt
 
 | Java | Go | Description |
 | --- | --- | --- |
-| increment | Increment | If the incremented address item is a subnet, provides the individual address that is the given increment into the sequence of individual addresses within the subnet range.  An increment exceeding the subnet count being simply added to the final address in the subnet. If the address is an individual address, simply adds the given increment to the address value to produce a new address. The increment value can be a positive or negative integer. |
+| increment, decrement | Increment | If the incremented address item is a subnet, provides the individual address that is the given increment into the sequence of individual addresses within the subnet range.  An increment exceeding the subnet count being simply added to the final address in the subnet. If the address is an individual address, simply adds the given increment to the address value to produce a new address. The increment value can be a positive or negative integer. |
 | incrementBoundary | IncrementBoundary |  Returns the address that is the given increment from one of the range boundaries of the subnet or address, with positive increments added to the upper bound of the range, and negative increments being added to the lower bound. An increment of zero returns the original. If the address is an individual address, simply adds the given increment to the address value to produce a new address. |
 | reverseBits, reverseBytes, reverseBytesPerSegment, reverseSegments | ReverseBits, ReverseBytes, ReverseSegments | Reverses the bits of segments, bytes, or the entire address or subnet.  Each individual value is reversed and included in the result.  Note that some subnets cannot have bits reversed due to a reversed segment not being expressible as a single range of segment values.  Reverse operations can be useful for handling endianness (network byte order sometimes requires bytes be reversed), or DNS lookup.
 | toIPv4, toIPv6 | ToIPv4, ToIPv6 | Provides the same address represented with the more specific type, so that IP-version specific method calls can be made.  If the address was originally constructed as the more specific type, then an instance of that type is returned.  The address itself remains the same. |
 | segmentsIterator, segmentsSpliterator, segmentsStream | | Traverses through all address items, similar to `iterator`/`spliterator`/`stream`, but using only segment arrays.  Use `getCount` to get the count. |
-| toSequentialRange | ToSequentialRange | Returns the associated sequential range ranging from the lowest to highest value of the address or subnet.  You can use the `isSequential` / `IsSequential` method of the address to know if the resulting sequential range represents the same set of addresses as the original address or subnet. |
+| coverWithSequentialRange | ToSequentialRange | Returns the associated sequential range ranging from the lowest to highest value of the address or subnet.  You can use the `isSequential` / `IsSequential` method of the address to know if the resulting sequential range represents the same set of addresses as the original address or subnet. |
 | spanWithRange | SpanWithRange | Returns a sequential range that spans from the subnet to the given subnet. The resulting range qill include all addresses in both subnets as well as all addresses in between. |
 
 &#8203;
@@ -1912,8 +1971,8 @@ The following methods allow you to query whether something is a prefix block, ch
 | mergeToPrefixBlocks | MergeToPrefixBlocks | Given a list of addresses or subnets (or sections thereof), merges them into the minimal list of prefix blocks. |
 | coverWithPrefixBlock | CoverWithPrefixBlock, CoverWithPrefixBlockTo | Given a pair of addresses or subnets (or sections thereof), or a sequential range, returns the minimal-size prefix block that includes them both |
 
-&#8203;
 
+&#8203;
 #### Operations involving Segment Blocks
 
 The following operations involve segment blocks.  Note that a sequential block is a segment block segment that is sequential, such that for any two addresses in the range, all addresses in-between are also in the range.  To be sequential, any multi-valued segment must be followed only by segments comprising all segment values.
@@ -1928,11 +1987,8 @@ The following operations involve segment blocks.  Note that a sequential block i
 | mergeToSequentialBlocks | MergeToSequentialBlocks | Given a list of addresses or subnets (or sections thereof), merges them into the minimal list of sequential block subnets |
 | append, prepend, replace | Replace, ReplaceLen | Adds or replaces segments in the subnet, address, or the section of a subnet or address.  With subnets and addresses you must always maintain the correct number of segments, so only the replace operation is provided. |
 
-&#8203;
-
 
 &#8203;
-
 #### Example of Mask and Prefix Length Operations
 
 The following code demonstrates how to get the lowest address in a
@@ -2046,7 +2102,9 @@ masked address 1.2.0.0 equals zero host 1.2.0.0/16 is true
 
 #### Polymorphism
 
-Simply change the string "1.2.3.4" in the code above to an IPv6 address
+The address framework of interfaces, and the hierarchical types allow for substantial polymorphism with all operations.
+
+As an example, imply change the string "1.2.3.4" in the code above to an IPv6 address
 like "a:ffff:&#8203;b:c:d::f" and the code works all the same.
 
 Output:
@@ -2171,7 +2229,7 @@ Output for both the Java and Go code:
 192.168.0.0-12/30
 192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30
 ```
-Another option is to let the library do the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.
+Another option is to let the library do most of the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.
 
 The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) and [Go wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) provide subnetting code examples as well as examples demonstrating how to create or derive CIDR subnets.
 
@@ -2179,87 +2237,138 @@ The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Su
 
 #### Operations with Tries
 
-Java tries and associative tries can be converted into sets and maps that are backed by the original trie instances.  The set and map types integrate with the types in the Java collections framework.  In fact, the AddressTrieSet type implements the Java collections framework interfaces Collection, NavigableSet, Set, and SortedSet.  The AddressTrieMap type implements the Java collections framework interfaces Map, NavigableMap, SortedMap.  
-
-The address trie types provides additional operations based on address containment, operations not available from the map and set types, while the map and set types can be used with code that operates on Java collections framework interfaces.  Note that the Map.Entry instances from the maps correspond to the AssociativeTrieNode instances from the maps' backing associative tries.
-
-Operations *in italics* are Java collections framework operations on the trie-backed sets and maps.
+On the Java side, Java tries and associative tries can be converted into sets and maps that are backed by the original trie instances.  The set and map types integrate with the types in the Java collections framework.  In fact, the `AddressTrieSet` type implements the Java collections framework interfaces `java.util.Collection`, `java.util.NavigableSet`, `java.util.Set`, and `java.util.SortedSet`.  The `AddressTrieMap` type implements the Java collections framework interfaces `java.util.Map`, `java.util.NavigableMap`, `java.util.SortedMap`.  The map and set types can be used with code that operates on Java collections framework interfaces.   The Map.Entry instances from the maps correspond to the AssociativeTrieNode instances from the maps' backing associative tries.  In this table, operations *in italics* are Java collections framework operations on the trie-backed sets and maps.  Those operations are methods that operate on the backing trie in the set or map instance.
 
 | Java | Go | Description |
 | --- | --- | --- |
 | add, addNode, addTrie, *add*, *addAll* | Add, AddNode, AddTrie | Insert one or more nodes into the trie for the given individual address(es) or CIDR prefix block(s). |
+| addIfNoElementsContaining |  | Similar to the methods above, but containment counts as a match.  This operation is useful for containment tries. |
 | put, putNew, putNode, putTrie, *put*, *putAll* | Put, PutNode, PutTrie | Insert one or more nodes into the trie for the given individual address(es) or CIDR prefix block(s), along with the given associated value.  If the address or subnet already exists in the trie, the associated value, if any, is replaced. |
+| get, getNode, getAddedNode, contains, containsAll, containsKey | Get, GetNode, GetAddedNode, Contains | Retrieves or checks for the existence of a node in the trie whose key matches the given individual addresses or CIDR prefix block |
 | remove, *remove*, *removeAll* | Remove | Removes from the trie the nodes whose keys are the given individual addresses or CIDR prefix blocks. |
-| ceilingAddedNode, floorAddedNode, higherAddedNode, lowerAddedNode, *ceiling*, *floor*, *higher*, *lower*, *ceilingKey*, *floorKey*, *higherKey*, *lowerKey*, *ceilingEntry*, *floorEntry*, *higherEntry*, *lowerEntry* | CeilingAddedNode, FloorAddedNode, HigherAddedNode, LowerAddedNode | Finds the node whose key is closest (in terms of trie order) to the given individual address or CIDR prefix block.  `Ceiling` matches the lowest key greater than or equal to the given address or CIDR prefix block.  `Floor` matches the highest key less than or equal to the given address or CIDR prefix block.  `Higher` matches the lowest key greater than the given address or CIDR prefix block.  `Lower` matches the highest key less than the given address or CIDR prefix block. |
-|  |  |  |
-|  |  |  |
-|  |  |  |
+| ceiling, floor, higher, lower, ceilingAddedNode, floorAddedNode, higherAddedNode, lowerAddedNode, *ceiling*, *floor*, *higher*, *lower*, *ceilingKey*, *floorKey*, *higherKey*, *lowerKey*, *ceilingEntry*, *floorEntry*, *higherEntry*, *lowerEntry* | Ceiling, Floor, Higher, Lower, CeilingAddedNode, FloorAddedNode, HigherAddedNode, LowerAddedNode | Finds the node whose key is closest (according to trie order) to the given individual address or CIDR prefix block.  `Ceiling` matches the lowest key greater than or equal to the given address or CIDR prefix block.  `Floor` matches the highest key less than or equal to the given address or CIDR prefix block.  `Higher` matches the lowest key greater than the given address or CIDR prefix block.  `Lower` matches the highest key less than the given address or CIDR prefix block. |
+| containingCeilingAddedNode, containingFloorAddedNode, containingHigherAddedNode, containingLowerAddedNode |  | Finds the node whose key contains the closest address (according to trie order) to the given individual address or CIDR prefix block.  It is similar to finding the nearest, like with the above methods, except that containment counts as a match, an exact match is not required.  This operation is useful to containment tries.   `Ceiling` finds the key containing the lowest address greater than or equal to the given address or CIDR prefix block.  `Floor` finds the key containing the highest address less than or equal to the given address or CIDR prefix block.  `Higher` finds the key containing the lowest address greater than the given address or CIDR prefix block.  `Lower` finds the key containing the highest address less than the given address or CIDR prefix block. |
+| firstNode, firstAddedNode, lastNode, lastAddedNode, *firstEntry*, *lastEntry*, *firstKey*, *lastKey*, *pollFirstEntry*, *pollLastEntry* | FirstNode, FirstAddedNode, LastNode, LastAddedNode | Retrieves the node with the lowest or highest valued key/address in the trie, according to the trie order.  The "AddedNode" variants give the same result in most cases, because the first and last node is usually an added node, the exceptions being when all the nodes are bigger than the non-added root, when all the nodes are smaller than the non-added root, or both conditions are true and the trie is empty, in which case the non-added root may be returned. |
+| elementContains, *elementContains*, elementsContaining, *elementsContaining*, longestPrefixMatch, longestPrefixMatchNode, *longestPrefixMatch*, *longestPrefixMatchEntry*, shortestPrefixMatch, shortestPrefixMatchNode | ElementContains, ElementsContaining, LongestPrefixMatch, LongestPrefixMatchNode, ShortestPrefixMatch, ShortestPrefixMatchNode | Retrieves or checks for the existence of a node in the trie whose subnet/address key contains the given individual address or CIDR prefix block.  Note the distinction of these operations with the trie method `contains`, which refers to containment in the data structure itself, rather than these methods referring to subnet containment by a key/subnet/address within the data structure.  These operations refer to the concept of containment of addresses within subnets.  The variants of these operations that return non-boolean results (containing, shortest prefix match, longest prefix match) return either all of the nodes with keys whose elements/subnets are containing, the one node whose key is the largest-size subnet (shortest prefix), or the one node whose key is the smallest-size subnet (longest prefix) |
+| elementsContainedBy, *elementsContainedBy*, removeElementsContainedBy | ElementsContainedBy, RemoveElementsContainedBy | Retrieves or removes the sub-trie (if any) whose keys are contained by the given individual address or CIDR prefix block.  If the given argument is an individual address, then the returned or removed sub-trie can only be a single node or null. |
+| elementOverlaps, removeElementsIntersectedBy |  | Checks for the existence or removes the nodes whose prefix block subnet or address keys overlap the given subnet or address.  When it comes to prefix blocks, a prefix block overlapping or intersecting another means one contains the other, therefore these operations look for nodes with subnet or address keys containing or contained by the given address or subnet. |
+| size, *size*, nodeSize | Size, NodeSize | Operations returning the number of elements (added nodes) or the total number of nodes (both added and auto-generated) in the trie.  The `size` operation is constant time unless you are using a Java instance of `AddressTrieMap` or `AddressTrieSet` with a restricted range, in which case it is linear time like `nodeSize` |
+| getMatchingAddressCount | | Returns the total number of individual addresses contained by the subnet and address keys of nodes added to the trie.  This operation is useful to containment tries. |
+| remap, remapIfAbsent | Remap, RemapIfAbsent  | Allows for changes to trie mappings based on the existing mappings, without having to do two subsequent lookups, one to examine the trie and a second to change the trie based on the results of the first lookup.  Avoiding two lookups can be especially beneficial with tries being accessed by multiple threads, allowing for finer locking. |
+| constructAddedNodesTree | ConstructAddedNodesTree | Produces a new associative trie derived from the trie.  The produced trie maps the root and the added nodes to their direct added sub-nodes in the original trie.  Creates a non-binary tree structure from the added nodes of the tree. |
+| toAddedNodesTreeString | AddedNodesTreeString | Creates a more compact string representation of a trie (compared to the default string methods) showing only the root and the added nodes, one node per line, and the non-binary tree relationships between the added nodes visible.  This operation visualizes the tree produced by `constructAddedNodesTree`/`ConstructAddedNodesTree` |
+| toString, *toTrieString*, toTreeString | String, TreeString | Creates a string visualizing a trie or sub-trie, which consists of a view of trie showing all the nodes, with added nodes differentiated from non-added, one node per line, and the binary tree relationships between the nodes visible, with the element size of the trie and each sub-trie visible. |
+| *compute*, *computeIfAbsent*, *computeIfPresent*, *getOrDefault*, *merge*, *putIfAbsent* |  | These map operations are specified by `java.util.Map` and implemented in `AddressTrieMap` for efficiency and convenience, avoiding multiple lookups into the trie.  Some of these use `remap` or `remapIfAbsent` |
+| *headMap*, *tailMap*, *subMap*, *headSet*, *tailSet*, *subSet* |  | Operations creating a new `AddressTrieMap` or `AddressTrieSet` with a restricted range, created from the original `AddressTrieMap` or `AddressTrieSet`, with the new set or map backed by the same trie.  Since it is backed by the same trie, changes to the new set or map will affect the original set or map and the shared trie, and vice-versa.  After creating the new set or map, you can use `asTrie` on that new set or map to give you a new trie (and a new associated set or map), allowing you to make changes without affecting the original |
 
 
-#### Trie Operations
+#### Operations with Trie Nodes
 
-Most of these operations are methods that operate directly on `AddressTrie` or `AssociativeAddressTrie` instances, but some are available from their associated `AddressTrieSet` or `AddressTrieMap` instances available from `asSet` or `asMap`, in which case the methods would still be operating on the same backing trie.
+The trie types allow direct access to the nodes, and provide many operations on the nodes directly.  Many of the above operations on tries are also available on trie nodes.  Many of those operations operate on the subtrie in which the given node is the root, such as the iterators, the containment operations, and others.  Tries can also be altered by removing nodes directly.  
 
-- **add**, **addNode**, **addTrie**, **addAll**, **put**, **putNew**, **putNode**, **putTrie**, **putAll**: Insert one or more nodes into the trie for the given individual address(es) or CIDR prefix block(s).  The put methods associate a value with the node.
 
-- **get**, **getNode**, **getAddedNode**, **contains**, **containsAll**, **containsKey**:
-Retrieves or checks for the existence of one or more nodes in the trie whose keys are the given individual addresses or CIDR prefix blocks.
+#### Trie Iterators
 
-- **remove**, **removeAll**: Removes from the trie the nodes whose keys are the given individual addresses or CIDR prefix blocks, if any.
+Iterators are available in both Java and Go libraries.  
 
-xxx Entry? xxxx Was this a reference to map entry?  Not sure what I meant by "Entry?".
-we do have lots of methods like lastEntry and lowerEntry - but then again I did put those methods below.  Actually, I just added this, meaning I put it tht there a few months ago when I was working on adding the go stuff.  Maybe I just could not remember what the Entry methods were.  Yeah, I probably forgot they existed and was surprised to see them.
-Or maybe I was thinking that they do not exist on the Go side and that I need to take care of that properly, putting them only on the Java side in the table.
+Spliterators and streams are available in the Java library.  In Java, in general you can obtain a corresponding stream for any spliterator by using `java.util.stream.StreamSupport.stream(Spliterator spliterator, boolean parallel)`, so if there exists a spliterator with no corresponding stream, that is how you can obtain a corresponding stream.
 
-- **ceilingAddedNode**, **floorAddedNode**, **higherAddedNode**, **lowerAddedNode**, **ceiling**, **floor**, **higher**, **lower**, **ceilingKey**, **floorKey**, **higherKey**, **lowerKey**, **ceilingEntry**, **floorEntry**, **higherEntry**, **lowerEntry**: Finds nodes whose keys are closest to the given individual address or CIDR prefix block.  These are implementations of methods defined by `java.util.NavigableSet` and `java.util.NavigableMap`.
+We separate these operations from the other trie operations because there is such a wide variety of methods for traversing tries or subtries.
 
-- **firstNode**, **firstAddedNode**, **lastNode**, **lastAddedNode**: Retrieves the node for the lowest or highest valued key/address in the trie, according to the trie order.  The "added" variants give the same answer in most cases, because the first and last node is usually an added node, the exceptions being when all the nodes are bigger than the non-added root, when all the nodes are smaller than the non-added root, or both conditions are true and the trie is empty.
+Most of these traversal methods traverse the nodes, while some traverse the keys/addresses of the nodes, including those iterators and spliterators operating on the Java `AddressTrieSet` or `AddressTrieMap` types.
 
-- **elementContains**, **elementsContaining**: Retrieves or checks for the existence of a node in the trie whose key/subnet/address contains the given individual address or CIDR prefix block.  Note the distinction with `contains`, which refers to containment in the data structure itself, rather than these methods referring to subnet containment by a key/subnet/address in the data structure.  
+Of those that traverse the nodes, some traverse only the added nodes and elements, while others traverse all the nodes.  The added nodes are those explicitly added to the trie, the non-added nodes are those auto-generated for the binary trie structure.  Also note that non-added node can become added, and vice-versa.
 
-- **elementsContainedBy**, **removeElementsContainedBy**: Retrieves or removes the sub-trie (if any) contained by the given individual address or CIDR prefix block.  If the given argument is an individual address, then the returned or removed sub-trie can only be a single node or null.
+Those operations that traverse the keys/addresses traverse only the added keys/addresses.
 
-- **headMap**, **tailMap**, **subMap**, **headSet**, **tailSet**, **subSet**: Creates a new `AddressTrieMap` or `AddressTrieSet` with a restricted range, created from the original `AddressTrieMap` or `AddressTrieSet`, with the new set or map backed by the same trie.  Since it is backed by the same trie, changes to the new set or map will affect the original set or map and the shared trie, and vice-versa.  After creating the new set or map, you can use `asTrie` on that new set or map to give you a new trie (and a new associated set or map), allowing you to make changes without affecting the original.
+| Java | Go | Description |
+| --- | --- | --- |
+| iterator, descendingIterator, nodeIterator, allNodeIterator, spliterator, descendingSpliterator, stream, parallelStream, nodeSpliterator, allNodeSpliterator | Iterator, DescendingIterator, NodeIterator, AllNodeIterator | These traverse the trie in natural trie order, either in forward (ascending) or reverse (descending) order. |
+| containingFirstIterator, containingFirstNodeIterator, containingFirstAllNodeIterator | ContainingFirstIterator, ContainingFirstAllNodeIterator | These traverse the trie with a pre-order binary tree traversal.  Such a traversal visits parent (containing prefix blocks) nodes before sub-nodes.  Sub-nodes can be visited either lower sub-node first (forwardSubNodeOrder) or upper sub-node first.  The node iterators allow you to cache an object with either sub-node when visiting the parent node, an object that can be retrieved when visiting the respective sub-node. |
+| containedFirstIterator, containedFirstNodeIterator, containedFirstAllNodeIterator | ContainedFirstIterator, ContainedFirstAllNodeIterator | These traverse the trie with a post-order binary tree traversal.  Such a traversal visits parent (containing prefix blocks) nodes after sub-nodes.  Sub-nodes can be visited either lower sub-node first (forwardSubNodeOrder) or upper sub-node first. |
+| blockSizeIterator, blockSizeNodeIterator, blockSizeAllNodeIterator, blockSizeCachingAllNodeIterator | BlockSizeNodeIterator, BlockSizeAllNodeIterator, BlockSizeCachingAllNodeIterator | These traverse the trie from largest prefix blocks to smaller prefix blocks and finally to individual addresses.  The node iterators allow you to cache an object with either sub-node when visiting the parent node, an object that can be retrieved when visiting the respective sub-node |
 
-- **size**, **nodeSize**: returns the number of elements (added nodes) or the number of nodes (both added and auto-generated) in the trie.  The `size` operation is constant time unless you are using a head/tail/sub `AddressTrieMap` or `AddressTrieSet` with a restricted range, in which case it is linear time like `nodeSize`.
+See the [javadoc for TreeOps](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/format/util/TreeOps.html) for more details on the orderings for the various traversals.
 
-- **remap**, **remapIfAbsent**: allows for changes to trie mappings based on the existing mappings, without having to do two lookups, one to examine the trie and a second to change the trie based on the results of the  first lookup.  Avoiding two lookups can be especially beneficial with tries being accessed by multiple threads, allowing for finer locking.
-
-- **compute**, **computeIfAbsent**, **computeIfPresent**, **getOrDefault**, **merge**, **putIfAbsent**: map operations specified by java.util.Map and implemented in `AddressTrieMap` for efficiency and convenience, avoiding multiple lookups into the trie.  Some of these use `remap` or `remapIfAbsent`.
-
-- **constructAddedNodesTree**: Produces an associative trie from a trie.  The produced trie maps the root and the added nodes to their added sub-nodes.  This is essentially creating a non-binary tree structure from the added nodes of the tree.  
-
-- **toString**, **toTreeString**: The String representing a trie or sub-trie consists of a view of trie showing all the nodes, with added nodes differentiated from non-added, one node per line, and the binary tree relationships between the nodes visible, and with the element size (as described by `size`) of the trie and each sub-trie visible.
-
-- **toAddedNodesTreeString**: A more compact representation of a trie (compared to `toString` or `toTreeString`) showing only the root and the added nodes, one node per line, and the non-binary tree relationships between the added nodes visible.  This visualizes the tree produced by `constructAddedNodesTree`.
 
 &#8203;
+#### Operations with Collections
 
-#### Trie Iterators, Spliterators, and Streams
+At this time, the two efficient optimized collections types are available only with the Java library.
 
-Most of these traversal methods traverse the nodes, while some traverse the keys/addresses of the nodes, including those iterators and spliterators within `AddressTrieSet` or `AddressTrieMap`.
+The following operations are available with both collection options, `IPAddressSeqRange` and `IPAddressContainmentTrie` or through their shared interface, `IPAddressCollection`.
 
-Of those that traverse the nodes, some traverse only the added nodes and elements, while others traverse all the nodes.  The added nodes are those explicitly added to the trie, the non-added nodes are those auto-generated for the binary trie structure.  A non-added node can become added, and vice-versa.
+| Java | Go | Description |
+| --- | --- | --- |
+| add |  | Adds the individual addresses in the given address, subnet or sequential range to the collection |
+| contains |  | Returns whether the collection contains all the individuals addresses in the given address, subnet, sequential range, or collection |
+| overlaps |  | Returns whether the collection contains any of the individuals addresses in the given address, subnet or sequential range |
+| remove |  | Removes the individual addresses in the given address, subnet or sequential range to the collection |
+| getCount |  | Returns the number of individual addresses contained in the collection |
+| equals |  | Returns whether this collections contains all the same individual addresses as the given collection |
+| getLower |  | Returns the lowest valued individual address in the collection |
+| getUpper |  | Returns the highest valued individual address in the collection |
+| clear |  | Removes all addresses from the collection |
+| floor, ceiling, lower, higher |  | Finds the individual address in the collection is closest to the given individual address or CIDR prefix block.  Ceiling finds the lowest individual address in the collection greater than or equal to the given address or CIDR prefix block. Floor finds the highest individual address in the collection less than or equal to the given address or CIDR prefix block. Higher finds the lowest individual address in the collection greater than the given address or CIDR prefix block. Lower finds the highest individual address in the collection less than the given address or CIDR prefix block. |
+| isEmpty |  | Returns true if there are no addresses in the collection |
+| isMultiple |  | Returns whether the collection contains multiple addresses |
+| isSequential |  | Returns whether the range of addresses comprise a sequence of consecutive values. In other words, it is sequential if, given any two addresses in the collection, all addresses in-between are also in the collection.  Empty collections are sequential.  Collections with a single address are sequential.  |
+| includesZero |  | Returns whether the collection contains an address with the value of zero |
+| includesMax |  | Returns whether the collection contains an address with the maximum value for addresses of the address version of the addresses in the collection |
+| coverWithPrefixBlock |  | Returns the minimal-size prefix block that includes all addresses in the collection |
+| coverWithSequentialRange |  | Returns the minimal-size sequential range that includes all addresses in the collection |
+| iterator, spliterator, stream |  | Traverses through the individual addresses in the collection. Use `getCount` to get the traversed count. |
+| clone |  | prodces a copy of the collection |
+| toString |  | prodces a string visualizatio of the collection |
 
-Those that traverse the keys/addresses traverse only the added keys/addresses.
-
-- **iterator**, **descendingIterator**, **nodeIterator**, **allNodeIterator**, **spliterator**, **descendingSpliterator**, **stream**, **parallelStream**, **nodeSpliterator**, **allNodeSpliterator**: Traverses the trie (or corresponding set) in natural trie order, either in forward (ascending) or reverse (descending) order.  To obtain the corresponding stream for the two node spliterators, which do not have a corresponding `Stream` method, use `java.util.stream.StreamSupport.stream(Spliterator spliterator, boolean parallel)`.
-
-- **containingFirstIterator**, **containingFirstNodeIterator**, **containingFirstAllNodeIterator**: Traverses the trie (or corresponding set) with a pre-order binary tree traversal.  Such a traversal visits parent (containing prefix blocks) nodes before sub-nodes.  Sub-nodes can be visited either lower sub-node first (forwardSubNodeOrder) or upper sub-node first.  The node iterators allow you to cache an object with either sub-node when visiting the parent node, an object that can be retrieved when visiting the respective sub-node.
-
-- **containedFirstIterator**, **containedFirstNodeIterator**, **containedFirstAllNodeIterator**: Traverses the trie (or corresponding set) with a post-order binary tree traversal.  Such a traversal visits parent (containing prefix blocks) nodes after sub-nodes.  Sub-nodes can be visited either lower sub-node first (forwardSubNodeOrder) or upper sub-node first.
-
-- **blockSizeIterator**, **blockSizeNodeIterator**, **blockSizeAllNodeIterator**, **blockSizeCachingAllNodeIterator**: Traverses the trie from largest prefix blocks to smaller prefix blocks and then to individual addresses.  The node iterators allow you to cache an object with either sub-node when visiting the parent node, an object that can be retrieved when visiting the respective sub-node.
-
-See [the javadoc for TreeOps](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/format/util/TreeOps.html) for more details on the orderings for the various traversals.
 
 &#8203;
+#### Additional General Operations with Sequential Range List Collections
+
+As a collection, sequential range lists have all the collection operations listed above, but they also have some additional operations that are not part of the `IPAddressCollection` interface.
+
+| Java | Go | Description |
+| --- | --- | --- |
+| joinIntoList |  | This variant of the `add` methods joins the individual addresses in the given address, subnet or sequential range with the receiver list into a new list |
+| removeIntoList |  | This variant of the `remove` methods removes the individual addresses in the given address, subnet or sequential range from the receiver list, putting the result into a new list |
+| complementIntoList |  | Puts the complement of the list into a separate list |
+| intersect |  | Changes the list to be the intersection with the given address, subnet or sequential range |
+| complement |  | Changes the list to be the complement of itself |
+| remove(addressIndex) |  | Removes from the collection the individual address at the given index in the sorted list |
+| get(addressIndex) |  | Returns the individual address at the given index in the sorted list |
+| increment |  | Returns the individual address at the given index inside or outside the sorted list |
+| enumerate |  | Returns the index in the list of the given individual address |
+| spanWithPrefixBlocks |  | Returns the minimal array of prefix block subnets that span all addresses contained in the list |
+| spanWithSequentialBlocks |  | Returns the minimal array of sequential block subnets that span all addresses contained in the list |
+| toCanonicalString |  | Creates a string showing the sequential ranges in the list, using the canonical string for the range boundaries of each contained sequential range |
+| toNormalizedString |  | Creates a string showing the sequential ranges in the list, using the normalized string for the range boundaries of each contained sequential range |
 
 
+&#8203;
+#### Additional Operations with Sequential Range Lists Accessing the Internal Range Structure
 
+Sequential range lists do not allow direct access to the backing list of sequential ranges in a sequential range list, but it does allow indirect access through the following methods.
+
+| Java | Go | Description |
+| --- | --- | --- |
+| getContainingSeqRange(addressIndex) |  | Returns the range containing the individual address at the given address index in the sorted sequential range list |
+| getSegRange(rangeIndex) |  | Returns the range at the given sequential range index in the sorted list |
+| removeSegRange(rangeIndex), removeSegRanges(fromIndex, toIndex) |  | Removes the range or ranges at the given sequential range index or indices in the sorted list |
+| getSegRanges |  | returns an array of the sequential ranges in the list in order |
+| seqRangeIterator |  | iterates through the sequential ranges in the list in order |
+| getLowerSeqRange |  | returns the lowest sequential range in the ordered sequential range list |
+| getUpperSeqRange |  | returns the highest sequential range in the ordered sequential range list |
+| getSegRangeCount |  | returns the count of sequential ranges in the list |
+| indexOfContainingSeqRange |  | If the list contains all individual addresses in the given address, subnet, sequential range, trie, or collection, returns the index of the lowest sequential range containing one of the addresses  |
+| indexOfContainingSeqRange |  | If the list overlaps some addresses in the given address, subnet, sequential range, or sequential range list, returns the index of the lowest sequential range containing one of the addresses  |
+
+
+&#8203;
 ## Parse String Representations of MAC Address
 
-Parsing is like that for IP address. `MACAddressString` is used to convert. You
+The library has support for working with MAC addresses.
+
+Parsing is similar to IP address string parsing. `MACAddressString` is used to convert. You
 can use one of `getAddress` or `toAddress`, the difference being whether
 parsing errors are handled by exception or not.
 ```java
@@ -2278,6 +2387,7 @@ try {
   String msg = e.getMessage(); // detailed message indicating issue
 }
 ```
+
 
 &#8203;
 
@@ -3077,15 +3187,23 @@ options)`.
 
 &#8203;
 
-## Containment and Subnet Membership
+## Containment and Membership
 
-To check whether an IP address is contained by a subnet:
+To check whether an IP address is contained by a subnet, in Java:
 ```java
 IPAddress address = new IPAddressString("1.2.0.0/16").getAddress();  
 System.out.println(address.contains(new IPAddressString("1.2.3.4").getAddress()));  
 System.out.println(address.contains(new IPAddressString("1.2.3.0/24").getAddress()));  
 System.out.println(address.contains(new IPAddressString("1.2.3.0/25").getAddress()));  
 System.out.println(address.contains(new IPAddressString("1.1.0.0").getAddress()));
+```
+and the equivalent Go code:
+```go
+address := ipaddr.NewIPAddressString("1.2.0.0/16").GetAddress()
+fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.2.3.4").GetAddress()))
+fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.2.3.0/24").GetAddress()))
+fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.2.3.0/25").GetAddress()))
+fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.1.0.0").GetAddress()))
 ```
 Output:
 ```
@@ -3098,16 +3216,41 @@ The contains method is not restricted to IP addresses or IP address
 prefixed addresses. There is a contains method for every `Address` or
 `AddressSection`.
 
-`IPAddressString` has a `contains` methods as well, and also some additional containment methods, `prefixContains` and `prefixEquals`.  These `IPAddressString` containment methods can have superior performance checking containment when starting from strings, because in many cases containment can be determined by looking at the strings alone, avoiding address object creation and numeric comparisons.
+`IPAddressString` has a `contains` methods as well, and also some additional containment methods, `prefixContains` and `prefixEquals`.  These `IPAddressString` containment methods can have superior performance when checking containment when starting from strings, because in many cases containment can be determined by looking at the strings alone, avoiding address object creation and numeric comparisons.
 
-For checking containment of an address or subnet in a large number of subnets, or to check containment of a large number of addresses or subnets in a subnet, use the address trie data structure, using one of the subclasses of AddressTrie.
+For checking containment of an address or subnet in a large number of subnets, or to check containment of a large number of addresses or subnets in a subnet, use the address trie data structure, or an IP address collection which can be either an IP address sequential range list, or an IP address containment trie.  When using an address trie, it is the `elementContains` method that tests whether an element of the trie contains the given subnet or address.  The `contains` method tests for an exact match.
 
-There is also an assortment of iterators for addresses, sections, and
-segments which represent multiple values. There is an `iterator()`,
-`getLower()` method and `getUpper()` method for every address component.
+The IPAddressAggregation interface has `contains` and `overlaps` methods that check for containment of individual addresses, subnets, or sequential ranges.   So that means you can use those methods to test for containment of any subnet, address range, or collection.
+
+The wiki has a [wide variety of examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing) showing how to test for containment or make comparisons with a wide variety of address and collection types.
+
+When it comes to accessing individual members, There is also an assortment of iterators for addresses, sections, and
+segments which can access individual members. There is an `iterator()`,
+`getLower()` method and `getUpper()` method for every address component.  You can use the `increment` or `get` methods to access individual members or sequential ranges or range lists.  The  `increment` method is also available with any subnet or subnet section.
 
 &#8203;
 
+
+## Sorting and Comparisons
+
+Comparing and sorting can be useful for storing addresses in certain
+types of data structures. With the Java library, all of the core classes implement
+`java.lang.Comparable`. In fact, any `AddressItem` is comparable to any other, which covers almost every type in the address framework.  Different representations of the same address or
+subnet are considered equal. Different representations of the same set
+of addresses are considered equal. However, `HostName` instances are not equal to `IPAddressString` instances nor `IPAddress` instances, and instances of `IPAddressString` are not equal to instances of `IPAddress`, not even when representing the same address or subnet.
+
+The library provides the type `AddressComparator` and some comparator implementations for
+comparison purposes. Address classes use the type `CountComparator` for their natural ordering. When
+comparing subnets, you can either emphasize the count of addresses, or
+you can emphasize the values of the lower or upper address represented
+by the subnet, and comparators are provided for those variations.
+
+The address tries are sorted and provide their own comparator, which matches the comparators above with respect to individual addresses.  It differs to some degree when comparing subnets, which must be prefix blocks to use with the trie comparator.  When comparing a prefix block to a second address or block with larger prefix, and the first prefix matches the same bits in the second, the trie comparator orders by the bit that follows the first prefix in the second.  For example, if a block with prefix length 12 is compared to a prefix block of larger prefix length, then the comparison first examines the common prefix bits, the first 12 bits, to determine order.  If those 12 bits are the same, then the comparison examines bit 13 in the other block with the longer prefix.  A bit of value one indicates the other block is greater than the first, a bit of value zero indicates the other block is less than the first.
+
+The two collection implementations, `IPAddressContainmentTrie` and `IPAddressSeqRange` are both sorted at all times, which makes a number of operations much more efficient by enabling binary search.
+
+
+&#8203;
 ## DNS Resolution and URLs
 
 If you have a string that can be a host or an address and you wish to
@@ -3115,35 +3258,16 @@ resolve to an address, create a `HostName` and use
 `HostName.toResolvedAddress()`. If you wish to obtain a string
 representation to be part of a URL, use `HostName.toNormalizedString()`.
 
-&#8203;
-
-## Sorting and Comparisons
-
-Comparing and sorting can be useful for storing addresses in certain
-types of data structures. With the Java library, all of the core classes implement
-`java.lang.Comparable`. In fact, any AddressItem is comparable to any other, which covers almost every type in the address framework.  Different representations of the same address or
-subnet are considered equal. Different representations of the same set
-of addresses are considered equal. However, `HostName` instances are not equal to `IPAddressString` instances nor `IPAddress` instances, and instances of `IPAddressString` are not equal to instances of `IPAddress`, not even when representing the same address or subnet.
-
-The library provides the abstract type `AddressComparator` and some implementations for
-comparison purposes. Address classes use the subclass `CountComparator` for their natural ordering. When
-comparing subnets, you can either emphasize the count of addresses, or
-you can emphasize the values of the lower or upper address represented
-by the subnet, and comparators are provided for those variations.
-
-The address tries provide their own sorting and comparison, which matches the comparators above with respect to individual addresses, but when comparing a prefix block to a second address or block with larger prefix, and the first prefix matches the same bits in the second, the trie comparator orders by the bit that follows the first prefix in the second.
 
 &#8203;
-
-
 ## Make your IPv4 App work with IPv6
 
-If you want to make your app work with IPv6, that is a wise decision.  IPv6 penetration is getting close to 50% in some countries.
+If you want to make your app work with IPv6, that is a wise decision.  IPv6 penetration is slow but steady, past 50% in some countries.
 
 But you have no IPv6 testing and a lot of code.  
 
 Start by replacing your IPv4 code with the types and operations in this library.  But don't use the IPv4-specific types like IPv4Address everywhere, use `IPAddressString`, `IPAddress`, and the other polymorphic types, along with their polymorphic operations such as [`toString`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/Address.html#toString--), [`contains`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddress.html#contains-inet.ipaddr.IPAddress-), and [`iterator`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddress.html#iterator--) that avoid exposing the specifics of IPv4.  If your app uses network or host masks, start working with CIDR prefix lengths instead.  Use methods like [`getBlockMaskPrefixLength`](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddress.html#getBlockMaskPrefixLength-boolean-) to store prefix lengths, even if the app continues to use masking.
 
-When you're ready, use your existing regression tests, ensuring the app still runs as always on IPv4.  Once your existing IPv4 tests all pass, you are already most of the way to supporting IPv6, without having written a single line of IPv6 code.  With some apps, you may even be ready to try it out with IPv6.
+When you're ready, use your existing regression tests, ensuring the app still runs as always on IPv4.  Once your existing IPv4 tests all pass, you are already most of the way to supporting IPv6, without having written a single line of IPv6 code.  You may even be ready to try it out with IPv6.
 
 &#8203;
