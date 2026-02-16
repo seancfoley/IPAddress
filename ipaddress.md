@@ -2237,7 +2237,7 @@ The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Su
 
 #### Operations with Tries
 
-On the Java side, Java tries and associative tries can be converted into sets and maps that are backed by the original trie instances.  The set and map types integrate with the types in the Java collections framework.  In fact, the `AddressTrieSet` type implements the Java collections framework interfaces `java.util.Collection`, `java.util.NavigableSet`, `java.util.Set`, and `java.util.SortedSet`.  The `AddressTrieMap` type implements the Java collections framework interfaces `java.util.Map`, `java.util.NavigableMap`, `java.util.SortedMap`.  The map and set types can be used with code that operates on Java collections framework interfaces.   The Map.Entry instances from the maps correspond to the AssociativeTrieNode instances from the maps' backing associative tries.  In this table, operations *in italics* are Java collections framework operations on the trie-backed sets and maps.  Those operations are methods that operate on the backing trie in the set or map instance.
+On the Java side, tries and associative tries can be converted into sets and maps that are backed by the original trie instances.  The set and map types integrate with the types in the Java collections framework.  In fact, the `AddressTrieSet` type implements the Java collections framework interfaces `java.util.Collection`, `java.util.NavigableSet`, `java.util.Set`, and `java.util.SortedSet`.  The `AddressTrieMap` type implements the Java collections framework interfaces `java.util.Map`, `java.util.NavigableMap`, `java.util.SortedMap`.  The map and set types can be used with code that operates on Java collections framework interfaces.   The Map.Entry instances from the maps correspond to the AssociativeTrieNode instances from the maps' backing associative tries.  In this table, operations *in italics* are Java collections framework operations on the trie-backed sets and maps.  Those operations are methods that operate on the backing trie in the set or map instance.
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2347,7 +2347,7 @@ As a collection, sequential range lists have all the collection operations liste
 &#8203;
 #### Additional Operations with Sequential Range Lists Accessing the Internal Range Structure
 
-Sequential range lists do not allow direct access to the backing list of sequential ranges in a sequential range list, but it does allow indirect access through the following methods.
+Sequential range lists do not allow direct access to the backing list of sequential ranges in a sequential range list, but they do allow indirect access through the following methods.
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -3247,7 +3247,7 @@ by the subnet, and comparators are provided for those variations.
 
 The address tries are sorted and provide their own comparator, which matches the comparators above with respect to individual addresses.  It differs to some degree when comparing subnets, which must be prefix blocks to use with the trie comparator.  When comparing a prefix block to a second address or block with larger prefix, and the first prefix matches the same bits in the second, the trie comparator orders by the bit that follows the first prefix in the second.  For example, if a block with prefix length 12 is compared to a prefix block of larger prefix length, then the comparison first examines the common prefix bits, the first 12 bits, to determine order.  If those 12 bits are the same, then the comparison examines bit 13 in the other block with the longer prefix.  A bit of value one indicates the other block is greater than the first, a bit of value zero indicates the other block is less than the first.
 
-The two collection implementations, `IPAddressContainmentTrie` and `IPAddressSeqRange` are both sorted at all times, which makes a number of operations much more efficient by enabling binary search.
+The two collection implementations, `IPAddressContainmentTrie` and `IPAddressSeqRange` are both sorted, which makes a number of operations much more efficient by enabling binary search.
 
 
 &#8203;
