@@ -2373,12 +2373,13 @@ Sequential range lists do not allow direct access to the backing list of sequent
 
 The library has support for working with MAC addresses.
 
-Parsing is similar to IP address string parsing. `MACAddressString` is used to convert. You
+Parsing is similar to IP address string parsing. `MACAddressString` is used to convert.
+
+In Java, you
 can use one of `getAddress` or `toAddress`, the difference being whether
 parsing errors are handled by exception or not.
 ```java
-MACAddress address = new
-MACAddressString("01:02:03:04:0a:0b").getAddress();
+MACAddress address = new MACAddressString("01:02:03:04:0a:0b").getAddress();
 if(address != null) {
   //use address
 }
@@ -2392,7 +2393,7 @@ try {
   String msg = e.getMessage(); // detailed message indicating issue
 }
 ```
-In Go, the equivalent code is similar, the difference being whether you want to return errors or not:
+In Go, the equivalent code is similar, the difference between `GetAddress` and `ToAddress` being whether you want to return errors or not:
 ```go
 if address := ipaddr.NewMACAddressString("01:02:03:04:0a:0b").GetAddress(); address != nil {
   //use address
@@ -2673,9 +2674,9 @@ explicitly defined.
 ## MAC Address Operations
 
 Many of the same address operations available for IP addresses are
-available for MAC addresses, including the prefix operations, the section and segment access methods, iterators, containment, and reversal of bits, bytes and segments.
+available for MAC addresses, including the prefix operations, the section and segment access methods, iterators, containment, and reversal of bits, bytes and segments.  Because of their similarity, we will not relist the MAC equivalents.
 
-The reverse operations may be useful for for "MSB format", "IBM format", "Token-Ring format", and "non-canonical form", where the bits are reversed in each byte of a MAC address.
+The bit-reversal operations may be useful for for "MSB format", "IBM format", "Token-Ring format", and "non-canonical form", where the bits are reversed in each byte of a MAC address.
 
 &#8203;
 
@@ -2692,8 +2693,10 @@ constructing a 64-bit extended unique IPv6 interface identifier (EUI-64)
 from the MAC address. This library has implemented the same MAC / IPv6
 integration.
 
+#### Construct IPv6 Address from MAC
+
 Starting with a MAC address or section and with the IPv6 prefix, you can
-construct the associated IPv6 address with one of these constructors:
+construct the associated IPv6 address with one of these constructors in Java:
 ```java
 public IPv6Address(IPv6Address prefix, MACAddress eui)
 
@@ -2703,17 +2706,35 @@ public IPv6Address(IPv6AddressSection section, MACAddressSection eui)
 
 public IPv6Address(IPv6AddressSection section, MACAddressSection eui, CharSequence zone)
 ```
-There are equivalent methods in the class `MACAddress` for producing the
+or one of these constructor functions in Go:
+```go
+func NewIPv6AddressFromMAC(prefix *IPv6Address, suffix *MACAddress) (*IPv6Address, addrerr.IncompatibleAddressError)
+
+func NewIPv6AddressFromMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection) (*IPv6Address, addrerr.AddressError)
+
+func NewIPv6AddressFromZonedMACSection(prefix *IPv6AddressSection, suffix *MACAddressSection, zone string) (*IPv6Address, addrerr.AddressError)
+```
+
+#### Construct Link-local IPv6 Address from MAC
+
+There are equivalent methods in the type `MACAddress` for producing the
 link local address which has a pre-defined prefix, or for producing the
 host (interface identifier) address section of an IPv6 address.
+In Java:
 ```java
 public IPv6Address toLinkLocalIPv6()  
+
 public IPv6AddressSection toEUI64IPv6()
 ```
-There is a similar method in MACAddressSection
-```java
-public IPv6AddressSection toEUI64IPv6()
+In Go:
+```go
+func (addr *MACAddress) ToLinkLocalIPv6() (*IPv6Address, addrerr.IncompatibleAddressError)
+
+func (addr *MACAddress) ToEUI64IPv6() (*IPv6AddressSection, addrerr.IncompatibleAddressError)
 ```
+
+#### EUI64 format
+
 A MAC address is either 48 or 64 bits. To be converted to IPv6, the 48
 bit address has segments inserted (two 1 byte MAC segments with value
 0xfffe) to extend the address to 64 bits. For a 64 bit MAC address to be
@@ -2723,37 +2744,42 @@ to ensure that are compatible with IPv6 by checking that the value of
 those two segments matches 0xfffe. Note that the asMAC argument allows
 you to extend using 0xffff rather than 0xfffe which is another manner by
 which a 48 bit MAC address can be extended to 64 bits. However, for
-purposes of extending to an IPv6 address the argument should be false so
+purposes of extending to an IPv6 address, the `asMAC` argument should be false, so
 that the EUI-64 format is used.
+
+In Java:
 ```java
 public boolean isEUI64(boolean asMAC)  
+
 public MACAddress toEUI64(boolean asMAC)
 ```
-There are similar methods in MACAddressSection
-```java
-public boolean isEUI64(boolean asMAC)
+In Go:
+```go
+func (addr *MACAddress) IsEUI64(asMAC bool) bool
 
-public boolean isEUI64(boolean asMAC, boolean partial)
+func (addr *MACAddress) ToEUI64(asMAC bool) (*MACAddress, addrerr.IncompatibleAddressError)
+```
 
-public MACAddressSection toEUI64(boolean asMAC)
-```
-Given an existing EUI-64 section you can use the prepend and append
-methods to create a full IPv6 address section containing all segments:
-```java
-public IPv6AddressSection prepend(IPv6AddressSection other)
+The `MACAddressSection` and `IPv6AddressSection` have similar methods for constructing and identifying such sections.
+You can use those types of construct addresses in more customizable ways, whether using prepend or append operations, whether constructing segments directly.
 
-public IPv6AddressSection append(IPv6AddressSection other)
-```
-and from there you just construct the address:
-```java
-public IPv6Address(IPv6AddressSection section)
-```
+
+
+
+#### Get MAC Address from IPv6 Address
+
 To go the reverse direction IPv6 to MAC, there is a method in
-IPv6Address to produce a MAC address:
+`IPv6Address` to produce a MAC address.
+In Java:
 ```java
 public MACAddress toEUI(boolean extended)
 ```
-and another in IPv6AddressSection that uses whatever part of the
+In Go:
+```go
+func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, addrerr.IncompatibleAddressError)
+```
+
+In Java, there is another method in `IPv6AddressSection` that uses whatever part of the
 interface identifier is included in the section to produce a MAC address
 section:
 ```java
@@ -2767,8 +2793,13 @@ the required 0xfffe values in the 5<sup>th</sup> and 6<sup>th</sup>
 bytes, then the MAC address section will be the full 8 bytes of an
 EUI-64 MAC address.
 
+
+#### Example Conversions from MAC Address to IPv6 Address
+
 The following code is an example of constructing IPv6 addresses from a
-MAC address:
+MAC address.
+
+In Java:
 ```java
 public static void main(String args[]) {
   MACAddressString macStr = new MACAddressString("aa:bb:cc:dd:ee:ff");
@@ -2776,14 +2807,29 @@ public static void main(String args[]) {
   IPv6Address linkLocal = macAddress.toLinkLocalIPv6();
   System.out.println(linkLocal);
 
-  IPAddressString ipv6Str = new
-  IPAddressString("1111:2222:3333:4444::/64");
+  IPAddressString ipv6Str = new IPAddressString("1111:2222:3333:4444::/64");
   IPv6Address ipv6Address = ipv6Str.getAddress().toIPv6();
   IPv6Address macIpv6 = new IPv6Address(ipv6Address, macAddress);
   System.out.println(macIpv6);
 }
 ```
-Output:
+In Go:
+```go
+func main() {
+  macStr := ipaddr.NewMACAddressString("aa:bb:cc:dd:ee:ff")
+  var macAddress *ipaddr.MACAddress = macStr.GetAddress()
+  var linkLocal *ipaddr.IPv6Address
+  linkLocal, _ = macAddress.ToLinkLocalIPv6()
+  fmt.Println(linkLocal)
+
+  ipv6Str := ipaddr.NewIPAddressString("1111:2222:3333:4444::/64")
+  var ipv6Address *ipaddr.IPv6Address = ipv6Str.GetAddress().ToIPv6()
+  var macIpv6 *ipaddr.IPv6Address
+  macIpv6, _ = ipaddr.NewIPv6AddressFromMAC(ipv6Address, macAddress)
+  fmt.Println(macIpv6)
+}
+```
+Output from either the Java or Go code:
 ```
 fe80::a8bb:ccff:fedd:eeff  
 1111:2222:3333:4444:a8bb:ccff:fedd:eeff/64
