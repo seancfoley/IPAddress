@@ -180,8 +180,8 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | Framework of address interfaces for polymorphic code |  ✅ | ✅ |
 | Address tries | ✅ |  ✅ |
 | Associative address tries | ✅ |  ✅ |
-| Containment trie IP Address collection | ✅ | Future |
-| Sequential range list IP address collection | ✅ | Future |
+| Containment trie IP Address collections | ✅ | Future |
+| Sequential range list IP address collections | ✅ | Future |
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
@@ -617,17 +617,22 @@ ffff::/104
 #### Delimited Segments
 
 The subnet formats allow you to specify ranges of values. However, if
-you wish to parse addresses in which values are delimited, then you can
+you wish to parse addresses in which the segment values are delimited, there are methods provided to do that.
+
+In Java, you can
 use the methods `parseDelimitedSegments` and
 `countDelimitedAddresses` of `IPAddressString`. The former method
 will provide an iterator to traverse through the
 individual addresses, while the latter will provide the number of iterated elements.
 
+In Go, the type `DelimitedAddressString` provides this functionality.  It has the method `ParseDelimitedSegments` to parse, and `CountDelimitedAddresses`
+to count the number of delimited address strings.  `ParseDelimitedSegments` will return an iterator which can be used to iterate through each string, parsing each one at a time.
+
 For example, parsing the delimited segments of `"1,2.3.4,5.6"` will iterate
 through `"1.3.4.6"`, `"1.3.5.6"`, `"2.3.4.6"` and `"2.3.5.6"`. You can construct `IPAddressString` instances from each individual string.
 
-&#8203;
 
+&#8203;
 #### Address or Host Name Validation Options
 
 Validation parameters allow you to restrict the permitted string formats, whether
@@ -661,7 +666,7 @@ HostNameParameters HOST_OPTIONS_EXAMPLE = new HostNameParameters.Builder().
 ```
 This is the equivalent code for Go.  The parameters code for Go exists in a sub-package, the addrstrparam package.
 ```go
-var hostOptionsExample = new(addrstrparam.HostNameParamsBuilder).
+var hostOptionsExample addrstrparam.HostNameParams = new(addrstrparam.HostNameParamsBuilder).
 	AllowEmpty(false).
 	NormalizeToLowercase(true).
 	AllowBracketedIPv6(true).
@@ -684,8 +689,8 @@ var hostOptionsExample = new(addrstrparam.HostNameParamsBuilder).
 The default options used by the library are permissive and not
 restrictive.
 
-&#8203;
 
+&#8203;
 #### Host Name or Address with Port or Service Name
 
 For an address or host with port or service name, use `HostName`. IPv6
@@ -995,7 +1000,7 @@ eth0
 &#8203;
 ## Addresses from Numeric Values
 
-In addition to the range of string formats that can be parsed to produce `IPAddress` instances, you can also obtain `IPAddress` instances from a large number of numeric formats.   You an obtain instances of `IPAddress` from byte arrays in Java and from byte slices in Go.  You can obtain instances of `IPAddress` from `java.net.InetAddress` or `java.net.InterfaceAddress` in Java and any one of `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `netip.Addr`, or `netip.Prefix` in Go.  You can obtain instances of `IPAddress` from arrays of address segments in Java, or from slices of address segments in Go.  You can obtain instances of `IPAddress` from individual integer segment values using the `SegmentValueProvider` interface.  All of these options are generic to either IPv4 or IPv6 unless you specifically choose the IPv4 or IPv6-specific constructors.  See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddress) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressNetwork.IPAddressGenerator.html) for the full list.
+In addition to the range of string formats that can be parsed to produce `IPAddress` instances, you can also obtain `IPAddress` instances from a numerous numeric formats.   You an obtain instances of `IPAddress` from byte arrays in Java and from byte slices in Go.  You can obtain instances of `IPAddress` from `java.net.InetAddress` or `java.net.InterfaceAddress` in Java and any one of `net.IP`, `net.IPAddr`, `net.IPMask`, `net.IPNet`, `netip.Addr`, or `netip.Prefix` in Go.  You can obtain instances of `IPAddress` from arrays of address segments in Java, or from slices of address segments in Go.  You can obtain instances of `IPAddress` from individual integer segment values using the `SegmentValueProvider` interface.  All of these options are generic to either IPv4 or IPv6 unless you specifically choose the IPv4 or IPv6-specific constructors.  See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddress) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressNetwork.IPAddressGenerator.html) for the full list.
 
 For IPv4 you have the additional option of constructing an address from a 32-bit integer. See the [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPv4Address) or [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/ipv4/IPv4Address.html).
 
@@ -2387,10 +2392,23 @@ try {
   String msg = e.getMessage(); // detailed message indicating issue
 }
 ```
+In Go, the equivalent code is similar, the difference being whether you want to return errors or not:
+```go
+if address := ipaddr.NewMACAddressString("01:02:03:04:0a:0b").GetAddress(); address != nil {
+  //use address
+}
+```
+or
+```go
+if address, err := ipaddr.NewMACAddressString("01:02:03:04:0a:0b").ToAddress(); err != nil {
+  // handle error
+} else {
+  //use address
+}
+```
 
 
 &#8203;
-
 #### Various Formats of MAC Addresses
 
 MAC Addresses are expected to be in hexadecimal. However, there is a number of accepted formats for MAC addresses:
@@ -2449,7 +2467,29 @@ public static void main(String[] args) {
   parseMAC(formats);
 }
 ```
-Output:
+
+```go
+func main() {
+  formats := []string{
+    "a:b:c:d:e:f",
+    "0a:0b:0c:0d:0e:0f",
+    "a:b:c:d:e:f",
+    "0a-0b-0c-0d-0e-0f",
+    "0a0b0c-0d0e0f",
+    "0a0b.0c0d.0e0f",
+    "0a 0b 0c 0d 0e 0f",
+    "0a0b0c0d0e0f",
+  }
+  parseMAC(formats)
+}
+
+func parseMAC(formats []string) {
+  for _, format := range formats {
+    fmt.Println(ipaddr.NewMACAddressString(format).GetAddress())
+  }
+}
+```
+Output for either the Java or Go code:
 ```
 0a:0b:0c:0d:0e:0f
 0a:0b:0c:0d:0e:0f
@@ -2464,7 +2504,7 @@ Ranges can be specified in the same way as for IP addresses (‘-’ for a
 specific range or ‘\*’ for full range segments).
 
 For instance, the address range ff:0f:aa-ff:00-ff:00-ff:00-ff can be
-represented many ways:
+represented many ways, in Java:
 ```java
 static void parseMAC(String formats[]) {
   for(String format : formats) {
@@ -2484,10 +2524,31 @@ public static void main(String[] args) {
     "ff0faa000000-ff0fffffffff"
   };
   parseMAC(formats);
-
 }
 ```
-Output:
+or in Go:
+```go
+func parseMAC(formats []string) {
+  for _, format := range formats {
+    fmt.Println(ipaddr.NewMACAddressString(format).GetAddress())
+  }
+}
+
+func main() {
+  formats := []string{
+    "ff:f:aa-ff:00-ff:00-ff:00-ff",
+    "ff:f:aa-ff:*:*:*",
+    "ff:0f:aa-ff:*:*:*",
+    "ff-0f-aa|ff-*-*-*",
+    "ff0faa|ff0fff-*",
+    "ff0f.aa00-ffff.*",
+    "ff 0f aa-ff * * *",
+    "ff0faa000000-ff0fffffffff",
+  }
+  parseMAC(formats)
+}
+```
+Output for either the Java or Go code:
 ```
 ff:0f:aa-ff:*:*:*
 ff:0f:aa-ff:*:*:*
@@ -2499,47 +2560,66 @@ ff:0f:aa-ff:*:*:*
 ff:0f:aa-ff:*:*:*
 ```
 
-&#8203;
 
+&#8203;
 #### Delimited Segments
 
-The range formats allow you to specify ranges of values. However, if you
-wish to parse addresses in which values are delimited, then you can use
+The range formats allow you to specify ranges of values. If you wish to parse addresses with delimited segment strings, methods are provided to do that.
+
+In Java, if you
+wish to parse addresses in which segment values are delimited, then you can use
 the methods `parseDelimitedSegments(String)` and
 `countDelimitedAddresses(String)` in `MACAddressString`.
 `parseDelimitedSegments` will provide an iterator to traverse through the
 individual addresses.
 
-For example, given "1,2:3:4,5:6:7:8", `countDelimitedAddresses` will
+In Go, this functionality is shared between IPAddress and MAC address parsing.   We have already described the type `DelimitedAddressString` for this purpose.
+
+For example, given "1,2:3:4,5:6:7:8", `countDelimitedAddresses`/`CountDelimitedAddresses` will
 return 4 for the possible combinations: "1:3:4:6:7:8", "1:3:5:6:7:8",
-"2:3:4:6:7:8" and "2:3:5:6:7:8". With each string obtained from
-`parseDelimitedSegments` you can construct a `MACAddressString` instance.
+"2:3:4:6:7:8" and "2:3:5:6:7:8". With each such string obtained from the iterator returned by
+`parseDelimitedSegments`/`ParseDelimitedSegments`, you can construct an instance of `MACAddressString`.
+
 
 &#8203;
-
 #### MAC Address Validation Options
 
-Validation options allow you to restrict the allowed formats.
+Validation options allow you to restrict the allowed formats of MAC address strings.
 
-You have the class `MACAddressStringParameters` which can be passed into
-`MACAddressString`
+The options are specified by the type `MACAddressStringParameters` which can be passed into
+`MACAddressString`.
 
-You can restrict validation options using the appropriate builder classes
-that are nested classes in the options classes. Here is an example:
+You can restrict validation options using the appropriate builder types.
+Here is an example in Java:
 ```java
 MACAddressStringParameters MAC_ADDRESS_OPTIONS_EXAMPLE =
   new MACAddressStringParameters.Builder().
   allowEmpty(false).
   allowAll(false).
   getFormatBuilder().
-  setRangeOptions(RangeParameters.*NO\_RANGE*).
-  allowLeadingZeros(true).
-  allowUnlimitedLeadingZeros(false).
-  allowWildcardedSeparator(false).
-  allowShortSegments(true).
-  getParentBuilder().
+    setRangeOptions(RangeParameters.*NO\_RANGE*).
+    allowLeadingZeros(true).
+    allowUnlimitedLeadingZeros(false).
+    allowWildcardedSeparator(false).
+    allowShortSegments(true).
+    getParentBuilder().
   toParams();
 ```
+and the equivalent code in Go:
+```go
+var macAddressOptionsExample addrstrparam.MACAddressStringParams = new(addrstrparam.MACAddressStringParamsBuilder).
+  AllowEmpty(false).
+  AllowAll(false).
+  GetFormatParamsBuilder().
+  SetRangeParams(addrstrparam.NoRange).
+  AllowLeadingZeros(true).
+  AllowUnlimitedLeadingZeros(false).
+  AllowWildcardedSeparator(false).
+  AllowShortSegments(true).
+  GetParentBuilder().
+  ToParams()
+```
+
 The default options used by the library are permissive and not
 restrictive.
 
