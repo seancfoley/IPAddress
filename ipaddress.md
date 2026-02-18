@@ -2779,7 +2779,7 @@ In Go:
 func (addr *IPv6Address) ToEUI(extended bool) (*MACAddress, addrerr.IncompatibleAddressError)
 ```
 
-In Java, there is another method in `IPv6AddressSection` that uses whatever part of the
+In the Java library, there is another method in `IPv6AddressSection` that uses whatever part of the
 interface identifier is included in the section to produce a MAC address
 section:
 ```java
@@ -2844,42 +2844,56 @@ framework to the IPAddress library. It is a unified set of inter-related
 interfaces, abstract implementations, and algorithms for all addresses
 and address components. It allows you to manipulate these items
 independently of implementation details, and provides standard
-interfaces to addresses and address components for code reuse and
+interfaces to addresses and address components for code re-use and
 polymorphism. It represents the common structure of addresses, sections,
-segments, and so on.
+segments, aggregations, and the like.
 
 You might wish to manipulate address components of different shapes and
 sizes transparently, or you may wish to manipulate different types of
 addresses or different address versions transparently. One element of
 the interface is the ability to convert any address component to bytes,
-whether division, segment, section, or address.
+whether division, segment, section, address, or collection.
 
 There is a hierarchy for the standard Address and Address Component data
 structures, which are addresses, sections of addresses, and segments of
 equal byte size inside those address sections.
 
-![](.//media/image1.png)
+![](.//media/segments.png)
 
-![](.//media/image2.png)
+![](.//media/sections.png)
 
 There is a more diversified hierarchy for non-standard address
 structures, in which addresses or address sections might be divided into
 divisions of unequal length, or of non-integer byte-size.
 
-![](.//media/image3.png)
+![](.//media/divisions.png)
 
-The address hierarchy of interfaces (purple) and classes (green) is
-shown:
 
-![](.//media/image4.png)
+The address component hierarchy of interfaces (purple) and classes (green) in the Java library is
+shown below.  It is certainly not necessary to remember the hierarchy, it is simply useful for polymorphic code.  
 
 Most of the full class hierarchy for address structure showing addresses, sections, division
 groupings, segments and divisions is shown here, separated into the
-three primary categories shown above. The dashed lines indicate there
-are a few less-prominent classes in the library not shown in the
-diagram.
+three primary categories described previously. The dashed lines indicate some less-prominent classes in the library not shown in the
+diagram.  Also, a few interfaces are omitted.
 
-![](.//media/image5.png)
+![](.//media/componentsj.png)
+
+The Go library has an address component hierarchy similar in many ways while different in others.  
+
+Some differences derive from language differences, such as class inheritance in Java versus struct aggregation in Go.  Also, an interface implementation is not declared explicitly in Go, and there are some restrictions when embedding interfaces in Go.
+
+Still, the Go library provides a similar framework that is useful for creating polymorphic code.
+
+In lieu of inheritance, the library provides the types AddressType, AddressSectionType, AddressSegmentType, StandardDivGroupingType, StandardDivisionType, and DivisionType allowing for method parameters accepting arguments of similar address component structure.  For instance, a method accepting IPv4, IPv6 and MAC addresses could use AddressType to represent any one of them.
+
+Meanwhile, just like in Java, the other interfaces allow for polymorphism amongst types representing different component structures (one structure being an address, another being an address section, another being a segment, and so on).  For instance, a method taking both address sections and addresses as arguments could use AddressSegmentSeries.  There are examples of such polymorphic code within the library itself.
+
+![](.//media/componentsg.png)
+
+The framework extends from addresses into subnets and the other possible aggregations of addresses that can be created, as shown in the following diagram.  You can represent individual IP addresses or subnets with `IPAddress`, or with IP-version-specific derivatives.  You can represent a sequential range of IP addresses with `IPAddressSeqRange` and IP-version-specific derivatives.  You can represent any collection of addresses with either an `IPAddressSeqRangeList` backed by a list of sequential ranges, or an `IPAddressContainmentTrie` backed by a trie of CIDR prefix blocks.
+
+![](.//media/aggregations.png)
 
 &#8203;
 
