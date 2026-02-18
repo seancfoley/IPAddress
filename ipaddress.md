@@ -1872,7 +1872,7 @@ Equality of an `IPAddressCollection` instance with another instance of `IPAddres
 &#8203;
 #### IP Address Aggregations
 
-As you an see in this document, there are multple ways in this library to represent a multitude of addresses with a single object, whether it be a subnet, a sequential range, or a collection.  There are also options allowing you to convert from one to the other, or to compare.
+As you an see in this document, there are a number of ways in this library to represent a multitude of addresses with a single object, whether it be a subnet, a sequential range, or a collection.  There are also options allowing you to convert from one to the other, or to compare.
 
 The IPAddressAggregation interface represents all types that can represent a multitude of individual addresses.   This includes subnets (`IPAddress`), sequential ranges (`IPAddressSeqRange`), and address collections (`IPAddressSeqRangeList` and `IPAddressContainmentTrie`).   
 
@@ -2846,15 +2846,18 @@ and address components. It allows you to manipulate these items
 independently of implementation details, and provides standard
 interfaces to addresses and address components for code re-use and
 polymorphism. It represents the common structure of addresses, sections,
-segments, aggregations, and the like.
+segments, collections, aggregations, and the like.
 
 You might wish to manipulate address components of different shapes and
 sizes transparently, or you may wish to manipulate different types of
 addresses or different address versions transparently. One element of
-the interface is the ability to convert any address component to bytes,
-whether division, segment, section, address, or collection.
+the framework is the ability to convert any address component to bytes,
+whether division, segment, section, or address.
 
-There is a hierarchy for the standard Address and Address Component data
+&#8203;
+#### Address Component Framework
+
+There is a hierarchy for the standard address and address component data
 structures, which are addresses, sections of addresses, and segments of
 equal byte size inside those address sections.
 
@@ -2875,7 +2878,7 @@ shown below.  It is certainly not necessary to remember the hierarchy, it is sim
 Most of the full class hierarchy for address structure showing addresses, sections, division
 groupings, segments and divisions is shown here, separated into the
 three primary categories described previously. The dashed lines indicate some less-prominent classes in the library not shown in the
-diagram.  Also, a few interfaces are omitted.
+diagram.  Also, a few small interfaces are omitted from the diagram.
 
 ![](.//media/componentsj.png)
 
@@ -2885,19 +2888,26 @@ Some differences derive from language differences, such as class inheritance in 
 
 Still, the Go library provides a similar framework that is useful for creating polymorphic code.
 
-In lieu of inheritance, the library provides the types AddressType, AddressSectionType, AddressSegmentType, StandardDivGroupingType, StandardDivisionType, and DivisionType allowing for method parameters accepting arguments of similar address component structure.  For instance, a method accepting IPv4, IPv6 and MAC addresses could use AddressType to represent any one of them.
+In lieu of inheritance, the library provides the types `AddressType`, `AddressSectionType`, `AddressSegmentType`, `StandardDivGroupingType`, `StandardDivisionType`, and `DivisionType` allowing for method parameters accepting arguments of similar address component structure.  For instance, a method accepting IPv4, IPv6 and MAC addresses could use `AddressType` to represent any one of them.
 
-Meanwhile, just like in Java, the other interfaces allow for polymorphism amongst types representing different component structures (one structure being an address, another being an address section, another being a segment, and so on).  For instance, a method taking both address sections and addresses as arguments could use AddressSegmentSeries.  There are examples of such polymorphic code within the library itself.
+Meanwhile, just like in Java, the other interfaces allow for polymorphism amongst types representing different component structures (one structure being an address, another being an address section, another being a segment, and so on).  For instance, a method taking both address sections and addresses as arguments could use `AddressSegmentSeries` to do so.  There are examples of such polymorphic code within the IPAddress library itself.
 
 ![](.//media/componentsg.png)
 
-The framework extends from addresses into subnets and the other possible aggregations of addresses that can be created, as shown in the following diagram.  You can represent individual IP addresses or subnets with `IPAddress`, or with IP-version-specific derivatives.  You can represent a sequential range of IP addresses with `IPAddressSeqRange` and IP-version-specific derivatives.  You can represent any collection of addresses with either an `IPAddressSeqRangeList` backed by a list of sequential ranges, or an `IPAddressContainmentTrie` backed by a trie of CIDR prefix blocks.
+&#8203;
+#### IP Address Aggregation Framework
+
+The overall framework extends from addresses into subnets and the other possible aggregations of addresses that can be created, as shown in the following diagram.  
+
+You can represent individual IP addresses or subnets with `IPAddress`, or with IP-version-specific derivatives.  You can represent a sequential range of IP addresses with `IPAddressSeqRange` and IP-version-specific derivatives.  You can represent any collection of addresses with either an `IPAddressSeqRangeList` backed by a list of sequential ranges, or an `IPAddressContainmentTrie` backed by a trie of CIDR prefix blocks.
 
 ![](.//media/aggregations.png)
 
-&#8203;
 
+&#8203;
 ## Conversion to String Representation of Address
+
+Most applications handle addresses as strings.  The library has the `IPAddressString`, `HostName`, and `MACAddressString` types to parse strings into addresses.  For the reverse, the library has a large number of methods to produce various strings of different formats from addresses.
 
 Here is a list of string methods, in no specific order.
 
