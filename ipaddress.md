@@ -2937,7 +2937,7 @@ methods might match those of other methods. They are not necessarily
 distinct from each other for all addresses.
 
 &#8203;
-#### All address types, HostName and IPAddressString
+#### All Address Types, HostName and IPAddressString
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2945,7 +2945,7 @@ distinct from each other for all addresses.
 | toString | String | For addresses, this produces the canonical string. For `HostName` and `IPAddressString` instances, this prints the original string that was used to construct the instance. |
 
 &#8203;
-#### All address types
+#### All Address Types
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2954,14 +2954,14 @@ distinct from each other for all addresses.
 | toHexString | ToHexString | non-segmented base 16 |
 
 &#8203;
-#### IP addresses and HostName
+#### IP Addresses and HostName
 
 | Java | Go | Description |
 | --- | --- | --- |
 | toNormalizedWildcardString | ToNormalizedWildcardString | similar to the normalized string, but uses wildcards and does not print prefix length for addresses that have prefix lengths, will use wildcards to indicate ranges instead |
 
 &#8203;
-#### IP addresses only
+#### IP Addresses Only
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2980,7 +2980,7 @@ distinct from each other for all addresses.
 | toNormalizedString(IPStringOptions) | ToNormalizedString(IPStringOptions) | use this method to produce your own customized string |
 
 &#8203;
-#### IPv6 only
+#### IPv6 Only
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2988,7 +2988,7 @@ distinct from each other for all addresses.
 | toBase85String | ToBase85String | Produces the Base 85 string, see RFC 1924, the [Java wiki example](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-ascii-base-85-encoding), or the [Go wiki example](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-ascii-base-85-encoding) |
 
 &#8203;
-#### MAC address only
+#### MAC Address Only
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -3217,7 +3217,7 @@ ipAddressString = new IPAddressString("1.2.3.4");
 address = ipAddressString.getAddress();
 System.out.println(address.toUNCHostName());
 ```
-THe Go code for the same:
+The Go code for the same:
 ```go
 var ipAddressString *ipaddr.IPAddressString = ipaddr.NewIPAddressString("2001:db8::1")
 var address *ipaddr.IPAddress = ipAddressString.GetAddress()
