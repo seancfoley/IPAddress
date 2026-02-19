@@ -2883,8 +2883,9 @@ divisions of unequal length, or divisions of non-integer byte-size.
 <img src=".//media/divisions.png" width="800"/>
 <p>
 
+
 &#8203;
-&#8203;
+
 #### Address Component Framework
 
 There exists a hierarchy for the standard and non-standard address and address component data
