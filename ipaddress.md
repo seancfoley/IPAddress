@@ -19,7 +19,7 @@ by Sean C Foley
 
 [Core Types](#core-types)
 
-[Parse String Representation of IP Address or Host Name](#parse-string-representation-of-ip-address-or-host-name)
+[Parse String Representation of IP Address, Subnet or Host Name](#parse-string-representation-of-ip-address-subnet-or-host-name)
 
 [Addresses from Numeric Values](#addresses-from-numeric-values)
 
@@ -49,7 +49,7 @@ by Sean C Foley
 
 [Address Framework](#address-framework)
 
-[Conversion to String Representation of Address](#conversion-to-string-representation-of-address)
+[Conversion to String Representation of Address or Subnet](#conversion-to-string-representation-of-address-or-subnet)
 
 [Containment and Membership](#containment-and-subnet-membership)
 
@@ -173,8 +173,8 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | Spliterator and stream iterator alternatives | ✅ |  |
 | Parsing many address and subnet formats |  ✅ | ✅ |
 | String generation of many address and subnet formats |  ✅ | ✅ |
-| String collections | ✅ |  |
-| IPv4/v6/MAC address increment/decrement |  ✅ | ✅ |
+| Address string collections | ✅ |  |
+| Address increment/decrement/enumerate |  ✅ | ✅ |
 | Masking, reversing, subtracting, intersecting, joining operations |  ✅ | ✅ |
 | Prefix length operations |  ✅ | ✅ |
 | Framework of address interfaces for polymorphic code |  ✅ | ✅ |
@@ -272,7 +272,7 @@ address or a subnet. If you have either an address or host name, or you
 have something with a port or service name, then use HostName.
 
 &#8203;
-## Parse String Representation of IP Address or Host Name
+## Parse String Representation of IP Address, Subnet or Host Name
 
 `IPAddressString` is used to convert.
 
@@ -324,7 +324,7 @@ host name with labels: [a, b, com]
 Similarly, with the Go library, you can use one of `GetAddress` or
 `ToAddress`, the difference being whether parsing errors are detected by checking for nil or checking an error.
 ```go
-address := ipaddr.NewIPAddressString("1.2.3.4").GetAddress()
+var address *IPAddress = ipaddr.NewIPAddressString("1.2.3.4").GetAddress()
 if address != nil {
 	//use address here
 }
@@ -2421,6 +2421,12 @@ aabb.ccdd.eeff
 aabbccddeeff
 aabbcc-ddeeff
 ```
+- `aa-bb-cc-dd-ee-ff` is the IEEE 802 format and common with Windows
+- `aa:bb:cc:dd:ee:ff` is common in Unix-like systems and network tools
+- `aabb.ccdd.eeff` is common with Cisco devices
+- `aabbcc-ddeeff` is common with Hewlett Packard devices
+
+
 For the non-segmented format (aabbccddeeff), all 12 digits are required
 to avoid ambiguity.
 
@@ -2834,9 +2840,10 @@ Output from either the Java or Go code:
 fe80::a8bb:ccff:fedd:eeff  
 1111:2222:3333:4444:a8bb:ccff:fedd:eeff/64
 ```
+There is more sample code in a [wiki example for Java](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-mac-address) and in a [wiki example for Go](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-mac-address).
+
 
 &#8203;
-
 ## Address Framework
 
 Much like there is a Java collections framework, there is an address
@@ -2854,26 +2861,37 @@ addresses or different address versions transparently. One element of
 the framework is the ability to convert any address component to bytes,
 whether division, segment, section, or address.
 
+#### Address components
+
+Addresses are composed of a single address section, which contains the full array of segments for a given address, which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 segments for MAC.
+
+<img src=".//media/segments.png" width="800"/>
+<p>
+
+&#8203;
+When an address is split into separate disparate sections, those sections can have a variable number of components.  Sections can be manipulated individually and then reconstituted into a single section for a single address.
+
+
+<img src=".//media/sections.png" width="800"/>
+<p>
+
+&#8203;
+There is a more diversified hierarchy for non-standard address
+structures, in which addresses or address sections might be divided into
+divisions of unequal length, or divisions of non-integer byte-size.
+
+<img src=".//media/divisions.png" width="800"/>
+<p>
+
+&#8203;
 &#8203;
 #### Address Component Framework
 
-There is a hierarchy for the standard address and address component data
-structures, which are addresses, sections of addresses, and segments of
-equal byte size inside those address sections.
-
-![](.//media/segments.png)
-
-![](.//media/sections.png)
-
-There is a more diversified hierarchy for non-standard address
-structures, in which addresses or address sections might be divided into
-divisions of unequal length, or of non-integer byte-size.
-
-![](.//media/divisions.png)
-
+There exists a hierarchy for the standard and non-standard address and address component data
+structures.  It includes types for the address components, which are addresses, sections of addresses, and segments of equal byte size inside those address sections.  It includes a number of other types as well.
 
 The address component hierarchy of interfaces (purple) and classes (green) in the Java library is
-shown below.  It is certainly not necessary to remember the hierarchy, it is simply useful for polymorphic code.  
+shown in a diagram below.  It is certainly not necessary to remember the hierarchy, it is simply useful for polymorphic code.  
 
 Most of the full class hierarchy for address structure showing addresses, sections, division
 groupings, segments and divisions is shown here, separated into the
@@ -2884,13 +2902,13 @@ diagram.  Also, a few small interfaces are omitted from the diagram.
 
 The Go library has an address component hierarchy similar in many ways while different in others.  
 
-Some differences derive from language differences, such as class inheritance in Java versus struct aggregation in Go.  Also, an interface implementation is not declared explicitly in Go, and there are some restrictions when embedding interfaces in Go.
+Some differences derive from language differences, such as class inheritance in Java versus struct aggregation in Go.  Other differences reflect the fact that an interface implementation is not declared explicitly in Go, and that there are some restrictions when embedding interfaces in Go.
 
 Still, the Go library provides a similar framework that is useful for creating polymorphic code.
 
-In lieu of inheritance, the library provides the types `AddressType`, `AddressSectionType`, `AddressSegmentType`, `StandardDivGroupingType`, `StandardDivisionType`, and `DivisionType` allowing for method parameters accepting arguments of similar address component structure.  For instance, a method accepting IPv4, IPv6 and MAC addresses could use `AddressType` to represent any one of them.
+In lieu of inheritance, the Go library provides the types `AddressType`, `AddressSectionType`, `AddressSegmentType`, `StandardDivGroupingType`, `StandardDivisionType`, and `DivisionType` that allow for method parameters accepting arguments of similar address component structure.  For instance, a method accepting IPv4, IPv6 and MAC addresses could use `AddressType` to represent any one of them.
 
-Meanwhile, just like in Java, the other interfaces allow for polymorphism amongst types representing different component structures (one structure being an address, another being an address section, another being a segment, and so on).  For instance, a method taking both address sections and addresses as arguments could use `AddressSegmentSeries` to do so.  There are examples of such polymorphic code within the IPAddress library itself.
+Meanwhile, just like in Java, other interfaces allow for polymorphism amongst types representing different component structures (one structure being an address, another being an address section, another being a segment, and so on).  For instance, a method taking both address sections and addresses as arguments could use `AddressSegmentSeries` to do so.  There are examples of such polymorphic code within the IPAddress library itself.
 
 ![](.//media/componentsg.png)
 
@@ -2903,11 +2921,13 @@ You can represent individual IP addresses or subnets with `IPAddress`, or with I
 
 ![](.//media/aggregations.png)
 
+With a given address, subnet, or sequential range, you could choose to add all its contained individual addresses to a collection.  Alternatively, the shared interface `IPAddressAggregation` allows you to store the collection alongside the address, subnet, or sequential range in some other data structure.
+
 
 &#8203;
-## Conversion to String Representation of Address
+## Conversion to String Representation of Address or Subnet
 
-Most applications handle addresses as strings.  The library has the `IPAddressString`, `HostName`, and `MACAddressString` types to parse strings into addresses.  For the reverse, the library has a large number of methods to produce various strings of different formats from addresses.
+Most applications handle addresses as strings.  The library has the `IPAddressString`, `HostName`, and `MACAddressString` types to parse strings into addresses.  For the reverse, the library has a large number of methods to produce various strings with different formats from addresses.
 
 Here is a list of string methods, in no specific order.
 
@@ -2917,102 +2937,72 @@ distinct from each other for all addresses.
 
 All address types, HostName and IPAddressString:
 
-  - **toNormalizedString**: Produces a consistent string. For addresses,
-    a string that is somewhat similar and consistent for all address
-    components of the same type. Uses no segment compression in IPv6.
-    Uses xx:xx:xx:xx:xx:xx for MAC address. Prints HostName instances in
-    standard formats as expected by URLs and as dictated by RFCs,
-    including port or service name and using square brackets for IPV6
-    addresses. Prints a standardized format for IPAddressString
-    instances that cannot be converted to addresses (such as ‘\*’). For
-    HostName and IPAddressString instances constructed from invalid
-    strings, prints the original string used to construct.
+| Java | Go | Description |
+| --- | --- | --- |
+| toNormalizedString | ToNormalizedString | Produces a consistent and standardized string. For addresses, it is a string that is somewhat similar and consistent for all addresses the same type and version. Uses no segment compression in IPv6.  Uses `xx:xx:xx:xx:xx:xx` for MAC address. Prints HostName instances in standard formats as expected by URLs and as dictated by RFCs, including port or service name and using square brackets for IPV6 addresses. Prints a standardized format for `IPAddressString` instances that cannot be converted to addresses (such as ‘\*’). For `HostName` and `IPAddressString` instances constructed from invalid strings, prints the original string used to construct. |
+| toString | String | For addresses, this produces the canonical string. For `HostName` and `IPAddressString` instances, this prints the original string that was used to construct the instance. |
 
-  - **toString**: same as **toCanonicalString** for addresses. For
-    HostName and IPAddressString instances, prints the original string
-    used to construct.
 
 All address types:
 
-  - **toCanonicalString**: the string recommended by one or more RFCs or
-    other common standard.
+| Java | Go | Description |
+| --- | --- | --- |
+| toCanonicalString | ToCanonicalString | The canonical string is the string recommended by one or more RFCs or other common standard |
+| toCompressedString | ToCompressedString | Produces the shortest representation of the address while remaining within the confines of the standard representation(s) of the address. For IPv6 this compresses all compressible segments |
+| toHexString | ToHexString | non-segmented base 16 |
 
-  - **toCompressedString**: a short representation of the address while
-    remaining within the confines of standard representation(s) of the
-    address. For IPv6 compresses all compressible segments.
-
-  - **toHexString**: base 64 with no segments
 
 IP addresses and HostName:
 
-  - **toNormalizedWildcardString**: similar to **toNormalizedString**,
-    but uses wildcards and does not print prefix length for addresses
-    that have prefix lengths
+| Java | Go | Description |
+| --- | --- | --- |
+| toNormalizedWildcardString | ToNormalizedWildcardString | similar to the normalized string, but uses wildcards and does not print prefix length for addresses that have prefix lengths, will use wildcards to indicate ranges instead |
+
 
 IP addresses only:
 
-  - **toFullString**: a string which maintains a common length, a string
-    with no compressed segments and all segments of full length, which
-    is 4 characters for IPv6 segments and 3 characters for IPv4 segments
+| Java | Go | Description |
+| --- | --- | --- |
+| toFullString | ToFullString | a string which maintains a common length, a string with no compressed segments and all segments of full length, which is 4 characters for IPv6 segments and 3 characters for IPv4 segments |
+| toCanonicalWildcardString | ToCanonicalWildcardString | similar to the canonical string, but uses wildcards and does not print prefix length for addresses that have prefix lengths |
+| toCompressedWildcardString | ToCompressedWildcardString | similar to the compressed string, but uses wildcards and does not print prefix length for addresses that have prefix lengths |
+| toSQLWildcardString | ToSQLWildcardString | Similar to the normalized wildcard string, but uses the SQL wildcards `%` and '-'|
+| toPrefixLengthString | ToPrefixLengthString | Produces a string with CIDR prefix length if it has a prefix length, and compresses the host for IPv6. For IPv4 it is the same as the canonical string |
+| toSubnetString | ToSubnetString | Produces the normalized wildcard string for IPv4 and the prefix length string for IPv6 |
+| toReverseDNSLookupString | ToReverseDNSLookupString | produces the reverse DNS lookup string |
+| toOctalString | ToOctalString | non-segmented base 8, optionally with a ‘0’ prefix to indicate octal |
+| toBinaryString | ToBinaryString | non-segmented base 2, all ones and zeros |
+| toSegmentedBinaryString | ToSegmentedBinaryString | segmented base 2, all ones and zeros |
+| toConvertedString | ToConvertedString | For IPv6, if the IPv6 address can be converted to IPv4, produces the IPv6 mixed string.  For IPv4 this produces the canonical string. |
+| toUNCHostName | ToUNCHostName | produces the Microsoft UNC path component |
+| toNormalizedString(IPStringOptions) | ToNormalizedString(IPStringOptions) | use this method to produce your own customized string |
 
-  - **toCanonicalWildcardString**: similar to **toCanonicalString**, but
-    uses wildcards and does not print prefix length for addresses that
-    have prefix lengths
-
-  - **toCompressedWildcardString**: similar to **toCompressedString**,
-    but uses wildcards and does not print prefix length for addresses
-    that have prefix lengths
-
-  - **toSQLWildcardString**: similar to **toNormalizedWildcardString**,
-    but uses SQL wildcards
-
-  - **toPrefixLengthString**: a string with CIDR prefix length if it has
-    one, and compresses the host for IPv6. For IPv4 it is the same as
-    **toCanonicalString**.
-
-  - **toSubnetString**: uses **toNormalizedWildcardString** for IPv4 and
-    **toPrefixLengthString** for IPv6
-
-  - **toReverseDNSLookupString**: a string for reverse DNS lookup
-
-  - **toOctalString**: base 8, optionally with a ‘0’ prefix to indicate
-    octal
-
-  - **toBinaryString**: all ones and zeros
-
-  - **toConvertedString**: if an IPv6 address can be converted to IPv4
-    as determined by isIPv4Convertible(), produces the result of
-    **toMixedString**. For IPv4 same as **toCanonicalString**.
-
-  - **toUNCHostName**: Microsoft UNC path component
-
-  - **toNormalizedString(IPStringOptions)** : your own customized string
 
 IPv6 only:
 
-  - **toMixedString**: mixed IPv6/IPv4 string format like
-    a:&#8203;b:c:d:e:f:255.0.255.255
+| Java | Go | Description |
+| --- | --- | --- |
+| toMixedString | ToMixedString | Produces a string with the mixed IPv6/IPv4 string format like `a:b:c:d:e:f:255.0.255.255` |
+| toBase85String | ToBase85String | Produces the Base 85 string, see RFC 1924, the [Java wiki example](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-ascii-base-85-encoding), or the [Go wiki example](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-ascii-base-85-encoding) |
 
-  - **toBase85String**: RFC 1924
 
 MAC address only:
 
-  - **toColonDelimitedString**: same as **toNormalizedString**,
-    xx:xx:xx:xx:xx:xx
+| Java | Go | Description |
+| --- | --- | --- |
+| toColonDelimitedString | ToColonDelimitedString | This is the normalized string for MAC addresses, and has the format `xx:xx:xx:xx:xx:xx` |
+| toDashedString | ToDashedString | This is the canonical string for MAC addresses, and has the format `xx-xx-xx-xx-xx-xx` |
+| toDottedString | ToDottedString | This has the format `xxxx.xxxx.xxxx`, with the segments being 2 bytes each, rather than the other MAC strings in which segments are 1 byte each |
+| toSpaceDelimitedString | ToSpaceDelimitedString | This has the format `xx xx xx xx xx xx` |
 
-  - **toDashedString**: same as **toCanonicalString**, xx-xx-xx-xx-xx-xx
-
-  - **toDottedString**: xxxx.xxxx.xxxx
-
-  - **toSpaceDelimitedString**: xx xx xx xx xx xx
 
 &#8203;
-
 #### More Details and Examples
 
-`AddressSegmentSeries` objects (such as `Address` and `AddressSection`) have
-methods that produce strings in various formats: `toCanonicalString`,
-`toNormalizedString`, `toCompressedString`, and `toHexString`.
+`AddressSegmentSeries` implementations (such as `Address` and `AddressSection`) have
+methods that produce strings in various formats.
+
+This Java code produces those assorted strings from a selection of six addresses and subnets.
 ```java
 public static void main(String[] args) {
   printStrings(new MACAddressString("a:bb:c:dd:e:ff").getAddress());
@@ -3280,7 +3270,7 @@ a:b::/64
 
 #### Collections of IP Address Strings
 
-You can produce collections of strings:
+With the Java library, you can produce collections of strings:
 ```java
 public static void main(String[] args) {  
   IPAddress address = new IPAddressString("a:b:c::e:f").getAddress();  
@@ -3349,7 +3339,7 @@ System.out.println(address.contains(new IPAddressString("1.1.0.0").getAddress())
 ```
 and the equivalent Go code:
 ```go
-address := ipaddr.NewIPAddressString("1.2.0.0/16").GetAddress()
+var address *IPAddress = ipaddr.NewIPAddressString("1.2.0.0/16").GetAddress()
 fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.2.3.4").GetAddress()))
 fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.2.3.0/24").GetAddress()))
 fmt.Println(address.Contains(ipaddr.NewIPAddressString("1.2.3.0/25").GetAddress()))
