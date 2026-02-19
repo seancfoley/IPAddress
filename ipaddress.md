@@ -2866,14 +2866,14 @@ whether division, segment, section, or address.
 Addresses are composed of a single address section, which contains the full array of segments for a given address, which is 4 segments for IPv4, 8 for IPv6, and either 6 or 8 segments for MAC.
 
 <img src=".//media/segments.png" width="800"/>
-<p>
+<p></p>
 
 &#8203;
 When an address is split into separate disparate sections, those sections can have a variable number of components.  Sections can be manipulated individually and then reconstituted into a single section for a single address.
 
 
 <img src=".//media/sections.png" width="800"/>
-<p>
+<p></p>
 
 &#8203;
 There is a more diversified hierarchy for non-standard address
@@ -2881,7 +2881,7 @@ structures, in which addresses or address sections might be divided into
 divisions of unequal length, or divisions of non-integer byte-size.
 
 <img src=".//media/divisions.png" width="800"/>
-<p>
+<p></p>
 
 
 &#8203;
