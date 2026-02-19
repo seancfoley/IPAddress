@@ -2936,15 +2936,16 @@ Note that, for a given address, the string produced by one of these
 methods might match those of other methods. They are not necessarily
 distinct from each other for all addresses.
 
-All address types, HostName and IPAddressString:
+&#8203;
+#### All address types, HostName and IPAddressString
 
 | Java | Go | Description |
 | --- | --- | --- |
 | toNormalizedString | ToNormalizedString | Produces a consistent and standardized string. For addresses, it is a string that is somewhat similar and consistent for all addresses the same type and version. Uses no segment compression in IPv6.  Uses `xx:xx:xx:xx:xx:xx` for MAC address. Prints HostName instances in standard formats as expected by URLs and as dictated by RFCs, including port or service name and using square brackets for IPV6 addresses. Prints a standardized format for `IPAddressString` instances that cannot be converted to addresses (such as ‘\*’). For `HostName` and `IPAddressString` instances constructed from invalid strings, prints the original string used to construct. |
 | toString | String | For addresses, this produces the canonical string. For `HostName` and `IPAddressString` instances, this prints the original string that was used to construct the instance. |
 
-
-All address types:
+&#8203;
+#### All address types
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2952,15 +2953,15 @@ All address types:
 | toCompressedString | ToCompressedString | Produces the shortest representation of the address while remaining within the confines of the standard representation(s) of the address. For IPv6 this compresses all compressible segments |
 | toHexString | ToHexString | non-segmented base 16 |
 
-
-IP addresses and HostName:
+&#8203;
+#### IP addresses and HostName
 
 | Java | Go | Description |
 | --- | --- | --- |
 | toNormalizedWildcardString | ToNormalizedWildcardString | similar to the normalized string, but uses wildcards and does not print prefix length for addresses that have prefix lengths, will use wildcards to indicate ranges instead |
 
-
-IP addresses only:
+&#8203;
+#### IP addresses only
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2970,7 +2971,7 @@ IP addresses only:
 | toSQLWildcardString | ToSQLWildcardString | Similar to the normalized wildcard string, but uses the SQL wildcards `%` and '-'|
 | toPrefixLengthString | ToPrefixLengthString | Produces a string with CIDR prefix length if it has a prefix length, and compresses the host for IPv6. For IPv4 it is the same as the canonical string |
 | toSubnetString | ToSubnetString | Produces the normalized wildcard string for IPv4 and the prefix length string for IPv6 |
-| toReverseDNSLookupString | ToReverseDNSLookupString | produces the reverse DNS lookup string |
+| toReverseDNSLookupString | ToReverseDNSString | produces the reverse DNS lookup string |
 | toOctalString | ToOctalString | non-segmented base 8, optionally with a ‘0’ prefix to indicate octal |
 | toBinaryString | ToBinaryString | non-segmented base 2, all ones and zeros |
 | toSegmentedBinaryString | ToSegmentedBinaryString | segmented base 2, all ones and zeros |
@@ -2978,16 +2979,16 @@ IP addresses only:
 | toUNCHostName | ToUNCHostName | produces the Microsoft UNC path component |
 | toNormalizedString(IPStringOptions) | ToNormalizedString(IPStringOptions) | use this method to produce your own customized string |
 
-
-IPv6 only:
+&#8203;
+#### IPv6 only
 
 | Java | Go | Description |
 | --- | --- | --- |
 | toMixedString | ToMixedString | Produces a string with the mixed IPv6/IPv4 string format like `a:b:c:d:e:f:255.0.255.255` |
 | toBase85String | ToBase85String | Produces the Base 85 string, see RFC 1924, the [Java wiki example](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-ascii-base-85-encoding), or the [Go wiki example](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-4:-Converting-to-and-from-Other-Formats#convert-tofrom-ipv6-address-fromto-ascii-base-85-encoding) |
 
-
-MAC address only:
+&#8203;
+#### MAC address only
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -3003,7 +3004,7 @@ MAC address only:
 `AddressSegmentSeries` implementations (such as `Address` and `AddressSection`) have
 methods that produce strings in various formats.
 
-This Java code produces those assorted strings from a selection of six addresses and subnets.
+This Java code produces those assorted strings from a selection of six addresses and subnets:
 ```java
 public static void main(String[] args) {
   printStrings(new MACAddressString("a:bb:c:dd:e:ff").getAddress());
@@ -3020,36 +3021,66 @@ static void printStrings(AddressSegmentSeries series) {
   System.out.println(series.toCompressedString());
   System.out.println(series.toHexString(true));
   System.out.print("lower: " + series.getLower() + " bytes:");
-  System.out.println(Arrays.toString(series.getBytes()));
+  System.out.println(Arrays.toString(unsigned(series.getBytes())));
   System.out.print("upper: " + series.getUpper() + " bytes:");
-  System.out.println(Arrays.toString(series.getUpperBytes()));
+  System.out.println(Arrays.toString(unsigned(series.getUpperBytes())));
   System.out.println();
 }
+
+static int[] unsigned(byte bytes[]) {
+  int[] result = new int[bytes.length];
+  for (int i = 0; i < result.length; i++) {
+    result[i] = Byte.toUnsignedInt(bytes[i]);
+  }
+  return result;
+}
 ```
-Output:
+This is the equivalent Go code:
+```go
+func main() {
+	printStrings(ipaddr.NewMACAddressString("a:bb:c:dd:e:ff").GetAddress())
+	printStrings(ipaddr.NewMACAddressString("a:bb:c:*").GetAddress())
+	printStrings(ipaddr.NewIPAddressString("a:bb:c::/64").GetAddress())
+	printStrings(ipaddr.NewIPAddressString("1.2.3.4").GetAddress())
+	printStrings(ipaddr.NewIPAddressString("1.2.0.0/16").GetAddress())
+	printStrings(ipaddr.NewIPAddressString("a:bb:c::dd:e:ff").GetAddress())
+}
+
+func printStrings(series ipaddr.AddressType) {
+	fmt.Println(series.ToCanonicalString())
+	fmt.Println(series.ToNormalizedString())
+	fmt.Println(series.ToCompressedString())
+	hexStr, _ := series.ToHexString(true)
+	fmt.Println(hexStr)
+	fmt.Print("lower: " + series.ToAddressBase().GetLower().String() + " bytes:")
+	fmt.Println(series.Bytes())
+	fmt.Print("upper: " + series.ToAddressBase().GetUpper().String() + " bytes:")
+	fmt.Println(series.UpperBytes())
+	fmt.Println()
+}
+```
+Output from both the Java and Go code:
 ```
 0a-bb-0c-dd-0e-ff
 0a:bb:0c:dd:0e:ff
 a:bb:c:dd:e:ff
 0x0abb0cdd0eff
-lower: 0a:bb:0c:dd:0e:ff bytes:[10, -69, 12, -35, 14, -1]
-upper: 0a:bb:0c:dd:0e:ff bytes:[10, -69, 12, -35, 14, -1]
+lower: 0a:bb:0c:dd:0e:ff bytes:[10, 187, 12, 221, 14, 255]
+upper: 0a:bb:0c:dd:0e:ff bytes:[10, 187, 12, 221, 14, 255]
 
 0a-bb-0c-*-*-*
 0a:bb:0c:*:*:*
 a:bb:c:*:*:*
 0x0abb0c000000-0x0abb0cffffff
-lower: 0a:bb:0c:00:00:00 bytes:[10, -69, 12, 0, 0, 0]
-upper: 0a:bb:0c:ff:ff:ff bytes:[10, -69, 12, -1, -1, -1]
+lower: 0a:bb:0c:00:00:00 bytes:[10, 187, 12, 0, 0, 0]
+upper: 0a:bb:0c:ff:ff:ff bytes:[10, 187, 12, 255, 255, 255]
 
 a:bb:c::/64
 a:bb:c:0:0:0:0:0/64
 a:bb:c::/64
 0x000a00bb000c00000000000000000000-0x000a00bb000c0000ffffffffffffffff
-lower: a:bb:c:0:0:0:0:0 bytes:[0, 10, 0, -69, 0, 12, 0, 0, 0, 0, 0, 0,
-0, 0, 0, 0]
-upper: a:bb:c:0:ffff:ffff:ffff:ffff bytes:[0, 10, 0, -69, 0, 12, 0, 0,
--1, -1, -1, -1, -1, -1, -1, -1]
+lower: a:bb:c::/64 bytes:[0, 10, 0, 187, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+upper: a:bb:c:0:ffff:ffff:ffff:ffff/64 bytes:[0, 10, 0, 187, 0, 12, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255]
 
 1.2.3.4
 1.2.3.4
@@ -3062,21 +3093,21 @@ upper: 1.2.3.4 bytes:[1, 2, 3, 4]
 1.2.0.0/16
 1.2.0.0/16
 0x01020000-0x0102ffff
-lower: 1.2.0.0 bytes:[1, 2, 0, 0]
-upper: 1.2.255.255 bytes:[1, 2, -1, -1]
+lower: 1.2.0.0/16 bytes:[1, 2, 0, 0]
+upper: 1.2.255.255/16 bytes:[1, 2, 255, 255]
 
 a:bb:c::dd:e:ff
 a:bb:c:0:0:dd:e:ff
 a:bb:c::dd:e:ff
 0x000a00bb000c0000000000dd000e00ff
-lower: a:bb:c:0:0:dd:e:ff bytes:[0, 10, 0, -69, 0, 12, 0, 0, 0, 0, 0,
--35, 0, 14, 0, -1]  
-upper: a:bb:c:0:0:dd:e:ff bytes:[0, 10, 0, -69, 0, 12, 0, 0, 0, 0, 0,
--35, 0, 14, 0, -1]
+lower: a:bb:c::dd:e:ff bytes:[0, 10, 0, 187, 0, 12, 0, 0, 0, 0, 0, 221, 0, 14, 0, 255]
+upper: a:bb:c::dd:e:ff bytes:[0, 10, 0, 187, 0, 12, 0, 0, 0, 0, 0, 221, 0, 14, 0, 255]
 ```
-The `IPAddress` and `IPAddressSection` classes and their version-specific
-subclasses have additional methods to produce specific strings
-representing the address:
+The `IPAddress` and `IPAddressSection` types and their associated version-specific
+types have additional methods to produce specific strings
+representing the address.
+
+Here is example Java code:
 ```java
 public static void main(String[] args) {
   IPAddress address = new IPAddressString("a:b:c::e:f").getAddress();
@@ -3107,7 +3138,40 @@ static void print(IPAddress address) {
   System.out.println();
 }
 ```
-Output:
+Here is equivalent Go code:
+```go
+func main() {
+	address := ipaddr.NewIPAddressString("a:b:c::e:f").GetAddress()
+	print(address)
+	address = ipaddr.NewIPAddressString("a:b:c::").GetAddress()
+	print(address)
+
+	//a:b:c:\*:: cannot be represented as a range of two single values
+	//so an error and empty string is returned from ToBase85String(), ToBinaryString(), and ToHexString()
+	address = ipaddr.NewIPAddressString("a:b:c:*::").GetAddress()
+	print(address)
+}
+
+func print(address *ipaddr.IPAddress) {
+	fmt.Println(address.ToCanonicalString())
+	fmt.Println(address.ToFullString())
+	fmt.Println(address.ToNormalizedString())
+	fmt.Println(address.ToSQLWildcardString())
+	fmt.Println(address.ToSubnetString())
+	if address.IsIPv6() {
+		str, _ := address.ToIPv6().ToMixedString()
+		fmt.Println(str)
+		str, _ = address.ToIPv6().ToBase85String()
+		fmt.Println(str)
+	}
+	str, _ := address.ToBinaryString(false)
+	fmt.Println(str)
+	str, _ = address.ToHexString(true)
+	fmt.Println(str)
+	fmt.Println()
+}
+```
+Output from both the Java and Go code:
 ```
 a:b:c::e:f
 000a:000b:000c:0000:0000:0000:000e:000f
@@ -3141,7 +3205,9 @@ a:b:c:*::
 
 #### UNC Strings
 
-The method `toUNCHostName()` produces the UNC IP-literal string.
+There is a method to produce the UNC IP-literal string.
+
+In Java:
 ```java
 IPAddressString ipAddressString = new IPAddressString("2001:db8::1");
 IPAddress address = ipAddressString.getAddress();
@@ -3151,7 +3217,17 @@ ipAddressString = new IPAddressString("1.2.3.4");
 address = ipAddressString.getAddress();
 System.out.println(address.toUNCHostName());
 ```
-Output:
+THe Go code for the same:
+```go
+var ipAddressString *ipaddr.IPAddressString = ipaddr.NewIPAddressString("2001:db8::1")
+var address *ipaddr.IPAddress = ipAddressString.GetAddress()
+fmt.Println(address.ToUNCHostName())
+
+ipAddressString = ipaddr.NewIPAddressString("1.2.3.4")
+address = ipAddressString.GetAddress()
+fmt.Println(address.ToUNCHostName())
+```
+Output from both the Java and Go code:
 ```
 2001-db8-0-0-0-0-0-1.ipv6-literal.net
 1.2.3.4
@@ -3161,11 +3237,13 @@ Output:
 
 #### DNS Lookup Strings
 
-The method `toReverseDNSLookupString()` will produce a string for DNS
-lookup. If you wish to do a DNS lookup for a subnet rather than a full
-address, you can use `getNetworkSection()` to provide the network section
+There is a method to produce the string that is used for reverse DNS
+lookup. If you wish to do a reverse DNS lookup for a subnet rather than a full
+address, you can use `getNetworkSection()`/`GetNetworkSection` to provide the network section
 you wish to lookup. You can specify the prefix length in either the
 string itself or the call to get the network section.
+
+In Java:
 ```java
 IPAddressString ipAddressString = new IPAddressString("2001:db8::1");
 IPAddress address = ipAddressString.getAddress();
@@ -3187,7 +3265,35 @@ System.out.println(address.toReverseDNSLookupString());
 addressSection = address.getNetworkSection();
 System.out.println(addressSection.toReverseDNSLookupString());
 ```
-Output:
+and in Go:
+```go
+var ipAddressString *ipaddr.IPAddressString = ipaddr.NewIPAddressString("2001:db8::1")
+var address *ipaddr.IPAddress = ipAddressString.GetAddress()
+str, _ := address.ToReverseDNSString()
+fmt.Println(str)
+addressSection := address.GetNetworkSectionLen(64)
+str, _ = addressSection.ToReverseDNSString()
+fmt.Println(str)
+
+// same with prefix
+ipAddressString = ipaddr.NewIPAddressString("2001:db8::1/64")
+address = ipAddressString.GetAddress()
+str, _ = address.ToReverseDNSString()
+fmt.Println(str)
+addressSection = address.GetNetworkSection()
+str, _ = addressSection.ToReverseDNSString()
+fmt.Println(str)
+
+// prefix block
+ipAddressString = ipaddr.NewIPAddressString("2001:db8::/64")
+address = ipAddressString.GetAddress()
+str, _ = address.ToReverseDNSString()
+fmt.Println(str)
+addressSection = address.GetNetworkSection()
+str, _ = addressSection.ToReverseDNSString()
+fmt.Println(str)
+```
+Output from both the Java and Go code:
 ```
 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
 0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
@@ -3201,11 +3307,9 @@ Output:
 
 #### General String Methods
 
-The methods `toCanonicalString` and `toCompressedString` are available for
-any address or address section.
+The canonical string and compressed string are available from any address or address section.
 
-The methods `toHexString` and `toNormalizedString` are available for any
-address component, including segments and sections.
+The normalized string and hexadecimal string are available from any address component, including segments and sections.
 
 &#8203;
 
@@ -3213,7 +3317,9 @@ address component, including segments and sections.
 
 Typically prefix lengths will be added to IP strings. To choose to print
 wildcards `*` and range characters `-` as opposed to using prefix
-length, there are additional methods:
+length, there are additional methods.
+
+Here is sample code in Java:
 ```java
 public static void main(String[] args) {  
   IPAddress address = new IPAddressString("a:b:c::/64").getAddress();  
@@ -3231,13 +3337,32 @@ static void print(IPAddress address) {
   System.out.println();
 }
 ```
-Output:
+and the equivalent code in Go:
+```go
+func main() {
+	address := ipaddr.NewIPAddressString("a:b:c::/64").GetAddress()
+	print(address)
+	address = ipaddr.NewIPAddressString("a:b:c:*::/64").GetAddress()
+	print(address)
+}
+
+func print(address *ipaddr.IPAddress) {
+	fmt.Println(address.ToCanonicalString())
+	fmt.Println(address.ToCanonicalWildcardString())
+	fmt.Println(address.ToFullString())
+	fmt.Println(address.ToNormalizedString())
+	fmt.Println(address.ToSQLWildcardString())
+	fmt.Println()
+}
+```
+Output from both the Java and Go code:
 ```
 a:b:c::/64
 a:b:c:0:*:*:*:*
 000a:000b:000c:0000:0000:0000:0000:0000/64
 a:b:c:0:0:0:0:0/64
 a:b:c:0:%:%:%:%
+
 a:b:c:*::/64
 a:b:c:*:*:*:*:*
 000a:000b:000c:0000-ffff:0000:0000:0000:0000/64
@@ -3249,18 +3374,36 @@ a:b:c:%:%:%:%:%
 
 #### IP Version-dependent Strings
 
-Some strings are version-dependent:
-```java
-public static void main(String[] args) {
-  // toSubnetString() prefers '*' for IPv4 and prefix for IPv6
-  System.out.println(new IPAddressString("1.2.0.0/16").getAddress().toSubnetString());
-  System.out.println(new IPAddressString("a:b::/64").getAddress().toSubnetString());
+Some strings are version-dependent.
 
-  //converts IPv4-mapped to a:b:c:d:e:f:1.2.3.4 notation
-  System.out.println(new IPAddressString("::ffff:a:b").getAddress().toConvertedString());
+Here we show the subnet string and the IPv4-mapped converted string in Java:
+```java
+// toSubnetString() prefers '*' for IPv4 and prefix for IPv6
+System.out.println(new IPAddressString("1.2.0.0/16").getAddress().toSubnetString());
+System.out.println(new IPAddressString("a:b::/64").getAddress().toSubnetString());
+
+// converts IPv4-mapped to a:b:c:d:e:f:1.2.3.4 notation
+System.out.println(new IPAddressString("::ffff:a:b").getAddress().toConvertedString());
+```
+The Go library does not have an `IPAddress` method for the IPv4-mapped converted string since implicit conversion was not added to the Go library, in the spirit of doing such things explicitly in the Go language.  However, the code here is equivalent.
+and in Go:
+```go
+// ToSubnetString prefers '*' for IPv4 and prefix for IPv6
+fmt.Println(ipaddr.NewIPAddressString("1.2.0.0/16").GetAddress().ToSubnetString())
+fmt.Println(ipaddr.NewIPAddressString("a:b::/64").GetAddress().ToSubnetString())
+
+// converts IPv4-mapped to a:b:c:d:e:f:1.2.3.4 notation
+fmt.Println(convertedString(ipaddr.NewIPAddressString("::ffff:a:b").GetAddress()))
+
+func convertedString(address *ipaddr.IPAddress) string {
+	if address.IsIPv6() && address.ToIPv6().IsIPv4Mapped() {
+		str, _ := address.ToIPv6().ToMixedString()
+		return str
+	}
+	return address.ToNormalizedString()
 }
 ```
-Output:
+Output from both the Java and Go code:
 ```
 1.2.*.*
 a:b::/64
@@ -3353,8 +3496,8 @@ true
 true  
 false
 ```
-The contains method is not restricted to IP addresses or IP address
-prefixed addresses. There is a contains method for every `Address` or
+The `contains` method is not restricted to IP addresses or IP address
+prefixed addresses. There is a `contains` method for every `Address` or
 `AddressSection`.
 
 `IPAddressString` has a `contains` methods as well, and also some additional containment methods, `prefixContains` and `prefixEquals`.  These `IPAddressString` containment methods can have superior performance when checking containment when starting from strings, because in many cases containment can be determined by looking at the strings alone, avoiding address object creation and numeric comparisons.
@@ -3366,12 +3509,11 @@ The IPAddressAggregation interface has `contains` and `overlaps` methods that ch
 The wiki has a [wide variety of examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing) showing how to test for containment or make comparisons with a wide variety of address and collection types.
 
 When it comes to accessing individual members, There is also an assortment of iterators for addresses, sections, and
-segments which can access individual members. There is an `iterator()`,
-`getLower()` method and `getUpper()` method for every address component.  You can use the `increment` or `get` methods to access individual members or sequential ranges or range lists.  The  `increment` method is also available with any subnet or subnet section.
+segments which can access individual members. There is an `iterator`/`Iterator`,
+`getLower`/`GetLower` method and `getUpper`/`GetUpper` method for every address component.  You can use the `increment`/`Increment` or `get`/`Get` methods to access individual members or sequential ranges or range lists.  The `increment`/`Increment` method is also available with any subnet or subnet section.
+
 
 &#8203;
-
-
 ## Sorting and Comparisons
 
 Comparing and sorting can be useful for storing addresses in certain
@@ -3396,8 +3538,8 @@ The two collection implementations, `IPAddressContainmentTrie` and `IPAddressSeq
 
 If you have a string that can be a host or an address and you wish to
 resolve to an address, create a `HostName` and use
-`HostName.toResolvedAddress()`. If you wish to obtain a string
-representation to be part of a URL, use `HostName.toNormalizedString()`.
+the `toAddress`/`ToAddress` method. If you wish to obtain a string
+representation to be part of a URL, use the normalized string from `toNormalizedString`/`ToNormalizedString`.
 
 
 &#8203;
