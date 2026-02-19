@@ -51,7 +51,7 @@ by Sean C Foley
 
 [Conversion to String Representation of Address or Subnet](#conversion-to-string-representation-of-address-or-subnet)
 
-[Containment and Membership](#containment-and-subnet-membership)
+[Containment and Membership](#containment-and-membership)
 
 [Sorting and Comparisons](#sorting-and-comparisons)
 
