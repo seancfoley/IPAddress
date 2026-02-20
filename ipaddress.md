@@ -739,7 +739,7 @@ host: 127.0.0.1 address: 127.0.0.1 port: 80
 
 #### IP Version Determination and IPv4/v6 Conversion
 
-With an `IPAddress` or `IPAddressString` object, you can check the version with `isIPv4()` and `isIPv6()`. With an `IPAddress`, you can obtain the more specific type corresponding to the IP version, either `IPv4Address` or `IPv6Address`, by calling `toIPv4()` or `toIPv6()`, which will return the more specific type if the original address was constructed as that type.
+With an `IPAddress` or `IPAddressString` object, you can check the version with `isIPv4()` / `IsIPv4()` and `isIPv6()` / `IsIPv6()`. With an `IPAddress`, you can obtain the more specific type corresponding to the IP version, either `IPv4Address` or `IPv6Address`, by calling `toIPv4()` / `ToIPv4()` or `toIPv6()` / `ToIPv6()`, which will return the more specific type if the original address was constructed as that type.
 Java code:
 ```java
 IPv6Address addr6 = new IPAddressString("2001:0db8:85a3:0000:0000:8a2e:0370:7334").getAddress().toIPv6();
@@ -786,7 +786,7 @@ Network addresses (addresses with a host that is zero) like 10.1.2.0/24 and a:&#
 
 The same rule applies to strings in which the address is a subnet in which the subnet lower and upper boundaries have zero hosts, like 10.1.2-3.0/24 or 10.1.2.2-6/31.  Both of those examples will become CIDR prefix blocks when parsed or constructed, the first with 512 addresses, and the second with 10 addresses.
 
-When parsing an IPAddress string, you can ignore the presence of a prefix length or mask in the string with `getHostAddress` or `toHostAddress`.  You will get the host address 10.1.2.3 when parsing 10.1.2.3/24. The prefix length remains available by calling `getNetworkPrefixLength` in Java, or `GetNetworkPrefixLen` in Go, on the `IPAddressString` instance.
+When parsing an IPAddress string, you can ignore the presence of a prefix length or mask in the string with `getHostAddress` / `GetHostAddress` or `toHostAddress` / `ToHostAddress`.  You will get the host address 10.1.2.3 when parsing 10.1.2.3/24. The prefix length remains available by calling `getNetworkPrefixLength` in Java, or `GetNetworkPrefixLen` in Go, on the `IPAddressString` instance.
 
 The example code below shows some of these methods in use.  Take note of the count for each parsed string, indicating whether it represents a subnet or address.
 ```java
@@ -1018,9 +1018,9 @@ Should you wish to get the individual address or section with a zero host, you c
 &#8203;
 ## Golang Address Keys
 
-The Go language has the concept of [comparable types, those types that can be compared with comparison operators](https://go.dev/ref/spec#Comparison_operators).  The core types of this library are not comparable in that manner, although they are all comparable with each other using their Compare methods, or using [one of the library's comparator instances](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#pkg-variables).
+The Go language has the concept of [comparable types, those types that can be compared with comparison operators](https://go.dev/ref/spec#Comparison_operators).  The core types of this library are not comparable in that manner, although they are all comparable with each other using their `Compare` methods, or using [one of the library's comparator instances](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#pkg-variables).
 
-Each of the address and range core types provides an associated key type, a value type, that is comparable with comparison operators and usable as keys for the Go built-in map type.  Use the ToKey methods to obtain the corresponding key, and use each key's ToAddress method to get back the corresponding address.
+Each of the address and range core types provides an associated key type, a value type, that is comparable with comparison operators and usable as keys for the Go built-in map type.  Use the `ToKey` methods to obtain the corresponding key, and use each key's `ToAddress` method to get back the corresponding address.
 
 You can see [an example using address keys for sets using maps in the example wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing#use-addresses-or-address-ranges-as-keys-for-go-built-in-maps).
 
@@ -1396,17 +1396,17 @@ a:b:c:d:1:4:4:4-6
 a:b:c:d:1:4:5:4-6
 ```
 
-#### Sequential Ranges
+#### IP Address Sequential Ranges
 
 Not all sequential address ranges can be described by an instance of
 `IPAddress` or `IPAddressString`. One such example is the range of two IPv4
 addresses from 1.2.3.255 to 1.2.4.0. One option is to represent the
 address range with just a single large segment covering the section of
 the address that has a range of values, such as in an instance of
-`IPAddressLargeDivisionGrouping`.
+`IPAddressLargeDivisionGrouping`, but this is rather contrived and not recommended.
 
-The more common option is to use an `IPAddressSeqRange` instance, which
-provides a more general representation of address ranges and their
+The recommended and common option is to use an `IPAddressSeqRange` instance, which
+provides a general representation of address ranges and their
 associated operations. You can represent any sequential range of
 addresses with an `IPAddressSeqRange` instance.  In Go, `IPAddressSeqRange` is an alias for `SequentialRange[*IPAddress]`.
 
@@ -1515,7 +1515,7 @@ Merged back again: [2:3:ffff:5:: -> 2:4:1:5::]
 Prefix blocks: [2:3:ffff:5::/64, 2:3:ffff:6::/63, 2:3:ffff:8::/61, 2:3:ffff:10::/60, 2:3:ffff:20::/59, 2:3:ffff:40::/58, 2:3:ffff:80::/57, 2:3:ffff:100::/56, 2:3:ffff:200::/55, 2:3:ffff:400::/54, 2:3:ffff:800::/53, 2:3:ffff:1000::/52, 2:3:ffff:2000::/51, 2:3:ffff:4000::/50, 2:3:ffff:8000::/49, 2:4::/48, 2:4:1::/62, 2:4:1:4::/64, 2:4:1:5::/128]
 Merged back again: [2:3:ffff:5:: -> 2:4:1:5::]
 ```
-As you can see in the example above, you can generally describe a range
+Another thing visible from the example above, is that you can generally describe a range
 with fewer sequential blocks than prefix blocks.
 
 
@@ -1526,7 +1526,7 @@ The trie data structure is particularly useful when working with addresses.  For
 
 By associating each trie node with a value, tries can also be used for value lookups in which the keys are addresses.
 
-Tries can also be used as the backing data structures for maps and sets.
+Tries can also be used as the backing data structures for maps and sets, as well as the backing data structure for a containment trie collection, which is described later in this document in the section on IP address collections.
 
 When handling large numbers of addresses or CIDR prefix blocks, it can be much more efficient to use the trie data structure for common operations on those addresses and blocks, the trie constructed in linear time proportional to the number of addresses, and then offering constant time containment and retrieval operations on all of the contained addresses or subnets at once.
 
@@ -1795,17 +1795,17 @@ storing addresses individually is not efficient in terms of performance or memor
 
 Instances of `IPAddressCollection` are more efficient, backed by prefix blocks or sequential ranges, storing addresses into the minimal number of prefix blocks or sequential ranges possible.
 
-The library contains two options for maintaining space-efficient and performance-optimized collections of IP addresses, `IPAddressSeqRangeList` and `IPAddressContainmentTrie`.
+The library provides two options for maintaining space-efficient and performance-optimized collections of IP addresses, `IPAddressSeqRangeList` and `IPAddressContainmentTrie`.
 
-`IPAddressSeqRangeList` is backed by an array of sequential ranges.  `IPAddressContainmentTrie` is backed by a trie of CIDR prefix blocks.  Both offer binary search for containment queries.  Whether one is better than the other may depend on the data set or the underlying processor, or whether you may need additional operations that are specific to one collection or the other.  In particular, `IPAddressSeqRangeList` is likely to offer better cache coherency in CPU processors, which may result in better overall performance in searching.  However, when dealing with CIDR prefix blocks as your input and output, it may be more efficient to go with IPAddressContainmentTrie since the elements in the collection are also stored as prefix blocks, requiring little to no conversion when adding or removing.
+`IPAddressSeqRangeList` is backed by an array of sequential ranges.  `IPAddressContainmentTrie` is backed by a trie of CIDR prefix blocks.  Both offer binary search for containment queries.  Whether one is better than the other may depend on the data set or the underlying processor, or whether you may need additional operations that are specific to one collection or the other.  In particular, `IPAddressSeqRangeList` is likely to offer better cache coherency in CPU processors, which may result in better overall performance in searching.  However, when dealing with CIDR prefix blocks as your input or output, it may be more efficient to go with IPAddressContainmentTrie since the elements in the collection are also stored as prefix blocks, requiring little to no conversion when adding or removing.
 
 Both collection options change shape internally as addresses are added and removed, and for this reason they do not allow direct access to the backing list or the backing trie.  The backing data structures change shape so that they always contain the minimal number of sequential ranges or prefix blocks to represent the collection of addresses.
 
 When adding to either collection option, whether adding an IP address, subnet, or sequential range, the argument is converted to the data types used by the collection's backing data structure.  So, in particular, unlike address tries, which require that callers convert to prefix blocks or individual address first, the containment trie does this conversion for you, allowing an argument to be an address, subnet, or range of any shape.
 
-Containment tries also differ from regular address tries in that the elements of containment tries are the individual addresses.  With address tries, the elements are both prefix blocks and individual addresses.   In an address trie, an individual address might be added individually to the trie, while it can also exist in the trie as part of an added subnet, at the same time.   With a containment trie, that is not the case.  An address element that is part of the collection might not remain in the same location in the backing trie as the trie changes shape.  However, there will always be exactly one block or address in the backing trie holding that address element.
+Containment tries also differ from regular address tries in that the elements of containment tries are the individual addresses.  With address tries, the elements are both prefix blocks and individual addresses.   In an address trie, an individual address might be added individually to the trie, while it can also exist in the trie as part of an added subnet, at the same time.   With a containment trie, that is not the case.  An address can be located in just block in the backing trie data structure.  However, the location may change.  An address element that is part of the collection might not remain in the same location in the backing trie as the trie changes shape.  But there will always be exactly one block or address in the backing trie holding that address element.
 
-Another difference between address tries and containment tries is that when producing a string of an address trie, the counts associated with each node are the added node counts, because the elements are the added nodes which represent either prefix blocks or individual addresses, while in a containment trie the counts associated with each node are the address counts, because the elements are the individual addresses contained in any prefix block or individual address that was added.  
+Another difference between address tries and containment tries is that when producing a string of an address trie, the counts associated with each node are the added node counts, because the elements are the added nodes, which represent either prefix blocks or individual addresses.  In a containment trie the counts associated with each node are the address counts, because the elements are the individual addresses.  
 
 To illustrate, here we add the same set of addresses and blocks to a trie, a containment trie collection, and a range list collection.  In the trie, the blocks and addresses are the elements, and the bracketed roll-up counts shown with each node show the count of those elements, showing that we added 11 blocks and addresses.  With the containment trie, the elements are the individual addresses of each added subnet and address, so the original blocks and addresses are not present in the trie as the trie has changed shape to have with the minimal number of nodes.  Also, the roll-up shows the count of individual addresses added, which totals 4608.  The list also changes shape as the subnets and addresses are added, so as to contain the minimal number of sequential range lists.
 ```java
@@ -2969,13 +2969,13 @@ distinct from each other for all addresses.
 | toCanonicalWildcardString | ToCanonicalWildcardString | similar to the canonical string, but uses wildcards and does not print prefix length for addresses that have prefix lengths |
 | toCompressedWildcardString | ToCompressedWildcardString | similar to the compressed string, but uses wildcards and does not print prefix length for addresses that have prefix lengths |
 | toSQLWildcardString | ToSQLWildcardString | Similar to the normalized wildcard string, but uses the SQL wildcards `%` and '-'|
-| toPrefixLengthString | ToPrefixLengthString | Produces a string with CIDR prefix length if it has a prefix length, and compresses the host for IPv6. For IPv4 it is the same as the canonical string |
+| toPrefixLengthString | ToPrefixLenString | Produces a string with CIDR prefix length if it has a prefix length, and compresses the host for IPv6. For IPv4 it is the same as the canonical string |
 | toSubnetString | ToSubnetString | Produces the normalized wildcard string for IPv4 and the prefix length string for IPv6 |
 | toReverseDNSLookupString | ToReverseDNSString | produces the reverse DNS lookup string |
 | toOctalString | ToOctalString | non-segmented base 8, optionally with a ‘0’ prefix to indicate octal |
 | toBinaryString | ToBinaryString | non-segmented base 2, all ones and zeros |
 | toSegmentedBinaryString | ToSegmentedBinaryString | segmented base 2, all ones and zeros |
-| toConvertedString | ToConvertedString | For IPv6, if the IPv6 address can be converted to IPv4, produces the IPv6 mixed string.  For IPv4 this produces the canonical string. |
+| toConvertedString |  | For IPv6, if the IPv6 address can be converted to IPv4, produces the IPv6 mixed string.  For IPv4 this produces the canonical string. |
 | toUNCHostName | ToUNCHostName | produces the Microsoft UNC path component |
 | toNormalizedString(IPStringOptions) | ToNormalizedString(IPStringOptions) | use this method to produce your own customized string |
 
@@ -3372,7 +3372,7 @@ a:b:c:%:%:%:%:%
 
 &#8203;
 
-#### IP Version-dependent Strings
+#### Strings Dependent on IP Version
 
 Some strings are version-dependent.
 
@@ -3509,8 +3509,8 @@ The IPAddressAggregation interface has `contains` and `overlaps` methods that ch
 The wiki has a [wide variety of examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-2:-Subnet-Containment,-Matching,-Comparing) showing how to test for containment or make comparisons with a wide variety of address and collection types.
 
 When it comes to accessing individual members, There is also an assortment of iterators for addresses, sections, and
-segments which can access individual members. There is an `iterator`/`Iterator`,
-`getLower`/`GetLower` method and `getUpper`/`GetUpper` method for every address component.  You can use the `increment`/`Increment` or `get`/`Get` methods to access individual members or sequential ranges or range lists.  The `increment`/`Increment` method is also available with any subnet or subnet section.
+segments which can access individual members. There is an `iterator` / `Iterator`,
+`getLower` / `GetLower` method and `getUpper` / `GetUpper` method for every address component.  You can use the `increment` / `Increment` or `get` / `Get` methods to access individual members or sequential ranges or range lists.  The `increment` / `Increment` method is also available with any subnet or subnet section.
 
 
 &#8203;
@@ -3538,8 +3538,8 @@ The two collection implementations, `IPAddressContainmentTrie` and `IPAddressSeq
 
 If you have a string that can be a host or an address and you wish to
 resolve to an address, create a `HostName` and use
-the `toAddress`/`ToAddress` method. If you wish to obtain a string
-representation to be part of a URL, use the normalized string from `toNormalizedString`/`ToNormalizedString`.
+the `toAddress` / `ToAddress` method. If you wish to obtain a string
+representation to be part of a URL, use the normalized string from `toNormalizedString` / `ToNormalizedString`.
 
 
 &#8203;
