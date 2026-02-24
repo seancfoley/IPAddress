@@ -1524,9 +1524,11 @@ with fewer sequential blocks than prefix blocks.
 
 The trie data structure is particularly useful when working with addresses.  For that reason this library includes compact binary address tries (aka compact binary prefix tree or binary radix trie, amongst other names).  Tries provide efficient re**trie**val operations, hence the name *trie*, but what makes them additionally useful for addresses is the fact that prefix tries are organized by the bits in the prefix of each key, the keys being addresses in this case, which mirrors the way that CIDR subnets and addresses are organized by prefix.  So you can use tries for efficient subnet containment checks on many addresses or subnets at once in constant time (such as with a routing table). A trie is useful for efficient lookups, for efficiently dividing and subdividing subnets, for sorting addresses, and for traversing through subnets in different ways.
 
-By associating each trie node with a value, tries can also be used for value lookups in which the keys are addresses.
+By associating each trie node with a value, tries can also be used for value lookups in which the keys are addresses.  The library provides the "Associative" trie types for this purpose.  Every trie type has a corresponding associative type.  For instance, there is an `IPv4AddressTrie` and an `IPv4AddressAssociativeTrie` for IPv4 addresses.
 
 Tries can also be used as the backing data structures for maps and sets, as well as the backing data structure for a containment trie collection, which is described later in this document in the section on IP address collections.
+
+With the Java ligrary, you can use the `asSet` and `asMap` methods in a trie or associtive trie, respectively, to use the trie as a backing trie for a Java Collections Set or Map.
 
 When handling large numbers of addresses or CIDR prefix blocks, it can be much more efficient to use the trie data structure for common operations on those addresses and blocks, the trie constructed in linear time proportional to the number of addresses, and then offering constant time containment and retrieval operations on all of the contained addresses or subnets at once.
 
@@ -1714,7 +1716,7 @@ An address trie stores individual addresses or CIDR prefix blocks subnets.  Ther
 
 The `Partition` type encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used only once.  Simply create another whenever that may be necessary.
 
-The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which frequently results in a smaller total number of blocks.  In fact, it results in the minimal number of prefix blocks, and is used elsewhere in the library to span address ranges with prefix blocks.  For instance, it is used by containment tries when converting to prefix blocks.
+The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which frequently results in a smaller total number of blocks.  In fact, it results in the minimal number of prefix blocks, and is used elsewhere in the library to span address ranges with prefix blocks, and is also used by containment tries when converting to prefix blocks.
 
 Here we partition an IPv4 subnet with `partitionWithSingleBlockSize` and then check for the partitioned elements in the trie, first in Java:
 ```java
@@ -1783,6 +1785,14 @@ all inserted: true
   └─● 1.2.4.0/22 (1)
 ```
 The two tries illustrate how the two partitions differ.
+
+#### Dual Trie Types
+
+It is the individual bit values in each address that determines its location in a trie.  For this reason, the bits across all keys of a trie must be consistent.  Therefore, you cannot have addresses with different bit lengths in the same trie.
+
+Some trie types are type-safe to restrict keys to a specific address type or version, like IPv4.  However, the library does provide the `IPAddressTrie` and `IPAddressAssociativeTrie` types which allow you to insert either IPv4 or IPv6 addresses into the trie.  Still, you can have only one address version or the other in the trie at any time, for the reason described above.  The version of the first address added to an empty `IPAddressTrie` or `IPAddressAssociativeTrie` trie determines what version all additional addresses must be, at least until the trie is empty again, at which time it can once again accept an address of either version.  
+
+If you do wish to use the trie data structure for both IPv4 and IPv6 addresses at the same time, the library provides the "Dual" trie types, `DualIPv4v6Tries` and `DualIPv4v6AssociativeTries`.  These types actually encapsulate a pair of tries, one for the IPv4 keys, another for the IPv6 keys.  Otherwise, they have all the same operations.  This provides an additional layer of polymorphism for applications that may benefit from remaining IP-version agnostic.
 
 
 &#8203;
@@ -1880,7 +1890,7 @@ The IPAddressAggregation interface represents all types that can represent a mul
 &#8203;
 ## IP Address Operations
 
-Here we summarize the operations on addresses, subnets, sequential ranges, and collections.  Many of these operations are also available on other address items, such as sections and segments.
+Here we summarize the operations on IP addresses, subnets, sequential ranges, and collections.  Many of these operations are also available on other address items, such as sections and segments.
 
 We start with the more general operations, those that do not involve prefixes, prefix blocks, or segment blocks, followed by operations involving prefixes and prefix blocks, followed the operations involving segment blocks.  Segment block subnets are those subnets which have value ranges by segment.  Prefix blocks are subnets that have a value range corresponding to a specified prefix length, the subnet containing the full block of addresses according to that prefix.
 
@@ -1905,8 +1915,12 @@ Many of these operations are available on address sections as well.  You can obt
 | isFullRange | IsFullRange | Returns whether the range of values in the address item or sequential range includes all possible values, from zero to the max value. |
 | isSequential | IsSequential | Returns whether the range of values within the address item are a sequence of consecutive values.  In other words, it is sequential if the number of disjoint value ranges in the address item is one.  This really only applies to address items that are not sequential ranges since, by definition, a sequential range is always sequential, representing the sequence of addresses between a pair of addresses. |
 | iterator, spliterator, stream | Iterator | Traverses through the individual address items (or sections thereof) comprising the range of values within the original address item or sequential range.  Use `getCount` / `GetCount` to get the traversed count. |
-| subtract | Subtract | Computes the difference, the set of addresses in the receiver address, subnet, or sequential range, but not in the argument address, subnet, or sequential range.  Returns an array of subnets or or sequential ranges containing the result. |
-| intersect | Intersect | Computes the conjunction of the address, subnet or sequential range arguments.  The conjunction is the set of addresses in all of them.  Returns the address, subnet or sequential range representing that set of addresses.
+| subtract, subtractIntoList | Subtract | Computes the difference, the set of addresses in the receiver address, subnet, or sequential range, but not in the argument address, subnet, or sequential range.  Returns an array of subnets or or sequential ranges containing the result.  The `IntoList` variant efficiently produces a sorted list.  |
+| intersect | Intersect | Computes the conjunction with the given address, subnet or sequential range arguments.  The conjunction is the set of addresses in both the receiver and all arguments.  Returns the address, subnet or sequential range representing that set of addresses. |
+| complement, complementIntoList |  | Computes the complement of the address, subnet or sequential range.  Returns the address, subnet or sequential range representing those addresses that were not in the original receiver address, subnet or sequential range.  The `IntoList` variant efficiently produces a sorted list.  |
+| overlaps | Overlaps | Returns whether the sequential range overlaps with the given address, subnet, or sequential range. |
+| intoSequentialRangeList |  | Constructs a sequential range list with the same set of individual addresses as the address, subnet, or sequential range |
+
 
 &#8203;
 
@@ -1918,11 +1932,14 @@ Many of these operations are available on address sections as well.  You can obt
 | --- | --- | --- |
 | increment, decrement | Increment | If the incremented address item is a subnet, provides the individual address that is the given increment into the sequence of individual addresses within the subnet range.  An increment exceeding the subnet count being simply added to the final address in the subnet. If the address is an individual address, simply adds the given increment to the address value to produce a new address. The increment value can be a positive or negative integer. |
 | incrementBoundary | IncrementBoundary |  Returns the address that is the given increment from one of the range boundaries of the subnet or address, with positive increments added to the upper bound of the range, and negative increments being added to the lower bound. An increment of zero returns the original. If the address is an individual address, simply adds the given increment to the address value to produce a new address. |
+| enumerate | Enumerate | Returns the index in the subnet of the given individual address.  If the given address is above or below the subnet, gives the distance of the given address to the nearest subnet boundary.  Note that this gives the distance between two individual addresses.  This operation is the inverse of the increment operation, so that `subnet.enumerate(subnet.increment(incrementValue)) = incrementValue` and `subnet.increment(subnet.enumerate(individualAddress)) = individualAddress` |
 | reverseBits, reverseBytes, reverseBytesPerSegment, reverseSegments | ReverseBits, ReverseBytes, ReverseSegments | Reverses the bits of segments, bytes, or the entire address or subnet.  Each individual value is reversed and included in the result.  Note that some subnets cannot have bits reversed due to a reversed segment not being expressible as a single range of segment values.  Reverse operations can be useful for handling endianness (network byte order sometimes requires bytes be reversed), or DNS lookup.
 | toIPv4, toIPv6 | ToIPv4, ToIPv6 | Provides the same address represented with the more specific type, so that IP-version specific method calls can be made.  If the address was originally constructed as the more specific type, then an instance of that type is returned.  The address itself remains the same. |
 | segmentsIterator, segmentsSpliterator, segmentsStream | | Traverses through all address items, similar to `iterator`/`spliterator`/`stream`, but using only segment arrays.  Use `getCount` to get the count. |
 | coverWithSequentialRange | ToSequentialRange | Returns the associated sequential range ranging from the lowest to highest value of the address or subnet.  You can use the `isSequential` / `IsSequential` method of the address to know if the resulting sequential range represents the same set of addresses as the original address or subnet. |
-| spanWithRange | SpanWithRange | Returns a sequential range that spans from the subnet to the given subnet. The resulting range qill include all addresses in both subnets as well as all addresses in between. |
+| spanWithRange | SpanWithRange | Returns a sequential range that spans from the subnet to the given subnet. The resulting range will include all addresses in both subnets as well as all addresses in between. |
+| matchOrdered, matchUnordered | MatchOrdered, MatchUnordered | Returns whether two arrays of addresses contain the same addresses and subnets, either in the same order or not. |
+
 
 &#8203;
 
@@ -1930,15 +1947,19 @@ Many of these operations are available on address sections as well.  You can obt
 
 | Java | Go | Description |
 | --- | --- | --- |
-| overlaps | Overlaps | Returns whether the given sequential range overlaps with the sequential range. |
 | extend | Extend | Extend extends the sequential range to include all address in the given sequential range, as well as all address in-between the two sequential ranges. |
-| join | Join, JoinTo | Given a list of address ranges, merges them into the minimal list of address ranges. |
+| join, jointIntoList | Join, JoinTo | Given a list of address ranges, merges them into the minimal list of address ranges.  The `IntoList` variant efficiently produces a sorted list.  |
+| enumerate | Enumerate | Returns the index in the range of the given individual address.  If the given address is above or below the range, gives the distance of the given address to the nearest range boundary. |
+| get(addressIndex) |  | Returns the individual address at the given index in the sequential range |
+| lowerFromSplit, upperFromSplit, split |  | Splits a range in two and returns the lower or upper sides, or both |
+| toIPv4, toIPv6 | ToIPv4, ToIPv6 | Provides the same sequential range instance with the more specific type, so that IP-version specific method calls can be made. |
+
 
 &#8203;
 
 #### Operations Involving Prefixes or Prefix Blocks
 
-The following methods allow you to query whether something is a prefix block, change prefix lengths, mask addresses, or other prefix-related operations, which are particularly integral to CIDR addressing and routing.  
+The following methods on addresses, subnets, and sequential ranges allow you to query whether something is a prefix block, change prefix lengths, mask addresses, or other prefix-related operations, which are particularly integral to CIDR addressing and routing.  
 
 | Java | Go | Description |
 | --- | --- | --- |
@@ -2234,9 +2255,9 @@ Output for both the Java and Go code:
 192.168.0.0-12/30
 192.168.0.0/30, 192.168.0.4/30, 192.168.0.8/30, 192.168.0.12/30
 ```
-Another option is to let the library do most of the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.
+Another option is to let the library do most of the work for you.  A `PrefixBlockAllocator` instance can do CIDR subnetting using a standard variable-length subnetting algorithm.  
 
-The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) and [Go wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) provide subnetting code examples as well as examples demonstrating how to create or derive CIDR subnets.
+The [Java wiki](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) and [Go wiki](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations) provide subnetting code examples as well as examples demonstrating how to create or derive CIDR subnets, including a [Java example](https://github.com/seancfoley/IPAddress/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations#automatic-subnetting) and [Go example](https://github.com/seancfoley/ipaddress-go/wiki/Code-Examples-3:-Subnetting-and-Other-Subnet-Operations#automatic-subnetting) showing use of the `PrefixBlockAllocator`.
 
 &#8203;
 
