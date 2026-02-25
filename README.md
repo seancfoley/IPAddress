@@ -24,12 +24,6 @@ As a [Java](https://www.oracle.com/java/) library, it is also interoperable with
 
 Available as a [Go](https://go.dev/) library from the [ipaddress-go repository](https://github.com/seancfoley/ipaddress-go)
 
-[Integrate into Development: Intellij, Android, and Eclipse](https://github.com/seancfoley/IPAddress/wiki/Development-IDEs)
-
-Because IPAddress is 100% Java, it is easy to integrate with your build and deploy process
-
-[Make your IPv4 App work with IPv6](https://seancfoley.github.io/IPAddress/ipaddress.html#make-your-ipv4-app-work-with-ipv6)
-
 Version | Notes         |
 ------- | ------------- |
 [1.0.1](https://github.com/seancfoley/IPAddress/releases/tag/v1.0.1) | Requires Java 6 or higher |
