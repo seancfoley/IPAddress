@@ -100,7 +100,7 @@ class ParsedMACAddress extends MACAddressParseData implements MACAddressProvider
 		for(int i = 0, normalizedSegmentIndex = 0; i < actualInitialSegmentCount; i++) {
 			long lower = addressParseData.getValue(i, AddressParseData.KEY_LOWER);
 			long upper = addressParseData.getValue(i, AddressParseData.KEY_UPPER);
-			if(format == MACFormat.DOTTED) {//aaa.bbb.ccc.ddd
+			if(format == MACFormat.DOTTED) {//aaaa.bbbb.cccc
 				//aabb is becoming aa.bb
 				int lowerHalfLower = (((int) lower) >>> 8);
 				int lowerHalfUpper = (((int) upper) >>> 8);

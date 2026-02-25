@@ -69,7 +69,7 @@ public class MACAddressStringParameters extends AddressStringParameters implemen
 	public final boolean allowColonDelimited;
 
 	/**
-	 * Allows addresses like aaa.bbb.ccc.ddd
+	 * Allows addresses like aaaa.bbbb.cccc
 	 */
 	public final boolean allowDotted;
 

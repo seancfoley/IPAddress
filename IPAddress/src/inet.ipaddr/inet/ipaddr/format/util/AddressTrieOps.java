@@ -85,8 +85,9 @@ public interface AddressTrieOps<E extends Address> extends TreeOps<E> {
 	boolean elementContains(E addr);
 
 	/**
-	 * Checks if a prefix block subnet or address in the trie contains the given subnet or address.
-	 * When it comes to prefix blocks, a prefix block overlapping another means one contains the other.
+	 * Checks if a prefix block subnet or address in the trie overlaps the given subnet or address.
+	 * When it comes to prefix blocks, a prefix block overlapping another means one contains the other, 
+	 * so this returns true if the given address or subnet either contains or is contained by an address or subnet in the trie.
 	 * <p>
 	 * If the given address is not a single address nor prefix block, then this method throws IllegalArgumentException.
 	 * <p>

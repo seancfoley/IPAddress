@@ -994,7 +994,7 @@ public class HostName implements HostIdentifierString, Comparable<HostName> {
 		try {
 			return toAddress();
 		} catch(HostNameException | UnknownHostException e) {
-			//call toResolvedAddress if you wish to see this exception
+			//call toAddress if you wish to see this exception
 			//HostNameException objects are cached in validate and can be seen by calling validate
 		}
 		return null;
