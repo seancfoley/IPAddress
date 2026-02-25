@@ -3,13 +3,13 @@ Java library for handling IP addresses and subnets, both IPv4 and IPv6
 
 IP address and network manipulations, CIDR, address and subnet operations, iterations, containment checks, longest prefix match, subnetting, and address and subnet data structures including address tries, with polymorphic code 
 
-[View Project Page](https://seancfoley.github.io/IPAddress/)
+[Docs Site](https://seancfoley.github.io/IPAddress/)
 
-[View Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
+[Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
 
-[View Javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/)
+[Javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/)
 
-[View List of Users](https://github.com/seancfoley/IPAddress/wiki)
+[List of Users](https://github.com/seancfoley/IPAddress/wiki)
 
 [In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress)
 - Maven group id: com.github.seancfoley
