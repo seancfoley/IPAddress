@@ -98,6 +98,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 	private static final long serialVersionUID = 4L;
 
 	/**
+	 * @custom.core
 	 * @author sfoley
 	 *
 	 */
@@ -1643,6 +1644,7 @@ public abstract class IPAddress extends Address implements IPAddressSegmentSerie
 
 	/**
 	 * @custom.core
+	 * @author sfoley
 	 */
 	public static class DualIPv4Pv6Arrays {
 		public final IPv4Address addressesIPv4[];
