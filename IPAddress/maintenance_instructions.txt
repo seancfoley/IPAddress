@@ -24,7 +24,7 @@ cp -r * ../apidocs
 
 
 
-6. You commit and push the new contents in the apidocs folder.
+6. You commit and push the new contents in the apidocs folder.  Be careful to commit only files in the apidocs, and not the javadocs folder.
 
 Done.
 
