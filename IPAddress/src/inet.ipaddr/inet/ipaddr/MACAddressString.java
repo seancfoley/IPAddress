@@ -61,7 +61,7 @@ import inet.ipaddr.mac.MACAddress;
  * <li>6 or 8 bytes in hex representation like aa:bb:cc:dd:ee:ff </li>
  * <li>The same but with a hyphen separator like aa-bb-cc-dd-ee-ff (the range separator in this case becomes '/')</li>
  * <li>The same but with space separator like aa bb cc dd ee ff</li>
- * <li>The dotted representation, 4 sets of 12 bits in hex representation like aaa.bbb.ccc.ddd</li>
+ * <li>The dotted representation, 3 or 4 sets of 16 bits in hex representation like aaaa.bbbb.cccc or aaaa.bbbb.cccc.dddd</li>
  * <li>The 12 or 16 hex representation with no separators like aabbccddeeff</li>
  * </ul>
  * <p>

@@ -667,7 +667,7 @@ public class MACAddress extends Address implements Iterable<MACAddress> {
 	public String toNormalizedString(StringOptions stringOptions) {
 		return getSection().toNormalizedString(stringOptions);
 	}
-	
+
 	public String toDottedString() throws IncompatibleAddressException {
 		return getSection().toDottedString();
 	}
