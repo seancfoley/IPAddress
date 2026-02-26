@@ -1,7 +1,7 @@
 # IPAddress
 Java library for handling IP addresses and subnets, both IPv4 and IPv6
 
-IP address and network manipulations, CIDR, address and subnet operations, iterations, containment checks, longest prefix match, subnetting, and address and subnet data structures including address tries, with polymorphic code 
+IP address and network manipulations, CIDR, address and subnet operations, address ranges, iterators, containment checks, longest prefix match, subnetting, address tries, address collections, and more, with polymorphic code 
 
 [Docs Site](https://seancfoley.github.io/IPAddress/)
 
@@ -35,7 +35,7 @@ Version | Notes         |
 
 ## Getting Started
 
-## Java
+### Java
 
 starting with address or subnet strings
 ```java
@@ -79,7 +79,7 @@ try {
 	// handle improperly formatted host name or address string
 }
 ```
-## Kotlin
+### Kotlin
 
 starting with address or subnet strings, using exceptions for invalid formats
 ```kotlin
@@ -104,7 +104,7 @@ println(ipAddr) // a:b:c:d:e:f:102:304/112
 val ipv4Addr = ipAddr?.toIPv6()?.embeddedIPv4Address
 println(ipv4Addr) // 1.2.3.4/16
 ```
-## Scala
+### Scala
 
 starting with address strings, using exceptions for invalid formats
 ```scala
@@ -118,7 +118,7 @@ Try(addressStr.toAddress) match {
         // handle improperly formatted address string
 }
 ```
-## Groovy
+### Groovy
 
 starting with address or subnet strings, using exceptions for invalid formats
 ```groovy
