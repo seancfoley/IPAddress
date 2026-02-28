@@ -3,7 +3,7 @@ Java library for handling IP addresses and subnets, both IPv4 and IPv6
 
 IP address and network manipulations, CIDR, address and subnet operations, iterations, containment checks, longest prefix match, subnetting, and address and subnet data structures including address tries, with polymorphic code 
 
-[Docs Site](https://seancfoley.github.io/IPAddress/)
+[Docs](https://seancfoley.github.io/IPAddress/)
 
 [Code Examples](https://github.com/seancfoley/IPAddress/wiki/Code-Examples)
 
