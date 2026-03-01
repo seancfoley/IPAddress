@@ -11,7 +11,7 @@ IP address and network manipulations, CIDR, address and subnet operations, addre
 
 [List of Users](https://github.com/seancfoley/IPAddress/wiki)
 
-[In the Maven Central Repository](https://central.sonatype.com/artifact/com.github.seancfoley/ipaddress), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress)
+[In the Maven Central Repository](https://repo1.maven.org/maven2/com/github/seancfoley/ipaddress/), packaged as an OSGI bundle, packaged as a [Linux Fedora rpm](http://rpmfind.net/linux/rpm2html/search.php?query=ipaddress)
 - Maven group id: com.github.seancfoley
 - Maven artifact id: [ipaddress](https://central.sonatype.com/artifact/com.github.seancfoley/ipaddress)
 - Maven versions: [2.0.2](https://central.sonatype.com/artifact/com.github.seancfoley/ipaddress/2.0.2), [3.0.0](https://central.sonatype.com/artifact/com.github.seancfoley/ipaddress/3.0.0), [4.3.3](https://central.sonatype.com/artifact/com.github.seancfoley/ipaddress/4.3.3), [5.6.1](https://central.sonatype.com/artifact/com.github.seancfoley/ipaddress/5.6.1) 
