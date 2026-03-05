@@ -2912,6 +2912,8 @@ divisions of unequal length, or divisions of non-integer byte-size.
 There exists a hierarchy for the standard and non-standard address and address component data
 structures.  It includes types for the address components, which are addresses, sections of addresses, and segments of equal byte size inside those address sections.  It includes a number of other types as well.
 
+#### Java Address Component Framework
+
 The address component hierarchy of interfaces (purple) and classes (green) in the Java library is
 shown in a diagram below.  It is certainly not necessary to remember the hierarchy, it is simply useful for polymorphic code.  
 
@@ -2921,6 +2923,8 @@ three primary categories described previously. The dashed lines indicate some le
 diagram.  Also, a few small interfaces are omitted from the diagram.
 
 ![](.//media/componentsj.png)
+
+#### Go Address Component Framework
 
 The Go library has an address component hierarchy similar in many ways while different in others.  
 
