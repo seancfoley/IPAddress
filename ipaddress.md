@@ -226,7 +226,7 @@ above, and others:
 
   - `/x` where x is a positive integer, with no associated address, is interpreted as the network mask for prefix length x
 
-  - "` `" the empty string is considered the default loopback
+  - "` `" the empty string is considered the default loopback or the default zero address
 
 For a more detailed list or formats parsed, some examples are below, or
 see the [javadoc](https://seancfoley.github.io/IPAddress/IPAddress/apidocs/inet/ipaddr/IPAddressString.html) or [godoc](https://pkg.go.dev/github.com/seancfoley/ipaddress-go/ipaddr#IPAddressString) for `IPAddressString`.
@@ -1528,7 +1528,7 @@ By associating each trie node with a value, tries can also be used for value loo
 
 Tries can also be used as the backing data structures for maps and sets, as well as the backing data structure for a containment trie collection, which is described later in this document in the section on IP address collections.
 
-With the Java ligrary, you can use the `asSet` and `asMap` methods in a trie or associtive trie, respectively, to use the trie as a backing trie for a Java Collections Set or Map.
+With the Java library, you can use the `asSet` and `asMap` methods in a trie or associative trie, respectively, to use the trie as a backing trie for a Java Collections Set or Map.
 
 When handling large numbers of addresses or CIDR prefix blocks, it can be much more efficient to use the trie data structure for common operations on those addresses and blocks, the trie constructed in linear time proportional to the number of addresses, and then offering constant time containment and retrieval operations on all of the contained addresses or subnets at once.
 
@@ -1714,7 +1714,7 @@ Output from both the Java and Go code:
 
 An address trie stores individual addresses or CIDR prefix blocks subnets.  There are IPAddress instances that cannot be added to a trie as-is, subnets that are not CIDR prefix blocks.  Such subnets can be subdivided or partitioned to addresses or CIDR prefix blocks in various ways.  
 
-The `Partition` type encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used only once.  Simply create another whenever that may be necessary.
+The `Partition` type encapsulates a partition of a subnet.  It also provides a couple of methods that subdivide any subnet into individual addresses or prefix block subnets, which can then be inserted into a trie.  Much like an iterator, a partition can be used only once.  Simply create another whenever necessary.
 
 The two partition methods provided partition differently.  `partitionWithSingleBlockSize` finds a maximal prefix block size and then iterates through a series of prefix blocks of that size.  `partitionWithSpanningBlocks` uses any number of different prefix block sizes, which frequently results in a smaller total number of blocks.  In fact, it results in the minimal number of prefix blocks, and is used elsewhere in the library to span address ranges with prefix blocks, and is also used by containment tries when converting to prefix blocks.
 
