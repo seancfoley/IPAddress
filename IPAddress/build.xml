@@ -1,6 +1,6 @@
 <project name="Create IP Address API" default="run" basedir=".">
 	<description>Create IP address jar</description>
-	<property name="version" value="5.6.1"/>
+	<property name="version" value="5.6.2"/>
 		
 	<property name="rootOffset" value="."/>
 	<property name="rootdistdir" location="${rootOffset}/dist"/>
@@ -130,6 +130,7 @@ java -cp ${jarname} ${rootPackage}.test.TestRunner fast performance
 		</fileset>
 		<fileset id="ipaddress.src.xml" dir="${rootOffset}">
 			<include name="${rootPackagePath}/**/*.xml" />
+			<include name="${rootPackagePath}/**/*.pom" />
 		</fileset>
 		<fileset id="ipaddress.src.test" dir="${src_location}">
 			<include name="${rootPackagePath}/test/**/*.java" />

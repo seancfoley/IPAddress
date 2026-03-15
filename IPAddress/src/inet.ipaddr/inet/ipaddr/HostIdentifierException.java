@@ -21,6 +21,8 @@ package inet.ipaddr;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
+import inet.ipaddr.format.validate.BundleLoader;
+
 /**
  * 
  * @author sfoley
@@ -30,17 +32,8 @@ public class HostIdentifierException extends Exception {
 
 	private static final long serialVersionUID = 4L;
 
-	static ResourceBundle bundle;
-	
-	static {
-		String propertyFileName = "IPAddressResources";
-		String name = HostIdentifierException.class.getPackage().getName() + '.' + propertyFileName;
-		try {
-			bundle = ResourceBundle.getBundle(name);
-		} catch (MissingResourceException e) {
-			System.err.println("bundle " + name + " is missing");
-		}
-	}
+	static ResourceBundle bundle; // load bundle lazily, since the BundleLoader requires this class to be loaded first
+	static boolean bundleLoaded;
 	
 	public HostIdentifierException(CharSequence str, String errorMessage, String key, Throwable cause) {
 		super(str.toString() + ' ' + errorMessage + ' ' + getMessage(key), cause);
@@ -63,10 +56,13 @@ public class HostIdentifierException extends Exception {
 	}
 
 	static String getMessage(String key) {
+		if(!bundleLoaded) {
+			bundle = BundleLoader.loadBundle();
+			bundleLoaded = true;// we use the bundleLoaded boolean to avoid trying again even if the bundle is null
+		}
 		if(bundle != null) {
 			try {
 				return bundle.getString(key);
-				
 			} catch (MissingResourceException e1) {}
 		}
 		return key;

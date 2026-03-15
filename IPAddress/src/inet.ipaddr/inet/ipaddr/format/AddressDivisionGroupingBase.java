@@ -31,7 +31,6 @@ import java.util.function.ToLongFunction;
 
 import inet.ipaddr.AddressComponent;
 import inet.ipaddr.AddressNetwork.PrefixConfiguration;
-import inet.ipaddr.HostIdentifierException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressSection.IPStringOptions;
 import inet.ipaddr.IPAddressSection.WildcardOptions.WildcardOption;
@@ -42,11 +41,12 @@ import inet.ipaddr.format.string.AddressStringDivision;
 import inet.ipaddr.format.string.AddressStringDivisionSeries;
 import inet.ipaddr.format.string.IPAddressStringDivision;
 import inet.ipaddr.format.string.IPAddressStringDivisionSeries;
+import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressComponentSpliterator;
 import inet.ipaddr.format.util.AddressDivisionWriter;
-import inet.ipaddr.format.util.AddressComponentRangeSpliterator;
 import inet.ipaddr.format.util.AddressSegmentParams;
 import inet.ipaddr.format.util.IPAddressStringWriter;
+import inet.ipaddr.format.validate.BundleLoader;
 import inet.ipaddr.format.validate.ParsedAddressGrouping;
 
 /**
@@ -68,19 +68,8 @@ public abstract class AddressDivisionGroupingBase implements AddressDivisionSeri
 	
 	protected static BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE), LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
 	
-	static ResourceBundle bundle;
-	
-	static {
-		//reuse the same properties file
-		String propertyFileName = "IPAddressResources";
-		String name = HostIdentifierException.class.getPackage().getName() + '.' + propertyFileName;
-		try {
-			bundle = ResourceBundle.getBundle(name);
-		} catch (MissingResourceException e) {
-			System.err.println("bundle " + name + " is missing");
-		}
-	}
-	
+	static ResourceBundle bundle = BundleLoader.loadBundle();
+
 	protected static class ValueCache {
 		/* the address grouping bytes */
 		public byte[] lowerBytes, upperBytes;
