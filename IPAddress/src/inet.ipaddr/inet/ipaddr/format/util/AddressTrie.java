@@ -294,7 +294,7 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 	    CONTAINING, // find a single node whose key contains E
 	    ALL_CONTAINING, // list the nodes whose keys contain E
 	    OVERLAPPING, // list the nodes whose keys contain E or are contained by E
-	    NEAR, // closest match, search trie to get ab added element considered closest according to the trie order.
+	    NEAR, // closest match, search trie to get added element considered closest according to the trie order.
 	    	// Whether one thing is closer than another is determined by the sorted order.
 	    	// For example, for subnet 1.2.0.0/16, 1.2.128.0 is closest address on the high side, 1.2.127.255 is closest address on the low side
 	    CONTAINMENT_NEAR, // closest to match or containment.  An address or subnet contained in an added subnet node is a match.  Otherwise, find the nearest to containment or match.
@@ -1670,21 +1670,22 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		// returns true if handleMatch has nothing more to do after calling this method
 		// the prefix of the given key E is matched entirely by the same bits of the prefix of a key from an existing node.  The existing node key's prefix may be shorter.  The existing node key contains the given key.
 		private boolean handleContains(OpResult<E> result, boolean fromMatch) {
-			if(result.op == Operation.CONTAINING || result.op == Operation.OVERLAPPING) {
+			Operation op = result.op;
+			if(op == Operation.CONTAINING || op == Operation.OVERLAPPING) {
 				result.largestContaining = this;
 				return true;
-			} else if(result.op == Operation.ALL_CONTAINING) {
+			} else if(op == Operation.ALL_CONTAINING) {
 				result.addContaining(this);
 				if(fromMatch) {
 					return true; // if called from a match, we are done, otherwise we need to continue looking for more containing nodes
 				}
-			} else if(result.op == Operation.ADD_UNCONTAINED) {
+			} else if(op == Operation.ADD_UNCONTAINED) {
 				// the key being added is contained in the existing added node, so nothing to do
 				return true;
-			} else if(result.op == Operation.INTERSECTING_SUBTREE_DELETE) {
+			} else if(op == Operation.INTERSECTING_SUBTREE_DELETE) {
 				removeSubtree(result);
 				return true;
-			} else if(result.op == Operation.CONTAINMENT_NEAR) {
+			} else if(op == Operation.CONTAINMENT_NEAR) {
 				E key = result.addr;
 				int bitCount = key.getBitCount();
 				Integer prefixLen = key.getPrefixLength();
@@ -2014,10 +2015,11 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 		
 		private TrieNode<E> matchSubNode(int bitIndex, OpResult<E> result) {
 			E newAddr = result.addr;
+			Operation op = result.op;
 			if(!FREEZE_ROOT && isEmpty()) {
 				if(result.op == Operation.REMAP) {
 					remapNonAdded(result);
-				} else if(result.op == Operation.INSERT || result.op == Operation.ADD_UNCONTAINED) {
+				} else if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 					setKey(newAddr);
 					existingAdded(result);
 				}
@@ -2030,7 +2032,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				TrieNode<E> upper = getUpperSubNode();
 				if(upper == null) {
 					// no match
-					Operation op = result.op;
 					if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 						upper = createNew(newAddr);
 						setUpper(upper);
@@ -2073,7 +2074,6 @@ public abstract class AddressTrie<E extends Address> extends AbstractTree<E> {
 				TrieNode<E> lower = getLowerSubNode();
 				if(lower == null) {
 					// no match
-					Operation op = result.op;
 					if(op == Operation.INSERT || op == Operation.ADD_UNCONTAINED) {
 						lower = createNew(newAddr);
 						setLower(lower);

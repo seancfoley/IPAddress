@@ -11,7 +11,7 @@
     <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="inet.ipaddr.test.TestRunner"/>
     <stringAttribute key="org.eclipse.jdt.launching.MODULE_NAME" value="inet.ipaddr"/>
-    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="fast performance"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="fast performance limited"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="IPAddress"/>
     <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xmx2g"/>
 </launchConfiguration>

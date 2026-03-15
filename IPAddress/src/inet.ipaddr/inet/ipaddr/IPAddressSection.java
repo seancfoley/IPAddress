@@ -2118,21 +2118,21 @@ public abstract class IPAddressSection extends IPAddressDivisionGrouping impleme
 	}
 
 	@Override
-	public  boolean includesZeroBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+	public  boolean includesZeroBits(int fromPrefixBitIndex, int toPrefixBitIndex) {
 		if(getSegmentCount() == 0) {
 			return true;
 		}
 		IPAddressSegment seg = getSegment(0);
-		return includesZeroBits(this, fromBPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
+		return includesZeroBits(this, fromPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
 	}
 
 	@Override
-	public boolean includesMaxBits(int fromBPrefixBitIndex, int toPrefixBitIndex) {
+	public boolean includesMaxBits(int fromPrefixBitIndex, int toPrefixBitIndex) {
 		if(getSegmentCount() == 0) {
 			return true;
 		}
 		IPAddressSegment seg = getSegment(0);
-		return includesMaxBits(this, fromBPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
+		return includesMaxBits(this, fromPrefixBitIndex, toPrefixBitIndex, seg::getSegmentNetworkMask, seg::getSegmentHostMask);
 	}
 	
 	@Override

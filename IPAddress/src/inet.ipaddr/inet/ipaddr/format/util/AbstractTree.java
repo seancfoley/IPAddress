@@ -24,27 +24,16 @@ import java.util.ResourceBundle;
 
 import inet.ipaddr.Address;
 import inet.ipaddr.AddressSegmentSeries;
-import inet.ipaddr.HostIdentifierException;
 import inet.ipaddr.IPAddressSegmentSeries;
 import inet.ipaddr.format.util.AddressTrieOps.AddressTrieAddOps;
 import inet.ipaddr.format.util.BinaryTreeNode.KeyIterator;
+import inet.ipaddr.format.validate.BundleLoader;
 
 abstract class AbstractTree<E extends Address> implements AddressTrieAddOps<E> {
 
 	private static final long serialVersionUID = 1L;
 
-	static ResourceBundle bundle;
-	
-	static {
-		//reuse the same properties file
-		String propertyFileName = "IPAddressResources";
-		String name = HostIdentifierException.class.getPackage().getName() + '.' + propertyFileName;
-		try {
-			bundle = ResourceBundle.getBundle(name);
-		} catch (MissingResourceException e) {
-			System.err.println("bundle " + name + " is missing");
-		}
-	}
+	static ResourceBundle bundle = BundleLoader.loadBundle();
 	
 	static String getMessage(String key) {
 		if(bundle != null) {
