@@ -3,7 +3,7 @@ Java library for handling IP addresses and subnets, both IPv4 and IPv6
 
 IP address and network manipulations, CIDR, address and subnet operations, address ranges, iterators, containment checks, longest prefix match, subnetting, address tries, address collections, and more, with polymorphic code 
 
-1.5 million downloads monthly from Maven Central
+2 million downloads monthly from Maven Central
 
 [Docs](https://seancfoley.github.io/IPAddress/)
 
