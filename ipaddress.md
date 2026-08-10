@@ -184,7 +184,6 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
-| Parse IP strings directly to division groupings | ✅ |  |
 | Prefix Block Allocator | ✅ | ✅ |
 | Serialization | ✅  |  |
 
