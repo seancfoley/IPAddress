@@ -173,15 +173,14 @@ The basic goals remain the same for both Java and Go libraries.  This matrix is 
 | Spliterator and stream iterator alternatives | ✅ |  |
 | Parsing many address and subnet formats |  ✅ | ✅ |
 | String generation of many address and subnet formats |  ✅ | ✅ |
-| Address string collections | ✅ |  |
 | Address increment/decrement/enumerate |  ✅ | ✅ |
 | Masking, reversing, subtracting, intersecting, joining operations |  ✅ | ✅ |
 | Prefix length operations |  ✅ | ✅ |
 | Framework of address interfaces for polymorphic code |  ✅ | ✅ |
 | Address tries | ✅ |  ✅ |
 | Associative address tries | ✅ |  ✅ |
-| Containment trie IP Address collections | ✅ | Future |
-| Sequential range list IP address collections | ✅ | Future |
+| Containment trie IP Address collections | ✅ | ✅ |
+| Sequential range list IP address collections | ✅ | ✅ |
 | Integration with standard library maps and collections | ✅ | ✅  |
 | Parse IP strings directly to sequential ranges | ✅ |  ✅  |
 | UNC Host, DNS, & IPv6 Base 85 string parsing and generation | ✅ | ✅ |
