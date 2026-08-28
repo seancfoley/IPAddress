@@ -2865,8 +2865,7 @@ There is more sample code in a [wiki example for Java](https://github.com/seancf
 &#8203;
 ## Address Framework
 
-Much like there is a Java collections framework, there is an address
-framework to the IPAddress library. It is a unified set of inter-related
+The IPAddress library has an address framework.  You can think of it as being analogous to the Java collections framework, but including data structures that are optimal for address manipulations and collections. It is a unified set of inter-related
 interfaces, abstract implementations, and algorithms for all addresses
 and address components. It allows you to manipulate these items
 independently of implementation details, and provides standard
@@ -2936,16 +2935,37 @@ Meanwhile, just like in Java, other interfaces allow for polymorphism amongst ty
 
 ![](.//media/componentsg.png)
 
-&#8203;
-#### IP Address Aggregation Framework
 
-The overall framework extends from addresses into subnets and the other possible aggregations of addresses that can be created, as shown in the following diagram.  
+&#8203;
+#### Address Aggregation Framework
+
+The overall framework extends from addresses into subnets and the other possible aggregations of addresses that can be created.
+
+Aggregations represent any type that can contain multiple individual addresses, which covers subnets, sequential ranges, and address collections.  
+
+There are two collection options, one being a sequential range list which is backed by sequential ranges, and the other being a containment trie which is a collection backed by a trie.  With both collection types, access to the backing lists or trie data structures is not permitted.  The backing data structures change as addresses are added and removed so that they contain the minimal number of ranges or tries to represent all the addresses in the collection.
+
+&#8203;
+#### Java IP Address Aggregation Framework
+
+The following diagram shows the framework of aggregations and collections in the Java library.   
 
 You can represent individual IP addresses or subnets with `IPAddress`, or with IP-version-specific derivatives.  You can represent a sequential range of IP addresses with `IPAddressSeqRange` and IP-version-specific derivatives.  You can represent any collection of addresses with either an `IPAddressSeqRangeList` backed by a list of sequential ranges, or an `IPAddressContainmentTrie` backed by a trie of CIDR prefix blocks.
 
 ![](.//media/aggregations.png)
 
-With a given address, subnet, or sequential range, you could choose to add all its contained individual addresses to a collection.  Alternatively, the shared interface `IPAddressAggregation` allows you to store the collection alongside the address, subnet, or sequential range in some other data structure.
+With a given address, subnet, or sequential range, you could choose to add all its contained individual addresses to a collection.  Alternatively, the shared interface `IPAddressAggregation` allows you to store collections alongside addresses, subnets, or sequential ranges in a data structure.
+
+&#8203;
+#### Go IP Address Aggregation Framework
+
+The framework of aggregations and collections in the Go library makes use of generics.  This results in fewer struct types defined in the source code, with more interfaces defined to serve as the type parameters for the generic types.  Overall, this allows for fully functional generic code with a generic type for the IP address version, and possibly another generic type to represent a collection or aggregation.  
+
+You can represent individual IP addresses or subnets with `IPAddress`, or with IP-version-specific derivatives.  You can represent a sequential range of IP addresses with `SequentialRange[T]` where `T` is `IPAddressTypeConstraint` or a specific concrete type.  There are aliases defined for the different choices of concrete types for `T`, namely `IPAddressSeqRange`, `IPv4AddressSeqRange` and `IPv6AddressSeqRange`.  The aliases are not shown in the diagram.  You can represent any collection of addresses with either a `SequentialRangeList[T]` backed by a list of sequential ranges, or an `ContainmentTrie[T]` backed by a trie of CIDR prefix blocks.  One again, there are aliases defined, but not shown in the diagram, for the two collection types and for the three possible choices of the address type `T`: `IPAddressSeqRangeList`, `IPv4AddressSeqRangeList`, `IPv6AddressSeqRangeList`, `IPAddressContainmentTrie`, `IPv4AddressContainmentTrie` and `IPv6AddressContainmentTrie`.
+
+![](.//media/aggregationsg.png)
+
+There are examples of generic functions in the wiki, and also in the test code that is included with the library, specifically inside the source file collectiontest.go, such as the function [`testEmptyCollections`](https://github.com/seancfoley/ipaddress-go/blob/v1.8.3/ipaddr/test/collectiontest.go#L3603-L3617) which shows how to write a generic function operating on any collection type using any IP address type.  Starting with Go version 1.27 it will be possible to create generic methods as well.
 
 
 &#8203;
